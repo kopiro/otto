@@ -1,0 +1,29 @@
+{
+  "name": "otto-ai",
+  "version": "1.0.0",
+  "description": "### Simple AI for Otto",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kopiro/otto-ai.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kopiro/otto-ai/issues"
+  },
+  "homepage": "https://github.com/kopiro/otto-ai#readme",
+  "dependencies": {
+    "@google-cloud/speech": "^0.6.0",
+    "async": "^2.1.4",
+    "node-record-lpcm16": "^0.2.0",
+    "node-wit": "^4.2.0",
+    "request": "^2.79.0",
+    "say": "^0.11.0",
+    "sqlite3": "^3.1.8",
+    "underscore": "^1.8.3"
+  }
+}
