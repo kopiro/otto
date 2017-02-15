@@ -1,9 +1,9 @@
 var moment = require('moment');
 moment.locale('it');
 
-
 module.exports = function(request) {
 	console.info('AI.setAlarm', JSON.stringify(request));
+	
 	return new Promise(function(resolve, reject) {
 
 		var when = moment(request.entities.datetime[0].value);
