@@ -36,7 +36,7 @@ const WitClient = new Wit({
 
 let context = {};
 
-const IO = require('./io/' + config.io);
+const IO = require('./io/' + config.io_driver);
 
 IO.onInput(({sessionId, text}) => {
 
