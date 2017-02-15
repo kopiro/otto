@@ -4,7 +4,11 @@ const _config = config.io.telegram;
 const bot = new TelegramBot(_config.token, _config.options);
 
 if (_config.webhook) {
-	bot.setWebHook(_config.webhook.url, _config.webhook.options);
+	var listenUrl = _config.webhook.url + _config.token;
+	bot.setWebHook(listenUrl, _config.webhook.options);
+	bot.getWebHookInfo().then(function(e){
+		console.info('IO.Telegram', 'Webhook status', e); 
+	});
 }
 
 let callback;
