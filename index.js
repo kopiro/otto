@@ -1,4 +1,4 @@
-var IO = require('./io');
+global.config = require('./config.json');
 
 [
 [ 'warn',  '\x1b[35m' ],
@@ -12,7 +12,6 @@ var IO = require('./io');
 	console[method] = (console[method] || console.log).bind(console, color, '[' + method.toUpperCase() + ']', reset);
 });
 
-const config = require('./config.json');
 const {Wit, log, interactive} = require('node-wit');
 
 const WitClient = new Wit({
@@ -22,7 +21,10 @@ const WitClient = new Wit({
 
 		send(request, response) {
 			console.info('AI.send', request, response);
-			return IO.output(response.text);
+			return IO.output({
+				sessionId: request.sessionId,
+				text: response.text
+			});
 		},
 
 		sayHello: require('./ai/sayHello'),
@@ -32,31 +34,22 @@ const WitClient = new Wit({
 	},
 });
 
-let sessionId = Date.now();
 let context = {};
 
-function converse() {
-	console.info('Starting conversation');
+const IO = require('./io/' + config.io);
 
-	IO.input()
+IO.onInput(({sessionId, text}) => {
 
-	.then(function(data) {
-		return WitClient.runActions(sessionId, data.text, context);
-	})
-
-	.catch(function(err) {
+	WitClient.runActions(sessionId, text, context)
+	.catch((err) => {
 		context = {};
-		sessionId = Date.now();
 		console.error('Resetting conversation');
-
-		if (err.text) {
-			return IO.output(err.text);
-		}
+		return IO.output(err);
 	})
+	.then(function() {
+		IO.startInput();
+	});
 
-	// Finally
-	.then(converse);
-}
+});
 
-converse();
-// interactive(WitClient);
+IO.startInput();

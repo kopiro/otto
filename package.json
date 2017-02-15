@@ -22,6 +22,7 @@
     "moment": "^2.17.1",
     "moment-timezone": "^0.5.11",
     "node-record-lpcm16": "^0.2.0",
+    "node-telegram-bot-api": "^0.27.0",
     "node-wit": "^4.2.0",
     "request": "^2.79.0",
     "say": "^0.11.0",
