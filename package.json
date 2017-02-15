@@ -19,6 +19,8 @@
   "dependencies": {
     "@google-cloud/speech": "^0.6.0",
     "async": "^2.1.4",
+    "moment": "^2.17.1",
+    "moment-timezone": "^0.5.11",
     "node-record-lpcm16": "^0.2.0",
     "node-wit": "^4.2.0",
     "request": "^2.79.0",
