@@ -17,6 +17,7 @@ const {Wit, log, interactive} = require('node-wit');
 
 const WitClient = new Wit({
 	accessToken: config.WIT_AI_TOKEN,
+	// logger: new log.Logger(log.DEBUG)
 	actions: {
 
 		send(request, response) {
@@ -24,59 +25,11 @@ const WitClient = new Wit({
 			return IO.output(response.text);
 		},
 
-		sayHello(request) {
-			console.info('AI.sayHello', request);
-			return new Promise(function(resolve, reject) {
-				resolve({
-					user: request.entities.contact[0].value
-				});
-			});
-		},
-
-		tellNameOf(request) {
-			console.info('AI.tellNameOf', request);
-			return new Promise(function(resolve, reject) {
-				var who = request.entities.contact[0].value.toLowerCase();
-				switch (who) {
-					case 'mamma':
-					resolve({ phrase: 'La mia mamma è Valentina' });
-					break;
-					case 'papà':
-					resolve({ phrase: 'Il mio papà è Flavio!' });
-					break;
-					default:
-					reject({ 
-						text: 'Non so chi sia ' + who
-					});
-					break;					
-				}
-			});
-		},
-
-		setAlarm(request) {
-			console.info('AI.setAlarm', JSON.stringify(request));
-			return new Promise(function(resolve, reject) {
-				var moment = require('moment');
-				moment.locale('it');
-
-				var when = moment(request.entities.datetime[0].value);
-				if (when.diff(moment()) < 0) {
-					reject({
-						text: "Non posso ancora andare indietro nel tempo"
-					});
-					return;
-				}
-
-				var when_human = when.calendar();
-
-				resolve({
-					alarmTime: when_human
-				});
-			});
-		}
+		sayHello: require('./ai/sayHello'),
+		tellNameOf: require('./ai/tellNameOf'),
+		setAlarm: require('./ai/setAlarm'),
 
 	},
-	// logger: new log.Logger(log.DEBUG)
 });
 
 let sessionId = Date.now();
