@@ -24,6 +24,7 @@ module.exports = function calculateMathExpr(request) {
 
 					console.info('AI.calculateMathExpr', 're-quering with didyoumean');
 					calculateMathExpr({
+						sessionId: request.sessionId,
 						entities: {
 							math_expression: [ { value: result.queryresult.didyoumeans[0].didyoumean[0]._ } ]
 						}
