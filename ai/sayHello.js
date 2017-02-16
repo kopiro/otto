@@ -1,4 +1,4 @@
-module.exports = function(request) {
+module.exports = function sayHello(request) {
 	console.info('AI.sayHello', request);
 	return new Promise(function(resolve, reject) {
 		resolve({

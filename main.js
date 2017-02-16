@@ -1,5 +1,5 @@
 global.config = require('./config.json');
-global.IO = require('./io/' + config.io_driver);
+global.IO = require('./io/' + (process.argv[2] || config.io_driver));
 
 [
 [ 'warn',  '\x1b[35m' ],
@@ -21,7 +21,8 @@ const WitClient = new Wit({
 	actions: {
 
 		send(request, response) {
-			console.info('AI.send', request, response);
+			console.info('AI.send.request', JSON.stringify(request));
+			console.info('AI.send.response', JSON.stringify(response));
 			response.sessionId = request.sessionId;
 			return IO.output(response);
 		},
@@ -31,6 +32,7 @@ const WitClient = new Wit({
 		setAlarm: require('./ai/setAlarm'),
 		playSong: require('./ai/playSong'),
 		pauseSong: require('./ai/pauseSong'),
+		calculateMathExpr: require('./ai/calculateMathExpr'),
 
 	},
 });

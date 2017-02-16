@@ -24,6 +24,7 @@
     "node-record-lpcm16": "^0.2.0",
     "node-telegram-bot-api": "^0.27.0",
     "node-wit": "^4.2.0",
+    "node-wolfram": "0.0.1",
     "request": "^2.79.0",
     "say": "^0.11.0",
     "spotify-node-applescript": "^1.0.0",

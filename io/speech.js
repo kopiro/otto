@@ -5,7 +5,7 @@ const Speech = require('@google-cloud/speech')({
 });
 
 let AI_NAME_REGEX = /.*(otto|8|8:00|hey) /;
-// AI_NAME_REGEX = /^/;
+AI_NAME_REGEX = /^/;
 
 let timeout;
 let callback;

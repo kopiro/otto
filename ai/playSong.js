@@ -4,22 +4,28 @@ var SpotifyWebApi = require('spotify-web-api-node');
 var spotifyApi = new SpotifyWebApi(_config.options);
 var spotifyAppleScript = require('spotify-node-applescript');
 
-module.exports = function(request) {
+module.exports = function playSong(request) {
 	return new Promise(function(resolve, reject) {
-		var song = request.entities.playableitem[0].value;
-		console.info('AI.playSong', 'search', song);
+		var query = request.entities.playableitem[0].value;
+		console.info('AI.playSong', 'search', query);
 
-		spotifyApi.searchTracks(song)
+		spotifyApi.searchTracks(query)
 		.then(function(data) {
 
-			var url = data.body.tracks.items[0].uri;
-			console.info('AI.playSong', 'result url', url);
+			try {
 
-			spotifyAppleScript.playTrack(url);
-			resolve();
+				var url = data.body.tracks.items[0].uri;
+				console.info('AI.playSong', 'result url', url);
+
+				spotifyAppleScript.playTrack(url);
+				resolve();
+
+			} catch (err) {
+				reject({ text: 'Non riesco a riprodurre ' + query });
+			}
 
 		}, function(err) {
-			console.error(err);
+			reject({ text: 'Non riesco a riprodurre ' + query });
 		});
 	});
 };
