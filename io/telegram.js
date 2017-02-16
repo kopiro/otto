@@ -33,6 +33,12 @@ exports.startInput = function() {
 	});
 };
 
-exports.output = function({ sessionId, text }) {
-	bot.sendMessage(sessionId, text);
+exports.output = function(e) {
+	console.ai('IO.Telegram', 'output', e);
+
+	if (e.text) {
+		bot.sendMessage(e.sessionId, e.text);
+	} else if (e.spotify) {
+		bot.sendMessage(e.sessionId, e.spotify.external_urls.spotify);
+	}
 };

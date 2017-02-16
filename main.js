@@ -48,6 +48,11 @@ IO.onInput(({ sessionId, text }) => {
 
 	WitClient.runActions(sessionId, text, context)
 
+	.then(function(response) {
+		response.sessionId = sessionId;
+		return IO.output(response);
+	})
+
 	.catch((err) => {
 		context = {};
 		console.error('Resetting conversation for errors', err);

@@ -85,16 +85,16 @@ exports.startInput = function() {
 	recordingSteam.pipe(speechRecognizer);
 };
 
-exports.output = function({ text }) {
-	if (text == null) return;
-
-	console.ai(text);
-
-	return new Promise(function(resolve, reject) {
-		let childD = child_process.spawn('./out-speech.sh', [ text ]);
-		childD.addListener('exit', function(code, signal) {
-			childD = null;
-			resolve();
+exports.output = function(e) {
+	console.ai('IO.Speech', e);
+	if (e.text) {
+		return new Promise((resolve, reject) => {
+			let childD = child_process.spawn('./out-speech.sh', [ e.text ]);
+			childD.addListener('exit', resolve);
 		});
-	});
+	} else if (e.spotify) {
+		return new Promise((resolve, reject) => {
+			require('spotify-node-applescript').playTrack(e.spotify.uri, resolve);
+		});
+	}
 };

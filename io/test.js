@@ -22,9 +22,14 @@ exports.startInput = function() {
 	});
 };
 
-exports.output = function({text}) {
-	return new Promise((resolve, reject) => {
-		console.ai(text);
-		resolve();
-	});
+exports.output = function(e) {
+	console.ai('AI.Test', 'output', e);
+
+	if (e.text) {
+		return Promise.resolve();
+	} else if (e.spotifyUrl) {
+		return new Promise((resolve, reject) => {
+			require('spotify-node-applescript').playTrack(e.spotify.uri, resolve);
+		});
+	}
 };
