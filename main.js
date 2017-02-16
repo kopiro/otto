@@ -23,7 +23,7 @@ const WitClient = new Wit({
 		send(request, response) {
 			console.info('AI.send.request', JSON.stringify(request));
 			console.info('AI.send.response', JSON.stringify(response));
-			response.sessionId = request.sessionId;
+			response.sessionId = response.sessionId || request.sessionId;
 			return IO.output(response);
 		},
 
@@ -50,7 +50,7 @@ IO.onInput(({ sessionId, text }) => {
 
 	.catch((err) => {
 		context = {};
-		console.error('Resetting conversation');
+		console.error('Resetting conversation for errors', err);
 		return IO.output(err);
 	})
 

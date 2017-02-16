@@ -33,6 +33,6 @@ exports.startInput = function() {
 	});
 };
 
-exports.output = function({sessionId, text}) {
+exports.output = function({ sessionId, text }) {
 	bot.sendMessage(sessionId, text);
 };

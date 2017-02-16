@@ -25,7 +25,10 @@ module.exports = function tellNameOf(request) {
 			break;
 
 			default:
-			reject({ text: 'Non so chi sia ' + who });
+			reject({ 
+				sessionId: request.sessionId,
+				text: 'Non so chi sia ' + who 
+			});
 			break;		
 
 		}

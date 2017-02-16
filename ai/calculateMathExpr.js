@@ -30,7 +30,12 @@ module.exports = function calculateMathExpr(request) {
 						}
 					})
 					.then(resolve)
-					.catch(reject);
+					.catch(function() {
+						reject({ 
+							sessionId: request.sessionId,
+							text: 'Non riesco a fare questo calcolo per te' 
+						});
+					});
 
 				} else {
 					throw {};
@@ -38,7 +43,10 @@ module.exports = function calculateMathExpr(request) {
 
 			} catch (ex) {
 				console.error('AI.calculateMathExpr', ex);
-				reject({ text: 'Non riesco a fare questo calcolo per te' });
+				reject({ 
+					sessionId: request.sessionId,
+					text: 'Non riesco a fare questo calcolo per te' 
+				});
 			}
 		});
 	});
