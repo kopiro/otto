@@ -1,4 +1,5 @@
 global.config = require('./config.json');
+global.IO = require('./io/' + config.io_driver);
 
 [
 [ 'warn',  '\x1b[35m' ],
@@ -12,7 +13,7 @@ global.config = require('./config.json');
 	console[method] = (console[method] || console.log).bind(console, color, '[' + method.toUpperCase() + ']', reset);
 });
 
-const {Wit, log, interactive} = require('node-wit');
+const { Wit, log, interactive } = require('node-wit');
 
 const WitClient = new Wit({
 	accessToken: config.WIT_AI_TOKEN,
@@ -21,31 +22,37 @@ const WitClient = new Wit({
 
 		send(request, response) {
 			console.info('AI.send', request, response);
-			return IO.output({
-				sessionId: request.sessionId,
-				text: response.text
-			});
+			response.sessionId = request.sessionId;
+			return IO.output(response);
 		},
 
 		sayHello: require('./ai/sayHello'),
 		tellNameOf: require('./ai/tellNameOf'),
 		setAlarm: require('./ai/setAlarm'),
+		playSong: require('./ai/playSong'),
+		pauseSong: require('./ai/pauseSong'),
 
 	},
 });
 
 let context = {};
 
-const IO = require('./io/' + config.io_driver);
+IO.onInput(({ sessionId, text }) => {
 
-IO.onInput(({sessionId, text}) => {
+	if (!text) {
+		IO.startInput();
+		return;
+	}
 
 	WitClient.runActions(sessionId, text, context)
+
 	.catch((err) => {
 		context = {};
 		console.error('Resetting conversation');
 		return IO.output(err);
 	})
+
+	// Finally
 	.then(function() {
 		IO.startInput();
 	});

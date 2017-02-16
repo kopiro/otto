@@ -7,7 +7,7 @@ if (_config.webhook) {
 	var listenUrl = _config.webhook.url + _config.token;
 	bot.setWebHook(listenUrl, _config.webhook.options);
 	bot.getWebHookInfo().then(function(e){
-		console.info('IO.Telegram', 'Webhook status', e); 
+		console.info('IO.Telegram', 'webhook status', e); 
 	});
 }
 

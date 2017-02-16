@@ -1,15 +1,16 @@
 const child_process = require('child_process');
 const Recorder = require('node-record-lpcm16');
-
 const Speech = require('@google-cloud/speech')({
 	keyFilename: './gcloud.json'
 });
 
-let AI_NAME_REGEX = /.*(otto|8|8:00) /;
-AI_NAME_REGEX = /^/;
+let AI_NAME_REGEX = /.*(otto|8|8:00|hey) /;
+// AI_NAME_REGEX = /^/;
 
 let timeout;
 let callback;
+let processing;
+let recognized;
 
 exports.onInput = function(cb) {
 	callback = cb;
@@ -18,8 +19,8 @@ exports.onInput = function(cb) {
 exports.startInput = function() {
 	console.info('IO.Speech', 'start');
 
-	let processing = true;
-	let recognized = false;
+	processing = true;
+	recognized = false;
 	clearTimeout(timeout);
 
 	const speechRecognizer = Speech.createRecognizeStream({
@@ -39,30 +40,34 @@ exports.startInput = function() {
 			break;
 
 			case 'ENDPOINTER_EVENT_UNSPECIFIED':
-			let phrase = data.results;
-			console.info('IO.Speech', 'Recognized: ' + phrase);
+			let text = data.results;
+			console.info('IO.Speech', 'recognized: ' + text);
 
-			if (AI_NAME_REGEX.test(phrase)) {
-				console.info('IO.Speech', 'Keyword activation!');
+			if (AI_NAME_REGEX.test(text)) {
+				console.info('IO.Speech', 'activation');
+				console.user(text);
+
 				recognized = true;
-				phrase = phrase.replace(AI_NAME_REGEX, '');
-
-				console.user(phrase);
+				text = text.replace(AI_NAME_REGEX, '');
 
 				callback({
-					text: phrase
+					text: text
 				});
+			} else {
+				console.info('IO.Speech', 'no activation');
 			}
+			// no-break
 
 			case 'END_OF_UTTERANCE':
 			case 'END_OF_AUDIO':
 			if (processing) {
+				console.info('IO.Speech', 'stopped listening');
 				processing = false;
-				console.info('IO.Speech', 'Stopped listening');
 				Recorder.stop();
 				
 				timeout = setTimeout(function() {
 					if (!recognized) {
+						console.error('IO.Speech', 'not recognized');
 						callback({
 							error: "No word recognized by speech recognizer"
 						});
@@ -80,13 +85,16 @@ exports.startInput = function() {
 	recordingSteam.pipe(speechRecognizer);
 };
 
-exports.output = function({text}) {
+exports.output = function({ text }) {
+	if (text == null) return;
+
+	console.ai(text);
+
 	return new Promise(function(resolve, reject) {
-		console.ai(text);
 		let childD = child_process.spawn('./out-speech.sh', [ text ]);
-		childD.addListener('exit', function (code, signal) {
+		childD.addListener('exit', function(code, signal) {
 			childD = null;
-			resolve(null);
+			resolve();
 		});
 	});
 };

@@ -1,9 +1,16 @@
 const fs = require('fs');
 
-let strings = require('fs').readFileSync('../in.txt').toString().split("\n");
+let strings = fs.readFileSync('in.txt').toString().split("\n");
+let callback;
 
-exports.onInput = function(callback) {
-	if (strings.length == 0) {
+exports.onInput = function(cb) {
+	callback = cb;
+	
+};
+
+exports.startInput = function() {
+	if (strings.length === 0) {
+		console.info('IO.Test', 'end');
 		process.exit();
 	}
 
