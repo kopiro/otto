@@ -1,0 +1,21 @@
+{
+	"WIT_AI_TOKEN": "MQDG4VTMETQ2C4SRZEWBBSIYL25IQXV3",
+	"io_driver": "test",
+	"io": {
+		"telegram": {
+			"token": "__FILL_HERE__",
+			"options":{
+				"polling": true
+			}
+		}
+	},
+	"ai": {
+		"spotify": {
+			"clientId" : "__FILL_HERE__",
+			"clientSecret" : "__FILL_HERE__"
+		},
+		"wolfram": {
+			"appId": "__FILL_HERE__"
+		}
+	}
+}

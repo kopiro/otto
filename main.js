@@ -1,17 +1,4 @@
-global.config = require('./config.json');
-global.IO = require('./io/' + (process.argv[2] || config.io_driver));
-
-[
-[ 'warn',  '\x1b[35m' ],
-[ 'error', '\x1b[31m' ],
-[ 'info',   '\x1b[2m' ],
-[ 'debug',   '\x1b[30m' ],
-[ 'user',   '\x1b[35m' ],
-[ 'ai',   '\x1b[35m' ],
-].forEach(function(pair) {
-	var method = pair[0], reset = '\x1b[0m', color = '\x1b[36m' + pair[1];
-	console[method] = (console[method] || console.log).bind(console, color, '[' + method.toUpperCase() + ']', reset);
-});
+require('./boot');
 
 const { Wit, log, interactive } = require('node-wit');
 
@@ -33,6 +20,7 @@ const WitClient = new Wit({
 		playSong: require('./ai/playSong'),
 		pauseSong: require('./ai/pauseSong'),
 		calculateMathExpr: require('./ai/calculateMathExpr'),
+		getPhoto: require('./ai/getPhoto')
 
 	},
 });
@@ -48,7 +36,7 @@ IO.onInput(({ sessionId, text }) => {
 
 	WitClient.runActions(sessionId, text, context)
 
-	.then(function(response) {
+	.then((response) => {
 		response.sessionId = sessionId;
 		return IO.output(response);
 	})

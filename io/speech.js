@@ -86,7 +86,8 @@ exports.startInput = function() {
 };
 
 exports.output = function(e) {
-	console.ai('IO.Speech', e);
+	console.ai('IO.Speech', 'output', e);
+	
 	if (e.text) {
 		return new Promise((resolve, reject) => {
 			let childD = child_process.spawn('./out-speech.sh', [ e.text ]);
