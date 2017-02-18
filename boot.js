@@ -3,7 +3,7 @@ global.IO = require('./io/' + (process.argv[2] || config.io_driver));
 global.Memory = require('./memory');
 global._ = require('underscore');
 
-global.AI_NAME_REGEX = /otto|8|8:00/;
+global.AI_NAME_REGEX = /(otto|8|8:00)/;
 
 [
 [ 'warn',  '\x1b[35m' ],

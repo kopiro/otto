@@ -2,8 +2,8 @@ module.exports = {
 	sayHello: require('./ai/sayHello'),
 	tellNameOf: require('./ai/tellNameOf'),
 	setAlarm: require('./ai/setAlarm'),
-	playSong: require('./ai/playSong'),
+	mediaPlay: require('./ai/mediaPlay'),
 	pauseSong: require('./ai/pauseSong'),
 	calculateMathExpr: require('./ai/calculateMathExpr'),
-	getPhoto: require('./ai/getPhoto')
+	photoSend: require('./ai/photoSend')
 };

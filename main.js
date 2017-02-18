@@ -24,7 +24,7 @@ IO.onInput(({ sessionId, text }) => {
 		console.debug(JSON.stringify(response, null, 2));
 		let {result} = response;
 
-		if (result.action) {
+		if (result.action && AI[result.action]) {
 			AI[result.action](result)
 			.then(function(out) {
 				out.sessionId = sessionId;
@@ -32,11 +32,17 @@ IO.onInput(({ sessionId, text }) => {
 			})
 			.catch(function(err) {
 				err.sessionId = sessionId;
-				IO.output(out).then(IO.startInput);
+				IO.output(err).then(IO.startInput);
 			});
 		} else if (result.fulfillment.speech) {
 			let out = {
 				text: result.fulfillment.speech
+			};
+			out.sessionId = sessionId;
+			IO.output(out).then(IO.startInput);
+		} else {
+			let out = {
+				text: "Non ti capisco, scusami"
 			};
 			out.sessionId = sessionId;
 			IO.output(out).then(IO.startInput);
@@ -47,7 +53,7 @@ IO.onInput(({ sessionId, text }) => {
 	request.on('error', function(err) {
 		context = {};
 		console.error(err);
-		IO.output(err);
+		IO.output(err).then(IO.startInput);
 	});
 
 	request.end();

@@ -1,6 +1,6 @@
 module.exports = function getPhoto(request) {
 	return new Promise((resolve, reject) => {
-		console.info('AI.getPhoto', request);
+		console.info('AI.photoSend', request);
 		let {tag = [{value:null}], location=[{value:null}]} = request.entities;
 		let query = null;
 		query = tag[0].value || location[0].value;
@@ -13,7 +13,6 @@ module.exports = function getPhoto(request) {
 		})
 		.catch((err) => {
 			reject({
-				sessionId: request.sessionId,
 				text: 'Non ho ricordi di ' + tag
 			});
 		});
