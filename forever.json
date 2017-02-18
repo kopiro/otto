@@ -1,6 +1,5 @@
 {
     "uid": "otto",
     "append": true,
-    "watch": true,
     "script": "main.js"
 }
