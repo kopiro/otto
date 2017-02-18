@@ -3,9 +3,9 @@ const _config = config.ai.spotify;
 var SpotifyWebApi = require('spotify-web-api-node');
 var spotifyApi = new SpotifyWebApi(_config.options);
 
-module.exports = function playSong(request) {
+module.exports = function playSong(e) {
 	return new Promise(function(resolve, reject) {
-		var query = request.entities.playableitem[0].value;
+		var query = e.parameters['music-artist'];
 		console.info('AI.playSong', 'search', query);
 
 		spotifyApi.searchTracks(query)
@@ -18,14 +18,12 @@ module.exports = function playSong(request) {
 				});
 			} catch (err) {
 				reject({ 
-					sessionId: request.sessionId,
 					text: 'Non riesco a riprodurre ' + query 
 				});
 			}
 
 		}, function(err) {
 			reject({ 
-				sessionId: request.sessionId,
 				text: 'Non riesco a riprodurre ' + query 
 			});
 		});

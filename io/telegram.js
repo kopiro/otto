@@ -35,10 +35,13 @@ exports.startInput = function() {
 
 exports.output = function(e) {
 	console.ai('IO.Telegram', 'output', e);
-
-	if (e.text) {
-		bot.sendMessage(e.sessionId, e.text);
-	} else if (e.spotify) {
-		bot.sendMessage(e.sessionId, e.spotify.external_urls.spotify);
-	}
+	
+	return new Promise((resolve, reject) => {
+		if (e.text) {
+			bot.sendMessage(e.sessionId, e.text);
+		} else if (e.spotify) {
+			bot.sendMessage(e.sessionId, e.spotify.external_urls.spotify);
+		}
+		resolve();
+	});
 };

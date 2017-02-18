@@ -2,10 +2,10 @@ const fs = require('fs');
 
 let strings = fs.readFileSync('in.txt').toString().split("\n");
 let callback;
+let sessionId = Date.now();
 
 exports.onInput = function(cb) {
 	callback = cb;
-	
 };
 
 exports.startInput = function() {
@@ -18,18 +18,21 @@ exports.startInput = function() {
 	console.user(msg);
 
 	callback({
+		sessionId: sessionId,
 		text: msg
 	});
 };
 
 exports.output = function(e) {
-	console.ai('AI.Test', 'output', e);
+	console.ai('AI.Test', 'output', JSON.stringify(e, null, 2));
 
 	if (e.text) {
 		return Promise.resolve();
-	} else if (e.spotifyUrl) {
+	} else if (e.spotify) {
 		return new Promise((resolve, reject) => {
 			require('spotify-node-applescript').playTrack(e.spotify.uri, resolve);
 		});
+	} else {
+		return Promise.resolve();
 	}
 };

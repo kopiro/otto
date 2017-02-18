@@ -1,57 +1,56 @@
 require('./boot');
 
-const { Wit, log, interactive } = require('node-wit');
-
-const WitClient = new Wit({
-	accessToken: config.WIT_AI_TOKEN,
-	// logger: new log.Logger(log.DEBUG)
-	actions: {
-
-		send(request, response) {
-			console.info('AI.send.request', JSON.stringify(request));
-			console.info('AI.send.response', JSON.stringify(response));
-			response.sessionId = response.sessionId || request.sessionId;
-			return IO.output(response);
-		},
-
-		sayHello: require('./ai/sayHello'),
-		tellNameOf: require('./ai/tellNameOf'),
-		setAlarm: require('./ai/setAlarm'),
-		playSong: require('./ai/playSong'),
-		pauseSong: require('./ai/pauseSong'),
-		calculateMathExpr: require('./ai/calculateMathExpr'),
-		getPhoto: require('./ai/getPhoto')
-
-	},
+let AI = require('./ai');
+var app = require('apiai')(config.APIAI_TOKEN, {
+	language: 'it'
 });
 
 let context = {};
 
 IO.onInput(({ sessionId, text }) => {
 
-	if (!text) {
+	if (text == null) {
 		IO.startInput();
 		return;
 	}
 
-	WitClient.runActions(sessionId, text, context)
+	text = text.replace(AI_NAME_REGEX, '');
 
-	.then((response) => {
-		response.sessionId = sessionId;
-		return IO.output(response);
-	})
-
-	.catch((err) => {
-		context = {};
-		console.error('Resetting conversation for errors', err);
-		return IO.output(err);
-	})
-
-	// Finally
-	.then(function() {
-		IO.startInput();
+	let request = app.textRequest(text, {
+		sessionId: sessionId
 	});
 
+	request.on('response', function(response) {
+		console.debug(JSON.stringify(response, null, 2));
+		let {result} = response;
+
+		if (result.action) {
+			AI[result.action](result)
+			.then(function(out) {
+				out.sessionId = sessionId;
+				IO.output(out).then(IO.startInput);
+			})
+			.catch(function(err) {
+				err.sessionId = sessionId;
+				IO.output(out).then(IO.startInput);
+			});
+		} else if (result.fulfillment.speech) {
+			let out = {
+				text: result.fulfillment.speech
+			};
+			out.sessionId = sessionId;
+			IO.output(out).then(IO.startInput);
+		}
+		
+	});
+
+	request.on('error', function(err) {
+		context = {};
+		console.error(err);
+		IO.output(err);
+	});
+
+	request.end();
 });
 
 IO.startInput();

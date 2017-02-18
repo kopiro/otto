@@ -4,9 +4,6 @@ const Speech = require('@google-cloud/speech')({
 	keyFilename: './gcloud.json'
 });
 
-let AI_NAME_REGEX = /.*(otto|8|8:00|hey) /;
-AI_NAME_REGEX = /^/;
-
 let timeout;
 let callback;
 let processing;
@@ -43,19 +40,16 @@ exports.startInput = function() {
 			let text = data.results;
 			console.info('IO.Speech', 'recognized: ' + text);
 
-			if (AI_NAME_REGEX.test(text)) {
-				console.info('IO.Speech', 'activation');
-				console.user(text);
+			//if (AI_NAME_REGEX.test(text)) {
+			console.info('IO.Speech', 'activation');
+			console.user(text);
 
-				recognized = true;
-				text = text.replace(AI_NAME_REGEX, '');
+			recognized = true;
 
-				callback({
-					text: text
-				});
-			} else {
-				console.info('IO.Speech', 'no activation');
-			}
+			callback({
+				sessionId: Date.now(),
+				text: text
+			});
 			// no-break
 
 			case 'END_OF_UTTERANCE':
@@ -79,14 +73,13 @@ exports.startInput = function() {
 		}
 	});
 
-	let recordingSteam = Recorder.start({
+	Recorder.start({
 		sampleRate: 16000
-	});
-	recordingSteam.pipe(speechRecognizer);
+	}).pipe(speechRecognizer);
 };
 
 exports.output = function(e) {
-	console.ai('IO.Speech', 'output', e);
+	console.ai('IO.Speech', 'output', JSON.stringify(e, null, 2));
 	
 	if (e.text) {
 		return new Promise((resolve, reject) => {
@@ -97,5 +90,7 @@ exports.output = function(e) {
 		return new Promise((resolve, reject) => {
 			require('spotify-node-applescript').playTrack(e.spotify.uri, resolve);
 		});
+	} else {
+		return Promise.resolve();
 	}
 };
