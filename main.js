@@ -21,26 +21,38 @@ IO.onInput(({ sessionId, text }) => {
 	});
 
 	request.on('response', function(response) {
-		console.debug(JSON.stringify(response, null, 2));
 		let {result} = response;
+		console.debug(JSON.stringify(result, null, 2));
 
-		if (result.action && AI[result.action]) {
+		if (_.isFunction(AI[result.action])) {
+			console.info(`Calling AI.${result.action}()`);
+
 			AI[result.action](result)
 			.then(function(out) {
+				console.info(`Result of AI.${result.action}()`, JSON.stringify(out, null, 2));
+				
 				out.sessionId = sessionId;
 				IO.output(out).then(IO.startInput);
 			})
 			.catch(function(err) {
+				console.error(`Error in of AI.${result.action}()`, JSON.stringify(err, null, 2));
+
 				err.sessionId = sessionId;
 				IO.output(err).then(IO.startInput);
 			});
+
 		} else if (result.fulfillment.speech) {
+			console.info(`Direct response = ${result.fulfillment.speech}`);
+
 			let out = {
 				text: result.fulfillment.speech
 			};
 			out.sessionId = sessionId;
 			IO.output(out).then(IO.startInput);
+
 		} else {
+			console.error(`No strategy found`);
+
 			let out = {
 				text: "Non ti capisco, scusami"
 			};

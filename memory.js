@@ -5,7 +5,7 @@ exports.getPhotoByTag = function(tag) {
 	return new Promise((resolve, reject) => {
 		let stmt = db.prepare("SELECT * FROM photos WHERE tags LIKE ?");
 		let photo = stmt.get([ '%' + tag + '%' ], function(err, photo) {
-			console.info('Memory', photo);
+			console.debug('Memory.getPhotoByTag', photo);
 
 			if (photo == null) {
 				reject();

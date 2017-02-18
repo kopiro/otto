@@ -1,19 +1,25 @@
-module.exports = function getPhoto(request) {
+module.exports = function(e) {
 	return new Promise((resolve, reject) => {
-		console.info('AI.photoSend', request);
-		let {tag = [{value:null}], location=[{value:null}]} = request.entities;
-		let query = null;
-		query = tag[0].value || location[0].value;
+		console.info('AI.photoSend', e);
+		let {parameters} = e;
+
+		let query;
+
+		if (parameters.photo_tag) {
+			query = parameters.photo_tag;
+		} else if (parameters['geo-city']) {
+			query = parameters['geo-city'];
+		}
 
 		Memory.getPhotoByTag(query)
 		.then((photo) => {
 			resolve({
-				url: photo
+				text: `Ecco una mia bella foto ${photo.url}`
 			});
 		})
 		.catch((err) => {
 			reject({
-				text: 'Non ho ricordi di ' + tag
+				text: 'Non ho ricordi di questa cosa'
 			});
 		});
 	});
