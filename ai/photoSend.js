@@ -1,7 +1,7 @@
 module.exports = function(e) {
 	return new Promise((resolve, reject) => {
-		console.info('AI.photoSend', e);
-		let {parameters} = e;
+		console.debug('AI.photoSend', JSON.stringify(e, null, 2));
+		let { parameters, fulfillment } = e;
 
 		let query;
 
@@ -14,11 +14,12 @@ module.exports = function(e) {
 		Memory.getPhotoByTag(query)
 		.then((photo) => {
 			resolve({
-				text: `Ecco una mia bella foto ${photo.url}`
+				text: fulfillment.speech.replace('$url', photo.url)
 			});
 		})
-		.catch((err) => {
+		.catch((error) => {
 			reject({
+				error: error,
 				text: 'Non ho ricordi di questa cosa'
 			});
 		});

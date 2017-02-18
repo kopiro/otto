@@ -3,8 +3,9 @@ const db = new sqlite3.Database('mem.db');
 
 exports.getPhotoByTag = function(tag) {
 	return new Promise((resolve, reject) => {
-		let stmt = db.prepare("SELECT * FROM photos WHERE tags LIKE ?");
-		let photo = stmt.get([ '%' + tag + '%' ], function(err, photo) {
+		let query = "SELECT * FROM photos WHERE 1=1 " + (tag ? " AND tags LIKE ? " : "") + " AND _ROWID_ >= (ABS(RANDOM()) % (SELECT MAX(_ROWID_) FROM photos))";
+		let stmt = db.prepare(query);
+		let photo = stmt.get(tag ? [ '%' + tag + '%' ] : [], function(err, photo) {
 			console.debug('Memory.getPhotoByTag', photo);
 
 			if (photo == null) {
