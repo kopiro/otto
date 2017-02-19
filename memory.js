@@ -15,23 +15,27 @@ exports.getMemoryByText = function(text) {
 			}
 		});
 
-		let query = "SELECT *, COUNT(tag) as nof_tags FROM memories ";
+		let query = "SELECT *, COUNT(tag) as tags_matched FROM memories ";
 		query += "JOIN tags ON tags.id_memory = memories.id WHERE ";
 		query += "(" + tags.map(() => { return "tag = ?"; }).join(" OR ") + ") ";
-		query += "GROUP BY memories.id ORDER BY nof_tags DESC LIMIT 1";
-
-		console.log(query);
+		query += "GROUP BY memories.id ORDER BY tags_matched DESC";
 
 		let stmt = db.prepare(query);
-		stmt.get(tags, (err, memory) => {
-			console.debug('Memory.getMemoryByText', memory);
-
-			if (memory == null) {
+		stmt.all(tags, (err, memories) => {
+			if (memories.length === 0) {
 				reject({
 					notFound: true
 				});
 				return;
 			}
+
+			let max_tags_matched = memories[0].tags_matched;
+			memories = memories.filter((memory) => { 
+				return memory.tags_matched == max_tags_matched;
+			});
+			let memory = memories[_.random(0, memories.length)];
+
+			console.debug('Memory.getMemoryByText', memory);
 
 			resolve(memory);
 		});
