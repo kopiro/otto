@@ -1,3 +1,5 @@
+const TAG = 'IO.Telegram';
+
 exports.capabilities = { 
 	user_can_view_urls: true
 };
@@ -26,19 +28,45 @@ exports.startInput = function() {
 	if (started) return;
 	started = true;
 
-	console.info('IO.Telegram', 'started');
+	console.info(TAG, 'started');
 
 	bot.on('message', (e) => {
-		console.info('IO.Telegram', 'message', JSON.stringify(e));
-		callback({
-			sessionId: e.chat.id,
-			text: e.text
-		});
+		console.info(TAG, 'message', JSON.stringify(e));
+
+		if (e.text) {
+			callback({
+				sessionId: e.chat.id,
+				text: e.text
+			});
+		} else if (e.voice) {
+			const tmp_file_audio = require('os').tmpdir() + Date.now() + '.flac';
+
+			const speechRecognizer = new SpeechRecognizer({
+				sampleRate: 16000,
+				encoding: 'FLAC'
+			}, (sr_results) => {
+				sr_results.sessionId = e.chat.id;
+				callback(sr_results);
+			}, () => {
+				fs.unlink(tmp_file_audio);
+			});
+			
+			bot.getFileLink(e.voice.file_id).then((file) => {
+				require('fluent-ffmpeg')(require('request')(file))
+				.output(tmp_file_audio)
+				.outputOptions(['-ac 1', '-ar 16000'])
+				.on('end', () => {
+					fs.createReadStream(tmp_file_audio)
+					.pipe(speechRecognizer);
+				})
+				.run();
+			});
+		}
 	});
 };
 
 exports.output = function(e) {
-	console.ai('IO.Telegram', 'output', e);
+	console.ai(TAG, 'output', e);
 	
 	return new Promise((resolve, reject) => {
 		if (e.text) {

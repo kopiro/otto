@@ -22,6 +22,7 @@
     "async": "^2.1.5",
     "body-parser": "^1.16.1",
     "express": "^4.14.1",
+    "fluent-ffmpeg": "^2.1.0",
     "moment": "^2.17.1",
     "moment-timezone": "^0.5.11",
     "mysql": "^2.13.0",
