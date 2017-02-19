@@ -55,6 +55,8 @@ exports.spawnServerForDataEntry = function() {
 	});
 
 	app.post('/', (req, res) => {
+		if (null == req.body.title) return res.end('Title is missing');
+		if (null == req.body.text) return res.end('Text is missing');
 		
 		db.query('INSERT INTO memories SET ?', {
 			title: req.body.title,
@@ -66,10 +68,13 @@ exports.spawnServerForDataEntry = function() {
 			let id = results.insertId;
 			let tags = req.body.tags.split(',');
 			tags.forEach(function(tag) {
-				db.query('INSERT INTO tags SET ?', {
-					tag: tag,
-					id_memory: id
-				});
+				tag = tag.trim();
+				if (tag.length != 0) {
+					db.query('INSERT INTO tags SET ?', {
+						tag: tag,
+						id_memory: id
+					});
+				}
 			});
 
 			res.end(fs.readFileSync('./dataentry.html'));
