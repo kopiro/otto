@@ -20,6 +20,15 @@ if (_config.webhook) {
 let callback;
 let started = false;
 
+exports.getConversations = function() {
+	return new Promise((resolve, reject) => {
+		DB.query('SELECT * FROM telegram_chats', (err, results) => {
+			if (err) return reject(err);
+			resolve(results);
+		});
+	});
+};
+
 exports.onInput = function(cb) {
 	callback = cb;
 };

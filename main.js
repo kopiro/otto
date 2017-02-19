@@ -1,6 +1,8 @@
 require('./boot');
+require('./cron');
 
 let AI = require('./ai');
+
 var app = require('apiai')(config.APIAI_TOKEN, {
 	language: 'it'
 });
