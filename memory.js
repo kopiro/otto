@@ -54,10 +54,11 @@ exports.spawnServerForDataEntry = function() {
 		res.end(fs.readFileSync('./dataentry.html'));
 	});
 
-	app.post('/', (req, res) => {
-		if (null == req.body.title) return res.end('Title is missing');
-		if (null == req.body.text) return res.end('Text is missing');
-		
+	app.post('/send', (req, res) => {
+		if (_.isEmpty(req.body.title)) return res.json({ error: 'Title is missing' });
+		if (_.isEmpty(req.body.text)) return res.json({ error: 'Text is missing' });
+		if (_.isEmpty(req.body.tags)) return res.json({ error: 'Tags are missing' });
+
 		db.query('INSERT INTO memories SET ?', {
 			title: req.body.title,
 			text: req.body.text,
@@ -69,7 +70,7 @@ exports.spawnServerForDataEntry = function() {
 			let tags = req.body.tags.split(',');
 			tags.forEach(function(tag) {
 				tag = tag.trim();
-				if (tag.length != 0) {
+				if (!_.isEmpty(tag)) {
 					db.query('INSERT INTO tags SET ?', {
 						tag: tag,
 						id_memory: id
@@ -77,7 +78,7 @@ exports.spawnServerForDataEntry = function() {
 				}
 			});
 
-			res.end(fs.readFileSync('./dataentry.html'));
+			res.json({ message: 'Thank you' });
 		});
 
 	});
