@@ -1,0 +1,4 @@
+#!/bin/bash
+cd /var/proj/otto-ai &&
+git fetch --all &&
+git reset --hard origin/master
