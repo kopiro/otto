@@ -1,5 +1,5 @@
 {
-	"WIT_AI_TOKEN": "MQDG4VTMETQ2C4SRZEWBBSIYL25IQXV3",
+	"APIAI_TOKEN": "a9c2d5c8084542869a2a4684b5f5614a",
 	"io_driver": "test",
 	"io": {
 		"telegram": {
@@ -8,6 +8,12 @@
 				"polling": true
 			}
 		}
+	},
+	"mysql": {
+		"host": "kopiro.it",
+		"user": "otto",
+		"password": "",
+		"database" : "otto"
 	},
 	"ai": {
 		"spotify": {

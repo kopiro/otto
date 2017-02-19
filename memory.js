@@ -1,7 +1,5 @@
-const sqlite3 = require('sqlite3').verbose();
-const db = new sqlite3.Database('mem.db');
-
-const random_memory_query = " AND _ROWID_ >= (ABS(RANDOM()) % (SELECT MAX(_ROWID_) FROM memories)) LIMIT 1";
+const mysql = require('mysql');
+const connection = mysql.createConnection(config.mysql);
 
 exports.getMemoryByText = function(text) {
 	return new Promise((resolve, reject) => {
@@ -19,8 +17,7 @@ exports.getMemoryByText = function(text) {
 		query += "LEFT JOIN tags ON tags.id_memory = memories.id AND (" + tags.map(() => { return "tag = ?"; }).join(" OR ") + ") ";
 		query += "GROUP BY memories.id ORDER BY tags_matched DESC";
 
-		let stmt = db.prepare(query);
-		stmt.all(tags, (error, memories) => {
+		connection.query(query, tags, (error, memories) => {
 			if (error || memories.length === 0) {
 				reject({
 					error: error,
