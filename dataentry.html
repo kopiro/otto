@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Otto - Memories</title>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<link href="http://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.98.0/css/materialize.css" />
+	<script type="text/javascript" src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.98.0/js/materialize.min.js"></script>
+</head>
+<body>
+	<nav class="top-nav">
+		<div class="container">
+			<div class="nav-wrapper" style="font-size: 2em">Otto Memories</div>
+		</div>
+	</nav>
+	<br/><br/>
+	<div class="container">
+		<div class="row">
+			<form class="col s12" method="POST">
+				<input placeholder="Title" required name="title" type="text" class="validate" />
+				<input placeholder="Tags (comma separated)" required name="tags" type="text" class="validate" />
+				<input placeholder="URL" name="url" type="text" class="validate" />
+				<input placeholder="Date" required name="date" type="date" class="validate" />
+				<textarea placeholder="Your story" required class="materialize-textarea" name="text"></textarea>
+				<button type="submit" class="waves-effect waves-light btn">Send</button>
+			</form>
+		</div>
+	</div>
+</body>
+</html>

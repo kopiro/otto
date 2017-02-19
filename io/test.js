@@ -16,7 +16,7 @@ exports.onInput = function(cb) {
 exports.startInput = function() {
 	if (strings.length === 0) {
 		console.info('IO.Test', 'end');
-		process.exit();
+		return;
 	}
 
 	let msg = strings.shift();

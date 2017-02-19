@@ -1,5 +1,4 @@
-const mysql = require('mysql');
-const connection = mysql.createConnection(config.mysql);
+const db = require('mysql').createConnection(config.mysql);
 
 exports.getMemoryByText = function(text) {
 	return new Promise((resolve, reject) => {
@@ -17,7 +16,7 @@ exports.getMemoryByText = function(text) {
 		query += "LEFT JOIN tags ON tags.id_memory = memories.id AND (" + tags.map(() => { return "tag = ?"; }).join(" OR ") + ") ";
 		query += "GROUP BY memories.id ORDER BY tags_matched DESC";
 
-		connection.query(query, tags, (error, memories) => {
+		db.query(query, tags, (error, memories) => {
 			if (error || memories.length === 0) {
 				reject({
 					error: error,
@@ -38,3 +37,50 @@ exports.getMemoryByText = function(text) {
 		});
 	});
 };
+
+exports.spawnServerForDataEntry = function() {
+	let http = require('http');
+	let fs = require('fs');
+
+	let express = require('express');
+	let app = express();
+
+	app.use(require('body-parser').urlencoded({
+		extended: true
+	}));
+
+	app.get('/', (req, res) => {
+		res.writeHead(200, { 'Content-Type': 'text/html' });
+		res.end(fs.readFileSync('./dataentry.html'));
+	});
+
+	app.post('/', (req, res) => {
+		
+		db.query('INSERT INTO memories SET ?', {
+			title: req.body.title,
+			text: req.body.text,
+			date: req.body.date,
+			url: req.body.url
+		}, function (error, results, fields) {
+			if (error) throw error;
+			let id = results.insertId;
+			let tags = req.body.tags.split(',');
+			tags.forEach(function(tag) {
+				db.query('INSERT INTO tags SET ?', {
+					tag: tag,
+					id_memory: id
+				});
+			});
+
+			res.end(fs.readFileSync('./dataentry.html'));
+		});
+
+	});
+	
+	app.listen(8880, () => {
+		console.info('Server for data-entry is started on port 8880');
+	});
+};
+
+
+exports.spawnServerForDataEntry();
