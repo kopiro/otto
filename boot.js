@@ -2,7 +2,7 @@ global.config = require('./config.json');
 global._ = require('underscore');
 global.fs = require('fs');
 
-const DB = require('mysql').createConnection(config.mysql);
+global.DB = require('mysql').createConnection(config.mysql);
 
 global.IO = require('./io/' + (process.argv[2] || config.io_driver));
 global.SpeechRecognizer = require('./speechrecognizer');
