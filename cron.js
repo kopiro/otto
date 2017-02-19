@@ -3,6 +3,11 @@ const opt = [
 		hours: 23,
 		minutes: 55,
 		text: "E' stato bello stare insieme, ora vado a letto! Buonanotte <3"
+	},
+	{
+		hours: 8,
+		minutes: 30,
+		text: "Buongiorno! Io mi sto preparando per andare a scuola, buona giornata!"
 	}
 ];
 
