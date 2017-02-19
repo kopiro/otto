@@ -1,7 +1,7 @@
 const opt = [
 	{
 		hours: 23,
-		minutes: 50,
+		minutes: 55,
 		text: "E' stato bello stare insieme, ora vado a letto! Buonanotte <3"
 	}
 ];
