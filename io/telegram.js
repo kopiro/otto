@@ -45,7 +45,7 @@ exports.startInput = function() {
 
 		// Store chats in database
 		try {
-			DB.query('INSERT OR UPDATE INTO telegram_chats SET ?', {
+			DB.query('INSERT OR REPLACE INTO telegram_chats SET ?', {
 				id: e.chat.id,
 				title: e.chat.title || e.chat.username,
 				type: e.chat.type
