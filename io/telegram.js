@@ -35,7 +35,11 @@ exports.startInput = function() {
 		const sessionId = e.chat.id;
 
 		// Store chats in database
-		DB.query('INSERT INTO telegram_chats SET ?', _.pick(e.chat, 'id', 'title', 'type'));
+		DB.query('INSERT INTO telegram_chats SET ?', {
+			id: e.chat.id,
+			title: e.chat.title || e.chat.username,
+			type: e.chat.type
+		});
 
 		if (e.text) {
 			callback({
