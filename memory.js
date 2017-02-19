@@ -19,7 +19,7 @@ exports.getMemoryByText = function(text) {
 		query += "LEFT JOIN tags ON tags.id_memory = memories.id AND (" + tags.map(() => { return "tag = ?"; }).join(" OR ") + ") ";
 		query += "GROUP BY memories.id ORDER BY tags_matched DESC";
 
-		console.log(query);
+		console.log(query, tags);
 
 		let stmt = db.prepare(query);
 		stmt.all(tags, (err, memories) => {
