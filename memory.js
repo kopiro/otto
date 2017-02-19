@@ -16,8 +16,7 @@ exports.getMemoryByText = function(text) {
 		});
 
 		let query = "SELECT *, COUNT(tag) as tags_matched FROM memories ";
-		query += "LEFT JOIN tags ON tags.id_memory = memories.id AND ";
-		query += "(" + tags.map(() => { return "tag = ?"; }).join(" OR ") + ") ";
+		query += "LEFT JOIN tags ON tags.id_memory = memories.id AND (" + tags.map(() => { return "tag = ?"; }).join(" OR ") + ") ";
 		query += "GROUP BY memories.id ORDER BY tags_matched DESC";
 
 		console.log(query);
