@@ -1,3 +1,7 @@
+exports.capabilities = { 
+	user_can_view_urls: true
+};
+
 const TelegramBot = require('node-telegram-bot-api');
 const _config = config.io.telegram;
 

@@ -1,3 +1,7 @@
+exports.capabilities = { 
+	user_can_view_urls: false
+};
+
 const child_process = require('child_process');
 const Recorder = require('node-record-lpcm16');
 const Speech = require('@google-cloud/speech')({

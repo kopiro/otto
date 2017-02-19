@@ -2,6 +2,7 @@ global.config = require('./config.json');
 global.IO = require('./io/' + (process.argv[2] || config.io_driver));
 global.Memory = require('./memory');
 global._ = require('underscore');
+global.Support = require('./support');
 
 global.AI_NAME_REGEX = /(otto|8|8:00)/;
 

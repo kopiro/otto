@@ -1,3 +1,8 @@
+exports.capabilities = { 
+	user_can_view_urls: true
+};
+
+
 const fs = require('fs');
 
 let strings = fs.readFileSync('in.txt').toString().split("\n");
