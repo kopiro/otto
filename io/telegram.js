@@ -32,10 +32,14 @@ exports.startInput = function() {
 
 	bot.on('message', (e) => {
 		console.info(TAG, 'message', JSON.stringify(e));
+		const sessionId = e.chat.id;
+
+		// Store chats in database
+		DB.query('INSERT INTO telegram_chats SET ?', _.pick(e.chat, 'id', 'title', 'type'));
 
 		if (e.text) {
 			callback({
-				sessionId: e.chat.id,
+				sessionId: sessionId,
 				text: e.text
 			});
 		} else if (e.voice) {
@@ -44,9 +48,9 @@ exports.startInput = function() {
 			const speechRecognizer = new SpeechRecognizer({
 				sampleRate: 16000,
 				encoding: 'FLAC'
-			}, (sr_results) => {
-				sr_results.sessionId = e.chat.id;
-				callback(sr_results);
+			}, (e) => {
+				e.sessionId = sessionId;
+				callback(e);
 			}, () => {
 				fs.unlink(tmp_file_audio);
 			});

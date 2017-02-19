@@ -1,5 +1,3 @@
-const db = require('mysql').createConnection(config.mysql);
-
 exports.getMemoryByText = function(text) {
 	return new Promise((resolve, reject) => {
 
@@ -16,7 +14,7 @@ exports.getMemoryByText = function(text) {
 		query += "LEFT JOIN tags ON tags.id_memory = memories.id AND (" + tags.map(() => { return "tag = ?"; }).join(" OR ") + ") ";
 		query += "GROUP BY memories.id ORDER BY tags_matched DESC";
 
-		db.query(query, tags, (error, memories) => {
+		DB.query(query, tags, (error, memories) => {
 			if (error || memories.length === 0) {
 				reject({
 					error: error,
@@ -59,7 +57,7 @@ exports.spawnServerForDataEntry = function() {
 		if (_.isEmpty(req.body.text)) return res.json({ error: 'Text is missing' });
 		if (_.isEmpty(req.body.tags)) return res.json({ error: 'Tags are missing' });
 
-		db.query('INSERT INTO memories SET ?', {
+		DB.query('INSERT INTO memories SET ?', {
 			title: req.body.title,
 			text: req.body.text,
 			date: req.body.date,
@@ -71,7 +69,7 @@ exports.spawnServerForDataEntry = function() {
 			tags.forEach(function(tag) {
 				tag = tag.trim();
 				if (!_.isEmpty(tag)) {
-					db.query('INSERT INTO tags SET ?', {
+					DB.query('INSERT INTO tags SET ?', {
 						tag: tag,
 						id_memory: id
 					});
