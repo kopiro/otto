@@ -33,7 +33,7 @@ exports.getMemoryByText = function(text) {
 			memories = memories.filter((memory) => { 
 				return memory.tags_matched == max_tags_matched;
 			});
-			let memory = memories[_.random(0, memories.length)];
+			let memory = memories[_.random(0, memories.length-1)];
 
 			console.debug('Memory.getMemoryByText', memory);
 
