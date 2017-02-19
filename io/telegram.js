@@ -44,11 +44,13 @@ exports.startInput = function() {
 		const sessionId = e.chat.id;
 
 		// Store chats in database
-		DB.query('INSERT INTO telegram_chats SET ?', {
-			id: e.chat.id,
-			title: e.chat.title || e.chat.username,
-			type: e.chat.type
-		});
+		try {
+			DB.query('INSERT INTO telegram_chats SET ?', {
+				id: e.chat.id,
+				title: e.chat.title || e.chat.username,
+				type: e.chat.type
+			});
+		} catch (err) {}
 
 		if (e.text) {
 			callback({
