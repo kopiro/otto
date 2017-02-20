@@ -1,12 +1,12 @@
 const opt = [
 	{
 		hours: 23,
-		minutes: 55,
+		minutes: _.random(0, 59),
 		text: "E' stato bello stare insieme, ora vado a letto! Buonanotte <3"
 	},
 	{
 		hours: 8,
-		minutes: 30,
+		minutes: _.random(0, 59),
 		text: "Buongiorno! Io mi sto preparando per andare a scuola, buona giornata!"
 	},
 	{
