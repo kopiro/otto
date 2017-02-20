@@ -53,8 +53,6 @@ exports.startInput = function() {
 			}
 		});
 
-		bot.sendChatAction(e.chat.id, 'typing');
-
 		if (e.text) {
 			callback({
 				data: data,
@@ -91,6 +89,8 @@ exports.output = function(e) {
 	console.ai(TAG, 'output', e);
 	
 	return new Promise((resolve, reject) => {
+		bot.sendChatAction(e.data.chatId, 'typing');
+
 		setTimeout(() => {
 			if (e.text) {
 				bot.sendMessage(e.data.chatId, e.text);
