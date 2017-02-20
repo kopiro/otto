@@ -86,5 +86,4 @@ exports.spawnServerForDataEntry = function() {
 	});
 };
 
-
 exports.spawnServerForDataEntry();
