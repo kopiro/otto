@@ -32,6 +32,8 @@ exports.output = function(e) {
 		return new Promise((resolve, reject) => {
 			require('spotify-node-applescript').playTrack(e.spotify.uri, resolve);
 		});
+	} else if (e.image) {
+		return Promise.resolve();
 	} else {
 		return Promise.resolve();
 	}
