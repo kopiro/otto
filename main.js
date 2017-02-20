@@ -57,12 +57,7 @@ IO.onInput(({ sessionId, text }) => {
 
 		} else {
 			console.error(`No strategy found`);
-
-			let out = {
-				text: "Non ti capisco, scusami"
-			};
-			out.sessionId = sessionId;
-			IO.output(out).then(IO.startInput);
+			IO.startInput();
 		}
 		
 	});
