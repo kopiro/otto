@@ -1,6 +1,10 @@
+global.__basedir = __dirname;
+
 global.config = require('./config.json');
 global._ = require('underscore');
 global.fs = require('fs');
+global.moment = require('moment');
+moment.locale('it');
 
 global.DB = require('mysql').createConnection(config.mysql);
 

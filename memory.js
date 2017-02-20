@@ -14,10 +14,10 @@ exports.getMemoryByText = function(text) {
 		query += "INNER JOIN tags ON tags.id_memory = memories.id AND (" + tags.map(() => { return "tag = ?"; }).join(" OR ") + ") ";
 		query += "GROUP BY memories.id ORDER BY tags_matched DESC";
 
-		DB.query(query, tags, (error, memories) => {
-			if (error || memories.length === 0) {
+		DB.query(query, tags, (err, memories) => {
+			if (err || memories.length === 0) {
 				reject({
-					error: error,
+					err: err,
 					notFound: true
 				});
 				return;
@@ -53,17 +53,17 @@ exports.spawnServerForDataEntry = function() {
 	});
 
 	app.post('/send', (req, res) => {
-		if (_.isEmpty(req.body.title)) return res.json({ error: 'Title is missing' });
-		if (_.isEmpty(req.body.text)) return res.json({ error: 'Text is missing' });
-		if (_.isEmpty(req.body.tags)) return res.json({ error: 'Tags are missing' });
+		if (_.isEmpty(req.body.title)) return res.json({ err: 'Title is missing' });
+		if (_.isEmpty(req.body.text)) return res.json({ err: 'Text is missing' });
+		if (_.isEmpty(req.body.tags)) return res.json({ err: 'Tags are missing' });
 
 		DB.query('INSERT INTO memories SET ?', {
 			title: req.body.title,
 			text: req.body.text,
 			date: req.body.date,
 			url: req.body.url
-		}, function (error, results, fields) {
-			if (error) throw error;
+		}, function (err, results, fields) {
+			if (err) throw err;
 			let id = results.insertId;
 			let tags = req.body.tags.split(',');
 			tags.forEach(function(tag) {

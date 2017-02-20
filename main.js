@@ -1,5 +1,8 @@
 require('./boot');
-require('./cron');
+
+if (false == config.disableCron) {
+	require('./cron');
+}
 
 let AI = require('./ai');
 
@@ -64,7 +67,7 @@ IO.onInput(({ sessionId, text }) => {
 		
 	});
 
-	request.on('error', function(err) {
+	request.on('error', (err) => {
 		context = {};
 		console.error(err);
 		IO.output(err).then(IO.startInput);

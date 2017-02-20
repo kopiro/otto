@@ -41,7 +41,7 @@
 					Materialize.toast(data.message, 4000);
 					self.find('input,textarea').val('');
 				} else {
-					Materialize.toast(data.error || 'Unknown error', 4000);
+					Materialize.toast(data.err || 'Unknown error', 4000);
 				}
 			},
 			error: function() {

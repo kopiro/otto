@@ -1,7 +1,4 @@
-var moment = require('moment');
-moment.locale('it');
-
-module.exports = function setAlarm(request) {
+module.exports = function(request) {
 	console.info('AI.setAlarm', JSON.stringify(request));
 	
 	return new Promise(function(resolve, reject) {

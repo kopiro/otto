@@ -34,7 +34,7 @@ exports.output = function(e) {
 	
 	if (e.text) {
 		return new Promise((resolve, reject) => {
-			let childD = require('child_process').spawn('./out-speech.sh', [ e.text ]);
+			let childD = require('child_process').spawn(__basedir + '/out-speech.sh', [ e.text ]);
 			childD.addListener('exit', resolve);
 		});
 	} else if (e.spotify) {

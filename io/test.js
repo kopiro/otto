@@ -2,10 +2,7 @@ exports.capabilities = {
 	user_can_view_urls: true
 };
 
-
-const fs = require('fs');
-
-let strings = fs.readFileSync('in.txt').toString().split("\n");
+let strings = fs.readFileSync(__basedir + '/in.txt').toString().split("\n");
 let callback;
 let sessionId = Date.now();
 

@@ -17,9 +17,9 @@ module.exports = function(e) {
 				text: text
 			});
 		})
-		.catch((error) => {
+		.catch((err) => {
 			reject({
-				error: error,
+				err: err,
 				text: 'Non ho ricordi di questa cosa'
 			});
 		});

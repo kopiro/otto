@@ -1,5 +1,5 @@
 const Speech = require('@google-cloud/speech')({
-	keyFilename: './gcloud.json'
+	keyFilename: __basedir + '/gcloud.json'
 });
 
 const TAG = 'SR';

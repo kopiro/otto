@@ -46,16 +46,16 @@ module.exports = function(e) {
 					spotify: song
 				});
 
-			} catch (error) {
+			} catch (err) {
 				reject({
-					error: error, 
+					err: err, 
 					text: 'Non riesco a riprodurre ' + query_human 
 				});
 			}
 
-		}, function(error) {
+		}, (err) => {
 			reject({ 
-				error: error,
+				err: err,
 				text: 'Non riesco a riprodurre quello che mi chiedi'
 			});
 		});
