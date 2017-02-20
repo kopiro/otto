@@ -8,6 +8,11 @@ const opt = [
 		hours: 8,
 		minutes: 30,
 		text: "Buongiorno! Io mi sto preparando per andare a scuola, buona giornata!"
+	},
+	{
+		hours: 17,
+		minutes: _.random(0, 59),
+		text: "Ciao! Sono appena tornato a casa dal rientro. Oggi ho imparato tante cose!"
 	}
 ];
 
