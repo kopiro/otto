@@ -1,6 +1,8 @@
+const TAG = 'AI.memoQuestion';
+
 module.exports = function(e) {
 	return new Promise((resolve, reject) => {
-		console.debug('AI.memoQuestion', JSON.stringify(e, null, 2));
+		console.debug(TAG, JSON.stringify(e, null, 2));
 		let { parameters, fulfillment, resolvedQuery } = e;
 
 		Memory.getMemoryByText(resolvedQuery)
