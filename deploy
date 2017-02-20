@@ -1,3 +1,4 @@
 cd /var/proj/otto-ai &&
 git fetch --all &&
-git reset --hard origin/master
+git reset --hard origin/master &&
+npm install
