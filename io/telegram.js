@@ -99,6 +99,6 @@ exports.output = function(e) {
 				bot.sendPhoto(e.data.chatId, e.image);
 			}
 			resolve();
-		}, 1000 + _.random(0, 1500));
+		}, 500);
 	});
 };
