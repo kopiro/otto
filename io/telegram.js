@@ -1,12 +1,11 @@
 const TAG = 'IO.Telegram';
+const _config = config.io.telegram;
 
 exports.capabilities = { 
 	user_can_view_urls: true
 };
 
 const TelegramBot = require('node-telegram-bot-api');
-const _config = config.io.telegram;
-
 const bot = new TelegramBot(_config.token, _config.options);
 
 if (_config.webhook) {
@@ -41,7 +40,7 @@ exports.startInput = function() {
 
 	bot.on('message', (e) => {
 		console.info(TAG, 'message', JSON.stringify(e));
-		const sessionId = e.chat.id;
+		let data = { chatId: e.chat.id };
 
 		// Store chats in database
 		DB.query('SELECT * FROM telegram_chats WHERE id = ?', [ e.chat.id ], function(err, data) {
@@ -56,7 +55,7 @@ exports.startInput = function() {
 
 		if (e.text) {
 			callback({
-				sessionId: sessionId,
+				data: data,
 				text: e.text
 			});
 		} else if (e.voice) {
@@ -66,7 +65,7 @@ exports.startInput = function() {
 				sampleRate: 16000,
 				encoding: 'FLAC'
 			}, (e) => {
-				e.sessionId = sessionId;
+				e.data = data;
 				callback(e);
 			}, () => {
 				fs.unlink(tmp_file_audio);
@@ -90,11 +89,14 @@ exports.output = function(e) {
 	console.ai(TAG, 'output', e);
 	
 	return new Promise((resolve, reject) => {
-		if (e.text) {
-			bot.sendMessage(e.sessionId, e.text);
-		} else if (e.spotify) {
-			bot.sendMessage(e.sessionId, e.spotify.external_urls.spotify);
-		}
-		resolve();
+		bot.sendChatAction(e.data.chatId, 'typing');
+		setTimeout(() => {
+			if (e.text) {
+				bot.sendMessage(e.data.chatId, e.text);
+			} else if (e.spotify) {
+				bot.sendMessage(e.data.chatId, e.spotify.external_urls.spotify);
+			}
+			resolve();
+		}, 1000 + _.random(0, 1500));
 	});
 };

@@ -18,7 +18,6 @@ exports.startInput = function() {
 	const speechRecognizer = new SpeechRecognizer({
 		sampleRate: 16000
 	}, function(e) {
-		e.sessionId = Date.now();
 		callback(e);
 	}, function() {
 		Recorder.stop();

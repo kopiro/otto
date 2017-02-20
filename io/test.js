@@ -4,7 +4,6 @@ exports.capabilities = {
 
 let strings = fs.readFileSync(__basedir + '/in.txt').toString().split("\n");
 let callback;
-let sessionId = Date.now();
 
 exports.onInput = function(cb) {
 	callback = cb;
@@ -20,7 +19,6 @@ exports.startInput = function() {
 	console.user(msg);
 
 	callback({
-		sessionId: sessionId,
 		text: msg
 	});
 };

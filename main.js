@@ -12,7 +12,7 @@ var app = require('apiai')(config.APIAI_TOKEN, {
 
 let context = {};
 
-IO.onInput(({ sessionId, text }) => {
+IO.onInput(({ sessionId, data, text }) => {
 
 	if (text == null) {
 		IO.startInput();
@@ -22,12 +22,12 @@ IO.onInput(({ sessionId, text }) => {
 	text = text.replace(AI_NAME_REGEX, '');
 
 	let request = app.textRequest(text, {
-		sessionId: sessionId
+		sessionId: sessionId || Date.now()
 	});
 
 	request.on('response', function(response) {
 		let {result} = response;
-		console.debug(JSON.stringify(result, null, 2));
+		console.debug('API.AI response', JSON.stringify(result, null, 2));
 
 		if (_.isFunction(AI[result.action])) {
 			console.info(`Calling AI.${result.action}()`);
@@ -36,23 +36,23 @@ IO.onInput(({ sessionId, text }) => {
 			.then(function(out) {
 				console.info(`Result of AI.${result.action}()`, JSON.stringify(out, null, 2));
 				
-				out.sessionId = sessionId;
+				out.data = data;
 				IO.output(out).then(IO.startInput);
 			})
 			.catch(function(err) {
 				console.error(`Error in of AI.${result.action}()`, JSON.stringify(err, null, 2));
 
-				err.sessionId = sessionId;
+				err.data = data;
 				IO.output(err).then(IO.startInput);
 			});
 
 		} else if (result.fulfillment.speech) {
-			console.info(`Direct response = ${result.fulfillment.speech}`);
+			console.info(`API.AI Direct response = ${result.fulfillment.speech}`);
 
 			let out = {
 				text: result.fulfillment.speech
 			};
-			out.sessionId = sessionId;
+			out.data = data;
 			IO.output(out).then(IO.startInput);
 
 		} else {
@@ -64,7 +64,7 @@ IO.onInput(({ sessionId, text }) => {
 
 	request.on('error', (err) => {
 		context = {};
-		console.error(err);
+		console.error('API.AI error', err);
 		IO.output(err).then(IO.startInput);
 	});
 
