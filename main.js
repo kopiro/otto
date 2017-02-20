@@ -1,6 +1,6 @@
 require('./boot');
 
-if (false == config.disableCron) {
+if (config.enableCron) {
 	require('./cron');
 }
 

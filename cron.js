@@ -16,6 +16,8 @@ const opt = [
 	}
 ];
 
+console.info('CRON', opt);
+
 function tick() {
 	const now = new Date();
 	console.info('Tick', now.getHours(), now.getMinutes());
