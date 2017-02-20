@@ -9,7 +9,7 @@ module.exports = function(e) {
         console.debug(TAG, JSON.stringify(e, null, 2));
         let { parameters, fulfillment } = e;
 
-        client.search('disegno bambino ' + parameters.thing)
+        client.search(`disegno bambino "${parameters.thing}"`)
         .then((images) => {
             console.debug(images);
             let img = images[_.random(0, images.length-1)];
