@@ -11,7 +11,10 @@ module.exports = function(e) {
 
         client.search('kid drawing ' + parameters.thing)
         .then((images) => {
-            resolve( images[_.random(0, images.length-1)].url );
+            let img = images[_.random(0, images.length-1)];
+            resolve({
+                image: img.url
+            });
         })
         .catch((err) => {
             reject(err);

@@ -95,6 +95,8 @@ exports.output = function(e) {
 				bot.sendMessage(e.data.chatId, e.text);
 			} else if (e.spotify) {
 				bot.sendMessage(e.data.chatId, e.spotify.external_urls.spotify);
+			} else if (e.image) {
+				bot.sendPhoto(e.data.chatId, e.image);
 			}
 			resolve();
 		}, 1000 + _.random(0, 1500));
