@@ -28,7 +28,7 @@ function tick() {
 			.then((conversations) => {
 				conversations.forEach(({ id }) => {
 					IO.output({
-						sessionId: id,
+						data: { chatId: id },
 						text: e.text
 					});
 				});
