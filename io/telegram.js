@@ -40,6 +40,8 @@ exports.startInput = function() {
 
 	bot.on('message', (e) => {
 		console.info(TAG, 'message', JSON.stringify(e));
+		bot.sendChatAction(e.chat.id, 'typing');
+
 		let data = { chatId: e.chat.id };
 
 		// Store chats in database
@@ -89,17 +91,13 @@ exports.output = function(e) {
 	console.ai(TAG, 'output', e);
 	
 	return new Promise((resolve, reject) => {
-		bot.sendChatAction(e.data.chatId, 'typing');
-
-		setTimeout(() => {
-			if (e.text) {
-				bot.sendMessage(e.data.chatId, e.text);
-			} else if (e.spotify) {
-				bot.sendMessage(e.data.chatId, e.spotify.external_urls.spotify);
-			} else if (e.image) {
-				bot.sendPhoto(e.data.chatId, e.image);
-			}
-			resolve();
-		}, 500);
+		if (e.text) {
+			bot.sendMessage(e.data.chatId, e.text);
+		} else if (e.spotify) {
+			bot.sendMessage(e.data.chatId, e.spotify.external_urls.spotify);
+		} else if (e.image) {
+			bot.sendPhoto(e.data.chatId, e.image);
+		}
+		resolve();
 	});
 };
