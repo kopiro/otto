@@ -47,7 +47,7 @@ exports.startInput = function() {
 			if (err || data.length === 0) {
 				DB.query('INSERT INTO telegram_chats SET ? ', {
 					id: e.chat.id, 
-					title: e.chat.title || e.chat.username,
+					title: e.chat.title || e.chat.username || `${e.chat.first_name} ${e.chat.last_name}`,
 					type: e.chat.type
 				});
 			}
