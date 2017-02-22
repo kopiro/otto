@@ -11,7 +11,7 @@ exports.getMemoryByText = function(text) {
 		});
 
 		let query = "SELECT *, COUNT(tag) as tags_matched FROM memories ";
-		query += "INNER JOIN tags ON tags.id_memory = memories.id AND (" + tags.map(() => { return "tag = ?"; }).join(" OR ") + ") ";
+		query += "INNER JOIN tags ON memory_tags.id_memory = memories.id AND (" + tags.map(() => { return "tag = ?"; }).join(" OR ") + ") ";
 		query += "GROUP BY memories.id ORDER BY tags_matched DESC";
 
 		DB.query(query, tags, (err, memories) => {
@@ -69,7 +69,7 @@ exports.spawnServerForDataEntry = function() {
 			tags.forEach(function(tag) {
 				tag = tag.trim();
 				if (!_.isEmpty(tag)) {
-					DB.query('INSERT INTO tags SET ?', {
+					DB.query('INSERT INTO memory_tags SET ?', {
 						tag: tag,
 						id_memory: id
 					});
