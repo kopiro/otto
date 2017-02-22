@@ -63,7 +63,7 @@ exports.startInput = function() {
 		} else if (e.voice) {
 			const tmp_file_audio = require('os').tmpdir() + Date.now() + '.flac';
 
-			const speechRecognizer = new SpeechRecognizer({
+			const speechRecognizer = SpeechRecognizer.createRecognizeStream({
 				sampleRate: 16000,
 				encoding: 'FLAC'
 			}, (e) => {
@@ -73,15 +73,76 @@ exports.startInput = function() {
 				fs.unlink(tmp_file_audio);
 			});
 			
-			bot.getFileLink(e.voice.file_id).then((file) => {
-				require('fluent-ffmpeg')(require('request')(file))
+			bot.getFileLink(e.voice.file_id).then((file_link) => {
+				const req = request(file_link);
+				require('fluent-ffmpeg')(req)
 				.output(tmp_file_audio)
 				.outputOptions(['-ac 1', '-ar 16000'])
 				.on('end', () => {
 					fs.createReadStream(tmp_file_audio)
 					.pipe(speechRecognizer);
 				})
+				.on('error', (err) => {
+					callback({
+						data: data,
+						err: err
+					});
+				})
 				.run();
+			});
+		} else if (e.photo) {
+
+			const tmp_file_photo = require('os').tmpdir() + Date.now() + '.jpg';
+			bot.getFileLink(_.last(e.photo).file_id).then((file_link) => {
+				request(file_link)
+				.pipe(fs.createWriteStream(tmp_file_photo))
+				.on('error', (err) => {
+					console.error(TAG, err);
+					return callback({
+						data: data,
+						err: err
+					});
+				})
+				.on('finish', () => {
+					console.debug(TAG, 'fined downloading file', tmp_file_photo);
+
+					VisionRecognizer.detectLabels(tmp_file_photo, (err, labels) => {
+						if (err) {
+							console.error(TAG, err);
+							return callback({
+								data: data,
+								err: err
+							});
+						}
+
+						Translator.translate(labels[0], 'it', (err, translation) => {
+							if (err) {
+								console.error(TAG, err);
+								return callback({
+									data: data,
+									err: err
+								});
+							}
+
+							// Direct output for now
+							let responses = [
+							`Uhm... mi sembra di capire che stiamo parlando di ${translation}`,
+							`Questo sembra ${translation}`,
+							`Aspetta... lo so... è ${translation}`
+							];
+
+							IO.output({
+								data: data,
+								text: responses[_.random(0,responses.length-1)]
+							});
+
+							callback({
+								data: data,
+								text: translation
+							});
+						});
+					});
+				});
 			});
 		}
 	});

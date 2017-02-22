@@ -15,7 +15,7 @@ exports.startInput = function() {
 	console.info(TAG, 'start');
 	let Recorder = require('node-record-lpcm16');
 
-	const speechRecognizer = new SpeechRecognizer({
+	const speechRecognizer = SpeechRecognizer.createRecognizeStream({
 		sampleRate: 16000
 	}, function(e) {
 		callback(e);

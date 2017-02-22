@@ -3,13 +3,18 @@ global.__basedir = __dirname;
 global.config = require('./config.json');
 global._ = require('underscore');
 global.fs = require('fs');
+global.request = require('request');
 global.moment = require('moment');
 moment.locale('it');
 
 global.DB = require('mysql').createConnection(config.mysql);
 
 global.IO = require('./io/' + (process.argv[2] || config.io_driver));
-global.SpeechRecognizer = require('./speechrecognizer');
+
+global.SpeechRecognizer = require('./support/speechrecognizer');
+global.VisionRecognizer = require('./support/visionrecognizer');
+global.Translator = require('./support/translator');
+
 global.Memory = require('./memory');
 
 global.AI_NAME_REGEX = /(otto|8:00)/;

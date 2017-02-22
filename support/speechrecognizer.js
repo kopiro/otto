@@ -1,15 +1,15 @@
-const Speech = require('@google-cloud/speech')({
+const speechClient = require('@google-cloud/speech')({
 	keyFilename: __basedir + '/gcloud.json'
 });
 
 const TAG = 'SR';
 
-module.exports = function(opt, callback, end) {
+exports.createRecognizeStream = function(opt, callback, end) {
 	let timeout;
 	let processing = true;
 	let recognized = false;
 
-	const speechRecognizer = Speech.createRecognizeStream({
+	const speechRecognizer = speechClient.createRecognizeStream({
 		singleUtterance: true,
 		interimResults: false,
 		config: {

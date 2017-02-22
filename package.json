@@ -19,6 +19,7 @@
   "dependencies": {
     "@google-cloud/speech": "^0.6.0",
     "@google-cloud/translate": "^0.7.0",
+    "@google-cloud/vision": "^0.8.0",
     "apiai": "^4.0.0",
     "async": "^2.1.5",
     "body-parser": "^1.16.1",

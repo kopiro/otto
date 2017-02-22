@@ -1,10 +1,5 @@
 const TAG = 'AI.translate';
 
-const translate = require('@google-cloud/translate');
-const translator = translate({
-	keyFilename: __basedir + '/gcloud.json'
-});
-
 const LANGUAGES = _.invert(require(__basedir + '/etc/languages.json'));
 
 module.exports = function(e) {
@@ -19,7 +14,7 @@ module.exports = function(e) {
 			});
 		}
 
-		translator.translate(parameters.to_translate, lang_iso_code, function(err, translation) {
+		Translator.translate(parameters.to_translate, lang_iso_code, (err, translation) => {
 			if (err) {
 				return reject({
 					err: err,
