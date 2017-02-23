@@ -39,7 +39,10 @@ module.exports = function(e) {
 				if (items.length === 0) throw 'Zero length results';
 
 				let song = items[ random_output ? _.random(0, items.length) : 0 ];
-				song = _.pick(song, 'uri', 'href');
+				song = {
+					uri: song.uri,
+					href: song.external_urls.spotify
+				};
 				console.debug('AI.mediaPlay', 'result', JSON.stringify(song, null, 2));
 
 				resolve({

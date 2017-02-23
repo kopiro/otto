@@ -4,6 +4,7 @@ global.config = require('./config.json');
 global._ = require('underscore');
 global.fs = require('fs');
 global.request = require('request');
+global.async = require('async');
 global.moment = require('moment');
 moment.locale('it');
 
@@ -13,6 +14,7 @@ global.IO = require('./io/' + (process.argv[2] || config.io_driver));
 
 global.SpeechRecognizer = require('./support/speechrecognizer');
 global.VisionRecognizer = require('./support/visionrecognizer');
+global.FaceRecognizer = require('./support/facerecognizer');
 global.Translator = require('./support/translator');
 
 global.Memory = require('./memory');

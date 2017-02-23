@@ -60,7 +60,10 @@ exports.startInput = function() {
 				data: data,
 				text: e.text
 			});
-		} else if (e.voice) {
+		}
+
+		if (e.voice) {
+			
 			const tmp_file_audio = require('os').tmpdir() + Date.now() + '.flac';
 
 			const speechRecognizer = SpeechRecognizer.createRecognizeStream({
@@ -90,7 +93,10 @@ exports.startInput = function() {
 				})
 				.run();
 			});
-		} else if (e.photo) {
+
+		}
+
+		if (e.photo) {
 
 			const tmp_file_photo = require('os').tmpdir() + Date.now() + '.jpg';
 			bot.getFileLink(_.last(e.photo).file_id).then((file_link) => {
@@ -104,43 +110,14 @@ exports.startInput = function() {
 					});
 				})
 				.on('finish', () => {
-					console.debug(TAG, 'fined downloading file', tmp_file_photo);
+					console.debug(TAG, 'finished downloading file', tmp_file_photo);
 
-					VisionRecognizer.detectLabels(tmp_file_photo, (err, labels) => {
-						if (err) {
-							console.error(TAG, err);
-							return callback({
-								data: data,
-								err: err
-							});
+					callback({
+						data: data,
+						photo: {
+							remoteFile: file_link,
+							localFile: tmp_file_photo
 						}
-
-						Translator.translate(labels[0], 'it', (err, translation) => {
-							if (err) {
-								console.error(TAG, err);
-								return callback({
-									data: data,
-									err: err
-								});
-							}
-
-							// Direct output for now
-							let responses = [
-							`Uhm... mi sembra di capire che stiamo parlando di ${translation}`,
-							`Questo sembra ${translation}`,
-							`Aspetta... lo so... è ${translation}`
-							];
-
-							IO.output({
-								data: data,
-								text: responses[_.random(0,responses.length-1)]
-							});
-
-							callback({
-								data: data,
-								text: translation
-							});
-						});
 					});
 				});
 			});
@@ -155,7 +132,7 @@ exports.output = function(e) {
 		if (e.text) {
 			bot.sendMessage(e.data.chatId, e.text);
 		} else if (e.spotify) {
-			bot.sendMessage(e.data.chatId, e.spotify.external_urls.spotify);
+			bot.sendMessage(e.data.chatId, e.spotify.href);
 		} else if (e.image) {
 			bot.sendPhoto(e.data.chatId, e.image);
 		}

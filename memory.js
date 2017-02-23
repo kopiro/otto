@@ -1,3 +1,28 @@
+let knex = require('knex')({
+  client: 'mysql',
+  connection: config.mysql
+});
+
+let bookshelf = require('bookshelf')(knex);
+
+exports.Contact = bookshelf.Model.extend({
+	tableName: 'contacts',
+	photos: function() {
+		return this.hasMany(exports.ContactPhoto, 'contact_id');
+	},
+	getName: function() {
+		return (this.get('first_name') + ' ' + this.get('last_name'));
+	}
+});
+
+exports.ContactPhoto = bookshelf.Model.extend({
+	tableName: 'contact_photos',
+	contact: function() {
+		return this.belongsTo(exports.Contact);
+	}
+});
+
+// TODO: move to Model
 exports.getMemoryByText = function(text) {
 	return new Promise((resolve, reject) => {
 
@@ -11,16 +36,14 @@ exports.getMemoryByText = function(text) {
 		});
 
 		let query = "SELECT *, COUNT(tag) as tags_matched FROM memories ";
-		query += "INNER JOIN tags ON memory_tags.id_memory = memories.id AND (" + tags.map(() => { return "tag = ?"; }).join(" OR ") + ") ";
+		query += "INNER JOIN memory_tags ON memory_tags.id_memory = memories.id AND (" + tags.map(() => { return "tag = ?"; }).join(" OR ") + ") ";
 		query += "GROUP BY memories.id ORDER BY tags_matched DESC";
 
 		DB.query(query, tags, (err, memories) => {
 			if (err || memories.length === 0) {
-				reject({
+				return reject({
 					err: err,
-					notFound: true
 				});
-				return;
 			}
 
 			let max_tags_matched = memories[0].tags_matched;
@@ -29,8 +52,6 @@ exports.getMemoryByText = function(text) {
 			});
 			let memory = memories[_.random(0, memories.length-1)];
 
-			console.debug('Memory.getMemoryByText', memory);
-
 			resolve(memory);
 		});
 	});
@@ -38,7 +59,6 @@ exports.getMemoryByText = function(text) {
 
 exports.spawnServerForDataEntry = function() {
 	let http = require('http');
-	let fs = require('fs');
 
 	let express = require('express');
 	let app = express();
@@ -85,5 +105,3 @@ exports.spawnServerForDataEntry = function() {
 		console.info('Server for data-entry is started on port 8880');
 	});
 };
-
-exports.spawnServerForDataEntry();

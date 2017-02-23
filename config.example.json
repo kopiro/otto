@@ -10,10 +10,10 @@
 		}
 	},
 	"mysql": {
-		"host": "kopiro.it",
-		"user": "otto",
-		"password": "",
-		"database" : "otto"
+		"host": "__FILL_HERE__",
+		"user": "__FILL_HERE__",
+		"password": "__FILL_HERE__",
+		"database" : "__FILL_HERE__"
 	},
 	"ai": {
 		"spotify": {
