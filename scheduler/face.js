@@ -1,11 +1,16 @@
-require('./boot');
+require('../boot');
 
-const TAG = 'FaceScheduler';
+const TAG = path.basename(__filename);
 
 FaceRecognizer.createPersonGroup((err, resp) => {
-	Memory.Contact.collection().fetch({
+	Memory.Contact
+	.where({ 
+		approved: 1 
+	})
+	.fetchAll({
 		withRelated: ['photos']
-	}).then((contacts) => {
+	})
+	.then((contacts) => {
 
 		async.eachSeries(contacts.toArray(), (contact, callback) => {
 

@@ -1,4 +1,5 @@
 const _config = config.ai.wolfram;
+const TAG = path.basename(__filename, '.js');
 
 var Wolfram = require('node-wolfram');
 var wolframApi = new Wolfram(_config.appId);

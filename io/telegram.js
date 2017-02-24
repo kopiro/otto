@@ -39,7 +39,7 @@ exports.startInput = function() {
 	console.info(TAG, 'started');
 
 	bot.on('message', (e) => {
-		console.info(TAG, 'message', JSON.stringify(e));
+		console.user(TAG, 'message', e);
 		bot.sendChatAction(e.chat.id, 'typing');
 
 		let data = { chatId: e.chat.id };
@@ -127,15 +127,30 @@ exports.startInput = function() {
 
 exports.output = function(e) {
 	console.ai(TAG, 'output', e);
-	
-	return new Promise((resolve, reject) => {
-		if (e.text) {
+
+	if (e.text) {
+		return new Promise((resolve, reject) => {
 			bot.sendMessage(e.data.chatId, e.text);
-		} else if (e.spotify) {
-			bot.sendMessage(e.data.chatId, e.spotify.href);
-		} else if (e.image) {
-			bot.sendPhoto(e.data.chatId, e.image);
-		}
-		resolve();
-	});
+			resolve();
+		});
+	}
+
+	if (e.spotify) {
+		return new Promise((resolve, reject) => {
+			if (e.spotify.song) {
+				bot.sendMessage(e.data.chatId, e.spotify.song.external_urls.spotify);
+				resolve();
+			}
+			return reject();
+		});
+	}
+
+	if (e.photo) {
+		return new Promise((resolve, reject) => {
+			bot.sendPhoto(e.data.chatId, e.photo);
+			resolve();
+		});
+	}
+
+	return Promise.reject();
 };

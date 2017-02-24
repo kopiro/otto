@@ -1,20 +1,20 @@
-const TAG = 'AI.searchImage';
 const _config = config.ai.gcloud;
+const TAG = path.basename(__filename, '.js');
 
 const ImagesClient = require('google-images');
 const client = new ImagesClient(_config.cseId, _config.apiKey);
 
 module.exports = function(e) {
     return new Promise((resolve, reject) => {
-        console.debug(TAG, JSON.stringify(e, null, 2));
+        console.debug(TAG, e);
         let { parameters, fulfillment } = e;
 
         client.search(`disegno "${parameters.thing}"`)
         .then((images) => {
-            console.debug(images);
             let img = images[_.random(0, images.length-1)];
+            console.debug(TAG, 'result', img);
             resolve({
-                image: img.url
+                photo: img.url
             });
         })
         .catch((err) => {

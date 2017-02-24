@@ -23,15 +23,15 @@ exports.createRecognizeStream = function(opt, callback, end) {
 		switch (data.endpointerType) {
 
 			case 'START_OF_SPEECH':
-			console.info(TAG, 'start of speech');	
+			console.debug(TAG, 'start of speech');	
 			break;
 
 			case 'ENDPOINTER_EVENT_UNSPECIFIED':
 			let text = data.results;
-			console.info(TAG, 'recognized: ' + text);
+			console.debug(TAG, 'recognized: ' + text);
 
 			//if (AI_NAME_REGEX.test(text)) {
-				// console.info(TAG, 'activation');
+				// console.debug(TAG, 'activation');
 				console.user(text);
 
 				recognized = true;
@@ -44,7 +44,7 @@ exports.createRecognizeStream = function(opt, callback, end) {
 			case 'END_OF_UTTERANCE':
 			case 'END_OF_AUDIO':
 			if (processing) {
-				console.info(TAG, 'end of audio/utterance');
+				console.debug(TAG, 'end of audio/utterance');
 				processing = false;
 				if (end) end();
 

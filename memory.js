@@ -11,7 +11,7 @@ exports.Contact = bookshelf.Model.extend({
 		return this.hasMany(exports.ContactPhoto, 'contact_id');
 	},
 	getName: function() {
-		return (this.get('first_name') + ' ' + this.get('last_name'));
+		return this.get('name');
 	}
 });
 
@@ -20,6 +20,10 @@ exports.ContactPhoto = bookshelf.Model.extend({
 	contact: function() {
 		return this.belongsTo(exports.Contact);
 	}
+});
+
+exports.Memory = bookshelf.Model.extend({
+	tableName: 'memories'
 });
 
 // TODO: move to Model

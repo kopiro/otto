@@ -4,15 +4,21 @@ if (config.enableCron) {
 	require('./cron');
 }
 
-Memory.spawnServerForDataEntry();
+if (config.spawnServerForDataEntry) {
+	Memory.spawnServerForDataEntry();
+}
 
-let AI = require('./ai');
+let outPhoto = (data, photo) => {
+	VisionRecognizer.detectLabels(photo.localFile, (err, labels) => {
+		if (err) return IO.startInput();
 
-var app = require('apiai')(config.APIAI_TOKEN, {
-	language: 'it'
-});
-
-let context = {};
+		if (_.intersection(public_config.faceRecognitionLabels, labels).length > 0) {
+			outFace(data, photo).catch(() => { outVision(data, labels); });
+		} else {
+			outVision(data, labels);
+		}
+	});
+};
 
 let outFace = (data, photo) => {
 	return new Promise((resolve, reject) => {
@@ -58,80 +64,18 @@ let outVision = (data, labels) => {
 
 IO.onInput(({ sessionId, data, text, photo }) => {
 
-	if (text) {
+	try {
 
-		text = text.replace(AI_NAME_REGEX, '');
+		if (text) {
+			APIAI.textRequest(data, sessionId, text);
+		} else if (photo) {
+			outPhoto(data, photo);
+		} else {
+			throw `Input not text, photo`;
+		}
 
-		let request = app.textRequest(text, {
-			sessionId: sessionId || Date.now()
-		});
-
-		request.on('response', function(response) {
-			let { result } = response;
-			console.debug('API.AI response', JSON.stringify(result, null, 2));
-
-			if (_.isFunction(AI[result.action])) {
-				console.info(`Calling AI.${result.action}()`);
-
-				AI[result.action](result)
-				.then(function(out) {
-					console.info(`Result of AI.${result.action}()`, JSON.stringify(out, null, 2));
-
-					out.data = data;
-					IO.output(out).then(IO.startInput);
-				})
-				.catch(function(err) {
-					console.error(`Error in of AI.${result.action}()`, JSON.stringify(err, null, 2));
-
-					err.data = data;
-					IO.output(err).then(IO.startInput);
-				});
-
-			} else if (result.fulfillment.speech) {
-				console.info(`API.AI Direct response = ${result.fulfillment.speech}`);
-
-				let out = {
-					text: result.fulfillment.speech
-				};
-				out.data = data;
-				IO.output(out).then(IO.startInput);
-
-			} else {
-				console.error(`No strategy found`);
-				IO.startInput();
-			}
-
-		});
-
-		request.on('error', (err) => {
-			context = {};
-			console.error('API.AI error', JSON.stringify(err, null, 2));
-			IO.output(err).then(IO.startInput);
-		});
-
-		request.end();
-
-	} else if (photo) {
-
-		console.info(`Calling VisionRecognizer`);
-
-		VisionRecognizer.detectLabels(photo.localFile, (err, labels) => {
-			if (err) return callback({ err: err });
-
-			console.info('VisionRecognizer', labels);
-
-			if (_.intersection([ 'facial expression', 'person', 'face', 'nose', 'hair', 'man', 'human', 'woman' ], labels).length > 0) {
-				outFace(data, photo)
-				.catch(() => {
-					outVision(data, labels);
-				});
-			} else {
-				outVision(data, labels);
-			}
-		});
-
-	} else {
-		console.error(`Input not text,photo`);
+	} catch (ex) {
+		console.error(ex);
 		IO.startInput();
 	}
 });

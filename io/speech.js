@@ -29,18 +29,29 @@ exports.startInput = function() {
 };
 
 exports.output = function(e) {
-	console.ai(TAG, 'output', JSON.stringify(e, null, 2));
+	console.ai(TAG, 'output', e);
 	
 	if (e.text) {
 		return new Promise((resolve, reject) => {
 			let childD = require('child_process').spawn(__basedir + '/out-speech.sh', [ e.text ]);
 			childD.addListener('exit', resolve);
 		});
-	} else if (e.spotify) {
+	} 
+
+	if (e.spotify) {
 		return new Promise((resolve, reject) => {
-			require('spotify-node-applescript').playTrack(e.spotify.uri, resolve);
+			let spotify_script = require('spotify-node-applescript');
+			if (e.spotify.song) {
+				spotify_script.playTrack(e.spotify.song.uri, resolve);
+				return resolve();
+			}
+			if (e.spotify.action) {
+				spotify_script[e.spotify.action]();
+				return resolve();
+			}
+			return reject();
 		});
-	} else {
-		return Promise.resolve();
 	}
+	
+	return Promise.reject();
 };

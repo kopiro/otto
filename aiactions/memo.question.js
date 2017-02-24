@@ -1,19 +1,14 @@
-const TAG = 'AI.memoQuestion';
+const TAG = path.basename(__filename);
 
 module.exports = function(e) {
 	return new Promise((resolve, reject) => {
-		console.debug(TAG, JSON.stringify(e, null, 2));
+		console.debug(TAG, e);
 		let { parameters, fulfillment, resolvedQuery } = e;
 
-		Memory.getMemoryByText(resolvedQuery)
-		.then((memory) => {
+		Memory.getMemoryByText(resolvedQuery).then((memory) => {
 			let text = (fulfillment.speech || "") + " ";
-			if (memory.text) {
-				text += memory.text + " ";
-			}
-			if (IO.capabilities.user_can_view_urls && memory.url) {
-				text += memory.url +  " ";
-			}
+			if (memory.text) text += memory.text + " ";
+			if (IO.capabilities.user_can_view_urls && memory.url) text += memory.url +  " ";
 
 			resolve({
 				text: text
