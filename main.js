@@ -45,7 +45,7 @@ let outFace = (data, photo) => {
 
 let outVision = (data, labels) => {
 	return new Promise((resolve, reject) => {
-		Translator.translate(labels[0], 'it', (err, translation) => {
+		Translator.translate(labels[0] + ', ' + labels[1], 'it', (err, translation) => {
 			if (err) return reject(err);
 
 			let responses = [
