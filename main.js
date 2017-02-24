@@ -32,9 +32,16 @@ let outFace = (data, photo) => {
 
 				Memory.Contact.where({ person_id: person_id }).fetch()
 				.then((contact) => {
+					const name = contact.get('name');
+					const responses = [
+					`Hey, ciao ${name}!`,
+					`Ma... è ${name}`,
+					`Da quanto tempo ${name}!, come stai??`
+					];
+
 					IO.output({
 						data: data,
-						text: contact.get('alias_hello') || ('Ma... questo è ' + contact.get('name'))
+						text: contact.get('alias_hello') || responses[_.random(0, responses.length-1)]
 					});
 				});
 
