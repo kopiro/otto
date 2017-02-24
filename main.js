@@ -34,7 +34,7 @@ let outFace = (data, photo) => {
 				.then((contact) => {
 					IO.output({
 						data: data,
-						text: contact.get('alias_hello') || ('Ma... questo è ' + contact.get('first_name'))
+						text: contact.get('alias_hello') || ('Ma... questo è ' + contact.get('name'))
 					});
 				});
 
