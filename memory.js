@@ -67,10 +67,6 @@ exports.MemoryTags = bookshelf.Model.extend({
 	tablename: 'memory_tags'
 });
 
-exports.TelegramChat = bookshelf.Model.extend({
-	tableName: 'telegram_chats'
-});
-
 /**
  * Spawn a server for memory data entry
  * Useful for Ciav.

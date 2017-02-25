@@ -26,7 +26,8 @@ global.path = require('path');
 global.fs = require('fs');
 global.request = require('request');
 global.async = require('async');
-global.moment = require('moment').locale(config.language);
+global.moment = require('moment');
+moment.locale(config.language);
 
 global.APIAI = require('./apiai');
 

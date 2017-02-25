@@ -24,7 +24,7 @@ function storeChatId(chat) {
 		if (err || telegram_chats.length === 0) {
 			DB.query('INSERT INTO telegram_chats SET ? ', {
 				id: chat.id, 
-				title: chat.title || chat.username || `${chat.first_name} ${chat.last_name}`,
+				title: chat.title || chat.first_name,
 				type: chat.type
 			});
 		}
