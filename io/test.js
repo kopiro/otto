@@ -1,7 +1,7 @@
 const TAG = 'IO.Test';
 
 exports.capabilities = { 
-	user_can_view_urls: true
+	userCanViewUrls: true
 };
 
 const readline = require('readline');
@@ -18,28 +18,34 @@ exports.onInput = function(cb) {
 };
 
 exports.startInput = function() {
-	if (strings.length === 0) {
-		console.info('IO.Test', 'starting TTY');
+	// singleton event
+	if (exports.startInput.started) return;
+	exports.startInput.started = true;
+
+	console.info(TAG, 'start');
+
+	let data = { time: Date.now() };
+	let msg = strings.shift();
+
+	if (_.isEmpty(msg)) {
+		console.info(TAG, 'starting TTY');
 		rl.question('> ', (answer) => {
-			callback({
-				data: { test: Date.now() },
+			console.user(TAG, answer);
+			callback(null, data, {
 				text: answer
 			});
 		});
-		return;
+	} else {
+		console.user(TAG, msg);
+		callback(null, data, {
+			text: msg
+		});
 	}
-
-	let msg = strings.shift();
-	console.user(msg);
-
-	callback({
-		data: { test: Date.now() },
-		text: msg
-	});
 };
 
-exports.output = function(e) {
-	console.ai(TAG, 'output', e);
+exports.output = function(data, e) {
+	console.ai(TAG, e);
+	if (_.isString(e)) e = { text: e };
 
 	if (e.text) {
 		return Promise.resolve();

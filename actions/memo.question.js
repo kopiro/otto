@@ -5,20 +5,16 @@ module.exports = function(e) {
 		console.debug(TAG, e);
 		let { parameters, fulfillment, resolvedQuery } = e;
 
-		Memory.getMemoryByText(resolvedQuery).then((memory) => {
+		Memory.byText(resolvedQuery)
+		.then((memory) => {
 			let text = (fulfillment.speech || "") + " ";
 			if (memory.text) text += memory.text + " ";
-			if (IO.capabilities.user_can_view_urls && memory.url) text += memory.url +  " ";
-
-			resolve({
-				text: text
-			});
+			if (IO.capabilities.userCanViewUrls && memory.url) text += memory.url +  " ";
+			resolve(text);
 		})
 		.catch((err) => {
-			reject({
-				err: err,
-				text: 'Non ho ricordi di questa cosa'
-			});
+			err.text = 'Non ho ricordi di questa cosa';
+			reject(err);
 		});
 	});
 };

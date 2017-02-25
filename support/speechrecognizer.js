@@ -2,9 +2,9 @@ const speechClient = require('@google-cloud/speech')({
 	keyFilename: __basedir + '/gcloud.json'
 });
 
-const TAG = 'SR';
+const TAG = 'SpeechRecognizer';
 
-exports.createRecognizeStream = function(opt, callback, end) {
+function createRecognizeStream(opt, callback, end) {
 	let timeout;
 	let processing = true;
 	let recognized = false;
@@ -14,8 +14,8 @@ exports.createRecognizeStream = function(opt, callback, end) {
 		interimResults: false,
 		config: {
 			encoding: opt.encoding || 'LINEAR16',
-			sampleRate: opt.sampleRate,
-			languageCode: 'it-IT',
+			sampleRate: opt.sampleRate || 16000,
+			languageCode: config.locale,
 		}
 	});
 
@@ -32,13 +32,9 @@ exports.createRecognizeStream = function(opt, callback, end) {
 
 			//if (AI_NAME_REGEX.test(text)) {
 				// console.debug(TAG, 'activation');
-				console.user(text);
 
 				recognized = true;
-
-				callback({
-					text: text
-				});
+				callback(null, text);
 			// no-break
 
 			case 'END_OF_UTTERANCE':
@@ -51,9 +47,7 @@ exports.createRecognizeStream = function(opt, callback, end) {
 				timeout = setTimeout(function() {
 					if (!recognized) {
 						console.error(TAG, 'not recognized');
-						callback({
-							error: "No word recognized by speech recognizer"
-						});
+						callback("No word recognized by speech recognizer");
 					}
 				}, 1000);
 			}
@@ -63,4 +57,50 @@ exports.createRecognizeStream = function(opt, callback, end) {
 	});
 
 	return speechRecognizer;
+}
+
+exports.recognizeAudioStream = function(stream, end, must_convert) {
+	return new Promise((resolve, reject) => {
+
+		if (must_convert) {
+
+			const tmp_file_audio = require('os').tmpdir() + Date.now() + '.flac';
+			const sampleRate = 16000;
+
+			const rec_stream = createRecognizeStream({
+				sampleRate: sampleRate,
+				encoding: 'FLAC'
+			}, (err, text) => {
+				if (err) return reject(err);
+				resolve(text);
+			}, () => {
+				if (end) end();
+				fs.unlink(tmp_file_audio);
+			});
+
+			require('fluent-ffmpeg')(stream)
+			.output(tmp_file_audio)
+			.outputOptions(['-ac 1', `-ar ${sampleRate}`])
+			.on('end', () => {
+				fs.createReadStream(tmp_file_audio)
+				.pipe(rec_stream);
+			})
+			.on('error', (err) => {
+				reject(err);
+			})
+			.run();
+
+		} else {
+
+			const rec_stream = createRecognizeStream({}, (err, text) => {
+				if (err) return reject(err);
+				resolve(text);
+			}, () => {
+				if (end) end();
+			});
+
+			stream.pipe(rec_stream);
+
+		}
+	});
 };

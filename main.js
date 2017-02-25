@@ -1,7 +1,13 @@
 require('./boot');
 
+global.IO = require('./io/' + (process.argv[2] || config.ioDriver));
+
+const VisionRecognizer = require(__basedir + '/support/visionrecognizer');
+const FaceRecognizer = require(__basedir + '/support/facerecognizer');
+const Translator = require(__basedir + '/support/translator');
+
 if (config.enableCron) {
-	require('./cron');
+	require(__basedir + '/cron');
 }
 
 if (config.spawnServerForDataEntry) {
@@ -10,12 +16,19 @@ if (config.spawnServerForDataEntry) {
 
 let outPhoto = (data, photo) => {
 	VisionRecognizer.detectLabels(photo.localFile, (err, labels) => {
-		if (err) return IO.startInput();
+		if (err) return reject(err);
 
 		if (_.intersection(public_config.faceRecognitionLabels, labels).length > 0) {
-			outFace(data, photo).catch(() => { outVision(data, labels); });
+			outFace(data, photo)
+			.catch((err) => { 
+				outVision(data, labels)
+				.then(resolve)
+				.catch(reject); 
+			});
 		} else {
-			outVision(data, labels);
+			outVision(data, labels)
+			.then(resolve)
+			.catch(reject); 
 		}
 	});
 };
@@ -23,10 +36,10 @@ let outPhoto = (data, photo) => {
 let outFace = (data, photo) => {
 	return new Promise((resolve, reject) => {
 		FaceRecognizer.detect(photo.remoteFile, (err, resp) => {
-			if (resp.length === 0) return reject();
+			if (resp.length === 0) return reject(err);
 
 			FaceRecognizer.identify([ resp[0].faceId ], (err, resp) => {
-				if (resp.length === 0 || resp[0].candidates.length === 0) return reject();
+				if (resp.length === 0 || resp[0].candidates.length === 0) return reject(err);
 
 				let person_id = resp[0].candidates[0].personId;
 
@@ -39,10 +52,7 @@ let outFace = (data, photo) => {
 					`Da quanto tempo ${name}!, come stai??`
 					];
 
-					IO.output({
-						data: data,
-						text: contact.get('alias_hello') || responses[_.random(0, responses.length-1)]
-					});
+					resolve(contact.get('alias_hello') || responses[_.random(0, responses.length-1)]);
 				});
 
 			}); 
@@ -61,29 +71,33 @@ let outVision = (data, labels) => {
 			`Aspetta... lo so... è ${translation}`
 			];
 
-			IO.output({
-				data: data,
-				text: responses[_.random(0,responses.length-1)]
-			}).then(IO.startInput);
+			resolve(responses[_.random(0,responses.length-1)]);
 		});
 	});
 };
 
-IO.onInput(({ sessionId, data, text, photo }) => {
+IO.onInput((err, data, { text, photo }) => {
 
 	try {
 
 		if (text) {
-			APIAI.textRequest(data, sessionId, text);
+			APIAI.textRequest(data, text)
+			.then((resp) => { return IO.output(data, resp); })
+			.catch((err) => { return IO.output(data, err); })
+			.then(IO.startInput);
 		} else if (photo) {
-			outPhoto(data, photo);
+			outPhoto(data, photo)
+			.then((resp) => { return IO.output(data, resp); })
+			.catch((err) => { return IO.output(data, err); })
+			.then(IO.startInput);
 		} else {
-			throw `Input not text, photo`;
+			throw 'This input type is not supported yet. Supported: text, photo';
 		}
 
 	} catch (ex) {
 		console.error(ex);
-		IO.startInput();
+		IO.output(data, { error: ex })
+		.then(IO.startInput);
 	}
 });
 

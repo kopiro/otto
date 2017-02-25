@@ -2,6 +2,8 @@ require('../boot');
 
 const TAG = path.basename(__filename);
 
+let FaceRecognizer = require(__basedir + '/support/facerecognizer');
+
 FaceRecognizer.createPersonGroup((err, resp) => {
 	Memory.Contact
 	.where({ 

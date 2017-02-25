@@ -2,22 +2,34 @@ const TAG = 'IO.Telegram';
 const _config = config.io.telegram;
 
 exports.capabilities = { 
-	user_can_view_urls: true
+	userCanViewUrls: true
 };
 
 const TelegramBot = require('node-telegram-bot-api');
 const bot = new TelegramBot(_config.token, _config.options);
-
 if (_config.webhook) {
 	var listenUrl = _config.webhook.url + _config.token;
 	bot.setWebHook(listenUrl, _config.webhook.options);
-	bot.getWebHookInfo().then(function(e){
-		console.info('IO.Telegram', 'webhook status', e); 
+	bot.getWebHookInfo().then((e) => {
+		console.info(TAG, 'started', e); 
 	});
 }
 
+const SpeechRecognizer = require(__basedir + '/support/speechrecognizer');
+
 let callback;
-let started = false;
+
+function storeChatId(chat) {
+	DB.query('SELECT * FROM telegram_chats WHERE id = ?', [ chat.id ], function(err, telegram_chats) {
+		if (err || telegram_chats.length === 0) {
+			DB.query('INSERT INTO telegram_chats SET ? ', {
+				id: chat.id, 
+				title: chat.title || chat.username || `${chat.first_name} ${chat.last_name}`,
+				type: chat.type
+			});
+		}
+	});
+}
 
 exports.getConversations = function() {
 	return new Promise((resolve, reject) => {
@@ -33,87 +45,51 @@ exports.onInput = function(cb) {
 };
 
 exports.startInput = function() {
-	if (started) return;
-	started = true;
-
-	console.info(TAG, 'started');
+	// singleton event
+	if (exports.startInput.started) return;
+	exports.startInput.started = true;
 
 	bot.on('message', (e) => {
-		console.user(TAG, 'message', e);
-		bot.sendChatAction(e.chat.id, 'typing');
+		console.user(TAG, e);
 
 		let data = { chatId: e.chat.id };
 
-		// Store chats in database
-		DB.query('SELECT * FROM telegram_chats WHERE id = ?', [ e.chat.id ], function(err, data) {
-			if (err || data.length === 0) {
-				DB.query('INSERT INTO telegram_chats SET ? ', {
-					id: e.chat.id, 
-					title: e.chat.title || e.chat.username || `${e.chat.first_name} ${e.chat.last_name}`,
-					type: e.chat.type
-				});
-			}
-		});
+		// Send typing instantanely for debug
+		bot.sendChatAction(e.chat.id, 'typing');
+
+		// Store the chat in the database for future contacts
+		storeChatId(e.chat);
 
 		if (e.text) {
-			callback({
-				data: data,
+			return callback(null, data, {
 				text: e.text
 			});
 		}
 
 		if (e.voice) {
 			
-			const tmp_file_audio = require('os').tmpdir() + Date.now() + '.flac';
-
-			const speechRecognizer = SpeechRecognizer.createRecognizeStream({
-				sampleRate: 16000,
-				encoding: 'FLAC'
-			}, (e) => {
-				e.data = data;
-				callback(e);
-			}, () => {
-				fs.unlink(tmp_file_audio);
-			});
-			
-			bot.getFileLink(e.voice.file_id).then((file_link) => {
-				const req = request(file_link);
-				require('fluent-ffmpeg')(req)
-				.output(tmp_file_audio)
-				.outputOptions(['-ac 1', '-ar 16000'])
-				.on('end', () => {
-					fs.createReadStream(tmp_file_audio)
-					.pipe(speechRecognizer);
-				})
-				.on('error', (err) => {
-					callback({
-						data: data,
-						err: err
+			return bot.getFileLink(e.voice.file_id).then((file_link) => {
+				SpeechRecognizer.recognizeAudioStream( request(file_link) )
+				.then((text) => {
+					callback(null, data, {
+						text: text
 					});
 				})
-				.run();
+				.catch((err) => { callback(err, data);	});
 			});
 
 		}
 
 		if (e.photo) {
 
-			const tmp_file_photo = require('os').tmpdir() + Date.now() + '.jpg';
-			bot.getFileLink(_.last(e.photo).file_id).then((file_link) => {
+			return bot.getFileLink( _.last(e.photo).file_id ).then((file_link) => {
+				const tmp_file_photo = require('os').tmpdir() + Date.now() + '.jpg';
+
 				request(file_link)
 				.pipe(fs.createWriteStream(tmp_file_photo))
-				.on('error', (err) => {
-					console.error(TAG, err);
-					return callback({
-						data: data,
-						err: err
-					});
-				})
+				.on('error', (err) => { return callback(err, data); })
 				.on('finish', () => {
-					console.debug(TAG, 'finished downloading file', tmp_file_photo);
-
-					callback({
-						data: data,
+					callback(null, data, {
 						photo: {
 							remoteFile: file_link,
 							localFile: tmp_file_photo
@@ -125,21 +101,22 @@ exports.startInput = function() {
 	});
 };
 
-exports.output = function(e) {
+exports.output = function(data, e) {
 	console.ai(TAG, 'output', e);
+	if (_.isString(e)) e = { text: e };
 
 	if (e.text) {
 		return new Promise((resolve, reject) => {
-			bot.sendMessage(e.data.chatId, e.text);
-			resolve();
+			bot.sendMessage(data.chatId, e.text);
+			return resolve();
 		});
 	}
 
 	if (e.spotify) {
 		return new Promise((resolve, reject) => {
 			if (e.spotify.song) {
-				bot.sendMessage(e.data.chatId, e.spotify.song.external_urls.spotify);
-				resolve();
+				bot.sendMessage(data.chatId, e.spotify.song.external_urls.spotify);
+				return resolve();
 			}
 			return reject();
 		});
@@ -147,8 +124,8 @@ exports.output = function(e) {
 
 	if (e.photo) {
 		return new Promise((resolve, reject) => {
-			bot.sendPhoto(e.data.chatId, e.photo);
-			resolve();
+			bot.sendPhoto(data.chatId, e.photo);
+			return resolve();
 		});
 	}
 

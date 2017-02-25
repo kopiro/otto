@@ -2,8 +2,11 @@ const TAG = 'IO.Speech';
 
 exports.capabilities = { 
 	TAG: TAG,
-	user_can_view_urls: false
+	userCanViewUrls: false
 };
+
+const Recorder = require('node-record-lpcm16');
+const SpeechRecognizer = require(__basedir + '/support/speechrecognizer');
 
 let callback;
 
@@ -13,28 +16,32 @@ exports.onInput = function(cb) {
 
 exports.startInput = function() {
 	console.info(TAG, 'start');
-	let Recorder = require('node-record-lpcm16');
+	let data = { time: Date.now() };
 
-	const speechRecognizer = SpeechRecognizer.createRecognizeStream({
-		sampleRate: 16000
-	}, function(e) {
-		callback(e);
-	}, function() {
-		Recorder.stop();
+	SpeechRecognizer.recognizeAudioStream(Recorder.start(), Recorder.stop)
+	.then((text) => {
+		console.user(TAG, text);
+		callback(null, data, {
+			text: text
+		});
+	})
+	.catch((err) => {
+		console.error(TAG, err);
+		callback(err, data);
 	});
-
-	Recorder.start({
-		sampleRate: 16000
-	}).pipe(speechRecognizer);
 };
 
-exports.output = function(e) {
-	console.ai(TAG, 'output', e);
+exports.output = function(data, e) {
+	console.ai(TAG, e);
+	if (_.isString(e)) e = { text: e };
 	
 	if (e.text) {
 		return new Promise((resolve, reject) => {
-			let childD = require('child_process').spawn(__basedir + '/out-speech.sh', [ e.text ]);
-			childD.addListener('exit', resolve);
+			require('child_process').spawn(__basedir + '/out-speech.sh', [ e.text ])
+			.addListener('exit', (err) => {
+				if (err) return reject(err);
+				resolve();
+			});
 		});
 	} 
 
@@ -42,8 +49,7 @@ exports.output = function(e) {
 		return new Promise((resolve, reject) => {
 			let spotify_script = require('spotify-node-applescript');
 			if (e.spotify.song) {
-				spotify_script.playTrack(e.spotify.song.uri, resolve);
-				return resolve();
+				return spotify_script.playTrack(e.spotify.song.uri, resolve);
 			}
 			if (e.spotify.action) {
 				spotify_script[e.spotify.action]();
