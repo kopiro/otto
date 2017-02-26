@@ -54,9 +54,6 @@ exports.startInput = function() {
 
 		let data = { chatId: e.chat.id };
 
-		// Send typing instantanely for debug
-		bot.sendChatAction(e.chat.id, 'typing');
-
 		// Store the chat in the database for future contacts
 		storeChatId(e.chat);
 
@@ -104,6 +101,7 @@ exports.startInput = function() {
 exports.output = function(data, e) {
 	console.ai(TAG, 'output', e);
 	if (_.isString(e)) e = { text: e };
+	bot.sendChatAction(data.chatId, 'typing');
 
 	if (e.text) {
 		return new Promise((resolve, reject) => {
