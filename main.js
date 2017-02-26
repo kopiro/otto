@@ -1,7 +1,5 @@
 require('./boot');
 
-global.IO = require('./io/' + (process.argv[2] || config.ioDriver));
-
 const VisionRecognizer = require(__basedir + '/support/visionrecognizer');
 const FaceRecognizer = require(__basedir + '/support/facerecognizer');
 const Translator = require(__basedir + '/support/translator');
@@ -81,29 +79,36 @@ let outVision = (data, labels) => {
 	});
 };
 
-IO.onInput((err, data, { text, photo }) => {
-
-	try {
-
-		if (text) {
-			APIAI.textRequest(data, text)
-			.then((resp) => { return IO.output(data, resp); })
-			.catch((err) => { return IO.output(data, err); })
-			.then(IO.startInput);
-		} else if (photo) {
-			outPhoto(data, photo)
-			.then((resp) => { return IO.output(data, resp); })
-			.catch((err) => { return IO.output(data, err); })
-			.then(IO.startInput);
-		} else {
-			throw 'This input type is not supported yet. Supported: text, photo';
-		}
-
-	} catch (ex) {
-		console.error(ex);
-		IO.output(data, { error: ex })
-		.then(IO.startInput);
-	}
+let IOs = [];
+config.ioDrivers.forEach((driver) => {
+	IOs.push(require(__basedir + '/io/' + driver));
 });
 
-IO.startInput();
+IOs.forEach((io) => {
+	io.onInput((err, data, { text, photo }) => {
+
+		try {
+
+			if (text) {
+				APIAI.textRequest(data, text)
+				.then((resp) => { return io.output(data, resp); })
+				.catch((err) => { return io.output(data, err); })
+				.then(io.startInput);
+			} else if (photo) {
+				outPhoto(data, photo)
+				.then((resp) => { return io.output(data, resp); })
+				.catch((err) => { return io.output(data, err); })
+				.then(io.startInput);
+			} else {
+				io.output(data, { error: 'This input type is not supported yet. Supported: text, photo' })
+				.then(io.startInput);
+			}
+
+		} catch (ex) {
+			console.error(ex);
+			io.output(data, { error: ex })
+			.then(io.startInput);
+		}
+	});
+	io.startInput();
+});
