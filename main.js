@@ -12,13 +12,13 @@ if (config.spawnServerForDataEntry) {
 	Memory.spawnServerForDataEntry();
 }
 
-let outPhoto = (data, photo) => {
+let outPhoto = (data, photo, io) => {
 	return new Promise((resolve, reject) => {
 		VisionRecognizer.detectLabels(photo.localFile, (err, labels) => {
 			if (err) return reject(err);
 
 			if (_.intersection(public_config.faceRecognitionLabels, labels).length > 0) {
-				outFace(data, photo)
+				outFace(data, photo, io)
 				.then(resolve)
 				.catch((err) => { 
 					outVision(data, labels)
@@ -26,7 +26,7 @@ let outPhoto = (data, photo) => {
 					.catch(reject); 
 				});
 			} else {
-				outVision(data, labels)
+				outVision(data, labels, io)
 				.then(resolve)
 				.catch(reject); 
 			}
@@ -34,7 +34,7 @@ let outPhoto = (data, photo) => {
 	});
 };
 
-let outFace = (data, photo) => {
+let outFace = (data, photo, io) => {
 	return new Promise((resolve, reject) => {
 		FaceRecognizer.detect(photo.remoteFile, (err, resp) => {
 			if (resp.length === 0) return reject(err);
@@ -63,7 +63,7 @@ let outFace = (data, photo) => {
 	});
 };
 
-let outVision = (data, labels) => {
+let outVision = (data, labels, io) => {
 	return new Promise((resolve, reject) => {
 		Translator.translate(labels[0] + ', ' + labels[1], 'it', (err, translation) => {
 			if (err) return reject(err);
@@ -90,12 +90,12 @@ IOs.forEach((io) => {
 		try {
 
 			if (text) {
-				APIAI.textRequest(data, text)
+				APIAI.textRequest(data, text, io)
 				.then((resp) => { return io.output(data, resp); })
 				.catch((err) => { return io.output(data, err); })
 				.then(io.startInput);
 			} else if (photo) {
-				outPhoto(data, photo)
+				outPhoto(data, photo, io)
 				.then((resp) => { return io.output(data, resp); })
 				.catch((err) => { return io.output(data, err); })
 				.then(io.startInput);

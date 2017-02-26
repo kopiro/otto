@@ -1,6 +1,6 @@
 const TAG = path.basename(__filename);
 
-module.exports = function(e) {
+module.exports = function(e, io) {
 	return new Promise((resolve, reject) => {
 		console.debug(TAG, e);
 		let { parameters, fulfillment, resolvedQuery } = e;
@@ -9,7 +9,7 @@ module.exports = function(e) {
 		.then((memory) => {
 			let text = (fulfillment.speech || "") + " ";
 			if (memory.text) text += memory.text + " ";
-			if (IO.capabilities.userCanViewUrls && memory.url) text += memory.url +  " ";
+			if (io.capabilities.userCanViewUrls && memory.url) text += memory.url +  " ";
 			resolve(text);
 		})
 		.catch((err) => {

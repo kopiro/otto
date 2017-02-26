@@ -6,7 +6,7 @@ let apiaiClient = require('apiai')(config.APIAI_TOKEN, {
 
 let Actions = require(__basedir + '/actions');
 
-exports.textRequest = function(data, text) {
+exports.textRequest = function(data, text, io) {
 	return new Promise((resolve, reject) => {
 		text = text.replace(AI_NAME_REGEX, '');
 
@@ -23,7 +23,7 @@ exports.textRequest = function(data, text) {
 			if (_.isFunction(Actions[r.action])) {
 				console.info(TAG, `calling ${r.action}()`);
 
-				Actions[r.action](r)
+				Actions[r.action](r, io)
 				.then(function(out) {
 					console.info(TAG, `result of ${r.action}()`, out);
 					resolve(out);
