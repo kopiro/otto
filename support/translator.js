@@ -5,4 +5,7 @@ const translateClient = translate({
 	keyFilename: __basedir + '/gcloud.json'
 });
 
-exports.translate = translateClient.translate;
+exports.translate = function(text, lang, callback) {
+	console.debug(TAG, text, lang);
+	translateClient.translate(text, lang, callback);
+};

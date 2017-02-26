@@ -15,21 +15,24 @@ if (config.spawnServerForDataEntry) {
 }
 
 let outPhoto = (data, photo) => {
-	VisionRecognizer.detectLabels(photo.localFile, (err, labels) => {
-		if (err) return reject(err);
+	return new Promise((resolve, reject) => {
+		VisionRecognizer.detectLabels(photo.localFile, (err, labels) => {
+			if (err) return reject(err);
 
-		if (_.intersection(public_config.faceRecognitionLabels, labels).length > 0) {
-			outFace(data, photo)
-			.catch((err) => { 
+			if (_.intersection(public_config.faceRecognitionLabels, labels).length > 0) {
+				outFace(data, photo)
+				.then(resolve)
+				.catch((err) => { 
+					outVision(data, labels)
+					.then(resolve)
+					.catch(reject); 
+				});
+			} else {
 				outVision(data, labels)
 				.then(resolve)
 				.catch(reject); 
-			});
-		} else {
-			outVision(data, labels)
-			.then(resolve)
-			.catch(reject); 
-		}
+			}
+		});
 	});
 };
 
@@ -43,7 +46,8 @@ let outFace = (data, photo) => {
 
 				let person_id = resp[0].candidates[0].personId;
 
-				Memory.Contact.where({ person_id: person_id }).fetch()
+				Memory.Contact.where({ person_id: person_id })
+				.fetch({ required: true })
 				.then((contact) => {
 					const name = contact.get('name');
 					const responses = [
@@ -53,7 +57,8 @@ let outFace = (data, photo) => {
 					];
 
 					resolve(contact.get('alias_hello') || responses[_.random(0, responses.length-1)]);
-				});
+				})
+				.catch(reject);
 
 			}); 
 		}); 
