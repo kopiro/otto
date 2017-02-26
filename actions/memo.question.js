@@ -8,13 +8,14 @@ module.exports = function(e, io) {
 		Memory.Memory.byText(resolvedQuery)
 		.then((memory) => {
 			let text = (fulfillment.speech || "") + " ";
-			if (memory.text) text += memory.text + " ";
-			if (io.capabilities.userCanViewUrls && memory.url) text += memory.url +  " ";
+			if (memory.get('text')) text += memory.get('text') + " ";
+			if (io.capabilities.userCanViewUrls && memory.get('url')) {
+				text += memory.get('url') +  " ";
+			}
 			resolve(text);
 		})
 		.catch((err) => {
-			err.text = 'Non ho ricordi di questa cosa';
-			reject(err);
+			reject('Non ho ricordi di questa cosa');
 		});
 	});
 };
