@@ -5,7 +5,7 @@ module.exports = function(e) {
 		console.debug(TAG, e);
 		let { parameters, fulfillment, resolvedQuery } = e;
 
-		Memory.byText(resolvedQuery)
+		Memory.Memory.byText(resolvedQuery)
 		.then((memory) => {
 			let text = (fulfillment.speech || "") + " ";
 			if (memory.text) text += memory.text + " ";

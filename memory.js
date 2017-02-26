@@ -43,21 +43,19 @@ exports.Memory = bookshelf.Model.extend({
 			query += "AND (" + tags.map(() => { return "tag = ?"; }).join(" OR ") + ") ";
 			query += "GROUP BY memories.id ORDER BY tags_matched DESC";
 
-			exports.Memory
-			.whereRaw(query)
-			.fetchAll({ required: true })
-			.then((memories) => {
+			DB.query(query, tags, (err, memories) => {
+				if (err) return reject(err);
+				if (memories.length == 0) return reject(err);
 
 				// Since we ordered by tags_matched, the first one is the max
-				let max_tags_matched = memories.at(0).get('tags_matched');
+				let max_tags_matched = memories[0].tags_matched;
 				memories = memories.filter((memory) => { 
-					return memory.get('tags_matched') == max_tags_matched;
+					return memory.tags_matched == max_tags_matched;
 				});
-				let memory = memories.at( _.random(0, memories.length - 1) );
+				let memory = memories[ _.random(0, memories.length - 1) ];
 
-				resolve(memory);
-			})
-			.catch(reject);
+				resolve(new exports.Memory(memory));
+			});
 		});
 	}
 
