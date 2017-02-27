@@ -105,10 +105,11 @@ IOs.forEach((io) => {
 			}
 
 		} catch (ex) {
-			console.error(ex);
 			io.output(data, { error: ex })
-			.then(io.startInput);
+			.then(io.startInput)
+			.catch(io.startInput);
 		}
 	});
+
 	io.startInput();
 });

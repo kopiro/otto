@@ -34,6 +34,16 @@ exports.output = function(data, e) {
 		if (_.isString(e)) e = { text: e };
 		let { req, res } = data;
 
+		if (e.error) {
+			res.json({ 
+				error: {
+					message: e.error,
+					exception: e.exception || {}
+				}
+			});
+			return resolve();
+		}
+
 		if (e.text) {
 			res.json(e);
 			return resolve();
@@ -53,8 +63,7 @@ exports.output = function(data, e) {
 
 		res.json({ 
 			error: {
-				message: e.error || 'Unhandled output',
-				exception: e.exception || {}
+				message: 'Unhandled output'
 			}
 		});
 		reject();

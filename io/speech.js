@@ -32,21 +32,21 @@ exports.startInput = function() {
 };
 
 exports.output = function(data, e) {
-	console.ai(TAG, e);
-	if (_.isString(e)) e = { text: e };
-	
-	if (e.text) {
-		return new Promise((resolve, reject) => {
-			require('child_process').spawn(__basedir + '/out-speech.sh', [ e.text ])
+	return new Promise((resolve, reject) => {
+		console.ai(TAG, e);
+		if (_.isString(e)) e = { text: e };
+
+		if (e.error) return resolve();
+
+		if (e.text) {
+			return require('child_process').spawn(__basedir + '/out-speech.sh', [ e.text ])
 			.addListener('exit', (err) => {
 				if (err) return reject(err);
 				resolve();
 			});
-		});
-	} 
+		} 
 
-	if (e.spotify) {
-		return new Promise((resolve, reject) => {
+		if (e.spotify) {
 			let spotify_script = require('spotify-node-applescript');
 			if (e.spotify.song) {
 				return spotify_script.playTrack(e.spotify.song.uri, resolve);
@@ -56,8 +56,8 @@ exports.output = function(data, e) {
 				return resolve();
 			}
 			return reject();
-		});
-	}
-	
-	return Promise.reject();
+		}
+
+		return reject();
+	});
 };

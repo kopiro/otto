@@ -99,33 +99,33 @@ exports.startInput = function() {
 };
 
 exports.output = function(data, e) {
-	console.ai(TAG, 'output', e);
-	if (_.isString(e)) e = { text: e };
-	bot.sendChatAction(data.chatId, 'typing');
+	return new Promise((resolve, reject) => {
+		console.ai(TAG, e);
+		if (_.isString(e)) e = { text: e };
 
-	if (e.text) {
-		return new Promise((resolve, reject) => {
+		if (e.error) return resolve();
+
+		if (e.text) {
+			bot.sendChatAction(data.chatId, 'typing');
 			bot.sendMessage(data.chatId, e.text);
 			return resolve();
-		});
-	}
+		}
 
-	if (e.spotify) {
-		return new Promise((resolve, reject) => {
+		if (e.spotify) {
+			bot.sendChatAction(data.chatId, 'typing');
 			if (e.spotify.song) {
 				bot.sendMessage(data.chatId, e.spotify.song.external_urls.spotify);
 				return resolve();
 			}
 			return reject();
-		});
-	}
+		}
 
-	if (e.photo) {
-		return new Promise((resolve, reject) => {
+		if (e.photo) {
+			bot.sendChatAction(data.chatId, 'upload_photo');
 			bot.sendPhoto(data.chatId, e.photo);
 			return resolve();
-		});
-	}
+		}
 
-	return Promise.reject();
+		return reject();
+	});
 };

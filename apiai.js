@@ -21,26 +21,25 @@ exports.textRequest = function(data, text, io) {
 			console.debug(TAG, 'response', r);
 
 			if (_.isFunction(Actions[r.action])) {
-				console.info(TAG, `calling ${r.action}()`);
+				console.debug(TAG, `calling ${r.action}()`);
 
 				Actions[r.action](r, io)
 				.then(function(out) {
-					console.info(TAG, `result of ${r.action}()`, out);
+					console.debug(TAG, `result of ${r.action}()`, out);
 					resolve(out);
 				})
 				.catch(function(err) {
-					console.error(TAG, `error in ${r.action}()`, err);		
+					console.debug(TAG, `error in ${r.action}()`, err);		
 					reject(err);
 				});
 
 			} else if (r.fulfillment.speech) {
-				console.info(TAG, 'direct response', r.fulfillment.speech);
+				console.debug(TAG, 'direct response', r.fulfillment.speech);
 				resolve({ text: r.fulfillment.speech });
 			} else {
 				console.error(TAG, `No strategy found`);
 				reject({ error: 'No strategy found' });
 			}
-
 		});
 
 		request.on('error', (err) => {

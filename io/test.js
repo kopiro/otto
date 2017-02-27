@@ -18,10 +18,6 @@ exports.onInput = function(cb) {
 };
 
 exports.startInput = function() {
-	// singleton event
-	if (exports.startInput.started) return;
-	exports.startInput.started = true;
-
 	console.info(TAG, 'start');
 
 	let data = { time: Date.now() };
@@ -44,20 +40,27 @@ exports.startInput = function() {
 };
 
 exports.output = function(data, e) {
-	console.ai(TAG, e);
-	if (_.isString(e)) e = { text: e };
+	return new Promise((resolve, reject) => {
+		console.ai(TAG, e);
+		if (_.isString(e)) e = { text: e };
 
-	if (e.text) {
-		return Promise.resolve();
-	}
+		if (e.error) return resolve();
 
-	if (e.spotify) {
-		return require(__basedir + '/io/speech').output(e);
-	}
+		if (e.text) {
+			return resolve();
+		}
 
-	if (e.photo) {
-		return Promise.resolve();
-	}
+		if (e.spotify) {
+			return require(__basedir + '/io/speech')
+			.output(e)
+			.then(resolve)
+			.catch(reject);
+		}
 
-	return Promise.reject();
+		if (e.photo) {
+			return resolve();
+		}
+
+		return reject();
+	});
 };
