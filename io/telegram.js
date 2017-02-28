@@ -19,21 +19,30 @@ const SpeechRecognizer = require(__basedir + '/support/speechrecognizer');
 
 let callback;
 
-function storeChatId(chat) {
-	DB.query('SELECT * FROM telegram_chats WHERE id = ?', [ chat.id ], function(err, telegram_chats) {
-		if (err || telegram_chats.length === 0) {
-			DB.query('INSERT INTO telegram_chats SET ? ', {
-				id: chat.id, 
+function isChatAvailable(chat) {
+	return new Promise((resolve, reject) => {
+		new Memory.TelegramChat({ id: chat.id })
+		.fetch({ required: true })
+		.then((tc) => {
+			if (!tc.get('approved')) {
+				return reject('Papà mi ha detto di non parlare con te!!!');
+			}
+			resolve();
+		})
+		.catch((err) => {
+			new Memory.TelegramChat({ 
+				id: chat.id,
 				title: chat.title || chat.first_name,
 				type: chat.type
-			});
-		}
+			}).save();
+			reject('Ciao, papà mi ha detto di non parlare con gli sconosciuti! Scusa :(');
+		});
 	});
 }
 
 exports.getConversations = function() {
 	return new Promise((resolve, reject) => {
-		DB.query('SELECT * FROM telegram_chats', (err, results) => {
+		DB.query('SELECT * FROM telegram_chats WHERE approved = 1', (err, results) => {
 			if (err) return reject(err);
 			resolve(results);
 		});
@@ -55,46 +64,54 @@ exports.startInput = function() {
 		let data = { chatId: e.chat.id };
 
 		// Store the chat in the database for future contacts
-		storeChatId(e.chat);
+		isChatAvailable(e.chat)
+		.then(() => {
 
-		if (e.text) {
-			return callback(null, data, {
-				text: e.text
-			});
-		}
+			if (e.text) {
+				return callback(null, data, {
+					text: e.text
+				});
+			}
 
-		if (e.voice) {
-			
-			return bot.getFileLink(e.voice.file_id).then((file_link) => {
-				SpeechRecognizer.recognizeAudioStream( request(file_link) )
-				.then((text) => {
-					callback(null, data, {
-						text: text
-					});
-				})
-				.catch((err) => { callback(err, data);	});
-			});
+			if (e.voice) {
+				
+				return bot.getFileLink(e.voice.file_id).then((file_link) => {
+					SpeechRecognizer.recognizeAudioStream( request(file_link) )
+					.then((text) => {
+						callback(null, data, {
+							text: text
+						});
+					})
+					.catch((err) => { callback(err, data);	});
+				});
 
-		}
+			}
 
-		if (e.photo) {
+			if (e.photo) {
 
-			return bot.getFileLink( _.last(e.photo).file_id ).then((file_link) => {
-				const tmp_file_photo = require('os').tmpdir() + Date.now() + '.jpg';
+				return bot.getFileLink( _.last(e.photo).file_id ).then((file_link) => {
+					const tmp_file_photo = require('os').tmpdir() + Date.now() + '.jpg';
 
-				request(file_link)
-				.pipe(fs.createWriteStream(tmp_file_photo))
-				.on('error', (err) => { return callback(err, data); })
-				.on('finish', () => {
-					callback(null, data, {
-						photo: {
-							remoteFile: file_link,
-							localFile: tmp_file_photo
-						}
+					request(file_link)
+					.pipe(fs.createWriteStream(tmp_file_photo))
+					.on('error', (err) => { return callback(err, data); })
+					.on('finish', () => {
+						callback(null, data, {
+							photo: {
+								remoteFile: file_link,
+								localFile: tmp_file_photo
+							}
+						});
 					});
 				});
+			}
+
+		})
+		.catch((err) => {
+			callback(null, data, {
+				answer: err
 			});
-		}
+		});
 	});
 };
 

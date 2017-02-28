@@ -85,9 +85,11 @@ config.ioDrivers.forEach((driver) => {
 });
 
 IOs.forEach((io) => {
-	io.onInput((err, data, { text, photo }) => {
+	io.onInput((err, data, { text, photo, answer }) => {
 
 		try {
+
+			if (err) throw err;
 
 			if (text) {
 				APIAI.textRequest(data, text, io)
@@ -98,6 +100,9 @@ IOs.forEach((io) => {
 				outPhoto(data, photo, io)
 				.then((resp) => { return io.output(data, resp); })
 				.catch((err) => { return io.output(data, err); })
+				.then(io.startInput);
+			} else if (answer) {
+				io.output(data, answer)
 				.then(io.startInput);
 			} else {
 				io.output(data, { error: 'This input type is not supported yet. Supported: text, photo' })

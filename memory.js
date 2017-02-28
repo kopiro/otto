@@ -5,6 +5,10 @@ let knex = require('knex')({
 
 let bookshelf = require('bookshelf')(knex);
 
+exports.TelegramChat = bookshelf.Model.extend({
+	tableName: 'telegram_chats',
+});
+
 exports.Contact = bookshelf.Model.extend({
 	tableName: 'contacts',
 	photos: function() {
