@@ -7,7 +7,7 @@ if [ "$(uname)" == "Darwin" ]; then
 
 elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
 
-	espeak -v it "$1" -a 200 -w /tmp/ottoai.wav &&
+	espeak -v it "$1" -w /tmp/ottoai.wav &&
 	play /tmp/ottoai.wav pitch -q 600 speed 1
 
 fi
