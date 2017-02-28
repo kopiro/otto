@@ -21,7 +21,7 @@ let callback;
 
 function isChatAvailable(chat) {
 	return new Promise((resolve, reject) => {
-		new Memory.TelegramChat({ id: chat.id })
+		new Memory.TelegramChat({ chat_id: chat.id })
 		.fetch({ required: true })
 		.then((tc) => {
 			if (!tc.get('approved')) {
@@ -31,7 +31,7 @@ function isChatAvailable(chat) {
 		})
 		.catch((err) => {
 			new Memory.TelegramChat({ 
-				id: chat.id,
+				chat_id: chat.id,
 				title: chat.title || chat.first_name,
 				type: chat.type
 			}).save();
