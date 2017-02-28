@@ -84,37 +84,49 @@ config.ioDrivers.forEach((driver) => {
 	IOs.push(require(__basedir + '/io/' + driver));
 });
 
-IOs.forEach((io) => {
-	io.onInput((err, data, { text, photo, answer }) => {
+function onIoResponse(err, data, para) {
+	let io = this;
+	para = para || {};
 
-		try {
+	try {
 
-			if (err) throw err;
+		if (err) {
+			io.output(data, { error: err })
+			.then(io.startInput)
+			.catch(io.startInput);
+		} else {
 
-			if (text) {
-				APIAI.textRequest(data, text, io)
+			if (para.text) {
+				APIAI.textRequest(data, para.text, io)
 				.then((resp) => { return io.output(data, resp); })
 				.catch((err) => { return io.output(data, err); })
 				.then(io.startInput);
-			} else if (photo) {
-				outPhoto(data, photo, io)
+			} else if (para.photo) {
+				outPhoto(data, para.photo, io)
 				.then((resp) => { return io.output(data, resp); })
 				.catch((err) => { return io.output(data, err); })
 				.then(io.startInput);
-			} else if (answer) {
-				io.output(data, answer)
+			} else if (para.answer) {
+				io.output(data, para.photo)
 				.then(io.startInput);
 			} else {
 				io.output(data, { error: 'This input type is not supported yet. Supported: text, photo' })
 				.then(io.startInput);
 			}
 
-		} catch (ex) {
-			io.output(data, { error: ex })
-			.then(io.startInput)
-			.catch(io.startInput);
 		}
-	});
 
+	} catch (ex) {
+
+		console.error('Undefined exception', ex);
+		io.output(data, { error: ex })
+		.then(io.startInput)
+		.catch(io.startInput);
+
+	}
+}
+
+IOs.forEach((io) => {
 	io.startInput();
+	io.onInput( onIoResponse.bind(io) );
 });

@@ -4,10 +4,12 @@ const speechClient = require('@google-cloud/speech')({
 
 const TAG = 'SpeechRecognizer';
 
+let timeout;
+
 function createRecognizeStream(opt, callback, end) {
-	let timeout;
 	let processing = true;
 	let recognized = false;
+	clearTimeout(timeout);
 
 	const speechRecognizer = speechClient.createRecognizeStream({
 		singleUtterance: true,
@@ -46,7 +48,6 @@ function createRecognizeStream(opt, callback, end) {
 
 				timeout = setTimeout(function() {
 					if (!recognized) {
-						console.error(TAG, 'not recognized');
 						callback("No word recognized by speech recognizer");
 					}
 				}, 1000);

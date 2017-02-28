@@ -8,26 +8,28 @@ exports.capabilities = {
 const Recorder = require('node-record-lpcm16');
 const SpeechRecognizer = require(__basedir + '/support/speechrecognizer');
 
-let callback;
+let __onInputCallback;
 
 exports.onInput = function(cb) {
-	callback = cb;
+	__onInputCallback = cb;
 };
 
 exports.startInput = function() {
 	console.info(TAG, 'start');
 	let data = { time: Date.now() };
 
-	SpeechRecognizer.recognizeAudioStream(Recorder.start(), Recorder.stop)
+	SpeechRecognizer.recognizeAudioStream(Recorder.start(), () => {
+		Recorder.stop();
+	})
 	.then((text) => {
 		console.user(TAG, text);
-		callback(null, data, {
+		__onInputCallback(null, data, {
 			text: text
 		});
 	})
 	.catch((err) => {
 		console.error(TAG, err);
-		callback(err, data);
+		__onInputCallback(err, data);
 	});
 };
 
