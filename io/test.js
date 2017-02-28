@@ -47,7 +47,9 @@ exports.output = function(data, e) {
 		if (e.error) return resolve();
 
 		if (e.text) {
-			return resolve();
+			return require(__basedir + '/support/tts').play(e.text)
+			.then(resolve)
+			.catch(reject);
 		}
 
 		if (e.spotify) {
