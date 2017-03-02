@@ -13,8 +13,10 @@ if (config.spawnServerForDataEntry) {
 }
 
 let outPhoto = (data, photo, io) => {
+	if (photo.isFace) return outFace(data, photo, io);
+
 	return new Promise((resolve, reject) => {
-		VisionRecognizer.detectLabels(photo.localFile, (err, labels) => {
+		VisionRecognizer.detectLabels(photo.stream || photo.localFile, (err, labels) => {
 			if (err) return reject(err);
 
 			if (_.intersection(public_config.faceRecognitionLabels, labels).length > 0) {
@@ -36,11 +38,11 @@ let outPhoto = (data, photo, io) => {
 
 let outFace = (data, photo, io) => {
 	return new Promise((resolve, reject) => {
-		FaceRecognizer.detect(photo.remoteFile, (err, resp) => {
+		FaceRecognizer.detect(photo.stream || photo.remoteFile, (err, resp) => {
 			if (resp.length === 0) return reject(err);
 
 			FaceRecognizer.identify([ resp[0].faceId ], (err, resp) => {
-				if (resp.length === 0 || resp[0].candidates.length === 0) return reject(err);
+				if (resp.length === 0 || resp[0] == null || resp[0].candidates.length === 0) return reject(err);
 
 				let person_id = resp[0].candidates[0].personId;
 
@@ -54,7 +56,7 @@ let outFace = (data, photo, io) => {
 					`Da quanto tempo ${name}!, come stai??`
 					];
 
-					resolve(contact.get('alias_hello') || responses[_.random(0, responses.length-1)]);
+					resolve(responses[_.random(0, responses.length-1)]);
 				})
 				.catch(reject);
 
@@ -107,7 +109,7 @@ function onIoResponse(err, data, para) {
 				.catch((err) => { return io.output(data, err); })
 				.then(io.startInput);
 			} else if (para.answer) {
-				io.output(data, para.photo)
+				io.output(data, para.answer)
 				.then(io.startInput);
 			} else {
 				io.output(data, { error: 'This input type is not supported yet. Supported: text, photo' })

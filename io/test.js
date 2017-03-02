@@ -21,6 +21,7 @@ exports.startInput = function() {
 	console.info(TAG, 'start');
 
 	let data = { time: Date.now() };
+
 	let msg = strings.shift();
 
 	if (_.isEmpty(msg)) {
@@ -47,18 +48,18 @@ exports.output = function(data, e) {
 		if (e.error) return resolve();
 
 		if (e.text) {
+			// return require(__basedir + '/support/tts').play(e.text)
+			// .then(resolve)
+			// .catch(reject);
 			return require('child_process').spawn(__basedir + '/out-speech.sh', [ e.text ])
 			.addListener('exit', (err) => {
 				if (err) return reject(err);
 				resolve();
 			});
-			return require(__basedir + '/support/tts').play(e.text)
-			.then(resolve)
-			.catch(reject);
 		}
 
 		if (e.spotify) {
-			return require(__basedir + '/io/speech')
+			return require(__basedir + '/io/kid')
 			.output(e)
 			.then(resolve)
 			.catch(reject);

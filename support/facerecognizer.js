@@ -3,25 +3,36 @@ const BASE_URL = 'https://westus.api.cognitive.microsoft.com';
 const TAG = 'FaceRec';
 
 function req(ep, attr, callback) {
-	request(_.extend({
+	let headers = _.extend(attr.headers || {}, {
+		'Ocp-Apim-Subscription-Key': _config.apiKey
+	});
+	delete attr.headers;
+	return request(_.extend({
 		url: `${BASE_URL}/face/v1.0/${ep}`,
 		method: 'POST',
 		json: true,
-		headers: {
-			'Ocp-Apim-Subscription-Key': _config.apiKey
-		}
-	}, attr), function(error, response, body) {
+		headers: headers
+	}, attr), (error, response, body) => {
 		console.debug(TAG, ep, body);
 		if (callback) callback(error, body);
 	});
 }
 
 exports.detect = function(url, callback) {
-	req(`detect`, {
-		body: { 
-			url: url
-		},
-	}, callback);
+	if (!_.isString(url)) {
+		url.pipe(req(`detect`, { 
+			json: false,
+			headers: {
+				'Content-Type': 'application/octet-stream'
+			}
+		}, callback));
+	} else {
+		req(`detect`, {
+			body: { 
+				url: url
+			},
+		}, callback);
+	}
 };
 
 exports.getPerson = function(person_id, callback) {
