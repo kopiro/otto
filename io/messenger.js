@@ -80,10 +80,10 @@ exports.output = function(data, e) {
 };
 
 bot.on('message', (payload, reply) => {
-  let text = payload.message.text;
-  let data = { reply: reply };
+	console.user(TAG, e);
 
-  if (err) return callback(err, data);
+	let text = payload.message.text;
+	let data = { reply: reply };
 
-  callback(null, data);
+	callback(null, data);
 });
