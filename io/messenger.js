@@ -62,7 +62,6 @@ exports.output = function(data, e) {
 		}
 
 		if (e.spotify) {
-			bot.sendChatAction(data.chatId, 'typing');
 			if (e.spotify.song) {
 				data.reply({ text: e.spotify.song.external_urls.spotify });
 				return resolve();
@@ -86,8 +85,9 @@ bot.on('error', (err) => {
 bot.on('message', (payload, reply) => {
 	console.user(TAG, payload);
 
-	let text = payload.message.text;
 	let data = { reply: reply };
 
-	callback(null, data);
+	callback(null, data, {
+		text: payload.message.text
+	});
 });
