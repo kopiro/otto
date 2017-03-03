@@ -110,7 +110,14 @@ exports.startInput = function() {
 		// captureWebcam();
 	}
 
-	SpeechRecognizer.recognizeAudioStream(Recorder.start(), () => {
+	let recorderStream = Recorder.start(_.extend({
+		sampleRate: 16000,
+		compress: false,
+		threshold: 0.5,
+		verbose: false,
+	}, config.recorder));
+
+	SpeechRecognizer.recognizeAudioStream(recorderStream, () => {
 		if (is_speaking) {
 			clearTimeout(is_speaking_timeout);
 			is_speaking_timeout = setTimeout(() => { 
