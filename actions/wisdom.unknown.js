@@ -20,11 +20,10 @@ module.exports = function(e) {
 					reject(err);
 				}
 
-				if (data.length === 0) {
-					return reject('Non ho ricordi di questa cosa');
-				}
-
 				data = _.filter(data, (row) => { return row.score >= 0.7; });
+				if (data.length === 0) {
+					return reject('Non so chi sia :(');
+				}
 
 				let contact = new Memory.Contact(data[_.random(0, data.length-1)]);
 

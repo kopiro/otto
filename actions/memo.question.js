@@ -15,12 +15,11 @@ module.exports = function(e, io) {
 				reject(err);
 			}
 
+			data = _.filter(data, (row) => { return row.score >= 0.7; });
 			if (data.length === 0) {
 				return reject('Non ho ricordi di questa cosa');
 			}
-
-			data = _.filter(data, (row) => { return row.score >= 0.7; });
-
+			
 			let memory = new Memory.Memory(data[_.random(0, data.length-1)]);
 
 			let text = (fulfillment.speech || "") + " ";
