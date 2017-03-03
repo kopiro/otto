@@ -4,12 +4,12 @@ const VisionRecognizer = require(__basedir + '/support/visionrecognizer');
 const FaceRecognizer = require(__basedir + '/support/facerecognizer');
 const Translator = require(__basedir + '/support/translator');
 
-if (config.enableCron) {
+if (config.cron) {
 	require(__basedir + '/cron');
 }
 
-if (config.spawnServerForDataEntry) {
-	Memory.spawnServerForDataEntry();
+if (config.server) {
+	require(__basedir + '/server');
 }
 
 let outPhoto = (data, photo, io) => {
