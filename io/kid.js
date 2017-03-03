@@ -107,7 +107,7 @@ exports.startInput = function() {
 	let data = {};
 
 	if (is_speaking == false) {
-		captureWebcam();
+		// captureWebcam();
 	}
 
 	SpeechRecognizer.recognizeAudioStream(Recorder.start(), () => {
