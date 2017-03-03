@@ -9,6 +9,10 @@ exports.TelegramChat = bookshelf.Model.extend({
 	tableName: 'telegram_chats',
 });
 
+exports.MessengerChat = bookshelf.Model.extend({
+	tableName: 'messenger_chats',
+});
+
 exports.Contact = bookshelf.Model.extend({
 	tableName: 'contacts',
 	photos: function() {

@@ -48,7 +48,7 @@ exports.startInput = function() {
 	if (_config.webhook) {
 		bot.setWebHook(_config.webhook.url + _config.token, _config.webhook.options);
 		bot.getWebHookInfo().then((e) => {
-			console.info(TAG, 'started', e); 
+			console.info(TAG, 'started');
 		});
 	}
 };

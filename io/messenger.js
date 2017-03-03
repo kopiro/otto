@@ -12,9 +12,9 @@ const SpeechRecognizer = require(__basedir + '/support/speechrecognizer');
 
 let callback;
 
-function isChatAvailable(chat) {
+function isChatAvailable(sender) {
 	return new Promise((resolve, reject) => {
-		new Memory.MessengerChat({ recipient_id: chat.id })
+		new Memory.MessengerChat({ sender_id: sender.id })
 		.fetch({ required: true })
 		.then((tc) => {
 			if (!tc.get('approved')) {
@@ -23,12 +23,16 @@ function isChatAvailable(chat) {
 			resolve();
 		})
 		.catch((err) => {
-			new Memory.MessengerChat({ 
-				chat_id: chat.id,
-				title: chat.title || chat.first_name,
-				type: chat.type
-			}).save();
-			reject('Ciao, papà mi ha detto di non parlare con gli sconosciuti! Scusa :(');
+			bot.getProfile(sender.id, (err, profile) => {
+				if (err) return console.error(TAG, err);
+				new Memory.MessengerChat({ 
+					sender_id: sender.id,
+					first_name: profile.first_name,
+					last_name: profile.last_name,
+					profile_pic: profile.profile_pic,
+				}).save();
+				reject('Ciao, papà mi ha detto di non parlare con gli sconosciuti! Scusa :(');
+			});
 		});
 	});
 }
@@ -57,25 +61,25 @@ exports.output = function(data, e) {
 		if (e.error) return resolve();
 
 		if (e.text) {
-			bot.sendSenderAction(data.recipientId, 'typing_on');
-			bot.sendMessage(data.recipientId, { text: e.text });
+			bot.sendSenderAction(data.senderId, 'typing_on');
+			bot.sendMessage(data.senderId, { text: e.text });
 			return resolve();
 		}
 
 		if (e.spotify) {
 			if (e.spotify.song) {
-				bot.sendSenderAction(data.recipientId, 'typing_on');
-				bot.sendMessage(data.recipientId, { text: e.spotify.song.external_urls.spotify });
+				bot.sendSenderAction(data.senderId, 'typing_on');
+				bot.sendMessage(data.senderId, { text: e.spotify.song.external_urls.spotify });
 				return resolve();
 			}
 			return reject();
 		}
 
 		if (e.photo) {
-			bot.sendSenderAction(data.recipientId, 'typing_on');
-			bot.sendMessage(data.recipientId, { 
+			bot.sendSenderAction(data.senderId, 'typing_on');
+			bot.sendMessage(data.senderId, { 
 				attachment: {
-
+					type: 'image',
 				}
 			});
 			return resolve();
@@ -92,9 +96,9 @@ bot.on('error', (err) => {
 bot.on('message', (e) => {
 	console.user(TAG, e);
 
-	let data = { recipientId: e.recipient.id };
+	let data = { senderId: e.sender.id };
 
-	isChatAvailable(e.recipient)
+	isChatAvailable(e.sender)
 	.then(() => {
 
 		if (e.text) {
