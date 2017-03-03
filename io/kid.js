@@ -100,7 +100,6 @@ function captureWebcam() {
 
 exports.onInput = function(cb) {
 	callback = cb;
-	require('child_process').exec(__basedir + '/bin/start.sh');
 };
 
 exports.startInput = function() {
@@ -116,7 +115,7 @@ exports.startInput = function() {
 	let recorderStream = Recorder.start(_.extend({
 		sampleRate: 16000,
 		compress: false,
-		threshold: 0.5,
+		threshold: 1,
 		verbose: false,
 	}, config.recorder));
 
