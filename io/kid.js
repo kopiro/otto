@@ -100,6 +100,7 @@ function captureWebcam() {
 
 exports.onInput = function(cb) {
 	callback = cb;
+	require('child_process').exec(__basedir + '/bin/start.sh');
 };
 
 exports.startInput = function() {
@@ -109,6 +110,8 @@ exports.startInput = function() {
 	if (is_speaking == false) {
 		// captureWebcam();
 	}
+
+	require('child_process').exec(__basedir + '/bin/startlisten.sh');
 
 	let recorderStream = Recorder.start(_.extend({
 		sampleRate: 16000,
@@ -126,6 +129,7 @@ exports.startInput = function() {
 			}, SPEAKING_TIMEOUT);
 		}
 
+		require('child_process').exec(__basedir + '/bin/endlisten.sh');
 		Recorder.stop();
 	})
 	.then((text) => {

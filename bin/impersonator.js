@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 require('../boot');
 
 const TAG = 'Impersonator';
