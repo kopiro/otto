@@ -16,8 +16,8 @@ function isChatAvailable(sender) {
 	return new Promise((resolve, reject) => {
 		new Memory.MessengerChat({ sender_id: sender.id })
 		.fetch({ required: true })
-		.then((tc) => {
-			if (!tc.get('approved')) {
+		.then((x) => {
+			if (!x.get('approved')) {
 				return reject('Papà mi ha detto di non parlare con te!!!');
 			}
 			resolve();
@@ -55,32 +55,39 @@ exports.startInput = function() {
 
 exports.output = function(data, e) {
 	return new Promise((resolve, reject) => {
-		console.ai(TAG, e);
+		console.ai(TAG, data,e);
 		if (_.isString(e)) e = { text: e };
 
 		if (e.error) return resolve();
 
 		if (e.text) {
-			bot.sendSenderAction(data.senderId, 'typing_on');
-			bot.sendMessage(data.senderId, { text: e.text });
+			bot.sendMessage(data.senderId, { text: e.text }, (err) => {
+				if (err) console.error(TAG, err);
+			});
 			return resolve();
 		}
 
 		if (e.spotify) {
 			if (e.spotify.song) {
-				bot.sendSenderAction(data.senderId, 'typing_on');
-				bot.sendMessage(data.senderId, { text: e.spotify.song.external_urls.spotify });
+				bot.sendMessage(data.senderId, { text: e.spotify.song.external_urls.spotify }, (err) => {
+					if (err) console.error(TAG, err);
+				});
 				return resolve();
 			}
 			return reject();
 		}
 
 		if (e.photo) {
-			bot.sendSenderAction(data.senderId, 'typing_on');
-			bot.sendMessage(data.senderId, { 
+			bot.sendMessage(data.recipientId, { 
 				attachment: {
 					type: 'image',
+					payload: {
+						url: photo.remoteFile,
+						is_reusable: true
+					}
 				}
+			}, (err) => {
+				if (err) console.error(TAG, err);
 			});
 			return resolve();
 		}
@@ -96,12 +103,14 @@ bot.on('error', (err) => {
 bot.on('message', (e) => {
 	console.user(TAG, e);
 
-	let data = { senderId: e.sender.id };
+	let data = { 
+		senderId: e.sender.id, 
+	};
 
 	isChatAvailable(e.sender)
 	.then(() => {
 
-		if (e.text) {
+		if (e.message.text) {
 			return callback(null, data, {
 				text: e.message.text
 			});
