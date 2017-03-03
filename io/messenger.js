@@ -79,6 +79,10 @@ exports.output = function(data, e) {
 	});
 };
 
+bot.on('error', (err) => {
+	console.error(TAG, err);
+});
+
 bot.on('message', (payload, reply) => {
 	console.user(TAG, e);
 
