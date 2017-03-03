@@ -61,14 +61,14 @@ function tick() {
 		(e.hours ? e.hours.indexOf(now.hour()) >= 0 : true) &&
 		(e.minutes ? e.minutes.indexOf(now.minutes()) >= 0 : true)
 		) {
-			IO.getConversations()
-			.then((conversations) => {
-				conversations.forEach(({ id, title, type }) => {
-					let text = e.text[_.random(0, e.text.length - 1)];
-					text = text.replace('{name}', title);
-					IO.output({ chatId: id }, text);
-				});
-			});
+			// IO.getConversations()
+			// .then((conversations) => {
+			// 	conversations.forEach((e) => {
+			// 		let text = e.text[_.random(0, e.text.length - 1)];
+			// 		text = text.replace('{name}', title);
+			// 		IO.output({ chatId: id }, text);
+			// 	});
+			// });
 		}
 	});
 }

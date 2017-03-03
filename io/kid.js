@@ -24,6 +24,9 @@ let is_speaking_timeout = null;
 const SPEAKING_TIMEOUT = 5000;
 
 function captureWebcam() {
+	if (captureWebcam.time + 10000 <= Date.now()) return;
+	
+	captureWebcam.time = Date.now();
 	let file = tmpdir + '/webcam' + Date.now();
 
 	NodeWebcam.capture(file, {

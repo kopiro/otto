@@ -7,13 +7,6 @@ exports.capabilities = {
 
 const TelegramBot = require('node-telegram-bot-api');
 const bot = new TelegramBot(_config.token, _config.options);
-if (_config.webhook) {
-	var listenUrl = _config.webhook.url + _config.token;
-	bot.setWebHook(listenUrl, _config.webhook.options);
-	bot.getWebHookInfo().then((e) => {
-		console.info(TAG, 'started', e); 
-	});
-}
 
 const SpeechRecognizer = require(__basedir + '/support/speechrecognizer');
 
@@ -41,12 +34,7 @@ function isChatAvailable(chat) {
 }
 
 exports.getConversations = function() {
-	return new Promise((resolve, reject) => {
-		DB.query('SELECT * FROM telegram_chats WHERE approved = 1', (err, results) => {
-			if (err) return reject(err);
-			resolve(results);
-		});
-	});
+	new Memory.TelegramChat({ approved: 1 }).fetchAll();
 };
 
 exports.onInput = function(cb) {
@@ -54,65 +42,15 @@ exports.onInput = function(cb) {
 };
 
 exports.startInput = function() {
-	// singleton event
 	if (exports.startInput.started) return;
 	exports.startInput.started = true;
 
-	bot.on('message', (e) => {
-		console.user(TAG, e);
-
-		let data = { chatId: e.chat.id };
-
-		// Store the chat in the database for future contacts
-		isChatAvailable(e.chat)
-		.then(() => {
-
-			if (e.text) {
-				return callback(null, data, {
-					text: e.text
-				});
-			}
-
-			if (e.voice) {
-				
-				return bot.getFileLink(e.voice.file_id).then((file_link) => {
-					SpeechRecognizer.recognizeAudioStream( request(file_link) )
-					.then((text) => {
-						callback(null, data, {
-							text: text
-						});
-					})
-					.catch((err) => { callback(err, data);	});
-				});
-
-			}
-
-			if (e.photo) {
-
-				return bot.getFileLink( _.last(e.photo).file_id ).then((file_link) => {
-					const tmp_file_photo = require('os').tmpdir() + Date.now() + '.jpg';
-
-					request(file_link)
-					.pipe(fs.createWriteStream(tmp_file_photo))
-					.on('error', (err) => { return callback(err, data); })
-					.on('finish', () => {
-						callback(null, data, {
-							photo: {
-								remoteFile: file_link,
-								localFile: tmp_file_photo
-							}
-						});
-					});
-				});
-			}
-
-		})
-		.catch((err) => {
-			callback(null, data, {
-				answer: err
-			});
+	if (_config.webhook) {
+		bot.setWebHook(_config.webhook.url + _config.token, _config.webhook.options);
+		bot.getWebHookInfo().then((e) => {
+			console.info(TAG, 'started', e); 
 		});
-	});
+	}
 };
 
 exports.output = function(data, e) {
@@ -146,3 +84,58 @@ exports.output = function(data, e) {
 		return reject();
 	});
 };
+
+bot.on('message', (e) => {
+	console.user(TAG, e);
+
+	let data = { chatId: e.chat.id };
+
+	isChatAvailable(e.chat)
+	.then(() => {
+
+		if (e.text) {
+			return callback(null, data, {
+				text: e.text
+			});
+		}
+
+		if (e.voice) {
+
+			return bot.getFileLink(e.voice.file_id).then((file_link) => {
+				SpeechRecognizer.recognizeAudioStream( request(file_link) )
+				.then((text) => {
+					callback(null, data, {
+						text: text
+					});
+				})
+				.catch((err) => { callback(err, data);	});
+			});
+
+		}
+
+		if (e.photo) {
+
+			return bot.getFileLink( _.last(e.photo).file_id ).then((file_link) => {
+				const tmp_file_photo = require('os').tmpdir() + Date.now() + '.jpg';
+
+				request(file_link)
+				.pipe(fs.createWriteStream(tmp_file_photo))
+				.on('error', (err) => { return callback(err, data); })
+				.on('finish', () => {
+					callback(null, data, {
+						photo: {
+							remoteFile: file_link,
+							localFile: tmp_file_photo
+						}
+					});
+				});
+			});
+		}
+
+	})
+	.catch((err) => {
+		callback(null, data, {
+			answer: err
+		});
+	});
+});

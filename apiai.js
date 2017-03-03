@@ -16,7 +16,7 @@ exports.textRequest = function(data, text, io) {
 
 		let request = apiaiClient.textRequest(text, data);
 
-		request.on('response', function(response) {
+		request.on('response', (response) => {
 			let r = response.result;
 			console.debug(TAG, 'response', r);
 
@@ -24,11 +24,11 @@ exports.textRequest = function(data, text, io) {
 				console.debug(TAG, `calling ${r.action}()`);
 
 				Actions[r.action](r, io)
-				.then(function(out) {
+				.then((out) => {
 					console.debug(TAG, `result of ${r.action}()`, out);
 					resolve(out);
 				})
-				.catch(function(err) {
+				.catch((err) => {
 					console.debug(TAG, `error in ${r.action}()`, err);		
 					reject(err);
 				});
