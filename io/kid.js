@@ -68,7 +68,7 @@ function captureWebcam() {
 							if (captureWebcam.latestContactId == contact.id) return;
 							captureWebcam.latestContactId = contact.id;
 
-							const name = contact.get('alias') || contact.get('name');
+							const name = contact.getName();
 							const responses = [
 							`Hey ${name}, dimmi qualcosa!`,
 							`Ciao ${name}, perchè non parli un po' con me?`,
@@ -100,6 +100,7 @@ function captureWebcam() {
 
 exports.onInput = function(cb) {
 	callback = cb;
+	require('child_process').exec(__basedir + '/bin/start.sh');
 };
 
 exports.startInput = function() {
@@ -110,12 +111,8 @@ exports.startInput = function() {
 		// captureWebcam();
 	}
 
-	require('child_process').exec(__basedir + '/bin/startlisten.sh');
-
 	let recorderStream = Recorder.start(_.extend({
 		sampleRate: 16000,
-		compress: false,
-		threshold: 1,
 		verbose: false,
 	}, config.recorder));
 
@@ -128,7 +125,6 @@ exports.startInput = function() {
 			}, SPEAKING_TIMEOUT);
 		}
 
-		require('child_process').exec(__basedir + '/bin/endlisten.sh');
 		Recorder.stop();
 	})
 	.then((text) => {
@@ -163,7 +159,8 @@ exports.output = function(data, e) {
 		if (e.spotify) {
 			let spotify_script = require('spotify-node-applescript');
 			if (e.spotify.song) {
-				return spotify_script.playTrack(e.spotify.song.uri, resolve);
+				spotify_script.playTrack(e.spotify.song.uri);
+				return resolve();
 			}
 			if (e.spotify.action) {
 				spotify_script[e.spotify.action]();

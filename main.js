@@ -49,7 +49,7 @@ let outFace = (data, photo, io) => {
 				Memory.Contact.where({ person_id: person_id })
 				.fetch({ required: true })
 				.then((contact) => {
-					const name = contact.get('name');
+					const name = contact.get('first_name');
 					const responses = [
 					`Hey, ciao ${name}!`,
 					`Ma... è ${name}`,
@@ -129,6 +129,6 @@ function onIoResponse(err, data, para) {
 }
 
 IOs.forEach((io) => {
-	io.startInput();
 	io.onInput( onIoResponse.bind(io) );
+	io.startInput();
 });

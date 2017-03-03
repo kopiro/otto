@@ -14,24 +14,12 @@ API.post('/memories', (req, res) => {
 		title: req.body.title,
 		text: req.body.text,
 		date: req.body.date,
+		tags: req.body.tags,
 		url: req.body.url
 	})
 	.save()
 	.then((memory) => {
-		if (req.body.tags) {
-			let tags = req.body.tags.split(',');
-			tags.forEach(function(tag) {
-				tag = tag.trim();
-				if (!_.isEmpty(tag)) {
-					new exports.model({
-						tag: tag,
-						id_memory: memory.id
-					}).save();
-				}
-			});
-		}
-
-		res.json({ message: 'Thank you' });
+		res.json({ memory: memory, message: 'Thank you' });
 	})
 	.catch((err) => {
 		res.json({ error: err });
