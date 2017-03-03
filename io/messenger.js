@@ -84,7 +84,7 @@ bot.on('error', (err) => {
 });
 
 bot.on('message', (payload, reply) => {
-	console.user(TAG, e);
+	console.user(TAG, payload);
 
 	let text = payload.message.text;
 	let data = { reply: reply };
