@@ -14,7 +14,9 @@ module.exports = function(e) {
             let img = images[_.random(0, images.length-1)];
             console.debug(TAG, 'result', img);
             resolve({
-                photo: img.url
+                photo: {
+                    remoteFile: img.url
+                }
             });
         })
         .catch((err) => {

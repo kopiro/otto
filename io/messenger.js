@@ -14,7 +14,7 @@ let callback;
 
 function isChatAvailable(chat) {
 	return new Promise((resolve, reject) => {
-		new Memory.MessengerChat({ chat_id: chat.id })
+		new Memory.MessengerChat({ recipient_id: chat.id })
 		.fetch({ required: true })
 		.then((tc) => {
 			if (!tc.get('approved')) {
@@ -57,20 +57,27 @@ exports.output = function(data, e) {
 		if (e.error) return resolve();
 
 		if (e.text) {
-			data.reply({ text: e.text });
+			bot.sendSenderAction(data.recipientId, 'typing_on');
+			bot.sendMessage(data.recipientId, { text: e.text });
 			return resolve();
 		}
 
 		if (e.spotify) {
 			if (e.spotify.song) {
-				data.reply({ text: e.spotify.song.external_urls.spotify });
+				bot.sendSenderAction(data.recipientId, 'typing_on');
+				bot.sendMessage(data.recipientId, { text: e.spotify.song.external_urls.spotify });
 				return resolve();
 			}
 			return reject();
 		}
 
 		if (e.photo) {
-			data.reply({ photo: e.photo });
+			bot.sendSenderAction(data.recipientId, 'typing_on');
+			bot.sendMessage(data.recipientId, { 
+				attachment: {
+
+				}
+			});
 			return resolve();
 		}
 
@@ -82,12 +89,25 @@ bot.on('error', (err) => {
 	console.error(TAG, err);
 });
 
-bot.on('message', (payload, reply) => {
-	console.user(TAG, payload);
+bot.on('message', (e) => {
+	console.user(TAG, e);
 
-	let data = { reply: reply };
+	let data = { recipientId: e.recipient.id };
 
-	callback(null, data, {
-		text: payload.message.text
+	isChatAvailable(e.recipient)
+	.then(() => {
+
+		if (e.text) {
+			return callback(null, data, {
+				text: e.message.text
+			});
+		}
+
+	})
+	.catch((err) => {
+		callback(null, data, {
+			answer: err
+		});
 	});
+
 });
