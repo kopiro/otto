@@ -100,20 +100,41 @@ function onIoResponse(err, data, para) {
 
 			if (para.text) {
 				APIAI.textRequest(data, para.text, io)
-				.then((resp) => { return io.output(data, resp); })
-				.catch((err) => { return io.output(data, { error: err }); })
-				.then(io.startInput);
+				.then((resp) => { 
+					return io.output(data, resp)
+					.then(io.startInput)
+					.catch(io.startInput); 
+				})
+				.catch((err) => { 
+					return io.output(data, { error: err })
+					.then(io.startInput)
+					.catch(io.startInput); 
+				});
 			} else if (para.photo) {
 				outPhoto(data, para.photo, io)
-				.then((resp) => { return io.output(data, resp); })
-				.catch((err) => { return io.output(data, { error: err }); })
-				.then(io.startInput);
+				.then((resp) => {
+					return io.output(data, resp)
+					.then(io.startInput)
+					.catch(io.startInput); 
+				})
+				.catch((err) => {
+					return io.output(data, { error: err })
+					.then(io.startInput)
+					.catch(io.startInput); 
+				});
 			} else if (para.answer) {
 				io.output(data, para.answer)
-				.then(io.startInput);
+				.then(io.startInput)
+				.catch(io.startInput);
 			} else {
-				io.output(data, { error: 'This input type is not supported yet. Supported: text, photo' })
-				.then(io.startInput);
+				io.output(data, { 
+					error: {
+						unsupported: true,
+						message: 'This input type is not supported yet. Supported: text, photo' 
+					}
+				})
+				.then(io.startInput)
+				.catch(io.startInput);
 			}
 
 		}

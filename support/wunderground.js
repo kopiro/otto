@@ -7,8 +7,8 @@ exports.api = function(opt, callback) {
 	'/', opt.type, 
 	'/lang:' + config.language,
 	'/q', 
-	'/', opt.state || 'IT', 
-	'/', opt.city, 
+	'/', opt.state || _config.state, 
+	'/', opt.city || _config.city, 
 	'.json'
 	].join('');
 	request({

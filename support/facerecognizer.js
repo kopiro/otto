@@ -1,6 +1,7 @@
 const _config = config.ai.cognitive;
-const BASE_URL = 'https://westus.api.cognitive.microsoft.com';
 const TAG = 'FaceRec';
+
+const BASE_URL = 'https://westus.api.cognitive.microsoft.com';
 
 function req(ep, attr, callback) {
 	let headers = _.extend(attr.headers || {}, {

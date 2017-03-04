@@ -81,7 +81,8 @@ exports.play = function(text, callback) {
 
 	let i = 0;
 	async.map(text, (t, next) => {
-		// Do a timeout because lumenvox cache per time
+		// Do a timeout because lumenvox
+		// doesn't accept parallel requests
 		setTimeout(() => {
 			download(t, (err, file) => {
 				if (err) {
