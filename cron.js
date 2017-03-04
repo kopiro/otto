@@ -12,7 +12,7 @@ const opt = [
 		]
 	},
 	{
-		isoWeekday: [1,2,3,4,5,6],
+		isoWeekday: [1,2,3,4,5],
 		hours: [8],
 		minutes: [30],
 		text: [
@@ -22,12 +22,11 @@ const opt = [
 		]
 	},
 	{
-		isoWeekday: [7],
+		isoWeekday: [6,7],
 		hours: [10],
 		minutes: [0],
 		text: [
 			"Buongiorno {name}! Sei ancora a letto? Anch'io! :D",
-			"Buona domenica {name} Facciamo qualcosa di speciale oggi!"
 		]
 	},
 	{
@@ -35,6 +34,7 @@ const opt = [
 		hours: [16],
 		minutes: [0],
 		text: [
+			"Buona domenica {name} :) Facciamo qualcosa di speciale oggi!",
 			"La domenica si mangiano sempre cose buonissime. Qui a casa mia sempre lasagne!",
 		]
 	},
