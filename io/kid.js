@@ -152,6 +152,7 @@ exports.output = function(data, e) {
 
 	return new Promise((resolve, reject) => {
 		if ('error' in e) {
+			e.error = e.error || {};
 			if (e.error.noStrategy) {
 				require(__basedir + '/support/lumenvoxhack')
 				.play(no_strategy_responses.getRandom(), () => {
