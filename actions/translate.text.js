@@ -17,7 +17,7 @@ module.exports = function(e) {
 
 		Translator.translate(p.text, lang_iso_code, (err, translation) => {
 			if (err) {
-				err.text = 'Scusami, ma non riesco a tradurre questo per te';
+				err.text = 'Scusa, ma non riesco a tradurre questo per te';
 				return reject(err);
 			}
 

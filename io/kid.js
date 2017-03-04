@@ -22,8 +22,8 @@ let is_speaking_timeout = null;
 const SPEAKING_TIMEOUT = 5000;
 
 const no_strategy_responses = [
-'Scùsami, ma non ho capito quello che hai detto',
-'Come scusa?',
+'Scusa, ma non ho capito',
+'Come? Scusa?',
 'Potresti ripètere?'
 ];
 
