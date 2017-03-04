@@ -8,6 +8,12 @@ let bookshelf = require('bookshelf')(knex);
 
 exports.TelegramChat = bookshelf.Model.extend({
 	tableName: 'telegram_chats',
+	buildData: function() {
+		return { chatId: this.get('chat_id') };
+	},
+	getName: function() {
+		return this.get('first_name') || this.get('title');
+	}
 });
 
 exports.MessengerChat = bookshelf.Model.extend({

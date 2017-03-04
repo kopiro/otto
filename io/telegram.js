@@ -25,7 +25,9 @@ function isChatAvailable(chat) {
 		.catch((err) => {
 			new Memory.TelegramChat({ 
 				chat_id: chat.id,
-				title: chat.title || chat.first_name,
+				title: chat.title,
+				first_name: chat.first_name,
+				last_name: chat.last_name,
 				type: chat.type
 			}).save();
 			reject('Ciao, papà mi ha detto di non parlare con gli sconosciuti! Scusa :(');
@@ -33,7 +35,7 @@ function isChatAvailable(chat) {
 	});
 }
 
-exports.getConversations = function() {
+exports.getChats = function() {
 	new Memory.TelegramChat({ approved: 1 }).fetchAll();
 };
 
