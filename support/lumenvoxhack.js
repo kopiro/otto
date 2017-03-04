@@ -61,7 +61,7 @@ function download(text, callback) {
 					})
 					.on('finish', () => {
 						cache[text] = dpath;
-						fs.writeFile(cache_file, JSON.stringify(cache));
+						fs.writeFile(cache_file, JSON.stringify(cache), () => {});
 						callback(null, cache[text]);
 					});
 				});
