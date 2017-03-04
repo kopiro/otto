@@ -10,7 +10,6 @@ if [ "$(uname)" == "Darwin" ]; then
 elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
 
 	sudo apt-get -y install sox
-	sudo apt-get -y install espeak
 
 else
 
