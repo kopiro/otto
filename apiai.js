@@ -38,13 +38,13 @@ exports.textRequest = function(data, text, io) {
 				resolve({ text: r.fulfillment.speech });
 			} else {
 				console.error(TAG, `No strategy found`);
-				reject({ error: 'No strategy found' });
+				reject({ noStrategy: true });
 			}
 		});
 
 		request.on('error', (err) => {
 			console.error(TAG, 'response error', err);
-			reject({ error: 'Response error', exception: err });
+			reject(err);
 		});
 
 		request.end();

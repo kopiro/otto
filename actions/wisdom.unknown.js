@@ -22,16 +22,22 @@ module.exports = function(e) {
 
 				data = _.filter(data, (row) => { return row.score >= 0.7; });
 				if (data.length === 0) {
-					return reject('Non so chi sia :(');
+					return resolve({
+						text: 'Non so chi sia :('
+					});
 				}
 
-				let contact = new Memory.Contact(data[_.random(0, data.length-1)]);
+				let contact = new Memory.Contact( data.getRandom() );
 
 				resolve({
 					text: contact.getName()
 				});
 			});
 
+			break;
+
+			default:
+			reject();
 			break;
 		}
 

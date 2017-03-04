@@ -15,19 +15,23 @@ const im = require('imagemagick');
 const AWS = require('aws-sdk');
 const s3 = new AWS.S3();
 
-const tmpdir = require('os').tmpdir();
-
 let callback;
 
 let is_speaking = false;
 let is_speaking_timeout = null;
 const SPEAKING_TIMEOUT = 5000;
 
+const no_strategy_responses = [
+'Scùsami, ma non ho capito quello che hai detto',
+'Come scusa?',
+'Potresti ripètere?'
+];
+
 function captureWebcam() {
 	if (captureWebcam.time + 10000 <= Date.now()) return;
 	
 	captureWebcam.time = Date.now();
-	let file = tmpdir + '/webcam' + Date.now();
+	let file = __tmpdir + '/webcam' + Date.now();
 
 	NodeWebcam.capture(file, {
 		delay: 0,
@@ -79,7 +83,7 @@ function captureWebcam() {
 							callback(null, {
 								interrupt: true
 							}, {
-								answer: responses[_.random(0, responses.length-1)]
+								answer: responses.getRandom()
 							});
 						})
 						.catch(() => {
@@ -87,7 +91,7 @@ function captureWebcam() {
 							callback(null, {
 								interrupt: true
 							}, {
-								answer: responses[_.random(0, responses.length-1)]
+								answer: responses.getRandom()
 							});
 						});
 
@@ -142,16 +146,24 @@ exports.startInput = function() {
 };
 
 exports.output = function(data, e) {
-	return new Promise((resolve, reject) => {
-		console.ai(TAG, e);
-		if (_.isString(e)) e = { text: e };
+	e = e || {};
+	if (_.isString(e)) e = { text: e };
+	console.ai(TAG, e);
 
-		if (e.error) return resolve();
+	return new Promise((resolve, reject) => {
+		if ('error' in e) {
+			if (e.error.noStrategy) {
+				require(__basedir + '/support/lumenvoxhack')
+				.play(no_strategy_responses.getRandom(), () => {
+					resolve();
+				});
+			} else {				
+				return resolve();
+			}
+		}
 
 		if (e.text) {
-			return require('child_process').spawn(__basedir + '/out-speech.sh', [ e.text ])
-			.addListener('exit', (err) => {
-				if (err) return reject(err);
+			return require(__basedir + '/support/lumenvoxhack').play(e.text, () => {
 				resolve();
 			});
 		} 
@@ -169,6 +181,6 @@ exports.output = function(data, e) {
 			return reject();
 		}
 
-		return reject();
+		return resolve();
 	});
 };

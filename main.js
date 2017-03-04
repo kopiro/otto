@@ -56,7 +56,7 @@ let outFace = (data, photo, io) => {
 					`Da quanto tempo ${name}!, come stai??`
 					];
 
-					resolve(responses[_.random(0, responses.length-1)]);
+					resolve(responses.getRandom());
 				})
 				.catch(reject);
 
@@ -76,7 +76,7 @@ let outVision = (data, labels, io) => {
 			`Aspetta... lo so... è ${translation}`
 			];
 
-			resolve(responses[_.random(0,responses.length-1)]);
+			resolve(responses.getRandom());
 		});
 	});
 };
@@ -101,12 +101,12 @@ function onIoResponse(err, data, para) {
 			if (para.text) {
 				APIAI.textRequest(data, para.text, io)
 				.then((resp) => { return io.output(data, resp); })
-				.catch((err) => { return io.output(data, err); })
+				.catch((err) => { return io.output(data, { error: err }); })
 				.then(io.startInput);
 			} else if (para.photo) {
 				outPhoto(data, para.photo, io)
 				.then((resp) => { return io.output(data, resp); })
-				.catch((err) => { return io.output(data, err); })
+				.catch((err) => { return io.output(data, { error: err }); })
 				.then(io.startInput);
 			} else if (para.answer) {
 				io.output(data, para.answer)
@@ -121,6 +121,7 @@ function onIoResponse(err, data, para) {
 	} catch (ex) {
 
 		console.error('Undefined exception', ex);
+
 		io.output(data, { error: ex })
 		.then(io.startInput)
 		.catch(io.startInput);

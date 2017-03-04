@@ -11,7 +11,7 @@ module.exports = function(e) {
 
         client.search(`disegno "${parameters.thing}"`)
         .then((images) => {
-            let img = images[_.random(0, images.length-1)];
+            let img = images.getRandom();
             console.debug(TAG, 'result', img);
             resolve({
                 photo: {

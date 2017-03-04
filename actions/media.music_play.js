@@ -35,7 +35,7 @@ module.exports = function(e) {
 				});
 				console.debug(TAG, 'list result', items);
 
-				let song = items[ random_output ? _.random(0, items.length-1) : 0 ];
+				let song = items.getRandom();
 				console.debug(TAG, 'result', song);
 
 				resolve({

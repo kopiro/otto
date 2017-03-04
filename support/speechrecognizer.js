@@ -36,7 +36,7 @@ function createRecognizeStream(opt, callback, end) {
 				// console.debug(TAG, 'activation');
 
 				recognized = true;
-				callback(null, text);
+				callback(null, { text: text });
 			// no-break
 
 			case 'END_OF_UTTERANCE':
@@ -48,7 +48,8 @@ function createRecognizeStream(opt, callback, end) {
 
 				timeout = setTimeout(function() {
 					if (!recognized) {
-						callback("No word recognized by speech recognizer");
+						console.debug(TAG, 'no word recognized');
+						callback({ unrecognized: true });
 					}
 				}, 1000);
 			}

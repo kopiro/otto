@@ -20,7 +20,7 @@ module.exports = function(e, io) {
 				return reject('Non ho ricordi di questa cosa');
 			}
 			
-			let memory = new Memory.Memory(data[_.random(0, data.length-1)]);
+			let memory = new Memory.Memory( data.getRandom() );
 
 			let text = (fulfillment.speech || "") + " ";
 			if (memory.get('text')) text += memory.get('text') + " ";

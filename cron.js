@@ -62,7 +62,7 @@ function tick() {
 			IO.getChats()
 			.then((conversations) => {
 				conversations.forEach((conv) => {
-					let text = e.text[_.random(0, e.text.length - 1)];
+					let text = e.text.getRandom();
 					text = text.replace('{name}', conv.getName());
 					IO.output(conv.getData(), text);
 				});

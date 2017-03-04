@@ -1,3 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
-play "$1" pitch -q 600 speed 1
+echo "Requesting play $1"
+play "$1" pitch -q 800
