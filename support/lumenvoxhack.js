@@ -11,8 +11,10 @@ if (!fs.existsSync(cache_file)) fs.writeFileSync(cache_file, '{}');
 let cache = require(cache_file);
 
 function download(text, callback) {
+	text = text.trim();
+
 	if (cache[text]) {
-		console.debug(TAG, 'text in cache');
+		console.debug(TAG, 'text in cache', text);
 		callback(null, cache[text]);
 	} else {
 		request({
@@ -33,8 +35,9 @@ function download(text, callback) {
 			let rpath = `${BASE}/audio/${path}`;
 			let file_check = 0;
 
+			console.debug(TAG, text, path);
+
 			const checkFileExists = () => {
-				console.debug(TAG, 'Checking file exists', rpath);
 				request({
 					url: `${BASE}/fileReady.ashx`,
 					method: 'POST',
@@ -44,7 +47,6 @@ function download(text, callback) {
 					}
 				}, (err, resp, body) => {
 					if (err || false == /\<exists\>1\<\/exists\>/.test(body)) {
-						console.debug(TAG, 'File not yet ready');
 						if (file_check++ >= 5) {
 							console.error(TAG, 'Reached max file requests');
 							return callback({ message: 'Reached max file requests' });
@@ -60,6 +62,7 @@ function download(text, callback) {
 						callback(err);
 					})
 					.on('finish', () => {
+						console.debug(TAG, text, dpath);
 						cache[text] = dpath;
 						fs.writeFile(cache_file, JSON.stringify(cache), () => {});
 						callback(null, cache[text]);
@@ -73,20 +76,26 @@ function download(text, callback) {
 }
 
 exports.play = function(text, callback) {
-	download(text, (err, file) => {
-		if (err) {
-			console.error(TAG, err);
-			return callback(err);
-		}
+	// Split large text in multiple textes
+	text = _.compact(text.split(/(?:\.|\!|\?|\.\.\.)\s+/g));
 
-		require('child_process').spawn(__basedir + '/player.sh', [ file ])
-		.addListener('exit', (err, stdout, stderr) => {
-			if (err) {
-				console.error(TAG, err, stdout, stderr);
-				return callback(err);
-			}
+	let i = 0;
+	async.map(text, (t, next) => {
+		// Do a timeout because lumenvox cache per time
+		setTimeout(() => {
+			download(t, (err, file) => {
+				if (err) {
+					console.error(TAG, err);
+					return next(err);
+				}
 
-			callback();
-		});
+				next(null, file);
+			});
+		}, (i++) * 200);
+	}, (err, files) => {
+		async.eachSeries(files, (file, next) => {
+			require('child_process').spawn(__basedir + '/player.sh', [ file ])
+			.addListener('exit', next);
+		}, callback);
 	});
 };

@@ -6,7 +6,7 @@ module.exports = function(e, io) {
 		let { parameters:p, fulfillment, resolvedQuery } = e;
 
 		DB.query(`
-		SELECT *, MATCH (title, tags) AGAINST ("${resolvedQuery}" IN NATURAL LANGUAGE MODE) AS score 
+		SELECT *, MATCH (tags) AGAINST ("${p.q}" IN NATURAL LANGUAGE MODE) AS score 
 		FROM memories
 		ORDER BY score DESC
 		`, (err, data) => {
@@ -17,7 +17,7 @@ module.exports = function(e, io) {
 
 			data = _.filter(data, (row) => { return row.score >= 0.7; });
 			if (data.length === 0) {
-				return reject('Non ho ricordi di questa cosa');
+				return resolve('Non ho ricordi di questa cosa');
 			}
 			
 			let memory = new Memory.Memory( data.getRandom() );
