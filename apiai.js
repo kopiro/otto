@@ -8,7 +8,7 @@ let Actions = require(__basedir + '/actions');
 
 exports.textRequest = function(data, text, io) {
 	return new Promise((resolve, reject) => {
-		text = text.replace(AI_NAME_REGEX, '');
+		text = (text || '').replace(AI_NAME_REGEX, '');
 
 		_.defaults(data, {
 			sessionId: Date.now()

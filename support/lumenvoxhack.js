@@ -47,7 +47,7 @@ function download(text, callback) {
 						console.debug(TAG, 'File not yet ready');
 						if (file_check++ >= 5) {
 							console.error(TAG, 'Reached max file requests');
-							return callback('Reached max file requests');
+							return callback({ message: 'Reached max file requests' });
 						}
 
 						return setTimeout(checkFileExists, 500);

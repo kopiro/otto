@@ -36,7 +36,7 @@ function createRecognizeStream(opt, callback, end) {
 				// console.debug(TAG, 'activation');
 
 				recognized = true;
-				callback(null, { text: text });
+				callback(null, text);
 			// no-break
 
 			case 'END_OF_UTTERANCE':
