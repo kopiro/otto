@@ -77,7 +77,7 @@ function download(text, callback) {
 
 exports.play = function(text, callback) {
 	// Split large text in multiple textes
-	text = _.compact(text.split(/(?:\.|\!|\?|\.\.\.)\s+/g));
+	text = _.compact(text.split(/(?:\.|\!|\?|\.\.\.)(?:\s+|\n)/g));
 
 	let i = 0;
 	async.map(text, (t, next) => {

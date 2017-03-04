@@ -10,7 +10,7 @@ API.post('/memories', (req, res) => {
 	if (_.isEmpty(req.body.text)) return res.json({ error: 'Text is missing' });
 	if (_.isEmpty(req.body.tags)) return res.json({ error: 'Tags are missing' });
 
-	new exports.Memory({
+	new Memory.Memory({
 		title: req.body.title,
 		text: req.body.text,
 		date: req.body.date,
