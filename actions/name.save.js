@@ -9,7 +9,7 @@ module.exports = function(e) {
 
 			case 'user':
 			Memory.Contact.where({ 
-				name: parameters.name
+				alias: parameters.name
 			})
 			.fetch({ 
 				require: true 
@@ -19,7 +19,7 @@ module.exports = function(e) {
 			})
 			.catch((err) => {
 				new Memory.Contact({
-					name: parameters.name
+					alias: parameters.name
 				})
 				.save()
 				.then((new_contact) => {

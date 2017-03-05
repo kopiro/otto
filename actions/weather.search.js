@@ -31,7 +31,6 @@ module.exports = function(e) {
 				resolve(`A ${obs.display_location.city}, il tempo risulta essere ${obs.weather}, con una temperatura media di ${obs.temp_c} gradi`);
 			});
 		}
-
 		
 	});
 };
