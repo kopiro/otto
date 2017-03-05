@@ -6,6 +6,6 @@ if [ "$(uname)" == "Darwin" ]; then
 
 elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
 
-	play "$1.wav" pitch -q 800
+	play "$1" pitch -q 800
 
 fi
