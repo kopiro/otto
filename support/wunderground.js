@@ -5,7 +5,7 @@ exports.api = function(opt, callback) {
 	let url = [
 	'http://api.wunderground.com/api/', _config.apiKey, 
 	'/', opt.type, 
-	'/lang:' + config.language,
+	'/lang:' + config.language.toUpperCase(),
 	'/q', 
 	'/', opt.state || _config.state, 
 	'/', opt.city || _config.city, 
@@ -13,12 +13,9 @@ exports.api = function(opt, callback) {
 	].join('');
 	request({
 		url: url,
-		json: true,
-		headers: {
-			'Ocp-Apim-Subscription-Key': _config.apiKey
-		}
+		json: true
 	}, function(error, response, body) {
-		console.debug(TAG, 'result', body);
+		console.debug(TAG, body);
 		if (callback) callback(error, body);
 	});
 };

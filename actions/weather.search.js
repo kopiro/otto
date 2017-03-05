@@ -19,7 +19,7 @@ module.exports = function(e) {
 				let obs = _.find(fores, (o) => { return o.date.epoch >= date.unix(); });
 				if (obs == null) return reject();
 
-				resolve(`Da ${obs.date.pretty}, c'è ${obs.conditions}, con una massima di ${obs.high.celsius} gradi e una minima di ${obs.low.celsius}`);
+				resolve(`A ${p.location} ci sarà ${obs.conditions}, con una massima di ${obs.high.celsius} gradi e una minima di ${obs.low.celsius}`);
 			});
 		} else {
 			Wunderground.api({
