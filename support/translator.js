@@ -2,7 +2,7 @@ const TAG = 'Translatore';
 
 const translate = require('@google-cloud/translate');
 const translateClient = translate({
-	keyFilename: __basedir + '/gcloud.json'
+	keyFilename: __basedir + '/keys/gcloud.json'
 });
 
 exports.translate = function(text, lang, callback) {

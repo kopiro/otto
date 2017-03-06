@@ -1,5 +1,5 @@
 const visionClient = require('@google-cloud/vision')({
-	keyFilename: __basedir + '/gcloud.json'
+	keyFilename: __basedir + '/keys/gcloud.json'
 });
 
 const TAG = 'VisionRec';

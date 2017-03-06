@@ -1,5 +1,5 @@
 const speechClient = require('@google-cloud/speech')({
-	keyFilename: __basedir + '/gcloud.json'
+	keyFilename: __basedir + '/keys/gcloud.json'
 });
 
 const TAG = 'SpeechRecognizer';
