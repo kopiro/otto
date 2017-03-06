@@ -93,55 +93,40 @@ function onIoResponse(err, data, para) {
 	try {
 
 		if (err) {
-			io.output(data, { error: err })
-			.then(io.startInput)
-			.catch(io.startInput);
+			throw err;
+		}
+		
+		let promise = null;
+		if (para.text) {
+			promise = APIAI.textRequest(data, para.text, io);
+		} else if (para.photo) {
+			promise = outPhoto(data, para.photo, io);
+		} else if (para.answer) {
+			promise = Promise.resolve();
+		}
+
+		if (promise != null) {
+			promise
+			.then((resp) => { 
+				return io.output(data, resp)
+				.then(io.startInput)
+				.catch(io.startInput); 
+			})
+			.catch((err) => { 
+				return io.output(data, { error: err })
+				.then(io.startInput)
+				.catch(io.startInput); 
+			});
 		} else {
-
-			if (para.text) {
-				APIAI.textRequest(data, para.text, io)
-				.then((resp) => { 
-					return io.output(data, resp)
-					.then(io.startInput)
-					.catch(io.startInput); 
-				})
-				.catch((err) => { 
-					return io.output(data, { error: err })
-					.then(io.startInput)
-					.catch(io.startInput); 
-				});
-			} else if (para.photo) {
-				outPhoto(data, para.photo, io)
-				.then((resp) => {
-					return io.output(data, resp)
-					.then(io.startInput)
-					.catch(io.startInput); 
-				})
-				.catch((err) => {
-					return io.output(data, { error: err })
-					.then(io.startInput)
-					.catch(io.startInput); 
-				});
-			} else if (para.answer) {
-				io.output(data, para.answer)
-				.then(io.startInput)
-				.catch(io.startInput);
-			} else {
-				io.output(data, { 
-					error: {
-						unsupported: true,
-						message: 'This input type is not supported yet. Supported: text, photo' 
-					}
-				})
-				.then(io.startInput)
-				.catch(io.startInput);
-			}
-
+			throw {
+				unsupported: true,
+				message: 'This input type is not supported yet. Supported: text, photo' 
+			};
 		}
 
 	} catch (ex) {
 
-		console.error('Undefined exception', ex);
+		console.error('Exception', ex);
 
 		io.output(data, { error: ex })
 		.then(io.startInput)
