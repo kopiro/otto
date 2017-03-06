@@ -6,7 +6,7 @@
 			iterate(file);
 		} else if (stat.isFile()) {
 			if (/\.js$/.test(file)) {
-				const action_name = file.replace(__dirname + '/', '').replace(/\//g, '.').replace('.js','');
+				const action_name = file.replace('/index.js', '').replace(__dirname + '/', '').replace(/\//g, '.').replace('.js','');
 				exports[action_name] = require(file);
 			}
 		}

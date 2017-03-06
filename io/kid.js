@@ -160,7 +160,11 @@ exports.output = function(data, e) {
 				LumenVox.play(no_strategy_responses.getRandom(), () => {
 					resolve();
 				});
-			} else {				
+			} else if (e.error.text) {		
+				return LumenVox.play(e.error.text, () => {
+					resolve();
+				});	
+			} else {
 				return resolve();
 			}
 		}
@@ -172,9 +176,27 @@ exports.output = function(data, e) {
 		} 
 
 		if (e.media) {
-			if (e.media.song) {
+			if (e.media.artist) {
 				MPC(['del','1'], () => {
-					MPC(['insert', e.media.song.uri], () => {
+					MPC(['insert', e.media.artist.uri], () => {
+						MPC(['play']);
+					});
+				});
+				return resolve();
+			}
+
+			if (e.media.track) {
+				MPC(['del','1'], () => {
+					MPC(['insert', e.media.track.uri], () => {
+						MPC(['play']);
+					});
+				});
+				return resolve();
+			}
+
+			if (e.media.playlist) {
+				MPC(['del','1'], () => {
+					MPC(['insert', e.media.playlist.uri], () => {
 						MPC(['play']);
 					});
 				});
