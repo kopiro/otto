@@ -1,6 +1,10 @@
 const TAG = 'IO.Telegram';
 const _config = config.io.telegram;
 
+function log(msg) {
+	fs.writeFileSync(__basedir + '/log/' + 'telegram_' + moment().format('YYYY-MM-DD') + '.txt', msg + "\n");
+}
+
 exports.capabilities = { 
 	userCanViewUrls: true
 };
@@ -125,7 +129,14 @@ exports.output = function(data, e) {
 bot.on('message', (e) => {
 	console.user(TAG, e);
 
-	let data = { chatId: e.chat.id };
+	let data = { 
+		chatId: e.chat.id,
+		title: e.from.username || e.from.first_name
+	};
+
+	if (e.text) {
+		log('[' + data.title + '] ' + e.text);
+	}
 
 	isChatAvailable(e.chat, (err) => {
 		if (err) {
