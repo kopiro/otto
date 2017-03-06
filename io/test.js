@@ -42,6 +42,7 @@ exports.startInput = function() {
 
 exports.output = function(data, e) {
 	console.ai(TAG, e);
-	return Promise.resolve();
-	return require(__basedir + '/io/kid').output(data, e);
+	if (null == config.testDriverOut) return Promise.resolve();
+
+	return require(__basedir + '/io/' + config.testDriverOut).output(data, e);
 };
