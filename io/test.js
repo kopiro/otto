@@ -42,6 +42,6 @@ exports.startInput = function() {
 
 exports.output = function(data, e) {
 	console.ai(TAG, e);
-	// return Promise.resolve();
+	return Promise.resolve();
 	return require(__basedir + '/io/kid').output(data, e);
 };
