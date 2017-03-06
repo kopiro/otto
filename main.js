@@ -4,6 +4,10 @@ const VisionRecognizer = require(__basedir + '/support/visionrecognizer');
 const FaceRecognizer = require(__basedir + '/support/facerecognizer');
 const Translator = require(__basedir + '/support/translator');
 
+function log(msg) {
+	fs.writeFileSync(__basedir + '/log/' + moment('Y-m-d') + '.txt', msg + "\n");
+}
+
 if (config.cron) {
 	require(__basedir + '/cron');
 }

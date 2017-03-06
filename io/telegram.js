@@ -13,6 +13,9 @@ const SpeechRecognizer = require(__basedir + '/support/speechrecognizer');
 let callback;
 
 function isChatAvailable(chat, callback) {
+	isChatAvailable.chats = isChatAvailable.chats = {};
+	if (isChatAvailable.chats[chat.id]) return callback();
+	
 	new Memory.TelegramChat()
 	.where({ chat_id: chat.id })
 	.fetch({ require: true })
@@ -20,6 +23,8 @@ function isChatAvailable(chat, callback) {
 		if (!tc.get('approved')) {
 			return reject('Papà mi ha detto di non parlare con te!!!');
 		}
+
+		isChatAvailable.chats[chat.id] = true;
 		callback();
 	})
 	.catch((err) => {
