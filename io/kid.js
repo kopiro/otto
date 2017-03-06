@@ -15,6 +15,9 @@ const im = require('imagemagick');
 const AWS = require('aws-sdk');
 const s3 = new AWS.S3();
 
+const MPC = require(__basedir + '/support/mpc');
+const LumenVox = require(__basedir + '/support/lumenvoxhack');
+
 let callback;
 
 let is_speaking = false;
@@ -154,8 +157,7 @@ exports.output = function(data, e) {
 		if ('error' in e) {
 			e.error = e.error || {};
 			if (e.error.noStrategy) {
-				require(__basedir + '/support/lumenvoxhack')
-				.play(no_strategy_responses.getRandom(), () => {
+				LumenVox.play(no_strategy_responses.getRandom(), () => {
 					resolve();
 				});
 			} else {				
@@ -164,19 +166,19 @@ exports.output = function(data, e) {
 		}
 
 		if (e.text) {
-			return require(__basedir + '/support/lumenvoxhack').play(e.text, () => {
+			return LumenVox.play(e.text, () => {
 				resolve();
 			});
 		} 
 
 		if (e.spotify) {
-			let spotify_script = require('spotify-node-applescript');
 			if (e.spotify.song) {
-				spotify_script.playTrack(e.spotify.song.uri);
+				MPC(`add ${e.spotify.song.uri}`); 
+				MPC(`play`); 
 				return resolve();
 			}
 			if (e.spotify.action) {
-				spotify_script[e.spotify.action]();
+				MPC(e.spotify.action); 
 				return resolve();
 			}
 			return reject();
