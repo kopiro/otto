@@ -9,16 +9,14 @@ module.exports = function(e) {
 		let { parameters:p } = e;
 		let lang_iso_code;
 
-		if (p.to) {
-			lang_iso_code = p.to.langCode;
-		} else {
-			lang_iso_code = config.language;
-		}
+		if (p.to) lang_iso_code = p.to.langCode;
+		else lang_iso_code = config.language;
 
 		Translator.translate(p.text, lang_iso_code, (err, translation) => {
 			if (err) {
-				err.text = 'Scusa, ma non riesco a tradurre questo per te';
-				return reject(err);
+				return resolve({
+					text: 'Scusa, ma non riesco a tradurre questo per te'
+				});
 			}
 
 			resolve(translation);

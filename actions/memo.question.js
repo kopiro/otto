@@ -22,12 +22,12 @@ module.exports = function(e, io) {
 			
 			let memory = new Memory.Memory( data.getRandom() );
 
-			let text = (fulfillment.speech || "") + " ";
-			if (memory.get('text')) text += memory.get('text') + " ";
-			if (io.capabilities.userCanViewUrls && memory.get('url')) {
-				text += memory.get('url') +  " ";
-			}
-			resolve(text);
+			let text = [];
+			text.push(fulfillment.speech || "");
+			if (memory.get('text')) text.push(memory.get('text'));
+			if (io.capabilities.userCanViewUrls && memory.get('url')) text.push(memory.get('url'));
+			
+			resolve(text.join(' '));
 
 		});
 	});

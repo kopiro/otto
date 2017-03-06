@@ -9,7 +9,7 @@ module.exports = function(e) {
         console.debug(TAG, e);
         let { parameters, fulfillment } = e;
 
-        client.search(`disegno "${parameters.thing}"`)
+        client.search(`disegno "${parameters.q}"`)
         .then((images) => {
             let img = images.getRandom();
             console.debug(TAG, 'result', img);

@@ -3,13 +3,13 @@ const TAG = path.basename(__filename, '.js');
 module.exports = function(e) {
 	return new Promise((resolve, reject) => {
 		console.debug(TAG, e);
-		let { parameters, fulfillment, resolvedQuery } = e;
+		let { parameters:p, fulfillment, resolvedQuery } = e;
 
-		switch (parameters.subject) {
+		switch (p.subject) {
 
 			case 'user':
 			Memory.Contact.where({ 
-				alias: parameters.name
+				alias: p.name
 			})
 			.fetch({ 
 				require: true 
@@ -19,11 +19,11 @@ module.exports = function(e) {
 			})
 			.catch((err) => {
 				new Memory.Contact({
-					alias: parameters.name
+					alias: p.name
 				})
 				.save()
 				.then((new_contact) => {
-					resolve(`Ciao ${parameters.name}, piacere di conoscerti!`);
+					resolve(`Ciao ${p.name}, piacere di conoscerti!`);
 				})
 				.catch((err) => {
 					reject(err);
@@ -32,7 +32,7 @@ module.exports = function(e) {
 			break;
 
 			case 'agent':
-			if (AI_NAME_REGEX.test(parameters.name)) {
+			if (AI_NAME_REGEX.test(p.name)) {
 				resolve('Si, sono io');
 			} else {
 				resolve(`No, io mi chiamo Otto!`);
