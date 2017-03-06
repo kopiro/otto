@@ -44,32 +44,40 @@ const apiai_to_wunderground = {
 module.exports = function(e) {
 	return new Promise((resolve, reject) => {
 		console.debug(TAG, e);
-		let { parameters:p } = e;
+		const { parameters:p } = e;
 
 		if (p.date) {
-			let date = moment(p.date);
+			const date = moment(p.date + (p.time ? ' ' + p.time : '09:00:00'));
+			const date_human = date.calendar();
+
 			Wunderground.api({
 				type: 'forecast',
 				city: p.location,
 			}, (err, data) => {
 
-				let fores = data.forecast.simpleforecast.forecastday;
+				const fores = data.forecast.simpleforecast.forecastday;
 				if (fores == null) return reject();
 
-				let obs = _.find(fores, (o) => { return o.date.epoch >= date.unix(); });
+				const obs = _.find(fores, (o) => { return o.date.epoch >= date.unix(); });
 				if (obs == null) return reject();
 
+				console.debug(TAG, obs);
+
 				resolve({
-					text: `A ${obs.display_location.city} ci sarà ${obs.conditions}, con una massima di ${obs.high.celsius} gradi e una minima di ${obs.low.celsius}`
+					text: `${date_human}, ci sarà ${obs.conditions}, con una massima di ${obs.high.celsius} gradi e una minima di ${obs.low.celsius}`
 				});
 			});
+
 		} else {
 			Wunderground.api({
 				type: 'conditions',
 				city: p.location,
 			}, (err, data) => {
-				let obs = data.current_observation;
+
+				const obs = data.current_observation;
 				if (obs == null) return reject();
+
+				console.debug(TAG, obs);
 
 				switch (p.request_type) {
 					case 'condition':
