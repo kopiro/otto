@@ -88,6 +88,12 @@ exports.output = function(data, e) {
 			return resolve();
 		}
 
+		if (e.lyrics) {
+			bot.sendChatAction(data.chatId, 'typing');
+			bot.sendMessage(data.chatId, e.lyrics.lyrics_body);
+			return resolve();
+		}
+
 		return reject();
 	});
 };

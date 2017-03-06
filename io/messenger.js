@@ -92,6 +92,13 @@ exports.output = function(data, e) {
 			return resolve();
 		}
 
+		if (e.lyrics) {
+			bot.sendMessage(data.recipientId, { text: e.lyrics.lyrics_body  }, (err) => {
+				if (err) console.error(TAG, err);
+			});
+			return resolve();
+		}
+
 		return reject();
 	});
 };

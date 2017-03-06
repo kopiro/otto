@@ -50,13 +50,18 @@ exports.output = function(data, e) {
 		}
 
 		if (e.media) {
-			if (e.media.song) {
+			if (e.media.track) {
 				res.json(e);
 				return resolve();
 			}
 		}
 
 		if (e.photo) {
+			res.json(e);
+			return resolve();
+		}
+
+		if (e.lyrics) {
 			res.json(e);
 			return resolve();
 		}

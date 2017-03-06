@@ -211,6 +211,12 @@ exports.output = function(data, e) {
 			return reject();
 		}
 
+		if (e.lyrics) {
+			return LumenVox.play(e.lyrics.lyrics_body.split("\n")[0], () => {
+				resolve();
+			});
+		}
+
 		return resolve();
 	});
 };
