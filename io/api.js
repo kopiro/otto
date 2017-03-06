@@ -49,8 +49,8 @@ exports.output = function(data, e) {
 			return resolve();
 		}
 
-		if (e.spotify) {
-			if (e.spotify.song) {
+		if (e.media) {
+			if (e.media.song) {
 				res.json(e);
 				return resolve();
 			}

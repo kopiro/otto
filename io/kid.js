@@ -171,18 +171,18 @@ exports.output = function(data, e) {
 			});
 		} 
 
-		if (e.spotify) {
-			if (e.spotify.song) {
+		if (e.media) {
+			if (e.media.song) {
 				MPC(['del','1'], () => {
-					MPC(['insert', e.spotify.song.uri], () => {
+					MPC(['insert', e.media.song.uri], () => {
 						MPC(['play']);
 					});
 				});
 				return resolve();
 			}
 
-			if (e.spotify.action) {
-				MPC(e.spotify.action); 
+			if (e.media.action) {
+				MPC([e.media.action]); 
 				return resolve();
 			}
 			

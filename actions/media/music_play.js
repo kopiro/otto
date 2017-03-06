@@ -40,7 +40,7 @@ module.exports = function(e) {
 				console.debug(TAG, 'result', song);
 
 				resolve({
-					spotify: {
+					media: {
 						song: song
 					}
 				});

@@ -1,10 +1,11 @@
 const TAG = 'API.AI';
 
-let apiaiClient = require('apiai')(config.APIAI_TOKEN, {
+const apiaiClient = require('apiai')(config.APIAI_TOKEN, {
 	language: config.language
 });
 
-let Actions = require(__basedir + '/actions');
+const Actions = require(__basedir + '/actions');
+console.log(Actions);
 
 exports.textRequest = function(data, text, io) {
 	return new Promise((resolve, reject) => {
