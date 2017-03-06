@@ -79,10 +79,18 @@ exports.output = function(data, e) {
 			return resolve();
 		}
 
-		if (e.spotify) {
+		if (e.media) {
 			bot.sendChatAction(data.chatId, 'typing');
-			if (e.spotify.song) {
-				bot.sendMessage(data.chatId, e.spotify.song.external_urls.spotify);
+			if (e.media.artist) {
+				bot.sendMessage(data.chatId, e.media.artist.external_urls.spotify);
+				return resolve();
+			}
+			if (e.media.track) {
+				bot.sendMessage(data.chatId, e.media.track.external_urls.spotify);
+				return resolve();
+			}
+			if (e.media.playlist) {
+				bot.sendMessage(data.chatId, e.media.playlist.external_urls.spotify);
 				return resolve();
 			}
 			return reject();
