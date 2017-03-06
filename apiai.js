@@ -5,7 +5,6 @@ const apiaiClient = require('apiai')(config.APIAI_TOKEN, {
 });
 
 const Actions = require(__basedir + '/actions');
-console.log(Actions);
 
 exports.textRequest = function(data, text, io) {
 	return new Promise((resolve, reject) => {
