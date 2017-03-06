@@ -12,26 +12,24 @@ const SpeechRecognizer = require(__basedir + '/support/speechrecognizer');
 
 let callback;
 
-function isChatAvailable(chat) {
-	return new Promise((resolve, reject) => {
-		new Memory.TelegramChat({ chat_id: chat.id })
-		.fetch({ required: true })
-		.then((tc) => {
-			if (!tc.get('approved')) {
-				return reject('Papà mi ha detto di non parlare con te!!!');
-			}
-			resolve();
-		})
-		.catch((err) => {
-			new Memory.TelegramChat({ 
-				chat_id: chat.id,
-				title: chat.title,
-				first_name: chat.first_name,
-				last_name: chat.last_name,
-				type: chat.type
-			}).save();
-			reject('Ciao, papà mi ha detto di non parlare con gli sconosciuti! Scusa :(');
-		});
+function isChatAvailable(chat, callback) {
+	new Memory.TelegramChat({ chat_id: chat.id })
+	.fetch({ required: true })
+	.then((tc) => {
+		if (!tc.get('approved')) {
+			return reject('Papà mi ha detto di non parlare con te!!!');
+		}
+		callback();
+	})
+	.catch((err) => {
+		new Memory.TelegramChat({ 
+			chat_id: chat.id,
+			title: chat.title,
+			first_name: chat.first_name,
+			last_name: chat.last_name,
+			type: chat.type
+		}).save();
+		callback('Ciao, papà mi ha detto di non parlare con gli sconosciuti! Scusa :(');
 	});
 }
 
@@ -60,7 +58,9 @@ exports.output = function(data, e) {
 		console.ai(TAG, e);
 		if (_.isString(e)) e = { text: e };
 
-		if (e.error) return resolve();
+		if (e.error) {
+			return resolve();
+		}
 
 		if (e.text) {
 			bot.sendChatAction(data.chatId, 'typing');
@@ -103,8 +103,13 @@ bot.on('message', (e) => {
 
 	let data = { chatId: e.chat.id };
 
-	isChatAvailable(e.chat)
-	.then(() => {
+	isChatAvailable(e.chat, (err) => {
+
+		if (err) {
+			return callback(null, data, {
+				answer: err
+			});
+		}
 
 		if (e.text) {
 			return callback(null, data, {
@@ -144,11 +149,5 @@ bot.on('message', (e) => {
 				});
 			});
 		}
-
-	})
-	.catch((err) => {
-		callback(null, data, {
-			answer: err
-		});
 	});
 });

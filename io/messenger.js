@@ -12,27 +12,25 @@ const SpeechRecognizer = require(__basedir + '/support/speechrecognizer');
 
 let callback;
 
-function isChatAvailable(sender) {
-	return new Promise((resolve, reject) => {
-		new Memory.MessengerChat({ sender_id: sender.id })
-		.fetch({ required: true })
-		.then((x) => {
-			if (!x.get('approved')) {
-				return reject('Papà mi ha detto di non parlare con te!!!');
-			}
-			resolve();
-		})
-		.catch((err) => {
-			bot.getProfile(sender.id, (err, profile) => {
-				if (err) return console.error(TAG, err);
-				new Memory.MessengerChat({ 
-					sender_id: sender.id,
-					first_name: profile.first_name,
-					last_name: profile.last_name,
-					profile_pic: profile.profile_pic,
-				}).save();
-				reject('Ciao, papà mi ha detto di non parlare con gli sconosciuti! Scusa :(');
-			});
+function isChatAvailable(sender, callback) {
+	new Memory.MessengerChat({ sender_id: sender.id })
+	.fetch({ required: true })
+	.then((x) => {
+		if (!x.get('approved')) {
+			return reject('Papà mi ha detto di non parlare con te!!!');
+		}
+		callback();
+	})
+	.catch((err) => {
+		bot.getProfile(sender.id, (err, profile) => {
+			if (err) return console.error(TAG, err);
+			new Memory.MessengerChat({ 
+				sender_id: sender.id,
+				first_name: profile.first_name,
+				last_name: profile.last_name,
+				profile_pic: profile.profile_pic,
+			}).save();
+			callback('Ciao, papà mi ha detto di non parlare con gli sconosciuti! Scusa :(');
 		});
 	});
 }
@@ -114,20 +112,18 @@ bot.on('message', (e) => {
 		senderId: e.sender.id, 
 	};
 
-	isChatAvailable(e.sender)
-	.then(() => {
+	isChatAvailable(e.sender, (err) => {
+		if (err) {
+			return callback(null, data, {
+				answer: err
+			});
+		}
 
 		if (e.message.text) {
 			return callback(null, data, {
 				text: e.message.text
 			});
 		}
-
-	})
-	.catch((err) => {
-		callback(null, data, {
-			answer: err
-		});
 	});
 
 });

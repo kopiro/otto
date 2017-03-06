@@ -102,7 +102,9 @@ function onIoResponse(err, data, para) {
 		} else if (para.photo) {
 			promise = outPhoto(data, para.photo, io);
 		} else if (para.answer) {
-			promise = Promise.resolve();
+			promise = new Promise((resolve, reject) => {
+				resolve({ text: para.answer });
+			});
 		}
 
 		if (promise != null) {
