@@ -13,8 +13,9 @@ const SpeechRecognizer = require(__basedir + '/support/speechrecognizer');
 let callback;
 
 function isChatAvailable(sender, callback) {
-	new Memory.MessengerChat({ sender_id: sender.id })
-	.fetch({ required: true })
+	new Memory.MessengerChat()
+	.where({ sender_id: sender.id })
+	.fetch({ require: true })
 	.then((x) => {
 		if (!x.get('approved')) {
 			return reject('Papà mi ha detto di non parlare con te!!!');

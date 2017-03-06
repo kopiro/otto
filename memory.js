@@ -25,13 +25,23 @@ exports.Contact = bookshelf.Model.extend({
 	photos: function() {
 		return this.hasMany(exports.ContactPhoto, 'contact_id');
 	},
+	memories: function() {
+		return this.hasMany(exports.ContactMemory, 'contact_id');
+	},
 	getName: function() {
 		return this.get('alias') || (this.get('first_name') + ' ' + this.get('last_name'));
 	}
 });
 
+exports.ContactMemory = bookshelf.Model.extend({
+	tableName: 'contacts_memories',
+	contact: function() {
+		return this.belongsTo(exports.Contact);
+	}
+});
+
 exports.ContactPhoto = bookshelf.Model.extend({
-	tableName: 'contact_photos',
+	tableName: 'contacts_photos',
 	contact: function() {
 		return this.belongsTo(exports.Contact);
 	}

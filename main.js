@@ -115,7 +115,7 @@ function onIoResponse(err, data, para) {
 				.catch(io.startInput); 
 			})
 			.catch((err) => { 
-				return io.output(data, { error: err })
+				return io.output(data, { error: err || {} })
 				.then(io.startInput)
 				.catch(io.startInput); 
 			});
@@ -130,7 +130,7 @@ function onIoResponse(err, data, para) {
 
 		console.error('Exception', ex);
 
-		io.output(data, { error: ex })
+		io.output(data, { error: ex || {} })
 		.then(io.startInput)
 		.catch(io.startInput);
 

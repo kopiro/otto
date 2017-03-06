@@ -17,21 +17,34 @@ module.exports = function(e) {
 			`, (err, data) => {
 				if (err) {
 					console.error(TAG, err);
-					reject(err);
+					return reject();
 				}
 
 				data = _.filter(data, (row) => { return row.score >= 0.7; });
 				if (data.length === 0) {
-					return resolve({
+					return reject({
 						text: 'Non so chi sia :('
 					});
 				}
 
 				let contact = new Memory.Contact( data.getRandom() );
 
-				resolve({
-					text: contact.getName()
+				new Memory.ContactMemory()
+				.where({ id_contact: contact.id })
+				.fetchAll()
+				.then((memories) => {
+					if (memories.length > 0) {
+						resolve({
+							text: memories.at( _.random(0, memories.length-1) ).get('text')
+						});
+					} else {
+						resolve({
+							text: contact.getName()
+						});
+					}
 				});
+
+				
 			});
 
 			break;

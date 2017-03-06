@@ -154,8 +154,7 @@ exports.output = function(data, e) {
 	console.ai(TAG, e);
 
 	return new Promise((resolve, reject) => {
-		if ('error' in e) {
-			e.error = e.error || {};
+		if (e.error) {
 			if (e.error.noStrategy) {
 				LumenVox.play(no_strategy_responses.getRandom(), () => {
 					resolve();

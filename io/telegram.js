@@ -13,8 +13,9 @@ const SpeechRecognizer = require(__basedir + '/support/speechrecognizer');
 let callback;
 
 function isChatAvailable(chat, callback) {
-	new Memory.TelegramChat({ chat_id: chat.id })
-	.fetch({ required: true })
+	new Memory.TelegramChat()
+	.where({ chat_id: chat.id })
+	.fetch({ require: true })
 	.then((tc) => {
 		if (!tc.get('approved')) {
 			return reject('Papà mi ha detto di non parlare con te!!!');
@@ -54,12 +55,22 @@ exports.startInput = function() {
 };
 
 exports.output = function(data, e) {
-	return new Promise((resolve, reject) => {
-		console.ai(TAG, e);
-		if (_.isString(e)) e = { text: e };
+	e = e || {};
+	if (_.isString(e)) e = { text: e };
+	console.ai(TAG, e);
 
+	return new Promise((resolve, reject) => {
+		
 		if (e.error) {
-			return resolve();
+			if (e.error.noStrategy) {
+				// NOOP
+			} else if (e.error.text) {		
+				bot.sendChatAction(data.chatId, 'typing');
+				bot.sendMessage(data.chatId, e.error.text);	
+				return resolve();
+			} else {
+				return resolve();
+			}
 		}
 
 		if (e.text) {
@@ -104,7 +115,6 @@ bot.on('message', (e) => {
 	let data = { chatId: e.chat.id };
 
 	isChatAvailable(e.chat, (err) => {
-
 		if (err) {
 			return callback(null, data, {
 				answer: err
@@ -149,5 +159,7 @@ bot.on('message', (e) => {
 				});
 			});
 		}
+
+		return reject();
 	});
 });
