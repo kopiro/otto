@@ -78,8 +78,13 @@ exports.output = function(data, e) {
 		}
 
 		if (e.photo) {
-			bot.sendChatAction(data.chatId, 'upload_photo');
-			bot.sendPhoto(data.chatId, e.photo);
+			if (e.photo.remoteFile) {
+				bot.sendChatAction(data.chatId, 'typing');
+				bot.sendMessage(data.chatId, e.photo.remoteFile);
+			} else if (e.photo.localFile) {
+				bot.sendChatAction(data.chatId, 'upload_photo');
+				bot.sendPhoto(data.chatId, e.photo.localFile);
+			}
 			return resolve();
 		}
 
