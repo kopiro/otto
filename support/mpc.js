@@ -1,5 +1,5 @@
 module.exports = function(args, cb) {
-	const mpc = require('child_process').spawn("mpc", args, {stdio: 'pipe'});
+	const mpc = require('child_process').spawn("mpc", args, { stdio: 'pipe' });
 	let result = [];
 
 	mpc.stdout.on('data', (data) => {
@@ -7,10 +7,10 @@ module.exports = function(args, cb) {
 	});
 
 	mpc.on('close', () => {
-		cb(null, result);
+		if (null != cb) cb(null, result);
 	});
 
 	mpc.on('error', (err) => {
-		cb(err);
+		if (null != cb) cb(err);
 	});
 };

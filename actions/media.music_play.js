@@ -30,12 +30,13 @@ module.exports = function(e) {
 				let {items} = data.body.tracks;
 				if (items.length === 0) throw 'Zero length results';
 
-				items = _.map(items, (item) => {
-					return _.pick(item, 'uri', 'external_urls');
-				});
-				console.debug(TAG, 'list result', items);
+				let song = null;
+				if (random_output) {
+					song = items.getRandom();
+				} else {
+					song = items[0];
+				}
 
-				let song = items.getRandom();
 				console.debug(TAG, 'result', song);
 
 				resolve({

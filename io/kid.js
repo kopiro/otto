@@ -26,7 +26,7 @@ const SPEAKING_TIMEOUT = 5000;
 
 const no_strategy_responses = [
 'Scusa, ma non ho capito',
-'Come? Scusa?',
+'Come scusa?',
 'Potresti ripètere?'
 ];
 
@@ -173,14 +173,19 @@ exports.output = function(data, e) {
 
 		if (e.spotify) {
 			if (e.spotify.song) {
-				MPC(`add ${e.spotify.song.uri}`); 
-				MPC(`play`); 
+				MPC(['del','1'], () => {
+					MPC(['insert', e.spotify.song.uri], () => {
+						MPC(['play']);
+					});
+				});
 				return resolve();
 			}
+
 			if (e.spotify.action) {
 				MPC(e.spotify.action); 
 				return resolve();
 			}
+			
 			return reject();
 		}
 
