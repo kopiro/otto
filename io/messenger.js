@@ -36,8 +36,8 @@ function isChatAvailable(sender, callback) {
 	});
 }
 
-exports.getConversations = function() {
-	new Memory.MessengerChat({ approved: 1 }).fetchAll();
+exports.getChats = function() {
+	return new Memory.MessengerChat({ approved: 1 }).fetchAll();
 };
 
 exports.onInput = function(cb) {

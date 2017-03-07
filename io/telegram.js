@@ -44,7 +44,7 @@ function isChatAvailable(chat, callback) {
 }
 
 exports.getChats = function() {
-	new Memory.TelegramChat({ approved: 1 }).fetchAll();
+	return new Memory.TelegramChat({ approved: 1 }).fetchAll();
 };
 
 exports.onInput = function(cb) {
