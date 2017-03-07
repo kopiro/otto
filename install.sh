@@ -19,6 +19,8 @@ elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
 	sudo apt-get -y install mopidy-spotify
 	sudo apt-get -y install mcp
 
+	sudo apt-get -y install libsox-fmt-mp3
+
 else
 
 	echo "Platform not supported"

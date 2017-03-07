@@ -16,7 +16,7 @@ module.exports = function(e, io) {
 			qb.orderBy(Memory.__knex.raw('RAND()'));
 		})
 		.fetch({ require: true })
-		.then((memo) => {
+		.then((memory) => {
 			let text = [];
 			text.push(fulfillment.speech || "");
 			if (memory.get('text')) text.push(memory.get('text'));
@@ -26,8 +26,9 @@ module.exports = function(e, io) {
 				text: text.join(' ')
 			});
 		})
-		.catch(() => {
+		.catch((err) => {
 			reject({
+				exception: err,
 				text: rejections.getRandom()
 			});
 		});
