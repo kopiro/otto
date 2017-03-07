@@ -80,7 +80,10 @@ exports.output = function(data, e) {
 		}
 
 		if (e.text) {
-			if (_.random(0, 4) === 1) {
+			if (
+				/http/.test(e.text) === false &&
+				 _.random(0, 4) === 1
+				) {
 				bot.sendChatAction(data.chatId, 'record_audio');
 				require(__basedir + '/support/lumenvoxhack')
 				.playToFile(e.text, (err, file) => {
