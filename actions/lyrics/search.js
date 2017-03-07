@@ -8,13 +8,12 @@ module.exports = function(e) {
 		let { parameters:p, fulfillment, resolvedQuery } = e;
 		
 		if (p.track) {
-			console.log(p);
 			MusixMatch.searchTrack({
 				q_track: p.track,
 				q_artist: p.artist
 			}, (err, body) => {
 				if (err) return reject(err);
-				if (body.length === 0) {
+				if (body == null || body.length === 0) {
 					return reject({
 						text: `Non sono riuscito a trovare qualcosa per ${p.track}`
 					});
@@ -33,7 +32,5 @@ module.exports = function(e) {
 		} else {
 			reject();
 		}
-	
-		
 	});
 };

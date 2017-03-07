@@ -6,6 +6,9 @@ let knex = require('knex')({
 
 let bookshelf = require('bookshelf')(knex);
 
+exports.__knex = knex;
+exports.__bookshelf = bookshelf;
+
 exports.TelegramChat = bookshelf.Model.extend({
 	tableName: 'telegram_chats',
 	buildData: function() {
@@ -49,4 +52,8 @@ exports.ContactPhoto = bookshelf.Model.extend({
 
 exports.Memory = bookshelf.Model.extend({
 	tableName: 'memories'
+});
+
+exports.Learning = bookshelf.Model.extend({
+	tableName: 'learning'
 });

@@ -86,54 +86,84 @@ config.ioDrivers.forEach((driver) => {
 	IOs.push(require(__basedir + '/io/' + driver));
 });
 
-function onIoResponse(err, data, para) {
+function errorResponse(err, data) {
 	let io = this;
-	para = para || {};
+
+	console.error('Error', err);
+	io.output(data, { error: err || {} })
+	.then(io.startInput)
+	.catch(io.startInput);
+}
+
+function onIoResponse(err, data, params) {
+	let io = this;
+	params = params || {};
 
 	try {
 
 		if (err) {
 			throw err;
 		}
-		
+
 		let promise = null;
-		if (para.text) {
-			promise = APIAI.textRequest(data, para.text, io);
-		} else if (para.photo) {
-			promise = outPhoto(data, para.photo, io);
-		} else if (para.answer) {
+
+		if (params.action) {
+			promise = Actions[params.action](params.data, io);
+		} else if (params.text) {
+			promise = APIAI.textRequest(data, params.text, io);
+		} else if (params.photo) {
+			promise = outPhoto(data, params.photo, io);
+		} else if (params.answer) {
 			promise = new Promise((resolve, reject) => {
-				resolve({ text: para.answer });
+				resolve({ text: params.answer });
 			});
+		} else {
+			throw {
+				unsupported: true,
+				message: 'This input type is not supported yet. Supported: text, photo, answer' 
+			};
 		}
 
 		if (promise != null) {
 			promise
 			.then((resp) => { 
-				return io.output(data, resp)
+				io.output(data, resp)
 				.then(io.startInput)
 				.catch(io.startInput); 
 			})
-			.catch((err) => { 
-				return io.output(data, { error: err || {} })
-				.then(io.startInput)
-				.catch(io.startInput); 
+			.catch((err) => {
+
+				// Check if this query could be solved using the Learning Memory Module. 
+				new Memory.Learning()
+				.query((qb) => {
+					qb.select(Memory.__knex.raw(`*, MATCH (input) AGAINST ("${params.text}" IN NATURAL LANGUAGE MODE) AS score`));
+					qb.having('score', '>', '0');
+					qb.orderBy(Memory.__knex.raw('RAND()'));
+				})
+				.fetch({ require: true })
+				.then((learning) => {
+
+					console.debug('Found a learning reply');
+					
+					if (learning.get('reply')) {
+						onIoResponse.call(io, null, data, {
+							answer: learning.get('reply')
+						});
+					} else if (learning.get('action')) {
+						// To implement parameters
+						onIoResponse.call(io, null, data, {
+							action: learning.get('action')
+						});
+					}
+				})
+				.catch(() => {
+					errorResponse.call(io, err, data);
+				});
 			});
-		} else {
-			throw {
-				unsupported: true,
-				message: 'This input type is not supported yet. Supported: text, photo' 
-			};
 		}
 
 	} catch (ex) {
-
-		console.error('Exception', ex);
-
-		io.output(data, { error: ex || {} })
-		.then(io.startInput)
-		.catch(io.startInput);
-
+		errorResponse.call(io, ex, data);
 	}
 }
 

@@ -61,8 +61,6 @@ module.exports = function(e) {
 				const obs = _.find(fores, (o) => { return o.date.epoch >= date.unix(); });
 				if (obs == null) return reject();
 
-				console.debug(TAG, obs);
-
 				resolve({
 					text: `${date_human}, ci sarà ${obs.conditions}, con una massima di ${obs.high.celsius} gradi e una minima di ${obs.low.celsius}`
 				});
@@ -76,8 +74,6 @@ module.exports = function(e) {
 
 				const obs = data.current_observation;
 				if (obs == null) return reject();
-
-				console.debug(TAG, obs);
 
 				switch (p.request_type) {
 					case 'condition':

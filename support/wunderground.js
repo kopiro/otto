@@ -15,7 +15,7 @@ exports.api = function(opt, callback) {
 		url: url,
 		json: true
 	}, function(error, response, body) {
-		console.debug(TAG, url, body);
+		console.debug(TAG, url);
 		if (callback) callback(error, body);
 	});
 };

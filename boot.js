@@ -5,7 +5,7 @@ global.__cachedir = __dirname + '/cache';
 global.config = require('./config.json');
 global.public_config = require('./public_config.json');
 
-global.AI_NAME_REGEX = /(otto|8:00)/i;
+global.AI_NAME_REGEX = /^(otto)/i;
 
 [
 [ 'warn',  '\x1b[35m' ],
@@ -31,8 +31,8 @@ global.async = require('async');
 global.moment = require('moment');
 moment.locale(config.language);
 
-global.APIAI = require('./apiai');
-
+global.APIAI = require(__basedir + '/apiai');
+global.Actions = require(__basedir + '/actions');
 global.DB = require('mysql').createConnection(config.mysql);
-global.Memory = require('./memory');
-global.Util = require('./util');
+global.Memory = require(__basedir + '/memory');
+global.Util = require(__basedir + '/util');

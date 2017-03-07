@@ -17,18 +17,13 @@ const SpeechRecognizer = require(__basedir + '/support/speechrecognizer');
 let callback;
 
 function isChatAvailable(chat, callback) {
-	isChatAvailable.chats = isChatAvailable.chats = {};
-	if (isChatAvailable.chats[chat.id]) return callback();
-	
-	new Memory.TelegramChat()
+	new Memory.TelegramChat({ chat_id: chat.id })
 	.where({ chat_id: chat.id })
-	.fetch({ require: true })
+	.fetch()
 	.then((tc) => {
 		if (!tc.get('approved')) {
 			return reject('Papà mi ha detto di non parlare con te!!!');
 		}
-
-		isChatAvailable.chats[chat.id] = true;
 		callback();
 	})
 	.catch((err) => {
@@ -60,6 +55,8 @@ exports.startInput = function() {
 		bot.getWebHookInfo().then((e) => {
 			console.info(TAG, 'started');
 		});
+	} else {
+		console.info(TAG, 'started');
 	}
 };
 

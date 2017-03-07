@@ -12,13 +12,20 @@ function createRecognizeStream(opt, callback, end) {
 	clearTimeout(timeout);
 
 	const speechRecognizer = speechClient.createRecognizeStream({
+		// If false or omitted, the recognizer will perform continuous recognition
 		singleUtterance: true,
+		// If true, interim results (tentative hypotheses) may be returned as they become available 
 		interimResults: false,
 		config: {
 			encoding: opt.encoding || 'LINEAR16',
 			sampleRate: opt.sampleRate || 16000,
 			languageCode: config.locale,
 		}
+	});
+
+	speechRecognizer.on('error', (err) => {
+		callback(err);
+		if (end) end();
 	});
 
 	speechRecognizer.on('data', function(data) {
@@ -34,7 +41,6 @@ function createRecognizeStream(opt, callback, end) {
 
 			//if (AI_NAME_REGEX.test(text)) {
 				// console.debug(TAG, 'activation');
-
 				recognized = true;
 				callback(null, text);
 			// no-break
