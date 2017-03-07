@@ -29,10 +29,17 @@ global.fs = require('fs');
 global.request = require('request');
 global.async = require('async');
 global.moment = require('moment');
-moment.locale(config.language);
 
 global.APIAI = require(__basedir + '/apiai');
 global.Actions = require(__basedir + '/actions');
 global.DB = require('mysql').createConnection(config.mysql);
 global.Memory = require(__basedir + '/memory');
 global.Util = require(__basedir + '/util');
+
+///////////////////
+// Configuration //
+///////////////////
+
+// Support for emojii
+global.DB.query('SET NAMES utf8mb4');
+moment.locale(config.language);
