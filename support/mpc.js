@@ -11,6 +11,7 @@ module.exports = function(args, cb) {
 	});
 
 	mpc.on('error', (err) => {
+		console.error(TAG, err);
 		if (null != cb) cb(err);
 	});
 };

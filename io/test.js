@@ -41,8 +41,10 @@ exports.startInput = function() {
 };
 
 exports.output = function(data, e) {
-	console.ai(TAG, e);
-	if (null == config.testDriverOut) return Promise.resolve();
+	if (null == config.testDriverOut) {
+		console.ai(TAG, e);
+		return Promise.resolve();
+	}
 
 	return require(__basedir + '/io/' + config.testDriverOut).output(data, e);
 };

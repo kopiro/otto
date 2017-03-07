@@ -19,7 +19,10 @@ API.post('/memories', (req, res) => {
 	})
 	.save()
 	.then((memory) => {
-		res.json({ memory: memory, message: 'Thank you' });
+		res.json({ 
+			memory: memory,
+			message: 'Thank you' 
+		});
 	})
 	.catch((err) => {
 		res.json({ error: err });

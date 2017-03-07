@@ -1,10 +1,6 @@
 const TAG = 'IO.Telegram';
 const _config = config.io.telegram;
 
-function log(msg) {
-	fs.writeFileSync(__basedir + '/log/' + 'telegram_' + moment().format('YYYY-MM-DD') + '.txt', msg + "\n");
-}
-
 exports.capabilities = { 
 	userCanViewUrls: true
 };
@@ -15,6 +11,10 @@ const bot = new TelegramBot(_config.token, _config.options);
 const SpeechRecognizer = require(__basedir + '/support/speechrecognizer');
 
 let callback;
+
+function log(msg) {
+	fs.writeFileSync(__basedir + '/log/' + 'telegram_' + moment().format('YYYY-MM-DD') + '.txt', msg + "\n");
+}
 
 function isChatAvailable(chat, callback) {
 	new Memory.TelegramChat({ chat_id: chat.id })
