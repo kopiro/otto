@@ -13,6 +13,14 @@ const opt = [
 	},
 	{
 		isoWeekday: [1,2,3,4,5],
+		hours: [13],
+		minutes: [10],
+		text: [
+			"Buon appetito {name}! Ti voglio bene!"
+		]
+	},
+	{
+		isoWeekday: [1,2,3,4,5],
 		hours: [8],
 		minutes: [30],
 		text: [
