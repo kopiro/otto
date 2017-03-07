@@ -133,6 +133,8 @@ function onIoResponse(err, data, params) {
 			})
 			.catch((err) => {
 
+				console.error(err);
+
 				// Check if this query could be solved using the Learning Memory Module. 
 				new Memory.Learning()
 				.query((qb) => {

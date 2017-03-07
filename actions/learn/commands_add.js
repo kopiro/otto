@@ -7,8 +7,7 @@ module.exports = function(e) {
 		
 		new Memory.Learning({
 			input: p.input,
-			reply: p.reply,
-			action: p.action
+			reply: p.reply
 		})
 		.save()
 		.then((learning) => {

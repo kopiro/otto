@@ -16,6 +16,7 @@ exports.textRequest = function(data, text, io) {
 
 		request.on('response', (response) => {
 			let r = response.result;
+			console.log(TAG, r);
 
 			if (_.isFunction(Actions[r.action])) {
 				Actions[r.action](r, io)
