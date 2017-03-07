@@ -80,8 +80,21 @@ exports.output = function(data, e) {
 		}
 
 		if (e.text) {
-			bot.sendChatAction(data.chatId, 'typing');
-			bot.sendMessage(data.chatId, e.text);
+			if (_.random(0, 4) === 0) {
+				bot.sendChatAction(data.chatId, 'record_audio');
+				require(__basedir + '/support/lumenvoxhack')
+				.playToFile(e.text, (err, file) => {
+					if (err) {
+						bot.sendChatAction(data.chatId, 'typing');
+						bot.sendMessage(data.chatId, e.text);
+					} else {
+						bot.sendVoice(data.chatId, file);
+					}
+				});
+			} else {
+				bot.sendChatAction(data.chatId, 'typing');
+				bot.sendMessage(data.chatId, e.text);
+			}
 			return resolve();
 		}
 
@@ -104,8 +117,8 @@ exports.output = function(data, e) {
 
 		if (e.photo) {
 			if (e.photo.remoteFile) {
-				bot.sendChatAction(data.chatId, 'typing');
-				bot.sendMessage(data.chatId, e.photo.remoteFile);
+				bot.sendChatAction(data.chatId, 'upload_photo');
+				bot.sendPhoto(data.chatId, e.photo.remoteFile);
 			} else if (e.photo.localFile) {
 				bot.sendChatAction(data.chatId, 'upload_photo');
 				bot.sendPhoto(data.chatId, e.photo.localFile);
@@ -122,6 +135,14 @@ exports.output = function(data, e) {
 		return reject();
 	});
 };
+
+/////////////////
+// Init events //
+/////////////////
+
+bot.on('webhook_error', (err) => {
+  console.error(TAG, err);
+});
 
 bot.on('message', (e) => {
 	console.user(TAG, e);

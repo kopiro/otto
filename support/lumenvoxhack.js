@@ -95,8 +95,38 @@ exports.play = function(text, callback) {
 		}, (i++) * 200);
 	}, (err, files) => {
 		async.eachSeries(files, (file, next) => {
-			require('child_process').spawn(__basedir + '/player.sh', [ file ])
+			require('child_process').spawn('play', [ file, 'pitch', '-q', '800' ])
 			.addListener('exit', next);
 		}, callback);
+	});
+};
+
+exports.playToFile = function(text, callback) {
+	// Split large text in multiple textes
+	text = _.compact(text.split(/(?:\.|\!|\?|\.\.\.)(?:\s+|\n)/g));
+
+	let i = 0;
+	async.map(text, (t, next) => {
+		// Do a timeout because lumenvox
+		// doesn't accept parallel requests
+		setTimeout(() => {
+			download(t, (err, file) => {
+				if (err) {
+					console.error(TAG, err);
+					return next(err);
+				}
+
+				next(null, file);
+			});
+		}, (i++) * 200);
+	}, (err, files) => {
+		const audio_combined_out = __tmpdir + '/' + Date.now() + '.wav';
+		files = files.concat(audio_combined_out, 'pitch', '-q', '800');
+		
+		require('child_process').spawn('sox', files)
+		.on('close', (code) => {
+			if (code !== 0) return callback({});
+			callback(null, audio_combined_out);
+		});
 	});
 };
