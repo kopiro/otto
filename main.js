@@ -1,9 +1,5 @@
 require('./boot');
 
-const VisionRecognizer = require(__basedir + '/support/visionrecognizer');
-const FaceRecognizer = require(__basedir + '/support/facerecognizer');
-const Translator = require(__basedir + '/support/translator');
-
 if (config.cron) {
 	require(__basedir + '/cron');
 }
@@ -16,7 +12,7 @@ let outPhoto = (data, photo, io) => {
 	if (photo.isFace) return outFace(data, photo, io);
 
 	return new Promise((resolve, reject) => {
-		VisionRecognizer.detectLabels(photo.stream || photo.localFile, (err, labels) => {
+		require(__basedir + '/support/visionrecognizer').detectLabels(photo.stream || photo.localFile, (err, labels) => {
 			if (err) return reject(err);
 
 			if (_.intersection(public_config.faceRecognitionLabels, labels).length > 0) {
@@ -37,6 +33,8 @@ let outPhoto = (data, photo, io) => {
 };
 
 let outFace = (data, photo, io) => {
+	const FaceRecognizer = require(__basedir + '/support/facerecognizer');
+
 	return new Promise((resolve, reject) => {
 		FaceRecognizer.detect(photo.stream || photo.remoteFile, (err, resp) => {
 			if (resp.length === 0) return reject(err);
@@ -67,7 +65,7 @@ let outFace = (data, photo, io) => {
 
 let outVision = (data, labels, io) => {
 	return new Promise((resolve, reject) => {
-		Translator.translate(labels[0] + ', ' + labels[1], 'it', (err, translation) => {
+		require(__basedir + '/support/translator').translate(labels[0] + ', ' + labels[1], 'it', (err, translation) => {
 			if (err) return reject(err);
 
 			let responses = [

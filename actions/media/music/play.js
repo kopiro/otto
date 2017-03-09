@@ -7,7 +7,7 @@ var spotifyApi = new SpotifyWebApi(_config.options);
 module.exports = function(e) {
 	return new Promise(function(resolve, reject) {
 		let { parameters: p } = e;
-
+	
 		if (p.artist) {
 			spotifyApi.searchArtists(p.artist)
 			.then(function(data) {

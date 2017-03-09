@@ -10,6 +10,8 @@ const cache_file = __cachedir + '/lumenvox.json';
 if (!fs.existsSync(cache_file)) fs.writeFileSync(cache_file, '{}');
 let cache = require(cache_file);
 
+const PITCH = 700;
+
 function download(text, callback) {
 	text = text.trim();
 
@@ -95,8 +97,8 @@ exports.play = function(text, callback) {
 		}, (i++) * 200);
 	}, (err, files) => {
 		async.eachSeries(files, (file, next) => {
-			require('child_process').spawn('play', [ file, 'pitch', '-q', '800' ])
-			.addListener('exit', next);
+			require('child_process').spawn('play', [ file, 'pitch', '-q', PITCH ])
+			.on('close', next);
 		}, callback);
 	});
 };
@@ -121,7 +123,7 @@ exports.playToFile = function(text, callback) {
 		}, (i++) * 200);
 	}, (err, files) => {
 		const audio_combined_out = __tmpdir + '/' + Date.now() + '.wav';
-		files = files.concat(audio_combined_out, 'pitch', '-q', '800');
+		files = files.concat(audio_combined_out, 'pitch', '-q', PITCH);
 		
 		require('child_process').spawn('sox', files)
 		.on('close', (code) => {

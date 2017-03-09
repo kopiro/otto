@@ -40,6 +40,4 @@ global.Util = require(__basedir + '/util');
 // Configuration //
 ///////////////////
 
-// Support for emojii
-global.DB.query('SET NAMES utf8mb4');
 moment.locale(config.language);

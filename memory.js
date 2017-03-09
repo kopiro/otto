@@ -1,6 +1,6 @@
 let knex = require('knex')({
   client: 'mysql',
-  debug: true,
+  debug: false,
   connection: config.mysql
 });
 
