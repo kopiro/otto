@@ -1,6 +1,9 @@
 const TAG = 'IO.Telegram';
 const _config = config.io.telegram;
 
+const EventEmitter = require('events').EventEmitter;
+exports.emitter = new EventEmitter();
+
 exports.capabilities = { 
 	userCanViewUrls: true
 };
@@ -9,8 +12,6 @@ const TelegramBot = require('node-telegram-bot-api');
 const bot = new TelegramBot(_config.token, _config.options);
 
 const SpeechRecognizer = require(__basedir + '/support/speechrecognizer');
-
-let callback;
 
 function log(msg) {
 	fs.writeFileSync(__basedir + '/log/' + 'telegram_' + moment().format('YYYY-MM-DD') + '.txt', msg + "\n");
@@ -42,10 +43,6 @@ exports.getChats = function() {
 	return new Memory.TelegramChat({ approved: 1 }).fetchAll();
 };
 
-exports.onInput = function(cb) {
-	callback = cb;
-};
-
 exports.startInput = function() {
 	if (exports.startInput.started) return;
 	exports.startInput.started = true;
@@ -60,82 +57,80 @@ exports.startInput = function() {
 	}
 };
 
-exports.output = function(data, e) {
-	e = e || {};
-	if (_.isString(e)) e = { text: e };
-	console.ai(TAG, e);
+exports.output = function({ data, params }) {
+	console.ai(TAG, 'output', params);
 
 	return new Promise((resolve, reject) => {
 		
-		if (e.error) {
-			if (e.error.noStrategy) {
+		if (params.error) {
+			if (params.error.noStrategy) {
 				// NOOP
-			} else if (e.error.text) {		
+			} else if (params.error.text) {		
 				bot.sendChatAction(data.chatId, 'typing');
-				bot.sendMessage(data.chatId, e.error.text);	
+				bot.sendMessage(data.chatId, params.error.text);	
 				return resolve();
 			} else {
 				return resolve();
 			}
 		}
 
-		if (e.text) {
+		if (params.text) {
 			if (
-				/http/.test(e.text) === false &&
+				/http/.test(params.text) === false &&
 				 _.random(0, 4) === 1
 				) {
 				bot.sendChatAction(data.chatId, 'record_audio');
 				require(__basedir + '/support/lumenvoxhack')
-				.playToFile(e.text, (err, file) => {
+				.playToFile(params.text, (err, file) => {
 					if (err) {
 						bot.sendChatAction(data.chatId, 'typing');
-						bot.sendMessage(data.chatId, e.text);
+						bot.sendMessage(data.chatId, params.text);
 					} else {
 						bot.sendVoice(data.chatId, file);
 					}
 				});
 			} else {
 				bot.sendChatAction(data.chatId, 'typing');
-				bot.sendMessage(data.chatId, e.text);
+				bot.sendMessage(data.chatId, params.text);
 			}
 			return resolve();
 		}
 
-		if (e.media) {
+		if (params.media) {
 			bot.sendChatAction(data.chatId, 'typing');
-			if (e.media.artist) {
-				bot.sendMessage(data.chatId, e.media.artist.external_urls.spotify);
+			if (params.media.artist) {
+				bot.sendMessage(data.chatId, params.media.artist.external_urls.spotify);
 				return resolve();
 			}
-			if (e.media.track) {
-				bot.sendMessage(data.chatId, e.media.track.external_urls.spotify);
+			if (params.media.track) {
+				bot.sendMessage(data.chatId, params.media.track.external_urls.spotify);
 				return resolve();
 			}
-			if (e.media.playlist) {
-				bot.sendMessage(data.chatId, e.media.playlist.external_urls.spotify);
+			if (params.media.playlist) {
+				bot.sendMessage(data.chatId, params.media.playlist.external_urls.spotify);
 				return resolve();
 			}
 			return reject();
 		}
 
-		if (e.photo) {
-			if (e.photo.remoteFile) {
+		if (params.photo) {
+			if (params.photo.remoteFile) {
 				bot.sendChatAction(data.chatId, 'upload_photo');
-				bot.sendPhoto(data.chatId, e.photo.remoteFile);
-			} else if (e.photo.localFile) {
+				bot.sendPhoto(data.chatId, params.photo.remoteFile);
+			} else if (params.photo.localFile) {
 				bot.sendChatAction(data.chatId, 'upload_photo');
-				bot.sendPhoto(data.chatId, e.photo.localFile);
+				bot.sendPhoto(data.chatId, params.photo.localFile);
 			}
 			return resolve();
 		}
 
-		if (e.lyrics) {
+		if (params.lyrics) {
 			bot.sendChatAction(data.chatId, 'typing');
-			bot.sendMessage(data.chatId, e.lyrics.lyrics_body);
+			bot.sendMessage(data.chatId, params.lyrics.lyrics_body);
 			return resolve();
 		}
 
-		return reject();
+		return reject({ unknownOutputType: true });
 	});
 };
 
@@ -144,11 +139,11 @@ exports.output = function(data, e) {
 /////////////////
 
 bot.on('webhook_error', (err) => {
-  console.error(TAG, err);
+  console.error(TAG, 'webhook_error', err);
 });
 
 bot.on('message', (e) => {
-	console.user(TAG, e);
+	console.user(TAG, 'input', e);
 
 	let data = { 
 		chatId: e.chat.id,
@@ -161,33 +156,44 @@ bot.on('message', (e) => {
 
 	isChatAvailable(e.chat, (err) => {
 		if (err) {
-			return callback(null, data, {
-				answer: err
+			return exports.emitter.emit('input', {
+				data: data,
+				params: {
+					answer: err
+				}
 			});
 		}
 
 		if (e.text) {
-			return callback(null, data, {
-				text: e.text
+			return exports.emitter.emit('input', {
+				data: data,
+				params: {
+					text: e.text
+				}
 			});
 		}
 
 		if (e.voice) {
-
 			return bot.getFileLink(e.voice.file_id).then((file_link) => {
 				SpeechRecognizer.recognizeAudioStream( request(file_link) )
 				.then((text) => {
-					callback(null, data, {
-						text: text
+					return exports.emitter.emit('input', {
+						data: data,
+						params: {
+							text: text
+						}
 					});
 				})
-				.catch((err) => { callback(err, data);	});
+				.catch((err) => { 
+					return exports.emitter.emit('input', {
+						data: data,
+						error: err
+					});
+				});
 			});
-
 		}
 
 		if (e.photo) {
-
 			return bot.getFileLink( _.last(e.photo).file_id ).then((file_link) => {
 				const tmp_file_photo = require('os').tmpdir() + Date.now() + '.jpg';
 
@@ -195,16 +201,24 @@ bot.on('message', (e) => {
 				.pipe(fs.createWriteStream(tmp_file_photo))
 				.on('error', (err) => { return callback(err, data); })
 				.on('finish', () => {
-					callback(null, data, {
-						photo: {
-							remoteFile: file_link,
-							localFile: tmp_file_photo
+					return exports.emitter.emit('input', {
+						data: data,
+						params: {
+							photo: {
+								remoteFile: file_link,
+								localFile: tmp_file_photo
+							}
 						}
 					});
 				});
 			});
 		}
 
-		return reject();
+		return exports.emitter.emit('input', {
+			data: data,
+			error: {
+				unknowInputType: true
+			}
+		});
 	});
 });

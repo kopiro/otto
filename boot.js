@@ -29,6 +29,7 @@ global.fs = require('fs');
 global.request = require('request');
 global.async = require('async');
 global.moment = require('moment');
+global.util = require('util');
 
 global.APIAI = require(__basedir + '/apiai');
 global.Actions = require(__basedir + '/actions');

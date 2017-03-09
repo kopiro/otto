@@ -54,7 +54,7 @@ let outFace = (data, photo, io) => {
 					`Da quanto tempo ${name}!, come stai??`
 					];
 
-					resolve(responses.getRandom());
+					resolve({ text: responses.getRandom() });
 				})
 				.catch(reject);
 
@@ -74,7 +74,7 @@ let outVision = (data, labels, io) => {
 			`Aspetta... lo so... è ${translation}`
 			];
 
-			resolve(responses.getRandom());
+			resolve({ text: responses.getRandom() });
 		});
 	});
 };
@@ -84,29 +84,27 @@ config.ioDrivers.forEach((driver) => {
 	IOs.push(require(__basedir + '/io/' + driver));
 });
 
-function errorResponse(err, data) {
+function errorResponse(e) {
 	let io = this;
-
-	console.error('Error', err);
-	io.output(data, { error: err || {} })
+	e.error = e.error || {};
+	io.output(e)
 	.then(io.startInput)
 	.catch(io.startInput);
 }
 
-function onIoResponse(err, data, params) {
+function onIoResponse({ error, data, params }) {
 	let io = this;
-	params = params || {};
 
 	try {
 
-		if (err) {
-			throw err;
+		if (error) {
+			throw error;
 		}
 
 		let promise = null;
 
 		if (params.action) {
-			promise = Actions[params.action](params.data, io);
+			promise = Actions[params.action]()(params.data, io);
 		} else if (params.text) {
 			promise = APIAI.textRequest(data, params.text, io);
 		} else if (params.photo) {
@@ -125,13 +123,16 @@ function onIoResponse(err, data, params) {
 		if (promise != null) {
 			promise
 			.then((resp) => { 
-				io.output(data, resp)
+				io.output({
+					data: data,
+					params: resp
+				})
 				.then(io.startInput)
 				.catch(io.startInput); 
 			})
-			.catch((err) => {
+			.catch((promise_error) => {
 
-				console.error(err);
+				console.error(promise_error);
 
 				// Check if this query could be solved using the Learning Memory Module. 
 				new Memory.Learning()
@@ -146,28 +147,40 @@ function onIoResponse(err, data, params) {
 					console.debug('Found a learning reply');
 					
 					if (learning.get('reply')) {
-						onIoResponse.call(io, null, data, {
-							answer: learning.get('reply')
+						onIoResponse.call(io, {
+							data: data,
+							params: {
+								answer: learning.get('reply')
+							}
 						});
 					} else if (learning.get('action')) {
 						// To implement parameters
-						onIoResponse.call(io, null, data, {
-							action: learning.get('action')
+						onIoResponse.call(io, {
+							data: data,
+							params: {
+								action: learning.get('action')
+							}
 						});
 					}
 				})
 				.catch(() => {
-					errorResponse.call(io, err, data);
+					errorResponse.call(io, {
+						data: data,
+						error: promise_error
+					});
 				});
 			});
 		}
 
 	} catch (ex) {
-		errorResponse.call(io, ex, data);
+		errorResponse.call(io, {
+			data: data,
+			error: ex
+		});
 	}
 }
 
 IOs.forEach((io) => {
-	io.onInput( onIoResponse.bind(io) );
+	io.emitter.on('input', onIoResponse.bind(io));
 	io.startInput();
 });

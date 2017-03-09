@@ -1,5 +1,8 @@
 const TAG = 'IO.Kid';
 
+const EventEmitter = require('events').EventEmitter;
+exports.emitter = new EventEmitter();
+
 exports.capabilities = { 
 	TAG: TAG,
 	userCanViewUrls: false
@@ -52,31 +55,34 @@ exports.startInput = function() {
 	})
 	.then((text) => {
 		is_speaking = true;
-
-		console.user(TAG, text);
-		callback(null, data, {
-			text: text
+		console.user(TAG, 'input', text);
+		exports.emitter.emit('input', {
+			data: data,
+			params: {
+				text: text
+			}
 		});
 	})
 	.catch((err) => {
-		console.error(TAG, err);
-		callback(err, data);
+		console.error(TAG, 'input', err);
+		exports.emitter.emit('input', {
+			data: data,
+			error: err
+		});
 	});
 };
 
-exports.output = function(data, e) {
-	e = e || {};
-	if (_.isString(e)) e = { text: e };
-	console.ai(TAG, e);
+exports.output = function({ data, params }) {
+	console.ai(TAG, 'output', params);
 
 	return new Promise((resolve, reject) => {
-		if (e.error) {
-			if (e.error.noStrategy) {
+		if (params.error) {
+			if (params.error.noStrategy) {
 				LumenVox.play(no_strategy_responses.getRandom(), () => {
 					resolve();
 				});
-			} else if (e.error.text) {		
-				return LumenVox.play(e.error.text, () => {
+			} else if (params.error.text) {		
+				return LumenVox.play(params.error.text, () => {
 					resolve();
 				});	
 			} else {
@@ -84,19 +90,19 @@ exports.output = function(data, e) {
 			}
 		}
 
-		if (e.text) {
-			return LumenVox.play(e.text, () => {
+		if (params.text) {
+			return LumenVox.play(params.text, () => {
 				resolve();
 			});
 		} 
 
-		if (e.media) {
+		if (params.media) {
 			const mopidy = require(__basedir + '/support/mopidy');
 
-			if (e.media.artist) {
+			if (params.media.artist) {
 				mopidy.onReady(() => {
 					mopidy.tracklist.clear()
-					.then(() => { return mopidy.library.lookup(e.media.artist.uri); })
+					.then(() => { return mopidy.library.lookup(params.media.artist.uri); })
 					.then((tracks) => { return mopidy.tracklist.add(tracks); })
 					.then((ttlTracks) => {
 						mopidy.tracklist.shuffle();
@@ -109,10 +115,10 @@ exports.output = function(data, e) {
 				return resolve();
 			}
 
-			if (e.media.track) {
+			if (params.media.track) {
 				mopidy.onReady(() => {
 					mopidy.tracklist.clear()
-					.then(() => { return mopidy.library.lookup(e.media.track.uri); })
+					.then(() => { return mopidy.library.lookup(params.media.track.uri); })
 					.then((tracks) => { return mopidy.tracklist.add(tracks); })
 					.then((ttlTracks) => {
 						return mopidy.playback.play(ttlTracks[0]);
@@ -124,12 +130,12 @@ exports.output = function(data, e) {
 				return resolve();
 			}
 
-			if (e.media.action) {
-				mopidy.playback[e.media.action](); 
+			if (params.media.action) {
+				mopidy.playback[params.media.action](); 
 				return resolve();
 			}
 
-			if (e.media.what) {
+			if (params.media.what) {
 				mopidy.playback.setVolume(10)
 				.then(() => { return mopidy.playback.getCurrentTrack(); })
 				.then((track) => {
@@ -153,12 +159,12 @@ exports.output = function(data, e) {
 
 		}
 
-		if (e.lyrics) {
-			return LumenVox.play(e.lyrics.lyrics_body.split("\n")[0], () => {
+		if (params.lyrics) {
+			return LumenVox.play(params.lyrics.lyrics_body.split("\n")[0], () => {
 				resolve();
 			});
 		}
 
-		return resolve();
+		return reject({ unkownOutputType: true });
 	});
 };

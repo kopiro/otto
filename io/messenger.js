@@ -1,6 +1,9 @@
 const TAG = 'IO.Messenger';
 const _config = config.io.messenger;
 
+const EventEmitter = require('events').EventEmitter;
+module.exports = new EventEmitter();
+
 exports.capabilities = { 
 	userCanViewUrls: true
 };
@@ -9,8 +12,6 @@ const MessengerBot = require('messenger-bot');
 const bot = new MessengerBot(_config);
 
 const SpeechRecognizer = require(__basedir + '/support/speechrecognizer');
-
-let callback;
 
 function isChatAvailable(sender, callback) {
 	new Memory.MessengerChat()
@@ -40,10 +41,6 @@ exports.getChats = function() {
 	return new Memory.MessengerChat({ approved: 1 }).fetchAll();
 };
 
-exports.onInput = function(cb) {
-	callback = cb;
-};
-
 exports.startInput = function() {
 	if (exports.startInput.started) return;
 	exports.startInput.started = true;
@@ -52,31 +49,35 @@ exports.startInput = function() {
 	console.info(TAG, 'started on port ' + _config.port);
 };
 
-exports.output = function(data, e) {
-	return new Promise((resolve, reject) => {
-		console.ai(TAG, data,e);
-		if (_.isString(e)) e = { text: e };
+exports.output = function({ data, params }) {
+	console.ai(TAG, params);
 
-		if (e.error) return resolve();
+	return new Promise((resolve, reject) => {
+		if (params.error) {
+			if (params.error.noStrategy) {
+				// NOOP
+			} else if (params.error.text) {		
+				bot.sendMessage(data.senderId, { text: params.text });	
+				return resolve();
+			} else {
+				return resolve();
+			}
+		}
 
 		if (e.text) {
-			bot.sendMessage(data.senderId, { text: e.text }, (err) => {
-				if (err) console.error(TAG, err);
-			});
+			bot.sendMessage(data.senderId, { text: params.text });
 			return resolve();
 		}
 
-		if (e.spotify) {
-			if (e.spotify.song) {
-				bot.sendMessage(data.senderId, { text: e.spotify.song.external_urls.spotify }, (err) => {
-					if (err) console.error(TAG, err);
-				});
+		if (params.spotify) {
+			if (params.spotify.song) {
+				bot.sendMessage(data.senderId, { text: params.spotify.song.external_urls.spotify });
 				return resolve();
 			}
 			return reject();
 		}
 
-		if (e.photo) {
+		if (params.photo) {
 			bot.sendMessage(data.recipientId, { 
 				attachment: {
 					type: 'image',
@@ -85,16 +86,12 @@ exports.output = function(data, e) {
 						is_reusable: true
 					}
 				}
-			}, (err) => {
-				if (err) console.error(TAG, err);
 			});
 			return resolve();
 		}
 
-		if (e.lyrics) {
-			bot.sendMessage(data.recipientId, { text: e.lyrics.lyrics_body  }, (err) => {
-				if (err) console.error(TAG, err);
-			});
+		if (params.lyrics) {
+			bot.sendMessage(data.recipientId, { text: params.lyrics.lyrics_body  });
 			return resolve();
 		}
 
@@ -115,16 +112,27 @@ bot.on('message', (e) => {
 
 	isChatAvailable(e.sender, (err) => {
 		if (err) {
-			return callback(null, data, {
-				answer: err
+			exports.emitter.emit('input', {
+				data: data,
+				error: err
 			});
 		}
 
 		if (e.message.text) {
-			return callback(null, data, {
-				text: e.message.text
+			exports.emitter.emit('input', {
+				data: data,
+				params: {
+					text: e.message.text
+				}
 			});
 		}
+
+		exports.emitter.emit('input', {
+			data: data,
+			error: {
+				unkownInputType: true
+			}
+		});
 	});
 
 });
