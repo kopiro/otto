@@ -8,22 +8,22 @@ exports.textRequest = function(data, text, io) {
 	return new Promise((resolve, reject) => {
 		text = (text || '').replace(AI_NAME_REGEX, '');
 
-		_.defaults(data, {
-			sessionId: '1'
+		data = _.defaults(data || {}, {
+			sessionId: Date.now()
 		});
 
 		let request = apiaiClient.textRequest(text, data);
 
 		request.on('response', (response) => {
-			let r = response.result;
-			console.log(TAG, r);
+			let result = response.result;
+			console.log(TAG, result);
 
-			if (_.isFunction(Actions[r.action])) {
-				Actions[r.action](r, io)
+			if (_.isFunction(Actions[result.action])) {
+				Actions[result.action]()(result, io)
 				.then(resolve)
 				.catch(reject);
-			} else if (r.fulfillment.speech) {
-				resolve({ text: r.fulfillment.speech });
+			} else if (result.fulfillment.speech) {
+				resolve({ text: result.fulfillment.speech });
 			} else {
 				reject({ noStrategy: true });
 			}
