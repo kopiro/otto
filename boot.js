@@ -5,7 +5,7 @@ global.__cachedir = __dirname + '/cache';
 global.config = require('./config.json');
 global.public_config = require('./public_config.json');
 
-global.AI_NAME_REGEX = /^(otto)/i;
+global.AI_NAME = "Otto";
 
 [
 [ 'warn',  '\x1b[35m' ],
