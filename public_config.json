@@ -1,3 +1,3 @@
 {
-	"faceRecognitionLabels": [ "facial expression", "hair", "person", "face", "nose", "hair", "man", "human", "woman" ]
+	"faceRecognitionLabels": [ "facial expression", "hair", "person", "face", "nose", "hair", "man", "human", "woman", "hair", "facial hair", "beard" ]
 }
