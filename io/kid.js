@@ -4,7 +4,6 @@ const EventEmitter = require('events').EventEmitter;
 exports.emitter = new EventEmitter();
 
 exports.capabilities = { 
-	TAG: TAG,
 	userCanViewUrls: false
 };
 
@@ -23,11 +22,6 @@ const no_strategy_responses = [
 'Come scusa?',
 'Potresti ripètere?'
 ];
-
-exports.onInput = function(cb) {
-	callback = cb;
-	require('child_process').exec(__basedir + '/bin/start.sh');
-};
 
 exports.startInput = function() {
 	console.info(TAG, 'start');

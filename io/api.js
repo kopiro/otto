@@ -1,15 +1,18 @@
 const TAG = 'IO.API';
 const API = require(__basedir + '/support/httpapi');
 
+const EventEmitter = require('events').EventEmitter;
+exports.emitter = new EventEmitter();
+
+
 exports.capabilities = { 
 	userCanViewUrls: true
 };
 
-let callback;
-
-exports.onInput = function(cb) {
-	callback = cb;
-};
+function tmpFileToHttp(req, file) {
+	console.log(req.get('host'));
+	return req.protocol + '://' + req.get('host') + '/tmp/' + path.basename(file);
+}
 
 exports.startInput = function() {
 	// singleton event
@@ -18,59 +21,94 @@ exports.startInput = function() {
 
 	console.info(TAG, 'start');
 
-	API.get('/api/request', (req, res) => {
-		let data = { req: req, res: res };
-		callback(null, data, {
-			text: req.query.text
-		});
+	API.get('/input', (req, res) => {
+		const data = { 
+			req: req, 
+			res: res
+		};
+
+		if (req.query.text) {
+			exports.emitter.emit('input', {
+				data: data,
+				params: {
+					text: req.query.text
+				}
+			});
+		} else {
+			res.json({
+				error: {
+					unkownInputType: true,
+					message: 'Unknown input type'
+				}
+			});
+		}
 	});
 };
 
-exports.output = function(data, e) {
-	e = e || {};
-	console.ai(TAG, e);
+exports.output = function({ data, params }) {
+	console.ai(TAG, 'output', params);
 
 	return new Promise((resolve, reject) => {
-		if (_.isString(e)) e = { text: e };
 		let { req, res } = data;
+		const outputas = req.query.outputas || 'text';
 
-		if (e.error) {
-			res.json({ 
-				error: {
-					message: e.error,
-					exception: e.exception || {}
-				}
-			});
+		if (params.error) {
+			res.json(params);
 			return resolve();
 		}
 
-		if (e.text) {
-			res.json(e);
+		if (params.text) {
+			switch (outputas) {
+
+				case 'text':
+				res.json(params);
+				break;
+
+				case 'voice':
+				require(__basedir + '/support/lumenvoxhack')
+				.playToFile(params.text, (err, file) => {
+					if (err) return res.json({ error: err });
+					return res.json(_.extend(params, {
+						voice: tmpFileToHttp(req, file)
+					}));
+				});
+				break;
+
+				default:
+				res.json({
+					error: {
+						unkownOutputasType: true
+					}
+				});
+				break;
+
+			} 
 			return resolve();
 		}
 
-		if (e.media) {
-			if (e.media.track) {
-				res.json(e);
+		if (params.media) {
+			if (params.media.track) {
+				res.json(params);
 				return resolve();
 			}
 		}
 
-		if (e.photo) {
-			res.json(e);
+		if (params.photo) {
+			res.json(params);
 			return resolve();
 		}
 
-		if (e.lyrics) {
-			res.json(e);
+		if (params.lyrics) {
+			res.json(params);
 			return resolve();
 		}
 
 		res.json({ 
 			error: {
-				message: 'Unhandled output'
+				message: 'Unhandled output',
+				unkownOutputType: true
 			}
 		});
-		reject();
+		return reject({ unkownOutputType: true });
 	});
 };
