@@ -10,8 +10,7 @@ exports.capabilities = {
 };
 
 function tmpFileToHttp(req, file) {
-	console.log(req.get('host'));
-	return req.protocol + '://' + req.get('host') + '/tmp/' + path.basename(file);
+	return config.server.fullDomain + '/tmp/' + path.basename(file);
 }
 
 exports.startInput = function() {
