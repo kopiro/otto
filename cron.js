@@ -1,5 +1,3 @@
-let IO = require(__basedir + '/io/telegram');
-
 const ALARM_STRINGS = [
 "Hey {name}, sveglia!"
 ];
@@ -62,6 +60,12 @@ const CRON_IN_DAYS = [
 ];
 
 function tick() {
+	['telegram','messenger'].forEach((io) => {
+		tickPerIO(require(__basedir + '/io/' + io));
+	});
+}
+
+function tickPerIO(IO) {
 	const now = moment();
 	console.info('Tick', 'WK=' + now.isoWeekday(), 'H=' + now.hours(), 'M=' + now.minutes());
 
