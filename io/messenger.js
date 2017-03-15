@@ -148,14 +148,16 @@ bot.on('message', (e) => {
 
 	isChatAvailable(e.sender, (err) => {
 		if (err) {
-			exports.emitter.emit('input', {
+			return exports.emitter.emit('input', {
 				data: data,
-				error: err
+				params: {
+					answer: err
+				}
 			});
 		}
 
 		if (e.message.text) {
-			exports.emitter.emit('input', {
+			return exports.emitter.emit('input', {
 				data: data,
 				params: {
 					text: e.message.text
@@ -163,7 +165,7 @@ bot.on('message', (e) => {
 			});
 		}
 
-		exports.emitter.emit('input', {
+		return exports.emitter.emit('input', {
 			data: data,
 			error: {
 				unkownInputType: true
