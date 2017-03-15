@@ -14,15 +14,15 @@ module.exports = function(e, { io, data }) {
 		})
 		.save()
 		.then((contact) => {
+			const when_human = when.calendar();
 			resolve({
-				text: 'Perfetto'
+				text: [
+					`Perfetto, ti sveglierò il ${when_human}`,
+					`D'accord, ci sentiamo il ${when_human}`
+				].getRandom()
 			});
 		})
-		.catch((err) => {
-			reject({
-				text: ''
-			});
-		});
+		.catch(reject);
 		
 	});
 };
