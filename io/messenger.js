@@ -14,6 +14,10 @@ const bot = new MessengerBot(_config);
 
 const SpeechRecognizer = require(__basedir + '/support/speechrecognizer');
 
+function log(msg) {
+	fs.writeFileSync(__basedir + '/log/' + 'messenger_' + moment().format('YYYY-MM-DD') + '.txt', msg + "\n");
+}
+
 function isChatAvailable(sender, callback) {
 	new Memory.MessengerChat()
 	.where({ id: sender.id })
@@ -42,7 +46,25 @@ exports.getChats = function() {
 	return new Memory.MessengerChat()
 	.where(_.extend({ 
 		approved: 1, 
-		type: 'private',
+	}, 
+	config.cron === "debug" ? { debug: 1 } : {}
+	)).fetchAll();
+};
+
+exports.getChat = function(id) {
+	return new Memory.MessengerChat({
+		id: id
+	}).fetch({
+		withRelated: ['contact']
+	});
+};
+
+exports.getAlarmsAt = function(when) {
+	return new Memory.Alarm()
+	.where(_.extend({ 
+		io: exports.id,
+		when: when,
+		notified: 0
 	}, 
 	config.cron === "debug" ? { debug: 1 } : {}
 	)).fetchAll();
