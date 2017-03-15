@@ -36,7 +36,7 @@ function isChatAvailable(sender, callback) {
 				first_name: profile.first_name,
 				last_name: profile.last_name,
 				profile_pic: profile.profile_pic,
-			}).save();
+			}).save(null, { method: 'insert' });
 			callback('Ciao, papà mi ha detto di non parlare con gli sconosciuti! Scusa :(');
 		});
 	});
@@ -138,8 +138,13 @@ bot.on('message', (e) => {
 	let data = {
 		sessionId: e.sender.id,
 		ioId: e.sender.id,
-		senderId: e.sender.id, 
+		senderId: e.sender.id,
+		title: e.sender.id
 	};
+
+	if (e.message.text) {
+		log('[' + data.title + '] ' + e.message.text);
+	}
 
 	isChatAvailable(e.sender, (err) => {
 		if (err) {

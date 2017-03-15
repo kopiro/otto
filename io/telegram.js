@@ -35,7 +35,7 @@ function isChatAvailable(chat, callback) {
 			first_name: chat.first_name,
 			last_name: chat.last_name,
 			type: chat.type
-		}).save();
+		}).save(null, { method: 'insert' });
 		callback('Ciao, papà mi ha detto di non parlare con gli sconosciuti! Scusa :(');
 	});
 }
