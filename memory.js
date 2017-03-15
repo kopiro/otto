@@ -24,6 +24,9 @@ exports.TelegramChat = bookshelf.Model.extend({
 
 exports.MessengerChat = bookshelf.Model.extend({
 	tableName: 'messenger_chats',
+	buildData: function() {
+		return { senderId: this.get('sender_id') };
+	},
 	getName: function() {
 		return this.get('first_name') || this.get('title');
 	},

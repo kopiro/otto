@@ -16,7 +16,7 @@ const SpeechRecognizer = require(__basedir + '/support/speechrecognizer');
 
 function isChatAvailable(sender, callback) {
 	new Memory.MessengerChat()
-	.where({ sender_id: sender.id })
+	.where({ id: sender.id })
 	.fetch()
 	.then((x) => {
 		if (!x.get('approved')) {
@@ -28,7 +28,7 @@ function isChatAvailable(sender, callback) {
 		bot.getProfile(sender.id, (err, profile) => {
 			if (err) return console.error(TAG, err);
 			new Memory.MessengerChat({ 
-				sender_id: sender.id,
+				id: sender.id,
 				first_name: profile.first_name,
 				last_name: profile.last_name,
 				profile_pic: profile.profile_pic,
@@ -113,7 +113,8 @@ bot.on('error', (err) => {
 bot.on('message', (e) => {
 	console.user(TAG, e);
 
-	let data = { 
+	let data = {
+		sessionId: e.sender.id,
 		senderId: e.sender.id, 
 	};
 
