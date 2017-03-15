@@ -8,10 +8,10 @@ if (config.server) {
 	require(__basedir + '/server');
 }
 
-function outCognitive(data, photo, io) {
+function outCognitive(data, image, io) {
 	return new Promise((resolve, reject) => {
 		const Cognitive = require(__basedir + '/support/cognitive');
-		Cognitive.face.detect(photo.remoteFile, (err, resp) => {
+		Cognitive.face.detect(image.remoteFile, (err, resp) => {
 			if (err) return reject(err);
 			if (resp.length === 0) return reject();
 
@@ -57,6 +57,7 @@ function errorResponse(e) {
 }
 
 function onIoResponse({ error, data, params }) {
+	console.debug('onIoResponse', error, data, params);
 	let io = this;
 
 	try {
@@ -73,8 +74,8 @@ function onIoResponse({ error, data, params }) {
 				text: params.text, 
 				io: io
 			});
-		} else if (params.photo) {
-			promise = outCognitive(data, params.photo, io);
+		} else if (params.image) {
+			promise = outCognitive(data, params.image, io);
 		} else if (params.answer) {
 			promise = new Promise((resolve, reject) => {
 				resolve({ text: params.answer });
@@ -82,7 +83,7 @@ function onIoResponse({ error, data, params }) {
 		} else {
 			throw {
 				unsupported: true,
-				message: 'This input type is not supported yet. Supported: text, photo, answer' 
+				message: 'This input type is not supported yet. Supported: text, image, answer' 
 			};
 		}
 

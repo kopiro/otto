@@ -142,13 +142,13 @@ exports.output = function({ data, params }) {
 			return reject();
 		}
 
-		if (params.photo) {
-			if (params.photo.remoteFile) {
+		if (params.image) {
+			if (params.image.remoteFile) {
 				bot.sendChatAction(data.chatId, 'upload_photo');
-				bot.sendPhoto(data.chatId, params.photo.remoteFile);
-			} else if (params.photo.localFile) {
+				bot.sendPhoto(data.chatId, params.image.remoteFile);
+			} else if (params.image.localFile) {
 				bot.sendChatAction(data.chatId, 'upload_photo');
-				bot.sendPhoto(data.chatId, params.photo.localFile);
+				bot.sendPhoto(data.chatId, params.image.localFile);
 			}
 			return resolve();
 		}
@@ -229,7 +229,7 @@ bot.on('message', (e) => {
 				return exports.emitter.emit('input', {
 					data: data,
 					params: {
-						photo: {
+						image: {
 							remoteFile: file_link,
 						}
 					}

@@ -11,6 +11,8 @@ exports.__bookshelf = bookshelf;
 
 exports.TelegramChat = bookshelf.Model.extend({
 	tableName: 'telegram_chats',
+	// This function is used to build the data 
+	// that will be sent over the IO driver
 	buildData: function() {
 		return { chatId: this.id };
 	},
@@ -24,6 +26,8 @@ exports.TelegramChat = bookshelf.Model.extend({
 
 exports.MessengerChat = bookshelf.Model.extend({
 	tableName: 'messenger_chats',
+	// This function is used to build the data 
+	// that will be sent over the IO driver
 	buildData: function() {
 		return { senderId: this.id };
 	},

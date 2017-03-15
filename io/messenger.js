@@ -21,7 +21,7 @@ function log(msg) {
 function isChatAvailable(sender, callback) {
 	new Memory.MessengerChat()
 	.where({ id: sender.id })
-	.fetch()
+	.fetch({ require: true })
 	.then((x) => {
 		if (!x.get('approved')) {
 			return callback('Papà mi ha detto di non parlare con te!!!');
@@ -106,12 +106,12 @@ exports.output = function({ data, params }) {
 			return reject();
 		}
 
-		if (params.photo) {
-			bot.sendMessage(data.recipientId, { 
+		if (params.image) {
+			bot.sendMessage(data.senderId, { 
 				attachment: {
 					type: 'image',
 					payload: {
-						url: photo.remoteFile,
+						url: image.remoteFile,
 						is_reusable: true
 					}
 				}
@@ -163,6 +163,20 @@ bot.on('message', (e) => {
 					text: e.message.text
 				}
 			});
+		}
+
+		if (e.message.attachments) {
+			const attach = _.first(e.message.attachments);
+			if (attach.type === 'image') {
+				return exports.emitter.emit('input', {
+					data: data,
+					params: {
+						image: {
+							remoteFile: attach.payload.url,
+						}
+					}
+				});
+			}
 		}
 
 		return exports.emitter.emit('input', {
