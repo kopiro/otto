@@ -61,7 +61,6 @@ exports.getChat = function(id) {
 };
 
 exports.getAlarmsAt = function(when) {
-	console.log(when);
 	return new Memory.Alarm()
 	.where(_.extend({ 
 		io: exports.id,
