@@ -24,7 +24,7 @@ function isChatAvailable(sender, callback) {
 	.fetch()
 	.then((x) => {
 		if (!x.get('approved')) {
-			return reject('Papà mi ha detto di non parlare con te!!!');
+			return callback('Papà mi ha detto di non parlare con te!!!');
 		}
 		callback();
 	})
