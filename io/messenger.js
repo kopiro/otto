@@ -57,7 +57,7 @@ exports.startInput = function() {
 };
 
 exports.output = function({ data, params }) {
-	console.ai(TAG, params);
+	console.ai(TAG, 'output', params);
 
 	return new Promise((resolve, reject) => {
 		if (params.error) {
@@ -71,7 +71,7 @@ exports.output = function({ data, params }) {
 			}
 		}
 
-		if (e.text) {
+		if (params.text) {
 			bot.sendMessage(data.senderId, { text: params.text });
 			return resolve();
 		}
