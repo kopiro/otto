@@ -5,20 +5,20 @@ module.exports = function(e, { io, data }) {
 		console.debug(TAG, e);
 		let { parameters:p, fulfillment } = e;
 
-		const when = moment((p.date || moment().format('YYYY-MM-DD')) + ' ' + p.time, 'YYYY-MM-DD HH:ii:ss');
+		const when = moment((p.date || moment().format('YYYY-MM-DD')) + ' ' + p.time, 'YYYY-MM-DD HH:mm:ss');
 
 		new Memory.Alarm({
 			io: io.id,
 			chat_id: data.chatId,
-			when: when.format('YYYY-MM-DD HH:ii:ss')
+			when: when.format('YYYY-MM-DD HH:mm:00')
 		})
 		.save()
 		.then((contact) => {
 			const when_human = when.calendar();
 			resolve({
 				text: [
-					`Perfetto, ti sveglierò il ${when_human}`,
-					`D'accord, ci sentiamo il ${when_human}`
+					`Perfetto, ti sveglierò ${when_human}`,
+					`D'accord, ci sentiamo ${when_human}`
 				].getRandom()
 			});
 		})
