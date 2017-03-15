@@ -3,6 +3,7 @@ const TAG = 'IO.Test';
 const EventEmitter = require('events').EventEmitter;
 exports.emitter = new EventEmitter();
 
+exports.id = path.basename(__filename, '.js');
 exports.capabilities = { 
 	userCanViewUrls: true
 };
@@ -14,11 +15,13 @@ const rl = readline.createInterface({
 });
 
 let strings = fs.readFileSync(__basedir + '/in.txt').toString().split("\n");
+const sessionId = require('node-uuid').v4();
 
 exports.startInput = function() {
 	console.info(TAG, 'start');
-
-	let data = { time: Date.now() };
+	let data = { 
+		sessionId: sessionId
+	};
 	let msg = strings.shift();
 
 	if (_.isEmpty(msg)) {
@@ -44,7 +47,10 @@ exports.startInput = function() {
 
 exports.output = function(e) {
 	if (null == config.testDriverOut) {
-		console.ai(TAG, 'output', e);
+		console.debug(TAG, 'output', e);
+		if (e && e.params && e.params.text) {
+			console.ai(e.params.text);
+		}
 		return Promise.resolve();
 	}
 

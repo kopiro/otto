@@ -3,6 +3,7 @@ const TAG = 'IO.Kid';
 const EventEmitter = require('events').EventEmitter;
 exports.emitter = new EventEmitter();
 
+exports.id = path.basename(__filename, '.js');
 exports.capabilities = { 
 	userCanViewUrls: false
 };
@@ -11,11 +12,11 @@ const Recorder = require('node-record-lpcm16');
 const SpeechRecognizer = require(__basedir + '/support/speechrecognizer');
 const LumenVox = require(__basedir + '/support/lumenvoxhack');
 
-let callback;
-
 let is_speaking = false;
 let is_speaking_timeout = null;
 const SPEAKING_TIMEOUT = 5000;
+
+const sessionId = require('node-uuid').v4();
 
 const no_strategy_responses = [
 'Scusa, ma non ho capito',
@@ -24,8 +25,11 @@ const no_strategy_responses = [
 ];
 
 exports.startInput = function() {
-	console.info(TAG, 'start');
-	let data = {};
+	console.debug(TAG, 'start');
+	
+	let data = {
+		sessionId: sessionId
+	};
 
 	if (is_speaking == false) {
 		// captureWebcam();
@@ -67,7 +71,7 @@ exports.startInput = function() {
 };
 
 exports.output = function({ data, params }) {
-	console.ai(TAG, 'output', params);
+	console.debug(TAG, 'output', data, params);
 
 	return new Promise((resolve, reject) => {
 		if (params.error) {

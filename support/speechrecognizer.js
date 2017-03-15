@@ -72,7 +72,7 @@ exports.recognizeAudioStream = function(stream, end, must_convert) {
 
 		if (must_convert) {
 
-			const tmp_file_audio = require('os').tmpdir() + Date.now() + '.flac';
+			const tmp_file_audio = __tmpdir + require('node-uuid').v4() + '.flac';
 			const sampleRate = 16000;
 
 			const rec_stream = createRecognizeStream({

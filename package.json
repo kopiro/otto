@@ -39,6 +39,7 @@
     "node-imagemagick": "^0.1.8",
     "node-record-lpcm16": "^0.2.0",
     "node-telegram-bot-api": "^0.27.0",
+    "node-uuid": "^1.4.7",
     "node-weatherunderground": "^1.2.0",
     "node-webcam": "^0.3.4",
     "node-wit": "^4.2.0",

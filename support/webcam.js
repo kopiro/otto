@@ -1,4 +1,4 @@
-const FaceRecognizer = require(__basedir + '/support/facerecognizer');
+const Cognitive = require(__basedir + '/support/cognitive');
 
 const NodeWebcam = require('node-webcam');
 const im = require('imagemagick');
@@ -10,7 +10,8 @@ function captureWebcam() {
 	if (captureWebcam.time + 10000 <= Date.now()) return;
 	
 	captureWebcam.time = Date.now();
-	let file = __tmpdir + '/webcam' + Date.now();
+	const uuid = require('node-uuid').v4();
+	let file = __tmpdir + '/webcam' + uuid;
 
 	NodeWebcam.capture(file, {
 		delay: 0,
@@ -29,7 +30,7 @@ function captureWebcam() {
 			fs.unlinkSync(image);
 			if (err) return console.error(TAG, 'Error in resizing image', err);
 
-			const key = config.aws.s3.directory + '/webcam/' + Date.now() + '.jpg';
+			const key = config.aws.s3.directory + '/webcam/' + uuid + '.jpg';
 			s3.putObject({
 				Bucket: config.aws.s3.bucket, 
 				Key: key, 
@@ -37,10 +38,10 @@ function captureWebcam() {
 			}, (err) => {
 				if (err) return console.error(TAG, 'Error in uploading image', err);
 
-				FaceRecognizer.detect(`http://${config.aws.s3.bucket}.s3.amazonaws.com/${key}`, (err, resp) => {
+				Cognitive.face.detect(`http://${config.aws.s3.bucket}.s3.amazonaws.com/${key}`, (err, resp) => {
 					if (resp.length === 0) return console.error(TAG, 'Error in detect photo', err);
 
-					FaceRecognizer.identify([ resp[0].faceId ], (err, resp) => {
+					Cognitive.face.identify([ resp[0].faceId ], (err, resp) => {
 						if (resp.length === 0 || resp[0] == null || resp[0].candidates.length === 0) return console.error(TAG, 'Error in face detection', err);
 
 						let person_id = resp[0].candidates[0].personId;

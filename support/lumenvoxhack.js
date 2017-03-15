@@ -122,7 +122,7 @@ exports.playToFile = function(text, callback) {
 			});
 		}, (i++) * 200);
 	}, (err, files) => {
-		const audio_combined_out = __tmpdir + '/' + Date.now() + '.wav';
+		const audio_combined_out = __tmpdir + '/' + require('node-uuid').v4() + '.wav';
 		files = files.concat(audio_combined_out, 'pitch', '-q', PITCH);
 		
 		require('child_process').spawn('sox', files)
