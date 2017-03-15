@@ -176,6 +176,7 @@ bot.on('message', (e) => {
 
 	let data = { 
 		chatId: e.chat.id,
+		ioId: e.chat.id,
 		sessionId: e.chat.id,
 		title: e.from.username || e.from.first_name
 	};

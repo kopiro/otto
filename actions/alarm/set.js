@@ -9,7 +9,7 @@ module.exports = function(e, { io, data }) {
 
 		new Memory.Alarm({
 			io: io.id,
-			chat_id: data.chatId,
+			io_id: data.ioId,
 			when: when.format('YYYY-MM-DD HH:mm:00')
 		})
 		.save()

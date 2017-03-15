@@ -115,6 +115,7 @@ bot.on('message', (e) => {
 
 	let data = {
 		sessionId: e.sender.id,
+		ioId: e.sender.id,
 		senderId: e.sender.id, 
 	};
 

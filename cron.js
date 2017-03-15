@@ -104,8 +104,8 @@ function tick() {
 	.then((alarms) => {
 		alarms.forEach((alarm) => {
 
-			if (alarm.get('chat_id')) {
-				IO.getChat( alarm.get('chat_id') )
+			if (alarm.get('io_id')) {
+				IO.getChat( alarm.get('io_id') )
 				.then((chat) => {
 					let text = ALARM_STRINGS.getRandom();
 					const contact = chat.related('contact');
