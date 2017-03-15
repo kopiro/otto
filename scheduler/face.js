@@ -2,9 +2,9 @@ require('../boot');
 
 const TAG = path.basename(__filename);
 
-let FaceRecognizer = require(__basedir + '/support/facerecognizer');
+const Cognitive = require(__basedir + '/support/Cognitive');
 
-FaceRecognizer.createPersonGroup((err, resp) => {
+Cognitive.face.createPersonGroup((err, resp) => {
 	Memory.Contact
 	.where({ 
 		approved: 1 
@@ -20,7 +20,7 @@ FaceRecognizer.createPersonGroup((err, resp) => {
 				return new Promise((resolve, reject) => {
 					if (contact.get('person_id')) return resolve();
 
-					FaceRecognizer.createPerson(contact.id, (err, resp) => {
+					Cognitive.face.createPerson(contact.id, (err, resp) => {
 						if (err) return reject(err);
 
 						console.info(TAG, 'Created person ID', resp);
@@ -35,7 +35,7 @@ FaceRecognizer.createPersonGroup((err, resp) => {
 				return new Promise((resolve, reject) => {
 					if (photo.get('face_id')) return resolve();
 
-					FaceRecognizer.addPersonFace(contact.get('person_id'), photo.get('url'), (err, resp) => {
+					Cognitive.face.addPersonFace(contact.get('person_id'), photo.get('url'), (err, resp) => {
 						if (err) return reject(err);
 
 						console.info(TAG, 'Created face ID', resp);
@@ -65,7 +65,7 @@ FaceRecognizer.createPersonGroup((err, resp) => {
 
 		}, () => {
 
-			FaceRecognizer.trainPersonGroup(() => {
+			Cognitive.face.trainPersonGroup(() => {
 				console.info(TAG, 'Training started');
 				process.exit();
 			});

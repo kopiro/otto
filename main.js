@@ -8,45 +8,22 @@ if (config.server) {
 	require(__basedir + '/server');
 }
 
-let outPhoto = (data, photo, io) => {
-	if (photo.isFace) return outFace(data, photo, io);
-
+function outCognitive(data, photo, io) {
 	return new Promise((resolve, reject) => {
-		require(__basedir + '/support/visionrecognizer').detectLabels(photo.stream || photo.localFile, (err, labels) => {
+		const Cognitive = require(__basedir + '/support/cognitive');
+		Cognitive.face.detect(photo.remoteFile, (err, resp) => {
 			if (err) return reject(err);
+			if (resp.length === 0) return reject();
 
-			if (_.intersection(public_config.faceRecognitionLabels, labels).length > 0) {
-				outFace(data, photo, io)
-				.then(resolve)
-				.catch((err) => { 
-					outVision(data, labels)
-					.then(resolve)
-					.catch(reject); 
-				});
-			} else {
-				outVision(data, labels, io)
-				.then(resolve)
-				.catch(reject); 
-			}
-		});
-	});
-};
-
-let outFace = (data, photo, io) => {
-	const FaceRecognizer = require(__basedir + '/support/facerecognizer');
-
-	return new Promise((resolve, reject) => {
-		FaceRecognizer.detect(photo.stream || photo.remoteFile, (err, resp) => {
-			if (resp.length === 0) return reject(err);
-
-			FaceRecognizer.identify([ resp[0].faceId ], (err, resp) => {
+			Cognitive.face.identify([ resp[0].faceId ], (err, resp) => {
 				if (resp.length === 0 || resp[0] == null || resp[0].candidates.length === 0) return reject(err);
-
 				let person_id = resp[0].candidates[0].personId;
 
-				Memory.Contact.where({ person_id: person_id })
+				Memory.Contact
+				.where({ person_id: person_id })
 				.fetch({ required: true })
 				.then((contact) => {
+
 					const name = contact.get('first_name');
 					const responses = [
 					`Hey, ciao ${name}!`,
@@ -54,30 +31,17 @@ let outFace = (data, photo, io) => {
 					`Da quanto tempo ${name}!, come stai??`
 					];
 
-					resolve({ text: responses.getRandom() });
+					resolve({ 
+						text: responses.getRandom() 
+					});
 				})
 				.catch(reject);
-
 			}); 
-		}); 
-	});
-};
 
-let outVision = (data, labels, io) => {
-	return new Promise((resolve, reject) => {
-		require(__basedir + '/support/translator').translate(labels[0] + ', ' + labels[1], 'it', (err, translation) => {
-			if (err) return reject(err);
-
-			let responses = [
-			`Uhm... mi sembra di capire che stiamo parlando di ${translation}`,
-			`Questo sembra ${translation}`,
-			`Aspetta... lo so... è ${translation}`
-			];
-
-			resolve({ text: responses.getRandom() });
 		});
 	});
-};
+}
+
 
 let IOs = [];
 config.ioDrivers.forEach((driver) => {
@@ -103,12 +67,14 @@ function onIoResponse({ error, data, params }) {
 
 		let promise = null;
 
-		if (params.action) {
-			promise = Actions[params.action]()(params.data, io);
-		} else if (params.text) {
-			promise = APIAI.textRequest(data, params.text, io);
+		if (params.text) {
+			promise = APIAI.textRequest({
+				data: data, 
+				text: params.text, 
+				io: io
+			});
 		} else if (params.photo) {
-			promise = outPhoto(data, params.photo, io);
+			promise = outCognitive(data, params.photo, io);
 		} else if (params.answer) {
 			promise = new Promise((resolve, reject) => {
 				resolve({ text: params.answer });
@@ -130,9 +96,9 @@ function onIoResponse({ error, data, params }) {
 				.then(io.startInput)
 				.catch(io.startInput); 
 			})
-			.catch((promise_error) => {
+			.catch((perr) => {
 
-				console.error(promise_error);
+				console.error(perr);
 
 				// Check if this query could be solved using the Learning Memory Module. 
 				new Memory.Learning()
@@ -143,30 +109,18 @@ function onIoResponse({ error, data, params }) {
 				})
 				.fetch({ require: true })
 				.then((learning) => {
-
 					console.debug('Found a learning reply');
-					
-					if (learning.get('reply')) {
-						onIoResponse.call(io, {
-							data: data,
-							params: {
-								answer: learning.get('reply')
-							}
-						});
-					} else if (learning.get('action')) {
-						// To implement parameters
-						onIoResponse.call(io, {
-							data: data,
-							params: {
-								action: learning.get('action')
-							}
-						});
-					}
+					onIoResponse.call(io, {
+						data: data,
+						params: {
+							answer: learning.get('reply')
+						}
+					});
 				})
 				.catch(() => {
 					errorResponse.call(io, {
 						data: data,
-						error: promise_error
+						error: perr
 					});
 				});
 			});
