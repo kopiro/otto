@@ -12,15 +12,21 @@ exports.__bookshelf = bookshelf;
 exports.TelegramChat = bookshelf.Model.extend({
 	tableName: 'telegram_chats',
 	buildData: function() {
-		return { chatId: this.get('chat_id') };
+		return { chatId: this.id };
 	},
 	getName: function() {
 		return this.get('first_name') || this.get('title');
-	}
+	},
+	contact: function() {
+		return this.belongsTo(exports.Contact, 'contact_id');
+	},
 });
 
 exports.MessengerChat = bookshelf.Model.extend({
 	tableName: 'messenger_chats',
+	contact: function() {
+		return this.belongsTo(exports.Contact, 'contact_id');
+	}
 });
 
 exports.Contact = bookshelf.Model.extend({
@@ -56,4 +62,8 @@ exports.Memory = bookshelf.Model.extend({
 
 exports.Learning = bookshelf.Model.extend({
 	tableName: 'learning'
+});
+
+exports.Alarm = bookshelf.Model.extend({
+	tableName: 'alarms'
 });

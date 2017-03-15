@@ -2,8 +2,9 @@ const TAG = 'IO.Messenger';
 const _config = config.io.messenger;
 
 const EventEmitter = require('events').EventEmitter;
-module.exports = new EventEmitter();
+exports.emitter = new EventEmitter();
 
+exports.id = path.basename(__filename, '.js');
 exports.capabilities = { 
 	userCanViewUrls: true
 };
@@ -38,7 +39,13 @@ function isChatAvailable(sender, callback) {
 }
 
 exports.getChats = function() {
-	return new Memory.MessengerChat({ approved: 1 }).fetchAll();
+	return new Memory.MessengerChat()
+	.where(_.extend({ 
+		approved: 1, 
+		type: 'private',
+	}, 
+	config.cron === "debug" ? { debug: 1 } : {}
+	)).fetchAll();
 };
 
 exports.startInput = function() {

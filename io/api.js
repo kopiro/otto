@@ -4,7 +4,7 @@ const API = require(__basedir + '/support/httpapi');
 const EventEmitter = require('events').EventEmitter;
 exports.emitter = new EventEmitter();
 
-
+exports.id = path.basename(__filename, '.js');
 exports.capabilities = { 
 	userCanViewUrls: true
 };

@@ -4,6 +4,7 @@ const _config = config.io.telegram;
 const EventEmitter = require('events').EventEmitter;
 exports.emitter = new EventEmitter();
 
+exports.id = path.basename(__filename, '.js');
 exports.capabilities = { 
 	userCanViewUrls: true
 };
@@ -18,8 +19,8 @@ function log(msg) {
 }
 
 function isChatAvailable(chat, callback) {
-	new Memory.TelegramChat({ chat_id: chat.id })
-	.where({ chat_id: chat.id })
+	new Memory.TelegramChat()
+	.where({ id: chat.id })
 	.fetch()
 	.then((tc) => {
 		if (!tc.get('approved')) {
@@ -29,7 +30,7 @@ function isChatAvailable(chat, callback) {
 	})
 	.catch((err) => {
 		new Memory.TelegramChat({ 
-			chat_id: chat.id,
+			id: chat.id,
 			title: chat.title,
 			first_name: chat.first_name,
 			last_name: chat.last_name,
@@ -40,7 +41,35 @@ function isChatAvailable(chat, callback) {
 }
 
 exports.getChats = function() {
-	return new Memory.TelegramChat({ approved: 1, type: 'private' }).fetchAll();
+	return new Memory.TelegramChat()
+	.where(_.extend({ 
+		approved: 1, 
+		type: 'private',
+	}, 
+	config.cron === "debug" ? { debug: 1 } : {}
+	)).fetchAll({
+		withRelated: ['contact']
+	});
+};
+
+exports.getChat = function(id) {
+	return new Memory.TelegramChat({
+		id: id
+	}).fetch({
+		withRelated: ['contact']
+	});
+};
+
+exports.getAlarmsAt = function(when) {
+	console.log(when);
+	return new Memory.Alarm()
+	.where(_.extend({ 
+		io: exports.id,
+		when: when,
+		notified: 0
+	}, 
+	config.cron === "debug" ? { debug: 1 } : {}
+	)).fetchAll();
 };
 
 exports.startInput = function() {
@@ -77,6 +106,7 @@ exports.output = function({ data, params }) {
 		if (params.text) {
 			if (
 				/http/.test(params.text) === false &&
+				params.forceText !== true && 
 				 _.random(0, 4) === 1
 				) {
 				bot.sendChatAction(data.chatId, 'record_audio');
@@ -147,6 +177,7 @@ bot.on('message', (e) => {
 
 	let data = { 
 		chatId: e.chat.id,
+		sessionId: e.chat.id,
 		title: e.from.username || e.from.first_name
 	};
 
@@ -195,21 +226,13 @@ bot.on('message', (e) => {
 
 		if (e.photo) {
 			return bot.getFileLink( _.last(e.photo).file_id ).then((file_link) => {
-				const tmp_file_photo = require('os').tmpdir() + Date.now() + '.jpg';
-
-				request(file_link)
-				.pipe(fs.createWriteStream(tmp_file_photo))
-				.on('error', (err) => { return callback(err, data); })
-				.on('finish', () => {
-					return exports.emitter.emit('input', {
-						data: data,
-						params: {
-							photo: {
-								remoteFile: file_link,
-								localFile: tmp_file_photo
-							}
+				return exports.emitter.emit('input', {
+					data: data,
+					params: {
+						photo: {
+							remoteFile: file_link,
 						}
-					});
+					}
 				});
 			});
 		}
