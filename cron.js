@@ -86,7 +86,7 @@ function tick() {
 				chats.forEach((chat) => {
 					let text = e.text.getRandom();
 					const contact = chat.related('contact');
-					text = text.replace('{name}', contact ? contact.getName() : chat.getName());
+					text = text.replace('{name}', contact.id ? contact.getName() : chat.getName());
 					IO.output({
 						data: chat.buildData(),
 						params: {
@@ -109,7 +109,7 @@ function tick() {
 				.then((chat) => {
 					let text = ALARM_STRINGS.getRandom();
 					const contact = chat.related('contact');
-					text = text.replace('{name}', contact ? contact.getName() : chat.getName());
+					text = text.replace('{name}', contact.id ? contact.getName() : chat.getName());
 
 					IO.output({
 						data: chat.buildData(),
