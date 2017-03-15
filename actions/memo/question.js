@@ -4,7 +4,7 @@ const rejections = [
 	'Non ho ricordi di questa cosa'
 ];
 
-module.exports = function(e, io) {
+module.exports = function(e, { io, data }) {
 	return new Promise((resolve, reject) => {
 		console.debug(TAG, e);
 		let { parameters:p, fulfillment, resolvedQuery } = e;
