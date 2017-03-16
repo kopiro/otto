@@ -115,11 +115,10 @@ exports.output = function({ data, params }) {
 		}
 
 		if (params.text) {
-			if (
-				/http/.test(params.text) === false &&
+			const send_voice = /http/.test(params.text) === false &&
 				params.forceText !== true && 
-				 _.random(0, 4) === 1
-				) {
+				 _.random(0, 4) === 1;
+			if (send_voice) {
 				bot.sendChatAction(data.chatId, 'record_audio');
 				require(__basedir + '/support/lumenvoxhack')
 				.playToFile(params.text, (err, file) => {

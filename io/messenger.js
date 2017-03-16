@@ -103,6 +103,7 @@ exports.output = function({ data, params }) {
 					return {
 						content_type: 'text',
 						title: c.text,
+						payload: c.id
 					};
 				})
 			};
@@ -111,14 +112,16 @@ exports.output = function({ data, params }) {
 		if (params.text) {
 			bot.sendMessage(data.senderId, _.extend(message_opt, {
 				text: params.text 
-			}));
+			}), (err, info) => {
+				if (err) console.error(TAG, err);
+			});
 			return resolve();
 		}
 
-		if (params.spotify) {
-			if (params.spotify.song) {
+		if (params.media) {
+			if (params.media.track) {
 				bot.sendMessage(data.senderId, _.extend(message_opt, { 
-					text: params.spotify.song.external_urls.spotify 
+					text: params.media.song.external_urls.spotify 
 				}));
 				return resolve();
 			}
