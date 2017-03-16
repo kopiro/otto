@@ -49,10 +49,7 @@ exports.startInput = function() {
 
 exports.output = function(e) {
 	if (null == config.testDriverOut) {
-		console.debug(TAG, 'output', e);
-		if (e && e.params && e.params.text) {
-			console.ai(e.params.text);
-		}
+		console.ai(TAG, 'output', e.params);
 		return Promise.resolve();
 	}
 

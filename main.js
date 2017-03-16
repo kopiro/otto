@@ -57,7 +57,7 @@ function errorResponse(e) {
 }
 
 function onIoResponse({ error, data, params }) {
-	console.debug('onIoResponse', error, data, params);
+	console.info('onIoResponse', { error, data, params });
 	let io = this;
 
 	try {
@@ -71,6 +71,8 @@ function onIoResponse({ error, data, params }) {
 		// If this session has pending actions, 
 		// then resolve this first
 		if (io.pendingActions[data.sessionId]) {
+
+			console.debug("Has pending actions for this session");
 
 			promise = Actions[ io.pendingActions[data.sessionId] ]()({
 				pending: true,
@@ -103,47 +105,46 @@ function onIoResponse({ error, data, params }) {
 
 		}
 
-		if (promise != null) {
-			promise
-			.then((resp) => { 
-				io.output({
-					data: data,
-					params: resp
-				})
-				.then(io.startInput)
-				.catch(io.startInput); 
+		promise
+		.then((resp) => { 
+			io.output({
+				data: data,
+				params: resp
 			})
-			.catch((perr) => {
+			.then(io.startInput)
+			.catch(io.startInput); 
+		})
+		.catch((perr) => {
 
-				console.error(perr);
+			console.error('Promise error', perr);
 
-				// Check if this query could be solved using the Learning Memory Module. 
-				new Memory.Learning()
-				.query((qb) => {
-					qb.select(Memory.__knex.raw(`*, MATCH (input) AGAINST ("${params.text}" IN NATURAL LANGUAGE MODE) AS score`));
-					qb.having('score', '>', '0');
-					qb.orderBy(Memory.__knex.raw('RAND()'));
-				})
-				.fetch({ require: true })
-				.then((learning) => {
-					console.debug('Found a learning reply');
-					onIoResponse.call(io, {
-						data: data,
-						params: {
-							answer: learning.get('reply')
-						}
-					});
-				})
-				.catch(() => {
-					errorResponse.call(io, {
-						data: data,
-						error: perr
-					});
+			// Check if this query could be solved using the Learning Memory Module. 
+			new Memory.Learning()
+			.query((qb) => {
+				qb.select(Memory.__knex.raw(`*, MATCH (input) AGAINST ("${params.text}" IN NATURAL LANGUAGE MODE) AS score`));
+				qb.having('score', '>', '0');
+				qb.orderBy(Memory.__knex.raw('RAND()'));
+			})
+			.fetch({ require: true })
+			.then((learning) => {
+				console.debug('Found a learning reply');
+				onIoResponse.call(io, {
+					data: data,
+					params: {
+						answer: learning.get('reply')
+					}
+				});
+			})
+			.catch(() => {
+				errorResponse.call(io, {
+					data: data,
+					error: perr
 				});
 			});
-		}
+		});
 
 	} catch (ex) {
+		console.error('Unhandled exception', ex);
 		errorResponse.call(io, {
 			data: data,
 			error: ex

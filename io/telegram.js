@@ -179,7 +179,7 @@ exports.output = function({ data, params }) {
 /////////////////
 
 bot.on('webhook_error', (err) => {
-  console.error(TAG, 'webhook_error', err);
+  console.error(TAG, 'webhook error', err);
 });
 
 bot.on('message', (e) => {

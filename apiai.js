@@ -9,16 +9,21 @@ const AI_NAME_REGEX = /^(?:Otto(,\s*)?)|(\s*Otto)$/i;
 exports.textRequest = function({ data, text, io }) {
 	return new Promise((resolve, reject) => {
 		text = text.replace(AI_NAME_REGEX, '');
+
 		let request = apiaiClient.textRequest(text, data);
+		console.debug(TAG, 'textRequest', text);
 
 		request.on('response', (response) => {
 			let result = response.result;
-			console.debug(TAG, result);
+			console.debug(TAG, 'response', result);
 
 			if (result.actionIncomplete === true) {
+				
+				console.debug(TAG, 'Action is incomplete');
 				resolve({
 					text: result.fulfillment.speech 
 				});
+
 			} else {
 
 				if (_.isFunction(Actions[result.action])) {

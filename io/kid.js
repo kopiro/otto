@@ -8,6 +8,8 @@ exports.capabilities = {
 	userCanViewUrls: false
 };
 
+exports.pendingActions = {};
+
 const Recorder = require('node-record-lpcm16');
 const SpeechRecognizer = require(__basedir + '/support/speechrecognizer');
 const LumenVox = require(__basedir + '/support/lumenvoxhack');
@@ -71,7 +73,7 @@ exports.startInput = function() {
 };
 
 exports.output = function({ data, params }) {
-	console.debug(TAG, 'output', data, params);
+	console.ai(TAG, 'output', { data, params });
 
 	return new Promise((resolve, reject) => {
 		if (params.error) {
