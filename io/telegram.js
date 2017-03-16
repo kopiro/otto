@@ -9,6 +9,8 @@ exports.capabilities = {
 	userCanViewUrls: true
 };
 
+exports.pendingActions = {};
+
 const TelegramBot = require('node-telegram-bot-api');
 const bot = new TelegramBot(_config.token, _config.options);
 
@@ -102,6 +104,16 @@ exports.output = function({ data, params }) {
 			}
 		}
 
+		let message_opt = {};
+
+		if (params.choices) {
+			message_opt = {
+				reply_markup: {
+					keyboard: [ params.choices ]
+				}
+			};
+		}
+
 		if (params.text) {
 			if (
 				/http/.test(params.text) === false &&
@@ -113,14 +125,14 @@ exports.output = function({ data, params }) {
 				.playToFile(params.text, (err, file) => {
 					if (err) {
 						bot.sendChatAction(data.chatId, 'typing');
-						bot.sendMessage(data.chatId, params.text);
+						bot.sendMessage(data.chatId, params.text, message_opt);
 					} else {
-						bot.sendVoice(data.chatId, file);
+						bot.sendVoice(data.chatId, file, message_opt);
 					}
 				});
 			} else {
 				bot.sendChatAction(data.chatId, 'typing');
-				bot.sendMessage(data.chatId, params.text);
+				bot.sendMessage(data.chatId, params.text, message_opt);
 			}
 			return resolve();
 		}
@@ -128,15 +140,15 @@ exports.output = function({ data, params }) {
 		if (params.media) {
 			bot.sendChatAction(data.chatId, 'typing');
 			if (params.media.artist) {
-				bot.sendMessage(data.chatId, params.media.artist.external_urls.spotify);
+				bot.sendMessage(data.chatId, params.media.artist.external_urls.spotify, message_opt);
 				return resolve();
 			}
 			if (params.media.track) {
-				bot.sendMessage(data.chatId, params.media.track.external_urls.spotify);
+				bot.sendMessage(data.chatId, params.media.track.external_urls.spotify, message_opt);
 				return resolve();
 			}
 			if (params.media.playlist) {
-				bot.sendMessage(data.chatId, params.media.playlist.external_urls.spotify);
+				bot.sendMessage(data.chatId, params.media.playlist.external_urls.spotify, message_opt);
 				return resolve();
 			}
 			return reject();
@@ -145,17 +157,17 @@ exports.output = function({ data, params }) {
 		if (params.image) {
 			if (params.image.remoteFile) {
 				bot.sendChatAction(data.chatId, 'upload_photo');
-				bot.sendPhoto(data.chatId, params.image.remoteFile);
+				bot.sendPhoto(data.chatId, params.image.remoteFile, message_opt);
 			} else if (params.image.localFile) {
 				bot.sendChatAction(data.chatId, 'upload_photo');
-				bot.sendPhoto(data.chatId, params.image.localFile);
+				bot.sendPhoto(data.chatId, params.image.localFile, message_opt);
 			}
 			return resolve();
 		}
 
 		if (params.lyrics) {
 			bot.sendChatAction(data.chatId, 'typing');
-			bot.sendMessage(data.chatId, params.lyrics.lyrics_body);
+			bot.sendMessage(data.chatId, params.lyrics.lyrics_body, message_opt);
 			return resolve();
 		}
 

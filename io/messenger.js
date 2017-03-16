@@ -9,6 +9,8 @@ exports.capabilities = {
 	userCanViewUrls: true
 };
 
+exports.pendingActions = {};
+
 const MessengerBot = require('messenger-bot');
 const bot = new MessengerBot(_config);
 
@@ -93,21 +95,38 @@ exports.output = function({ data, params }) {
 			}
 		}
 
+		let message_opt = {};
+
+		if (params.choices) {
+			message_opt = {
+				quick_replies: params.choices.map((c) => {
+					return {
+						content_type: 'text',
+						title: c.text,
+					};
+				})
+			};
+		}
+
 		if (params.text) {
-			bot.sendMessage(data.senderId, { text: params.text });
+			bot.sendMessage(data.senderId, _.extend(message_opt, {
+				text: params.text 
+			}));
 			return resolve();
 		}
 
 		if (params.spotify) {
 			if (params.spotify.song) {
-				bot.sendMessage(data.senderId, { text: params.spotify.song.external_urls.spotify });
+				bot.sendMessage(data.senderId, _.extend(message_opt, { 
+					text: params.spotify.song.external_urls.spotify 
+				}));
 				return resolve();
 			}
 			return reject();
 		}
 
 		if (params.image) {
-			bot.sendMessage(data.senderId, { 
+			bot.sendMessage(data.senderId, _.extend(message_opt, { 
 				attachment: {
 					type: 'image',
 					payload: {
@@ -115,12 +134,14 @@ exports.output = function({ data, params }) {
 						is_reusable: true
 					}
 				}
-			});
+			}));
 			return resolve();
 		}
 
 		if (params.lyrics) {
-			bot.sendMessage(data.recipientId, { text: params.lyrics.lyrics_body  });
+			bot.sendMessage(data.recipientId, _.extend(message_opt, { 
+				text: params.lyrics.lyrics_body
+			}));
 			return resolve();
 		}
 

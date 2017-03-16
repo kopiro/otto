@@ -1,5 +1,5 @@
 {
-    "uid": "otto",
-    "append": true,
-    "script": "main.js"
+	"uid": "otto",
+	"append": true,
+	"script": "main.js"
 }

@@ -68,23 +68,39 @@ function onIoResponse({ error, data, params }) {
 
 		let promise = null;
 
-		if (params.text) {
-			promise = APIAI.textRequest({
-				data: data, 
-				text: params.text, 
-				io: io
+		// If this session has pending actions, 
+		// then resolve this first
+		if (io.pendingActions[data.sessionId]) {
+
+			promise = Actions[ io.pendingActions[data.sessionId] ]()({
+				pending: true,
+				params: params
+			}, {
+				io: io,
+				data: data
 			});
-		} else if (params.image) {
-			promise = outCognitive(data, params.image, io);
-		} else if (params.answer) {
-			promise = new Promise((resolve, reject) => {
-				resolve({ text: params.answer });
-			});
+
 		} else {
-			throw {
-				unsupported: true,
-				message: 'This input type is not supported yet. Supported: text, image, answer' 
-			};
+
+			if (params.text) {
+				promise = APIAI.textRequest({
+					data: data, 
+					text: params.text, 
+					io: io
+				});
+			} else if (params.image) {
+				promise = outCognitive(data, params.image, io);
+			} else if (params.answer) {
+				promise = new Promise((resolve, reject) => {
+					resolve({ text: params.answer });
+				});
+			} else {
+				throw {
+					unsupported: true,
+					message: 'This input type is not supported yet. Supported: text, image, answer' 
+				};
+			}
+
 		}
 
 		if (promise != null) {
