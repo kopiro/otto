@@ -100,7 +100,7 @@ exports.output = function({ data, params }) {
 		if (params.replies) {
 			message_opt = {
 				quick_replies: params.replies.map((c) => {
-					if (_.isString(c)) return { title: c };
+					if (_.isString(c)) c = { id: c, text: c };
 					return {
 						title: c.text,
 						payload: c.id,
