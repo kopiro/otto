@@ -9,6 +9,10 @@ let bookshelf = require('bookshelf')(knex);
 exports.__knex = knex;
 exports.__bookshelf = bookshelf;
 
+exports.Cron = bookshelf.Model.extend({
+	tableName: 'cron',
+});
+
 exports.TelegramChat = bookshelf.Model.extend({
 	tableName: 'telegram_chats',
 	// This function is used to build the data 

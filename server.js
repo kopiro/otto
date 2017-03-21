@@ -1,6 +1,11 @@
 let API = require(__basedir + '/support/httpapi');
 
-API.get('/dataentry/memories', (req, res) => {
+API.get('/admin/cron', (req, res) => {
+	res.writeHead(200, { 'Content-Type': 'text/html' });
+	res.end(fs.readFileSync(__basedir + '/html/cron.html'));
+});
+
+API.get('/admin/memories', (req, res) => {
 	res.writeHead(200, { 'Content-Type': 'text/html' });
 	res.end(fs.readFileSync(__basedir + '/html/memories.html'));
 });
