@@ -27,7 +27,7 @@ exports.textRequest = function({ data, text, io }) {
 				.catch(reject);
 			}
 				
-			if (fulfillment.text != null) {
+			if (!_.isEmpty(fulfillment.speech)) {
 				return resolve({ 
 					text: fulfillment.speech 
 				});
