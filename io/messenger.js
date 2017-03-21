@@ -97,13 +97,14 @@ exports.output = function({ data, params }) {
 
 		let message_opt = {};
 
-		if (params.choices) {
+		if (params.replies) {
 			message_opt = {
-				quick_replies: params.choices.map((c) => {
+				quick_replies: params.replies.map((c) => {
+					if (_.isString(c)) return { title: c };
 					return {
-						content_type: 'text',
 						title: c.text,
-						payload: c.id
+						payload: c.id,
+						content_type: 'text',
 					};
 				})
 			};

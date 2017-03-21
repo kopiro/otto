@@ -9,7 +9,7 @@ module.exports = function(e, { data, io }) {
 
 		if (e.pending) {
 
-			let { question, answers, choices } = akinatorClients[data.sessionId];
+			let { question, answers, replies } = akinatorClients[data.sessionId];
 
 			if (e.params.text !== 'Stop') {
 				
@@ -23,7 +23,7 @@ module.exports = function(e, { data, io }) {
 					resolve({
 						text: 'Scusami, ma non capisco la tua risposta. Ripeto:\n' + question.text,
 						forceText: true,
-						choices: choices
+						replies: replies
 					});
 				} else {
 					akinatorClients[data.sessionId].promiseResolver = resolve;
@@ -51,7 +51,7 @@ module.exports = function(e, { data, io }) {
 				io.pendingActions[data.sessionId] = TAG;
 				akiClient.question = question;
 				akiClient.answers = answers;
-				akiClient.choices = _.compact(answers.map((ans) => {
+				akiClient.replies = _.compact(answers.map((ans) => {
 					if (ans.text == null) return;
 					return {
 						id: ans.id,
@@ -65,7 +65,7 @@ module.exports = function(e, { data, io }) {
 				akiClient.promiseResolver({
 					text: question.text,
 					forceText: true,
-					choices: akiClient.choices
+					replies: akiClient.replies
 				});
 
 			}, (characters) => {

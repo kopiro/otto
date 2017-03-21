@@ -106,13 +106,22 @@ exports.output = function({ data, params }) {
 
 		let message_opt = {};
 
-		if (params.choices) {
+		if (params.replies) {
 			message_opt = {
 				reply_markup: {
-					keyboard: [ params.choices ]
+					resize_keyboard: true,
+					one_time_keyboard: true,
+					keyboard: [ 
+					params.replies.map((c) => {
+						if (_.isString(c)) return c;
+						return c.text;
+					})
+					]
 				}
 			};
 		}
+
+		console.log(JSON.stringify(message_opt));
 
 		if (params.text) {
 			const send_voice = /http/.test(params.text) === false &&

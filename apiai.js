@@ -15,33 +15,41 @@ exports.textRequest = function({ data, text, io }) {
 
 		request.on('response', (response) => {
 			let result = response.result;
-			console.debug(TAG, 'response', result);
+			let fulfillment = result.fulfillment;
+			console.debug(TAG, 'response', JSON.stringify(result, null, 2));
 
-			if (result.actionIncomplete === true) {
-				
-				console.debug(TAG, 'Action is incomplete');
-				resolve({
-					text: result.fulfillment.speech 
-				});
-
-			} else {
-
-				if (_.isFunction(Actions[result.action])) {
-					Actions[result.action]()(result, {
-						io: io,
-						data: data
-					})
-					.then(resolve)
-					.catch(reject);
-				} else if (result.fulfillment.speech) {
-					resolve({ 
-						text: result.fulfillment.speech 
-					});
-				} else {
-					reject({ noStrategy: true });
-				}
-
+			if (result.actionIncomplete === false && _.isFunction(Actions[result.action])) {
+				return Actions[result.action]()(result, {
+					io: io,
+					data: data
+				})
+				.then(resolve)
+				.catch(reject);
 			}
+				
+			if (fulfillment.text != null) {
+				return resolve({ 
+					text: fulfillment.speech 
+				});
+			}
+
+			if (fulfillment.messages.length > 0) {
+				let msg = fulfillment.messages.getRandom();
+				if (msg.replies) {
+					return resolve({
+						text: fulfillment.messages[0].title,
+						replies: fulfillment.messages[0].replies
+					});
+				} else if (msg.imageUrl){
+					return resolve({ 
+						image: { 
+							remoteFile: msg.imageUrl 
+						} 
+					});
+				}
+			}
+
+			reject({ noStrategy: true });
 		});
 
 		request.on('error', (err) => {
