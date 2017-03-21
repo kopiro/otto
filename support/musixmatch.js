@@ -32,7 +32,9 @@ exports.searchTrack = function(opt, callback) {
 		qs: opt
 	}, function(error, response, body) {
 		console.debug(TAG, call, 'result', body);
-		if (callback) callback(error, body);
+		if (callback) {
+			callback(error, (body || '').replace(/\*\*\*\*\*\*\*.*/mg, ''));
+		}
 	});
 };
 

@@ -1,0 +1,71 @@
+{
+	"APIAI_TOKEN": "",
+	"ioDrivers": ["messenger","telegram"],
+	"language": "it",
+	"locale": "it-IT",
+	"io": {
+		"telegram": {
+			"token": "",
+			"options":{
+				"polling": true
+			}
+		}
+	},
+	"cron": true,
+	"server": {
+		"port": "8880"
+	},
+	"knex": {
+		"debug": true
+	},
+	"mysql": {
+		"host": "",
+		"port": "",
+		"user": "",
+		"password": "",
+		"database" : "",
+		"charset": "utf8mb4"
+	},
+	"aws": {
+		"s3": {
+			"bucket": "",
+			"directory": ""
+		}
+	},
+	"ai": {
+		"musixmatch": {
+			"apiKey": ""
+		},
+		"wunderground": {
+			"apiKey": "",
+			"state": "",
+			"city": ""
+		},
+		"cognitive": {
+			"face": {
+				"apiKey": ""
+			},
+			"vision": {
+				"apiKey": ""
+			}
+		},
+		"spotify": {
+			"clientId" : "",
+			"clientSecret" : ""
+		},
+		"wolfram": {
+			"appId": ""
+		},
+		"gcloud": {
+			"cseId": "",
+			"apiKey": ""
+		},
+		"messenger": {
+			"token": "",
+			"verify": "",
+			"appId": "",
+			"appSecret": "",
+			"port": ""
+		}
+	}
+}
