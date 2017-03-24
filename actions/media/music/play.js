@@ -11,7 +11,7 @@ module.exports = function(e) {
 		if (p.artist) {
 			spotifyApi.searchArtists(p.artist)
 			.then(function(data) {
-				console.log(TAG, 'searchArtists', data.body);
+				console.debug(TAG, 'searchArtists', data.body);
 
 				let items = data.body.artists.items;
 				if (items.length === 0) {
@@ -31,7 +31,7 @@ module.exports = function(e) {
 		} else if (p.track) {
 			spotifyApi.searchTracks(p.track)
 			.then(function(data) {
-				console.log(TAG, 'searchTracks', data.body);
+				console.debug(TAG, 'searchTracks', data.body);
 
 				let items = data.body.tracks.items;
 				if (items.length === 0) {
@@ -50,7 +50,7 @@ module.exports = function(e) {
 		} else if (p.playlist) {
 			spotifyApi.searchPlaylists(p.playlist)
 			.then(function(data) {
-				console.log(TAG, 'searchPlaylists', data.body);
+				console.debug(TAG, 'searchPlaylists', data.body);
 
 				let items = data.body.playlists.items;
 				if (items.length === 0) {

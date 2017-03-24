@@ -121,8 +121,6 @@ exports.output = function({ data, params }) {
 			};
 		}
 
-		console.log(JSON.stringify(message_opt));
-
 		if (params.text) {
 			const send_voice = /http/.test(params.text) === false &&
 				params.forceText !== true && 
