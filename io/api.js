@@ -9,8 +9,10 @@ exports.capabilities = {
 	userCanViewUrls: true
 };
 
+exports.pendingActions = {};
+
 function tmpFileToHttp(req, file) {
-	return config.server.fullDomain + '/tmp/' + path.basename(file);
+	return (config.server.fullDomain || '') + '/tmp/' + path.basename(file);
 }
 
 exports.startInput = function() {
@@ -21,9 +23,13 @@ exports.startInput = function() {
 	console.info(TAG, 'start');
 
 	Server.get('/input', (req, res) => {
+		const sessionId = req.query.sessionId || require('node-uuid').v4();
 		const data = { 
-			req: req, 
-			res: res
+			express: {
+				req: req, 
+				res: res
+			},
+			sessionId: sessionId
 		};
 
 		if (req.query.text) {
@@ -48,7 +54,7 @@ exports.output = function({ data, params }) {
 	console.ai(TAG, 'output', params);
 
 	return new Promise((resolve, reject) => {
-		let { req, res } = data;
+		let { req, res } = data.express;
 		const outputas = req.query.outputas || 'text';
 
 		if (params.error) {

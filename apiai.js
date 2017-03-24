@@ -6,6 +6,8 @@ const apiaiClient = require('apiai')(config.APIAI_TOKEN, {
 
 const AI_NAME_REGEX = /^(?:Otto(,\s*)?)|(\s*Otto)$/i;
 
+exports.pendingActions = {};
+
 exports.textRequest = function({ data, text, io }) {
 	return new Promise((resolve, reject) => {
 		text = text.replace(AI_NAME_REGEX, '');
