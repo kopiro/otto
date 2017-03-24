@@ -1,0 +1,31 @@
+<h2>{{ model.title }}</h2>
+
+<div class="row">
+	<form class="col s12" action="/api/memories/{{ model.id }}" method="POST">
+			
+		<label>Title</label>
+		<input placeholder="Title" name="title" type="text" class="validate" value="{{ model.title }}" />
+
+		<label>Tags</label>
+		<input placeholder="Tags (space separated)" name="tags" type="text" class="validate" value="{{ model.tags }}" />
+
+		<label>URL</label>
+		<input placeholder="URL" name="url" type="text" class="validate" value="{{ model.url }}" />
+
+		<label>Date</label>
+		<input placeholder="Date" name="date" type="date" class="validate" value="{{ model.date }}" />
+
+		<label>Text</label>
+		<textarea placeholder="Your story" class="materialize-textarea" name="text">{{ model.text }}</textarea>
+
+		<div class="center-align">
+			<button class="btn waves-effect btn-large waves-light" type="submit" name="action">Submit
+				<i class="material-icons right">send</i>
+			</button>
+		</div>
+
+	</form>
+</div>
+
+<script src="/scripts/memories.js"></script>
+<script>window.loadModel();</script>

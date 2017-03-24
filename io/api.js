@@ -1,5 +1,5 @@
 const TAG = 'IO.API';
-const API = require(__basedir + '/support/httpapi');
+const Server = require(__basedir + '/support/server').api;
 
 const EventEmitter = require('events').EventEmitter;
 exports.emitter = new EventEmitter();
@@ -20,7 +20,7 @@ exports.startInput = function() {
 
 	console.info(TAG, 'start');
 
-	API.get('/input', (req, res) => {
+	Server.get('/input', (req, res) => {
 		const data = { 
 			req: req, 
 			res: res

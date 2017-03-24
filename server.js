@@ -1,35 +1,107 @@
-let API = require(__basedir + '/support/httpapi');
+let Server = require(__basedir + '/support/server');
 
-API.get('/admin/cron', (req, res) => {
-	res.writeHead(200, { 'Content-Type': 'text/html' });
-	res.end(fs.readFileSync(__basedir + '/html/cron.html'));
+///////////
+// Admin //
+///////////
+
+Server.routerAdmin.get('/', (req, res) => {
+	res.render('admin/home');
 });
 
-API.get('/admin/memories', (req, res) => {
-	res.writeHead(200, { 'Content-Type': 'text/html' });
-	res.end(fs.readFileSync(__basedir + '/html/memories.html'));
+Server.routerAdmin.get('/cron', (req, res) => {
+	res.render('admin/cron');
 });
 
-API.post('/memories', (req, res) => {
-	if (_.isEmpty(req.body.title)) return res.json({ error: 'Title is missing' });
-	if (_.isEmpty(req.body.text)) return res.json({ error: 'Text is missing' });
-	if (_.isEmpty(req.body.tags)) return res.json({ error: 'Tags are missing' });
+Server.routerAdmin.get('/memories', (req, res) => {
+	res.render('admin/memories/list');
+});
 
-	new Memory.Memory({
-		title: req.body.title,
-		text: req.body.text,
-		date: req.body.date,
-		tags: req.body.tags,
-		url: req.body.url
-	})
-	.save()
-	.then((memory) => {
-		res.json({ 
-			memory: memory,
-			message: 'Thank you' 
+Server.routerAdmin.get('/memories/:id', (req, res) => {
+	new Memory.Memory({ id: req.params.id })
+	.fetch({ require: true })
+	.then((data) => {
+		res.render('admin/memories/edit', {
+			model: data.toJSON()
 		});
 	})
-	.catch((err) => {
-		res.json({ error: err });
-	});
+	.catch((err) => res.json({ error: err }));
+});
+
+/////////
+// API //
+/////////
+
+Server.routerApi.get('/cron', (req, res) => {
+	new Memory.Cron()
+	.fetchAll()
+	.then((data) => res.json({ data }))
+	.catch((err) => res.json({ error: err }));
+});
+
+Server.routerApi.post('/cron', (req, res) => {
+	const attrs = [ 'iso_weekday', 'hours', 'minutes', 'text' ];
+
+	for (var k in attrs) {
+		if (_.isEmpty(req.body[attrs[k]])) {
+			return res.json({ error: attrs[k] + ' is missing' });
+		}
+	}
+
+	new Memory.Cron(
+	_.pick(req.body, attrs)
+	)
+	.save()
+	.then((data) => res.json({ data }))
+	.catch((err) => res.json({ error: err }));
+});
+
+Server.routerApi.get('/memories', (req, res) => {
+	new Memory.Memory()
+	.fetchAll()
+	.then((data) => res.json({ data }))
+	.catch((err) => res.json({ error: err }));
+});
+
+Server.routerApi.get('/memories/:id', (req, res) => {
+	new Memory.Memory({ id: req.params.id })
+	.fetchAll()
+	.then((data) => res.json(data))
+	.catch((err) => res.json({ error: err }));
+});
+
+Server.routerApi.post('/memories/:id', (req, res) => {
+	const attrs = [ 'title', 'text', 'tags' ];
+
+	for (var k in attrs) {
+		if (attrs.hasOwnProperty(k)) {
+			if (_.isEmpty(req.body[attrs[k]])) {
+				return res.json({ error: attrs[k] + ' is missing' });
+			}
+		}
+	}
+
+	new Memory.Memory({ id: req.params.id })
+	.set(_.pick(req.body, attrs))
+	.save()
+	.then((data) => res.json({ data }))
+	.catch((err) => res.json({ error: err }));
+});
+
+Server.routerApi.post('/memories', (req, res) => {
+	const attrs = [ 'title', 'text', 'tags' ];
+
+	for (var k in attrs) {
+		if (attrs.hasOwnProperty(k)) {
+			if (_.isEmpty(req.body[attrs[k]])) {
+				return res.json({ error: attrs[k] + ' is missing' });
+			}
+		}
+	}
+
+	new Memory.Memory(
+	_.pick(req.body, attrs)
+	)
+	.save()
+	.then((data) => res.json({ data }))
+	.catch((err) => res.json({ error: err }));
 });
