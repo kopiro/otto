@@ -8,15 +8,20 @@
 			if (/\.js$/.test(file)) {
 				const action_name = file
 				.replace('/index.js', '')
-				.replace(__dirname + '/', '')
+				.replace(__dirname, '')
+				.replace(/^./, '')
 				.replace(/\//g, '.')
 				.replace('.js','');
-				exports[action_name] = function() { 
-					let mod = require(file); 
-					mod.id = action_name;
-					return mod;
-				};
+				if (action_name) {
+					exports[action_name] = function() { 
+						let mod = require(file); 
+						mod.id = action_name;
+						return mod;
+					};
+				}
 			}
 		}
 	});
 })(__dirname);
+
+console.debug('Available actions', _.keys(exports));
