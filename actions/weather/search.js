@@ -24,7 +24,7 @@ const wg_conditions_to_lang = {
 
 const apiai_to_lang = {
 	fog: 'Nebbia',
-	overcast: 'Nuvoloso', 
+	cloudy: 'Nuvoloso', 
 	rain: 'Pioggia',
 	snow: 'Neve',
 	storm: 'Temporale',
@@ -34,7 +34,7 @@ const apiai_to_lang = {
 
 const apiai_to_wunderground = {
 	fog: ['fog','hazy'],
-	overcast: ['cloudy','mostlycloudy','partlycloudy'], 
+	cloudy: ['cloudy','mostlycloudy','partlycloudy'], 
 	rain: ['rain','chancerain'],
 	snow: ['snow','sleet','chancesnow','chancesleet'],
 	storm: ['tstorms','chancetstorms'],
