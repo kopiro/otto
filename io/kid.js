@@ -36,6 +36,7 @@ exports.getAlarmsAt = function() {
 
 exports.startInput = function() {
 	console.debug(TAG, 'start');
+	require('child_process').spawn('play', [ __basedir + '/audio/startlisten.wav' ]);
 	
 	let data = {
 		sessionId: sessionId
