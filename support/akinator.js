@@ -1,4 +1,4 @@
-const TAG = 'Akinator';
+exports.id = 'akinator.start';
 var request = require('request');
 
 var Akinator = function(language) {
@@ -15,7 +15,7 @@ Akinator.prototype.hello = function(playerName, onAsk, onFound) {
 	request(this.url + `new_session?partner=1&player=${playerName}`, (error, response, body) => {
 		if (!error && response.statusCode == 200) {
 			var rs = JSON.parse(body);
-			console.debug(TAG, rs);
+			console.debug(exports.id, rs);
 			this.session = rs.parameters.identification.session;
 			this.signature = rs.parameters.identification.signature;
 			rs = this.extractQuestion(rs);
@@ -50,7 +50,7 @@ Akinator.prototype.sendAnswer = function(answerId) {
 	request(this.url + 'answer?session=' + this.session + '&signature=' + this.signature + '&step=' + this.step + '&answer=' + answerId, (error, response, body) => {
 		if (!error && response.statusCode == 200) {
 			var rs = JSON.parse(body);
-			console.debug(TAG, rs);
+			console.debug(exports.id, rs);
 			rs = this.extractQuestion(rs);
 			if (rs.last) {
 				this.getCharacters();
@@ -66,7 +66,7 @@ Akinator.prototype.getCharacters = function() {
 	request(this.url + 'list?session=' + this.session + '&signature=' + this.signature + '&step=' + this.step + '&size=2&max_pic_width=246&max_pic_height=294&pref_photos=OK-FR&mode_question=0', (error, response, body) => {
 		if (!error && response.statusCode == 200) {
 			var rs = JSON.parse(body);
-			console.debug(TAG, rs);
+			console.debug(exports.id, rs);
 			var characters = rs.parameters.elements.map((el) => {
 				return el.element;
 			});
