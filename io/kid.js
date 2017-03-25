@@ -26,8 +26,12 @@ const no_strategy_responses = [
 'Potresti ripètere?'
 ];
 
+exports.getChats = function() {
+	return Promise.resolve([]);
+};
+
 exports.getAlarmsAt = function() {
-	return Promise.resolve();
+	return Promise.resolve([]);
 };
 
 exports.startInput = function() {
