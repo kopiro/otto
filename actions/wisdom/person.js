@@ -1,4 +1,4 @@
-const TAG = path.basename(__filename, '.js');
+exports.id = 'wisdom.person';
 
 const rejections = [
 'Non so chi sia.. scusami',
@@ -7,7 +7,7 @@ const rejections = [
 
 module.exports = function(e) {
 	return new Promise((resolve, reject) => {
-		console.debug(TAG, e);
+		console.debug(exports.id, e);
 
 		let p = e.parameters;
 		

@@ -1,8 +1,8 @@
-const TAG = path.basename(__filename, '.js');
+exports.id = 'alarm.set';
 
 module.exports = function(e, { io, data }) {
 	return new Promise((resolve, reject) => {
-		console.debug(TAG, e);
+		console.debug(exports.id, e);
 		let { parameters:p, fulfillment } = e;
 
 		const when = moment((p.date || moment().format('YYYY-MM-DD')) + ' ' + p.time, 'YYYY-MM-DD HH:mm:ss');

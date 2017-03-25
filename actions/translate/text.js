@@ -1,10 +1,10 @@
-const TAG = path.basename(__filename, '.js');
+exports.id = 'translate.text';
 
 const Translator = require(__basedir + '/support/translator');
 
 module.exports = function(e) {
 	return new Promise((resolve, reject) => {
-		console.debug(TAG, e);
+		console.debug(exports.id, e);
 
 		let { parameters:p } = e;
 		let lang_iso_code;

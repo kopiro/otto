@@ -1,4 +1,5 @@
-const TAG = path.basename(__filename, '.js');
+exports.id = 'weather.search';
+
 const Wunderground = require(__basedir + '/support/wunderground');
 
 const wg_qualifiers = ['chance','mostly','partly'];
@@ -43,7 +44,7 @@ const apiai_to_wunderground = {
 
 module.exports = function(e) {
 	return new Promise((resolve, reject) => {
-		console.debug(TAG, e);
+		console.debug(exports.id, e);
 		const { parameters:p } = e;
 
 		if (p.date) {

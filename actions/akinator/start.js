@@ -1,11 +1,11 @@
-const TAG = 'akinator.start';
-
 const Akinator = require(__basedir + '/support/akinator');
 let akinatorClients = {};
 
+exports.id = 'akinator.start';
+
 module.exports = function(e, { data, io }) {
 	return new Promise((resolve, reject) => {
-		console.debug(TAG, e);
+		console.debug(exports.id, e);
 
 		if (e.pending) {
 
@@ -17,7 +17,7 @@ module.exports = function(e, { data, io }) {
 					return ans.text == e.params.text;
 				});
 
-				console.debug(TAG, 'sending', answer);
+				console.debug(exports.id, 'sending', answer);
 
 				if (answer == null) {
 					resolve({
@@ -46,7 +46,7 @@ module.exports = function(e, { data, io }) {
 
 			akiClient.client.hello(data.title, (question, answers) => {
 
-				console.debug(TAG, 'hello', question, answers);
+				console.debug(exports.id, 'hello', question, answers);
 
 				io.pendingActions[data.sessionId] = TAG;
 				akiClient.question = question;

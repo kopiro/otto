@@ -1,12 +1,13 @@
+exports.id = 'math.expression';
+
 const _config = config.ai.wolfram;
-const TAG = path.basename(__filename, '.js');
 
 var Wolfram = require('node-wolfram');
 var wolframApi = new Wolfram(_config.appId);
 
 module.exports = function(e) {
 	return new Promise((resolve, reject) => {
-		console.info(TAG, e);
+		console.info(exports.id, e);
 
 		let { parameters:p, fulfillment, resolvedQuery } = e;
 
@@ -26,7 +27,7 @@ module.exports = function(e) {
 
 			const dym = result.queryresult.didyoumeans;
 			if (dym && dym[0].didyoumean[0]._) {
-				console.debug(TAG, 're-quering with didyoumean');
+				console.debug(exports.id, 're-quering with didyoumean');
 				module.exports({
 					entities: {
 						q: dym[0].didyoumean[0]._

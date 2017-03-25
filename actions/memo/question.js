@@ -1,4 +1,4 @@
-const TAG = path.basename(__filename);
+exports.id = 'memo.question';
 
 const rejections = [
 	'Non ho ricordi di questa cosa'
@@ -6,7 +6,7 @@ const rejections = [
 
 module.exports = function(e, { io, data }) {
 	return new Promise((resolve, reject) => {
-		console.debug(TAG, e);
+		console.debug(exports.id, e);
 		let { parameters:p, fulfillment, resolvedQuery } = e;
 
 		new Memory.Memory()

@@ -1,3 +1,3 @@
-const TAG = path.basename(__filename, '.js');
+exports.id = 'wisdom.unknown';
 
 module.exports = require(__basedir + '/actions/wisdom/person');

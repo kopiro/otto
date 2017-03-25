@@ -1,8 +1,8 @@
-const TAG = path.basename(__filename, '.js');
+exports.id = 'contacts.nicknames_get';
 
 module.exports = function(e) {
 	return new Promise((resolve, reject) => {
-		console.debug(TAG, e);
+		console.debug(exports.id, e);
 		let { parameters:p, fulfillment } = e;
 
 		new Memory.Contact()

@@ -1,8 +1,8 @@
-const TAG = path.basename(__filename, '.js');
+exports.id = 'learn.commands_add';
 
 module.exports = function(e) {
 	return new Promise((resolve, reject) => {
-		console.debug(TAG, e);
+		console.debug(exports.id, e);
 		let { parameters:p, fulfillment, resolvedQuery } = e;
 		
 		new Memory.Learning({
