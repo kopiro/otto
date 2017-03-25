@@ -26,6 +26,10 @@ const no_strategy_responses = [
 'Potresti ripètere?'
 ];
 
+exports.getAlarmsAt = function() {
+	return Promise.resolve();
+};
+
 exports.startInput = function() {
 	console.debug(TAG, 'start');
 	
