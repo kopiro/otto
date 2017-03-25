@@ -1,1 +1,7 @@
 # Otto AI
+
+## Installation
+
+```
+yarn
+```

@@ -20,10 +20,7 @@ exports.textRequest = function({ data, text, io }) {
 			let fulfillment = result.fulfillment;
 			console.debug(TAG, 'response', JSON.stringify(result, null, 2));
 
-			if (
-			result.action != null && 
-			result.actionIncomplete == false
-			) {
+			if (!_.isEmpty(result.action) && result.actionIncomplete == false) {
 				if (_.isFunction(Actions[result.action])) {
 					return Actions[result.action]()(result, {
 						io: io,
