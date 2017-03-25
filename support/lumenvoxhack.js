@@ -17,7 +17,7 @@ const PITCH = 700;
 function download(text, callback) {
 	text = text.trim();
 
-	if (cache[text]) {
+	if (cache[text] && fs.existsSync(cache[text])) {
 		console.debug(TAG, 'text in cache', text);
 		callback(null, cache[text]);
 	} else {
