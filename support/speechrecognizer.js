@@ -47,6 +47,7 @@ function createRecognizeStream(opt, callback, end) {
 
 			case 'END_OF_UTTERANCE':
 			case 'END_OF_AUDIO':
+			console.debug(TAG, 'End', data.endpointerType);
 			if (processing) {
 				console.debug(TAG, 'end of audio/utterance');
 				processing = false;

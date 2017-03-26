@@ -26,4 +26,3 @@ module.exports = function(e, { io, data }) {
 		
 	});
 };
-

@@ -6,8 +6,6 @@ const apiaiClient = require('apiai')(config.APIAI_TOKEN, {
 
 const AI_NAME_REGEX = /^(?:Otto(,\s*)?)|(\s*Otto)$/i;
 
-exports.pendingActions = {};
-
 exports.textRequest = function({ data, text, io }) {
 	return new Promise((resolve, reject) => {
 		text = text.replace(AI_NAME_REGEX, '');
@@ -20,10 +18,7 @@ exports.textRequest = function({ data, text, io }) {
 			let fulfillment = result.fulfillment;
 			console.debug(TAG, 'response', JSON.stringify(result, null, 2));
 
-			if (
-			result.action != null && 
-			result.actionIncomplete == false
-			) {
+			if (!_.isEmpty(result.action) && result.actionIncomplete == false) {
 				if (_.isFunction(Actions[result.action])) {
 					return Actions[result.action]()(result, {
 						io: io,

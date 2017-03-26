@@ -48,7 +48,7 @@ module.exports = function(e, { data, io }) {
 
 				console.debug(exports.id, 'hello', question, answers);
 
-				io.pendingActions[data.sessionId] = TAG;
+				io.pendingActions[data.sessionId] = exports.id;
 				akiClient.question = question;
 				akiClient.answers = answers;
 				akiClient.replies = _.compact(answers.map((ans) => {
