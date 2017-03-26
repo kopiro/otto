@@ -34,9 +34,15 @@ exports.getAlarmsAt = function() {
 	return Promise.resolve([]);
 };
 
-exports.startInput = function() {
+exports.startInput = function(opt) {
 	console.debug(TAG, 'start');
-	require('child_process').spawn('play', [ __basedir + '/audio/startlisten.wav' ]);
+	opt = _.defaults(opt || {},  {
+		listenSound: true
+	});
+
+	if (opt.listenSound == true) {
+		require('child_process').spawn('play', [ __basedir + '/audio/startlisten.wav' ]);
+	}
 	
 	let data = {
 		sessionId: sessionId
@@ -59,7 +65,6 @@ exports.startInput = function() {
 				is_speaking = false; 
 			}, SPEAKING_TIMEOUT);
 		}
-
 		Recorder.stop();
 	})
 	.then((text) => {
@@ -74,10 +79,7 @@ exports.startInput = function() {
 	})
 	.catch((err) => {
 		console.error(TAG, 'input', err);
-		exports.emitter.emit('input', {
-			data: data,
-			error: err
-		});
+		exports.startInput({ listenSound: false });
 	});
 };
 

@@ -19,6 +19,14 @@ const rl = readline.createInterface({
 let strings = fs.readFileSync(__basedir + '/in.txt').toString().split("\n");
 const sessionId = require('node-uuid').v4();
 
+exports.getChats = function() {
+	return Promise.resolve([]);
+};
+
+exports.getAlarmsAt = function() {
+	return Promise.resolve([]);
+};
+
 exports.startInput = function() {
 	console.info(TAG, 'start');
 	let data = { 
