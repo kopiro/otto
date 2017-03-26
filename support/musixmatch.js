@@ -33,7 +33,7 @@ exports.searchTrack = function(opt, callback) {
 	}, function(error, response, body) {
 		console.debug(TAG, call, 'result', body);
 		if (callback) {
-			callback(error, (body || '').replace(/\*\*\*\*\*\*\*.*/mg, ''));
+			callback(error, (body || ''));
 		}
 	});
 };
