@@ -126,9 +126,9 @@ exports.output = function({ data, params }) {
 				params.forceText !== true && 
 				 _.random(0, 4) === 1;
 			if (send_voice) {
+				const Polly = require(__basedir + '/support/polly');
 				bot.sendChatAction(data.chatId, 'record_audio');
-				require(__basedir + '/support/lumenvoxhack')
-				.playToFile(params.text, (err, file) => {
+				Polly.playToFile(params.text, (err, file) => {
 					if (err) {
 						bot.sendChatAction(data.chatId, 'typing');
 						bot.sendMessage(data.chatId, params.text, message_opt);

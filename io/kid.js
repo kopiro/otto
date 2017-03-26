@@ -12,7 +12,7 @@ exports.pendingActions = {};
 
 const Recorder = require('node-record-lpcm16');
 const SpeechRecognizer = require(__basedir + '/support/speechrecognizer');
-const LumenVox = require(__basedir + '/support/lumenvoxhack');
+const Polly = require(__basedir + '/support/polly');
 
 let is_speaking = false;
 let is_speaking_timeout = null;
@@ -87,11 +87,11 @@ exports.output = function({ data, params }) {
 	return new Promise((resolve, reject) => {
 		if (params.error) {
 			if (params.error.noStrategy) {
-				LumenVox.play(no_strategy_responses.getRandom(), () => {
+				Polly.play(no_strategy_responses.getRandom(), () => {
 					resolve();
 				});
 			} else if (params.error.text) {		
-				return LumenVox.play(params.error.text, () => {
+				return Polly.play(params.error.text, () => {
 					resolve();
 				});	
 			} else {
@@ -100,7 +100,7 @@ exports.output = function({ data, params }) {
 		}
 
 		if (params.text) {
-			return LumenVox.play(params.text, () => {
+			return Polly.play(params.text, () => {
 				resolve();
 			});
 		} 
@@ -169,7 +169,7 @@ exports.output = function({ data, params }) {
 		}
 
 		if (params.lyrics) {
-			return LumenVox.play(params.lyrics.lyrics_body.split("\n")[0], () => {
+			return Polly.play(params.lyrics.lyrics_body.split("\n")[0], () => {
 				resolve();
 			});
 		}
