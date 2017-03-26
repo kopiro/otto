@@ -4,17 +4,15 @@ const _config = config.io.messenger;
 const EventEmitter = require('events').EventEmitter;
 exports.emitter = new EventEmitter();
 
-exports.id = path.basename(__filename, '.js');
+exports.id = 'messenger';
 exports.capabilities = { 
 	userCanViewUrls: true
 };
 
-exports.pendingActions = {};
+const messengerbot = require('messenger-bot');
+const bot = new messengerbot(_config);
 
-const MessengerBot = require('messenger-bot');
-const bot = new MessengerBot(_config);
-
-const SpeechRecognizer = require(__basedir + '/support/speechrecognizer');
+const SpeechRecognizer = apprequire('speechrecognizer');
 
 function log(msg) {
 	fs.writeFileSync(__basedir + '/log/' + 'messenger_' + moment().format('YYYY-MM-DD') + '.txt', msg + "\n");
@@ -80,15 +78,15 @@ exports.startInput = function() {
 	console.info(TAG, 'started on port ' + _config.port);
 };
 
-exports.output = function({ data, params }) {
-	console.ai(TAG, 'output', params);
+exports.output = function({ data, fulfillment:f }) {
+	console.ai(TAG, 'output', data, f);
+	f.data = f.data || {};
 
 	return new Promise((resolve, reject) => {
-		if (params.error) {
-			if (params.error.noStrategy) {
-				// NOOP
-			} else if (params.error.text) {		
-				bot.sendMessage(data.senderId, { text: params.text });	
+		if (f.error) {
+			if (f.error.speech) {		
+				bot.sendChatAction(data.chatId, 'typing');
+				bot.sendMessage(data.chatId, f.error.speech);	
 				return resolve();
 			} else {
 				return resolve();
@@ -97,39 +95,44 @@ exports.output = function({ data, params }) {
 
 		let message_opt = {};
 
-		if (params.replies) {
+		if (f.data.replies) {
 			message_opt = {
-				quick_replies: params.replies.map((c) => {
-					if (_.isString(c)) c = { id: c, text: c };
+				quick_replies: f.data.replies.map((r) => {
+					if (_.isString(r)) r = { id: r, text: r };
 					return {
-						title: c.text,
-						payload: c.id,
+						title: r.text,
+						payload: r.id,
 						content_type: 'text',
 					};
 				})
 			};
 		}
 
-		if (params.text) {
+		if (f.speech) {
+			if (f.data.url) {
+				f.speech += "\n" + f.data.url;
+			}
 			bot.sendMessage(data.senderId, _.extend(message_opt, {
-				text: params.text 
+				text: f.speech
 			}), (err, info) => {
 				if (err) console.error(TAG, err);
 			});
 			return resolve();
 		}
 
-		if (params.media) {
-			if (params.media.track) {
+		if (f.data.media) {
+			if (f.data.media.track) {
 				bot.sendMessage(data.senderId, _.extend(message_opt, { 
-					text: params.media.song.external_urls.spotify 
-				}));
+					text: f.data.media.song.external_urls.spotify 
+				}), (err, info) => {
+					if (err) console.error(TAG, err);
+				});
 				return resolve();
 			}
 			return reject();
 		}
 
-		if (params.image) {
+		if (f.data.image) {
 			bot.sendMessage(data.senderId, _.extend(message_opt, { 
 				attachment: {
 					type: 'image',
@@ -138,14 +141,18 @@ exports.output = function({ data, params }) {
 						is_reusable: true
 					}
 				}
-			}));
+			}), (err, info) => {
+				if (err) console.error(TAG, err);
+			});
 			return resolve();
 		}
 
-		if (params.lyrics) {
+		if (f.data.lyrics) {
 			bot.sendMessage(data.recipientId, _.extend(message_opt, { 
 				text: params.lyrics.lyrics_body
-			}));
+			}), (err, info) => {
+				if (err) console.error(TAG, err);
+			});
 			return resolve();
 		}
 
@@ -176,7 +183,9 @@ bot.on('message', (e) => {
 			return exports.emitter.emit('input', {
 				data: data,
 				params: {
-					answer: err
+					fulfillment: {
+						speech: err
+					}
 				}
 			});
 		}

@@ -50,30 +50,31 @@ exports.startInput = function() {
 	});
 };
 
-exports.output = function({ data, params }) {
-	console.ai(TAG, 'output', params);
+exports.output = function({ data, fulfillment:f }) {
+	console.ai(TAG, 'output', data, f);
+	f.data = f.data || {};
 
 	return new Promise((resolve, reject) => {
 		let { req, res } = data.express;
 		const outputas = req.query.outputas || 'text';
 
-		if (params.error) {
-			res.json(params);
+		if (f.error) {
+			res.json(f);
 			return resolve();
 		}
 
-		if (params.text) {
+		if (f.speech) {
 			switch (outputas) {
 
 				case 'text':
-				res.json(params);
+				res.json(f);
 				break;
 
 				case 'voice':
-				require(__basedir + '/support/lumenvoxhack')
-				.playToFile(params.text, (err, file) => {
+				apprequire('polly')
+				.playToFile(f.speech, (err, file) => {
 					if (err) return res.json({ error: err });
-					return res.json(_.extend(params, {
+					return res.json(_.extend(f, {
 						voice: tmpFileToHttp(req, file)
 					}));
 				});
@@ -91,20 +92,17 @@ exports.output = function({ data, params }) {
 			return resolve();
 		}
 
-		if (params.media) {
-			if (params.media.track) {
-				res.json(params);
-				return resolve();
-			}
+		if (f.data.media) {
+			res.json(f);
 		}
 
-		if (params.photo) {
-			res.json(params);
+		if (f.data.image) {
+			res.json(f);
 			return resolve();
 		}
 
-		if (params.lyrics) {
-			res.json(params);
+		if (f.data.lyrics) {
+			res.json(f);
 			return resolve();
 		}
 

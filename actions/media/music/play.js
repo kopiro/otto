@@ -5,9 +5,9 @@ const _config = config.ai.spotify;
 var SpotifyWebApi = require('spotify-web-api-node');
 var spotifyApi = new SpotifyWebApi(_config.options);
 
-module.exports = function(e) {
-	return new Promise(function(resolve, reject) {
-		let { parameters: p } = e;
+module.exports = function({ sessionId, result }) {
+	return new Promise((resolve, reject) => {
+		let { parameters: p, fulfillment } = result;
 	
 		if (p.artist) {
 			spotifyApi.searchArtists(p.artist)
@@ -16,14 +16,14 @@ module.exports = function(e) {
 
 				let items = data.body.artists.items;
 				if (items.length === 0) {
-					return reject({
-						text: `Non trovo nessun risultato per ${p.artist}`
-					});
+					return reject();
 				}
 
 				resolve({
-					media: {
-						artist: items[0]
+					data: {
+						media: {
+							artist: items[0]
+						}
 					}
 				});
 
@@ -36,14 +36,14 @@ module.exports = function(e) {
 
 				let items = data.body.tracks.items;
 				if (items.length === 0) {
-					return reject({
-						text: `Non trovo nessun risultato per ${p.track}`
-					});
+					return reject();
 				}
 
 				resolve({
-					media: {
-						track: items[0]
+					data: {
+						media: {
+							track: items[0]
+						}
 					}
 				});
 			}, reject);
@@ -55,17 +55,18 @@ module.exports = function(e) {
 
 				let items = data.body.playlists.items;
 				if (items.length === 0) {
-					return reject({
-						text: `Non trovo nessun risultato per ${p.playlist}`
-					});
+					return reject();
 				}
 
 				resolve({
-					media: {
-						playlist: items[0]
+					data: {
+						media: {
+							playlist: items[0]
+						}
 					}
 				});
 			}, reject);
+			
 		} else {
 			reject();
 		}

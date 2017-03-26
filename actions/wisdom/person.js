@@ -1,15 +1,8 @@
 exports.id = 'wisdom.person';
 
-const rejections = [
-'Non so chi sia.. scusami',
-'Chi scusa?'
-];
-
-module.exports = function(e) {
+module.exports = function({ sessionId, result }) {
 	return new Promise((resolve, reject) => {
-		console.debug(exports.id, e);
-
-		let p = e.parameters;
+		let { parameters: p, fulfillment } = result;
 		
 		switch (p.request_type) {
 			case 'whatis':
@@ -30,19 +23,17 @@ module.exports = function(e) {
 				.then((memories) => {
 					if (memories.length > 0) {
 						resolve({
-							text: memories.at( _.random(0, memories.length-1) ).get('text')
+							speech: memories.at( _.random(0, memories.length-1) ).get('text')
 						});
 					} else {
 						resolve({
-							text: contact.getName()
+							speech: contact.getName()
 						});
 					}
 				});
 			})
 			.catch(() => {
-				reject({
-					text: rejections.getRandom()
-				});
+				reject();
 			});
 
 			break;

@@ -4,14 +4,18 @@ const spawn = require('child_process').spawn;
 const PITCH = 700;
 
 exports.fileToSpeaker = function(file, callback) {
+	callback = callback || (() => {});
 	spawn('play', [file].concat('pitch', '-q', PITCH))
-	.on('close', callback);
+	.on('close', (err) => {
+		callback(err != 0);
+	});
 };
 
 exports.fileToFile = function(file, callback) {
+	callback = callback || (() => {});
 	const tmp_audio = __tmpdir + '/' + require('uuid').v4() + '.mp3';
 	spawn('play', files.concat(tmp_audio).concat('pitch', '-q', PITCH))
-	.on('close', () => {
-		callback(null, tmp_audio);
+	.on('close', (err) => {
+		callback(err != 0, tmp_audio);
 	});
 };

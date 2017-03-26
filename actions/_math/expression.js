@@ -5,21 +5,23 @@ const _config = config.ai.wolfram;
 var Wolfram = require('node-wolfram');
 var wolframApi = new Wolfram(_config.appId);
 
-module.exports = function(e) {
+module.exports = function({ sessionId, result }) {
 	return new Promise((resolve, reject) => {
-		console.info(exports.id, e);
-
-		let { parameters:p, fulfillment, resolvedQuery } = e;
+		let { parameters: p, fulfillment } = result;
 
 		wolframApi.query(p.q, (err, result) => {
-			if (err) return reject({ text: 'Non riesco a fare questo calcolo per te' });
+			if (err) {
+				return resolve({ 
+					speech: 'Non riesco a fare questo calcolo per te' 
+				});
+			}
 		
 			if (result.queryresult.pod) {
 				for (let i = 0; i < result.queryresult.pod.length; i++) {
 					let pod = result.queryresult.pod[i];
 					if (pod.$.title === 'Result') {
 						return resolve({ 
-							text: pod.subpod[0].plaintext[0] 
+							speech: pod.subpod[0].plaintext[0] 
 						});
 					}
 				}

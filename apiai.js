@@ -5,59 +5,66 @@ const apiaiClient = require('apiai')(config.APIAI_TOKEN, {
 });
 
 const AI_NAME_REGEX = /^(?:Otto(,\s*)?)|(\s*Otto)$/i;
+const actions = require(__basedir + '/actions');
 
-exports.textRequest = function({ data, text, io }) {
+exports.textRequest = function(text, data) {
 	return new Promise((resolve, reject) => {
 		text = text.replace(AI_NAME_REGEX, '');
 
 		let request = apiaiClient.textRequest(text, data);
 		console.debug(TAG, 'textRequest', text);
 
-		request.on('response', (response) => {
-			let result = response.result;
-			let fulfillment = result.fulfillment;
-			console.debug(TAG, 'response', JSON.stringify(result, null, 2));
+		request.on('response', (res) => {
+			console.debug(TAG, 'response', JSON.stringify(res, null, 2));
+			let fulfillment = res.result.fulfillment;
+			fulfillment.data = fulfillment.data || {};
 
-			if (!_.isEmpty(result.action) && result.actionIncomplete == false) {
-				if (_.isFunction(Actions[result.action])) {
-					return Actions[result.action]()(result, {
-						io: io,
-						data: data
-					})
-					.then(resolve)
-					.catch(reject);
-				} else {
-					console.error(TAG, `action ${result.action} not found`);
+			// Try to resolve this action locally if no webhook is used
+			if (res.result.metadata.webhookUsed == "false") {
+
+				if (res.result.actionIncomplete === false) {
+					const action = actions[res.result.action];
+					if (_.isFunction(action)) {
+						return action()(res)
+						.then((local_fulfillment) => {
+							console.debug(TAG, 'local fulfillment', local_fulfillment);
+							resolve(local_fulfillment);
+						})
+						.catch((err) => {
+							reject(err);
+						});
+					} else {
+						console.error(TAG, `action ${res.result.action} not exists`);
+					}
+				}
+
+			} else {
+				// Edit msg from API.AI to reflect IO interface
+				if (!_.isEmpty(res.result.fulfillment.messages)) {
+					let msg = res.result.fulfillment.messages.getRandom();
+					switch (msg.type) {
+						case 2:
+						fulfillment.data.replies = msg.replies;
+						break;
+						case 3:
+						fulfillment.data = { image: { remoteFile: msg.imageUrl } };
+						break;
+						case 4:
+						fulfillment.data = msg.payload;
+						break;
+						default:
+						console.error(TAG, 'Type not recognized');
+						break;
+					}
+					delete fulfillment.messages;
 				}
 			}
 
-			if (!_.isEmpty(fulfillment.speech)) {
-				return resolve({ 
-					text: fulfillment.speech 
-				});
-			}
-
-			if (!_.isEmpty(fulfillment.messages)) {
-				let msg = fulfillment.messages.getRandom();
-				if (!_.isEmpty(msg.replies)) {
-					return resolve({
-						text: fulfillment.messages[0].title,
-						replies: fulfillment.messages[0].replies
-					});
-				} else if (msg.imageUrl != null) {
-					return resolve({ 
-						image: { 
-							remoteFile: msg.imageUrl 
-						} 
-					});
-				}
-			}
-
-			reject({ noStrategy: true });
+			resolve(fulfillment);
 		});
 
 		request.on('error', (err) => {
-			console.error(TAG, 'response error', err);
+			console.error(TAG, 'error', err);
 			reject(err);
 		});
 

@@ -3,28 +3,17 @@ const TAG = 'IO.Kid';
 const EventEmitter = require('events').EventEmitter;
 exports.emitter = new EventEmitter();
 
-exports.id = path.basename(__filename, '.js');
+exports.id = 'kid';
 exports.capabilities = { 
 	userCanViewUrls: false
 };
 
-exports.pendingActions = {};
+const Rec = apprequire('rec');
+const SpeechRecognizer = apprequire('speechrecognizer');
+const Polly = apprequire('polly');
+const Play = apprequire('play');
 
-const Recorder = require('node-record-lpcm16');
-const SpeechRecognizer = require(__basedir + '/support/speechrecognizer');
-const Polly = require(__basedir + '/support/polly');
-
-let is_speaking = false;
-let is_speaking_timeout = null;
-const SPEAKING_TIMEOUT = 5000;
-
-const sessionId = require('node-uuid').v4();
-
-const no_strategy_responses = [
-'Scusa, ma non ho capito',
-'Come scusa?',
-'Potresti ripètere?'
-];
+const sessionId = require('uuid').v4();
 
 exports.getChats = function() {
 	return Promise.resolve([]);
@@ -35,40 +24,29 @@ exports.getAlarmsAt = function() {
 };
 
 exports.startInput = function(opt) {
-	console.debug(TAG, 'start');
+	console.debug(TAG, 'startInput');
+
 	opt = _.defaults(opt || {},  {
 		listenSound: true
 	});
 
 	if (opt.listenSound == true) {
-		require('child_process').spawn('play', [ __basedir + '/audio/startlisten.wav' ]);
+		Play.fileToSpeaker(__basedir + '/audio/startlisten.wav');
 	}
 	
 	let data = {
 		sessionId: sessionId
 	};
 
-	if (is_speaking == false) {
-		// captureWebcam();
-	}
-
-	let recorderStream = Recorder.start(_.extend({
+	let rec_stream = Rec.start(_.extend({
 		sampleRate: 16000,
-		verbose: false,
+		verbose: true
 	}, config.recorder));
 
-	SpeechRecognizer.recognizeAudioStream(recorderStream, () => {
-		if (is_speaking) {
-			clearTimeout(is_speaking_timeout);
-			is_speaking_timeout = setTimeout(() => { 
-				console.debug(TAG, 'is not speaking with user anymore');
-				is_speaking = false; 
-			}, SPEAKING_TIMEOUT);
-		}
-		Recorder.stop();
-	})
+	SpeechRecognizer.recognizeAudioStream(rec_stream, () => {
+		Rec.stop();
+	}, false)
 	.then((text) => {
-		is_speaking = true;
 		console.user(TAG, 'input', text);
 		exports.emitter.emit('input', {
 			data: data,
@@ -79,41 +57,34 @@ exports.startInput = function(opt) {
 	})
 	.catch((err) => {
 		console.error(TAG, 'input', err);
-		exports.startInput({ listenSound: false });
+		reject();
 	});
 };
 
-exports.output = function({ data, params }) {
-	console.ai(TAG, 'output', { data, params });
+exports.output = function({ data, fulfillment:f }) {
+	console.ai(TAG, 'output', data, f);
+	f.data = f.data || {};
 
 	return new Promise((resolve, reject) => {
-		if (params.error) {
-			if (params.error.noStrategy) {
-				Polly.play(no_strategy_responses.getRandom(), () => {
-					resolve();
-				});
-			} else if (params.error.text) {		
-				return Polly.play(params.error.text, () => {
-					resolve();
-				});	
+		if (f.error) {
+			if (f.error.speech) {		
+				polly.play(f.error.speech, resolve);
 			} else {
 				return resolve();
 			}
 		}
 
-		if (params.text) {
-			return Polly.play(params.text, () => {
-				resolve();
-			});
+		if (f.speech) {
+			return Polly.play(f.speech, resolve);
 		} 
 
-		if (params.media) {
-			const mopidy = require(__basedir + '/support/mopidy');
+		if (f.data.media) {
+			const mopidy = apprequire('mopidy');
 
-			if (params.media.artist) {
+			if (f.data.media.artist) {
 				mopidy.onReady(() => {
 					mopidy.tracklist.clear()
-					.then(() => { return mopidy.library.lookup(params.media.artist.uri); })
+					.then(() => { return mopidy.library.lookup(f.data.media.artist.uri); })
 					.then((tracks) => { return mopidy.tracklist.add(tracks); })
 					.then((ttlTracks) => {
 						mopidy.tracklist.shuffle();
@@ -126,10 +97,10 @@ exports.output = function({ data, params }) {
 				return resolve();
 			}
 
-			if (params.media.track) {
+			if (f.data.media.track) {
 				mopidy.onReady(() => {
 					mopidy.tracklist.clear()
-					.then(() => { return mopidy.library.lookup(params.media.track.uri); })
+					.then(() => { return mopidy.library.lookup(f.data.media.track.uri); })
 					.then((tracks) => { return mopidy.tracklist.add(tracks); })
 					.then((ttlTracks) => {
 						return mopidy.playback.play(ttlTracks[0]);
@@ -141,19 +112,19 @@ exports.output = function({ data, params }) {
 				return resolve();
 			}
 
-			if (params.media.action) {
-				mopidy.playback[params.media.action](); 
+			if (f.data.media.action) {
+				mopidy.playback[f.data.media.action](); 
 				return resolve();
 			}
 
-			if (params.media.what) {
+			if (f.data.media.what) {
 				mopidy.playback.setVolume(10)
 				.then(() => { return mopidy.playback.getCurrentTrack(); })
 				.then((track) => {
 					const name = track.name;
 					const artist = track.artists[0].name;
 					return exports.output(data, { 
-						text: [
+						speech: [
 						`Questa canzone si chiama ${name} di ${artist}`,
 						`Bella questa! É ${name} di ${artist}!`,
 						`Come fai a non conoscerla? Si tratta di ${name} di ${artist}`
@@ -170,10 +141,8 @@ exports.output = function({ data, params }) {
 
 		}
 
-		if (params.lyrics) {
-			return Polly.play(params.lyrics.lyrics_body.split("\n")[0], () => {
-				resolve();
-			});
+		if (f.data.lyrics) {
+			return Polly.play(f.data.lyrics.lyrics_body.split("\n")[0], resolve);
 		}
 
 		return reject({ unkownOutputType: true });

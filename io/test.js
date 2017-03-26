@@ -55,11 +55,14 @@ exports.startInput = function() {
 	}
 };
 
-exports.output = function(e) {
+exports.output = function({ data, fulfillment:f }) {
 	if (null == config.testDriverOut) {
-		console.ai(TAG, 'output', e.params);
+		console.ai(TAG, 'output', JSON.stringify(f, null, 2));
 		return Promise.resolve();
 	}
 
-	return require(__basedir + '/io/' + config.testDriverOut).output(e);
+	return require(__basedir + '/io/' + config.testDriverOut).output({
+		data: data,
+		fulfillment: f
+	});
 };

@@ -1,5 +1,7 @@
 require('./boot');
 
+console.info('IO: drivers loaded => ' + config.ioDrivers.join(', '));
+
 if (config.cron) {
 	require(__basedir + '/cron');
 }
@@ -70,88 +72,37 @@ function onIoResponse({ error, data, params }) {
 			throw error;
 		}
 
-		let promise = null;
-
-		// If this session has pending actions, 
-		// then resolve this first
-		if (io.pendingActions[data.sessionId]) {
-
-			console.debug("Has pending actions for this session");
-
-			promise = Actions[ io.pendingActions[data.sessionId] ]()({
-				pending: true,
-				params: params
-			}, {
-				io: io,
-				data: data
+		if (params.text) {
+			AI.textRequest(params.text, data)
+			.then((fulfillment) => { 
+				io.output({
+					fulfillment: fulfillment,
+					data: data
+				})
+				.then(io.startInput)
+				.catch(io.startInput); 
+			})
+			.catch((promise_error) => {
+				console.error('Promise error', promise_error);
+				errorResponse.call(io, {
+					error: promise_error,
+					data: data
+				});
 			});
-
-		} else {
-
-			if (params.text) {
-				promise = APIAI.textRequest({
-					text: params.text, 
-					data: data, 
-					io: io
-				});
-			} else if (params.image) {
-				promise = outCognitive(data, params.image, io);
-			} else if (params.answer) {
-				promise = new Promise((resolve, reject) => {
-					resolve({ text: params.answer });
-				});
-			} else {
-				throw {
-					unsupported: true,
-					message: 'This input type is not supported yet. Supported: text, image, answer' 
-				};
-			}
-
-		}
-
-		promise
-		.then((resp) => { 
+		} else if (params.fulfillment) {
 			io.output({
-				data: data,
-				params: resp
+				fulfillment: params.fulfillment,
+				data: data
 			})
 			.then(io.startInput)
 			.catch(io.startInput); 
-		})
-		.catch((perr) => {
-
-			console.error('Promise error', perr);
-
-			// Check if this query could be solved using the Learning Memory Module. 
-			new Memory.Learning()
-			.query((qb) => {
-				qb.select(Memory.__knex.raw(`*, MATCH (input) AGAINST ("${params.text}" IN NATURAL LANGUAGE MODE) AS score`));
-				qb.having('score', '>', '0');
-				qb.orderBy(Memory.__knex.raw('RAND()'));
-			})
-			.fetch({ require: true })
-			.then((learning) => {
-				console.debug('Found a learning reply');
-				onIoResponse.call(io, {
-					data: data,
-					params: {
-						answer: learning.get('reply')
-					}
-				});
-			})
-			.catch(() => {
-				errorResponse.call(io, {
-					data: data,
-					error: perr
-				});
-			});
-		});
+		}
 
 	} catch (ex) {
 		console.error('Unhandled exception', ex);
 		errorResponse.call(io, {
-			data: data,
-			error: ex
+			error: ex,
+			data: data
 		});
 	}
 }

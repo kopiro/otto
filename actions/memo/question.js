@@ -1,13 +1,8 @@
 exports.id = 'memo.question';
 
-const rejections = [
-	'Non ho ricordi di questa cosa'
-];
-
-module.exports = function(e, { io, data }) {
+module.exports = function({ sessionId, result }) {
 	return new Promise((resolve, reject) => {
-		console.debug(exports.id, e);
-		let { parameters:p, fulfillment, resolvedQuery } = e;
+		let { parameters: p, fulfillment } = result;
 
 		new Memory.Memory()
 		.query((qb) => {
@@ -17,20 +12,15 @@ module.exports = function(e, { io, data }) {
 		})
 		.fetch({ require: true })
 		.then((memory) => {
-			let text = [];
-			text.push(fulfillment.speech || "");
-			if (memory.get('text')) text.push(memory.get('text'));
-			if (io.capabilities.userCanViewUrls && memory.get('url')) text.push(memory.get('url'));
-			
 			resolve({
-				text: text.join(' ')
+				data: {
+					url: memory.get('url')
+				},
+				speech: memory.get('text')
 			});
 		})
 		.catch((err) => {
-			reject({
-				exception: err,
-				text: rejections.getRandom()
-			});
+			reject();
 		});
 	});
 };

@@ -1,9 +1,8 @@
 exports.id = 'alarm.set';
 
-module.exports = function(e, { io, data }) {
+module.exports = function({ sessionId, result }) {
 	return new Promise((resolve, reject) => {
-		console.debug(exports.id, e);
-		let { parameters:p, fulfillment } = e;
+		let { parameters: p, fulfillment } = result;
 
 		const when = moment((p.date || moment().format('YYYY-MM-DD')) + ' ' + p.time, 'YYYY-MM-DD HH:mm:ss');
 
@@ -16,13 +15,15 @@ module.exports = function(e, { io, data }) {
 		.then((contact) => {
 			const when_human = when.calendar();
 			resolve({
-				text: [
+				speech: [
 					`Perfetto, ti sveglierò ${when_human}`,
 					`D'accord, ci sentiamo ${when_human}`
 				].getRandom()
 			});
 		})
-		.catch(reject);
+		.catch(() => {
+			reject();
+		});
 		
 	});
 };

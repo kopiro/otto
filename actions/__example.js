@@ -1,9 +1,8 @@
-const TAG = __filename;
+exports.id = '__example';
 
-module.exports = function(e) {
+module.exports = function({ sessionId, result }) {
 	return new Promise((resolve, reject) => {
-		console.debug(TAG, e);
-		let { parameters:p, fulfillment, resolvedQuery } = e;
+		let { parameters: p, fulfillment } = result;
 		resolve();		
 	});
 };

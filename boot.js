@@ -5,6 +5,10 @@ global.__cachedir = __dirname + '/cache';
 global.config = require('./config.json');
 global.public_config = require('./public_config.json');
 
+global.apprequire = function(k) {
+	return require(__basedir + '/support/' + k);
+};
+
 global.AI_NAME = "Otto";
 
 [
@@ -31,9 +35,9 @@ global.async = require('async');
 global.moment = require('moment');
 global.util = require('util');
 
-global.APIAI = require(__basedir + '/apiai');
-global.Actions = require(__basedir + '/actions');
 global.DB = require('mysql').createConnection(config.mysql);
+
+global.AI = require(__basedir + '/apiai');
 global.Memory = require(__basedir + '/memory');
 global.Util = require(__basedir + '/util');
 

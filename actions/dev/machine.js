@@ -1,13 +1,10 @@
-exports.id = 'datetime.now';
+exports.id = 'dev.machine';
 
 module.exports = function({ sessionId, result }) {
 	return new Promise((resolve, reject) => {
 		let { parameters: p, fulfillment } = result;
-		
-		const now = require('moment')().format('LT');
-
 		resolve({
-			speech: `Sono le ${now}`
+			speech: process.platform
 		});
 	});
 };

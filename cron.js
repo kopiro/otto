@@ -1,3 +1,5 @@
+const TAG = 'Cron';
+
 const ALARM_STRINGS = [
 "Hey {name}, sveglia!"
 ];
@@ -74,5 +76,5 @@ function tickPerIO(IO) {
 	});
 }
 
+console.info(TAG, 'started');
 setInterval(tick, 1000 * 60);
-tick();

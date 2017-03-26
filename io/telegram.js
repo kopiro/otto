@@ -4,17 +4,15 @@ const _config = config.io.telegram;
 const EventEmitter = require('events').EventEmitter;
 exports.emitter = new EventEmitter();
 
-exports.id = path.basename(__filename, '.js');
+exports.id = 'telegram';
 exports.capabilities = { 
 	userCanViewUrls: true
 };
 
-exports.pendingActions = {};
-
 const TelegramBot = require('node-telegram-bot-api');
 const bot = new TelegramBot(_config.token, _config.options);
 
-const SpeechRecognizer = require(__basedir + '/support/speechrecognizer');
+const SpeechRecognizer = apprequire('speechrecognizer');
 
 function log(msg) {
 	fs.writeFileSync(__basedir + '/log/' + 'telegram_' + moment().format('YYYY-MM-DD') + '.txt', msg + "\n");
@@ -87,17 +85,15 @@ exports.startInput = function() {
 	}
 };
 
-exports.output = function({ data, params }) {
-	console.ai(TAG, 'output', params);
-
+exports.output = function({ data, fulfillment:f }) {
+	console.ai(TAG, 'output', data, f);
+	f.data = f.data || {};
+	
 	return new Promise((resolve, reject) => {
-		
-		if (params.error) {
-			if (params.error.noStrategy) {
-				// NOOP
-			} else if (params.error.text) {		
+		if (f.error) {
+			if (f.error.speech) {		
 				bot.sendChatAction(data.chatId, 'typing');
-				bot.sendMessage(data.chatId, params.error.text);	
+				bot.sendMessage(data.chatId, f.error.speech);	
 				return resolve();
 			} else {
 				return resolve();
@@ -106,74 +102,58 @@ exports.output = function({ data, params }) {
 
 		let message_opt = {};
 
-		if (params.replies) {
+		if (f.data.replies != null) {
 			message_opt = {
 				reply_markup: {
 					resize_keyboard: true,
 					one_time_keyboard: true,
 					keyboard: [ 
-					params.replies.map((c) => {
-						if (_.isString(c)) return c;
-						return c.text;
-					})
+					f.data.replies.map((r) => { return r.text; }) 
 					]
 				}
 			};
 		}
-
-		if (params.text) {
-			const send_voice = /http/.test(params.text) === false &&
-				params.forceText !== true && 
-				 _.random(0, 4) === 1;
-			if (send_voice) {
-				const Polly = require(__basedir + '/support/polly');
-				bot.sendChatAction(data.chatId, 'record_audio');
-				Polly.playToFile(params.text, (err, file) => {
-					if (err) {
-						bot.sendChatAction(data.chatId, 'typing');
-						bot.sendMessage(data.chatId, params.text, message_opt);
-					} else {
-						bot.sendVoice(data.chatId, file, message_opt);
-					}
-				});
-			} else {
-				bot.sendChatAction(data.chatId, 'typing');
-				bot.sendMessage(data.chatId, params.text, message_opt);
+		
+		if (f.speech) {
+			if (f.data.url) {
+				f.speech += "\n" + f.data.url;
 			}
+			bot.sendChatAction(data.chatId, 'typing');
+			bot.sendMessage(data.chatId, f.speech, message_opt);
 			return resolve();
 		}
 
-		if (params.media) {
+		if (f.data.media) {
 			bot.sendChatAction(data.chatId, 'typing');
-			if (params.media.artist) {
-				bot.sendMessage(data.chatId, params.media.artist.external_urls.spotify, message_opt);
+			if (f.data.media.artist) {
+				bot.sendMessage(data.chatId, f.data.media.artist.external_urls.spotify, message_opt);
 				return resolve();
 			}
-			if (params.media.track) {
-				bot.sendMessage(data.chatId, params.media.track.external_urls.spotify, message_opt);
+			if (f.data.media.track) {
+				bot.sendMessage(data.chatId, f.data.media.track.external_urls.spotify, message_opt);
 				return resolve();
 			}
-			if (params.media.playlist) {
-				bot.sendMessage(data.chatId, params.media.playlist.external_urls.spotify, message_opt);
+			if (f.data.media.playlist) {
+				bot.sendMessage(data.chatId, f.data.media.playlist.external_urls.spotify, message_opt);
 				return resolve();
 			}
 			return reject();
 		}
 
-		if (params.image) {
-			if (params.image.remoteFile) {
+		if (f.data.image) {
+			if (f.data.image.remoteFile) {
 				bot.sendChatAction(data.chatId, 'upload_photo');
-				bot.sendPhoto(data.chatId, params.image.remoteFile, message_opt);
-			} else if (params.image.localFile) {
+				bot.sendPhoto(data.chatId, f.data.image.remoteFile, message_opt);
+			} else if (f.data.image.localFile) {
 				bot.sendChatAction(data.chatId, 'upload_photo');
-				bot.sendPhoto(data.chatId, params.image.localFile, message_opt);
+				bot.sendPhoto(data.chatId, f.data.image.localFile, message_opt);
 			}
 			return resolve();
 		}
 
-		if (params.lyrics) {
+		if (f.lyrics) {
 			bot.sendChatAction(data.chatId, 'typing');
-			bot.sendMessage(data.chatId, params.lyrics.lyrics_body, message_opt);
+			bot.sendMessage(data.chatId, f.lyrics.lyrics_body, message_opt);
 			return resolve();
 		}
 
@@ -208,7 +188,7 @@ bot.on('message', (e) => {
 			return exports.emitter.emit('input', {
 				data: data,
 				params: {
-					answer: err
+					speech: err
 				}
 			});
 		}

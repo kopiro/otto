@@ -2,10 +2,9 @@ exports.id = 'lyrics.search';
 
 const MusixMatch = require(__basedir + '/support/musixmatch');
 
-module.exports = function(e) {
+module.exports = function({ sessionId, result }) {
 	return new Promise((resolve, reject) => {
-		console.debug(exports.id, e);
-		let { parameters:p, fulfillment, resolvedQuery } = e;
+		let { parameters: p, fulfillment } = result;
 		
 		if (p.track) {
 			MusixMatch.searchTrack({
@@ -22,10 +21,12 @@ module.exports = function(e) {
 				MusixMatch.trackLyrics({
 					track_id: body[0].track_id
 				}, (err, body) => {
-					if (err) return reject(err);
+					if (err) return reject();
 
 					resolve({
-						lyrics: body
+						data: {
+							lyrics: body
+						}
 					});
 				});
 			});

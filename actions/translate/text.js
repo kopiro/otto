@@ -2,11 +2,10 @@ exports.id = 'translate.text';
 
 const Translator = require(__basedir + '/support/translator');
 
-module.exports = function(e) {
+module.exports = function({ sessionId, result }) {
 	return new Promise((resolve, reject) => {
-		console.debug(exports.id, e);
-
-		let { parameters:p } = e;
+		let { parameters: p, fulfillment } = result;
+		
 		let lang_iso_code;
 
 		if (p.to) lang_iso_code = p.to.langCode;
@@ -14,9 +13,7 @@ module.exports = function(e) {
 
 		Translator.translate(p.text, lang_iso_code, (err, translation) => {
 			if (err) {
-				return resolve({
-					text: 'Scusa, ma non riesco a tradurre questo per te'
-				});
+				return reject();
 			}
 
 			resolve(translation);

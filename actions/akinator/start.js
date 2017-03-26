@@ -1,84 +1,61 @@
-const Akinator = require(__basedir + '/support/akinator');
-let akinatorClients = {};
-
 exports.id = 'akinator.start';
+const akinator = require(__basedir + '/support/akinator');
 
-module.exports = function(e, { data, io }) {
+module.exports = function({ sessionId, result }) {
 	return new Promise((resolve, reject) => {
-		console.debug(exports.id, e);
+		let { parameters: p, fulfillment } = result;
+		
+		const akiClient = akinator.data[sessionId] = {
+			client: akinator.create('it'),
+			speech: null, 
+			replies: null,
+			resolver: resolve
+		};
 
-		if (e.pending) {
+		akiClient.client.hello(null, 
 
-			let { question, answers, replies } = akinatorClients[data.sessionId];
+		// on start
+		(question, answers) => {
+			console.debug(exports.id, 'hello', question, answers);
 
-			if (e.params.text !== 'Stop') {
-				
-				const answer = _.find(answers, (ans) => {
-					return ans.text == e.params.text;
-				});
-
-				console.debug(exports.id, 'sending', answer);
-
-				if (answer == null) {
-					resolve({
-						text: 'Scusami, ma non capisco la tua risposta. Ripeto:\n' + question.text,
-						forceText: true,
-						replies: replies
-					});
-				} else {
-					akinatorClients[data.sessionId].promiseResolver = resolve;
-					akinatorClients[data.sessionId].client.sendAnswer(answer.id);
-				}
-
-			} else {
-				delete io.pendingActions[data.sessionId];
-				delete akinatorClients[data.sessionId];
-			}
-
-		} else {
-
-			const akiClient = akinatorClients[data.sessionId] = {
-				client: new Akinator('it'),
-				question: null,
-				answers: null,
-				promiseResolver: resolve
-			};
-
-			akiClient.client.hello(data.title, (question, answers) => {
-
-				console.debug(exports.id, 'hello', question, answers);
-
-				io.pendingActions[data.sessionId] = exports.id;
-				akiClient.question = question;
-				akiClient.answers = answers;
-				akiClient.replies = _.compact(answers.map((ans) => {
-					if (ans.text == null) return;
-					return {
-						id: ans.id,
-						text: ans.text
-					};
-				})).concat({
-					id: -1,
-					text: 'Stop'
-				});
-
-				akiClient.promiseResolver({
-					text: question.text,
-					forceText: true,
-					replies: akiClient.replies
-				});
-
-			}, (characters) => {
-				const char = _.first(characters);
-
-				akiClient.promiseResolver({
-					text: `Stiamo parlando di ${char.name} - ${char.description}\n${char.absolute_picture_path}`
-				});
-
-				delete io.pendingActions[data.sessionId];
-				delete akinatorClients[data.sessionId];
+			akiClient.speech = question.text;
+			akiClient.replies = _.compact(answers.map((ans) => {
+				if (ans.text == null) return;
+				return {
+					id: ans.id,
+					text: ans.text
+				};
+			})).concat({
+				id: -1,
+				text: 'Stop'
 			});
 
-		}		
+			return akiClient.resolver({
+				speech: akiClient.speech,
+				contextOut: [
+					{ name: "akinator_answer", lifespan: 40 }
+				],
+				data: {
+					forceText: true,
+					replies: akiClient.replies
+				}
+			});
+		},
+
+		// on finish
+		(characters) => {
+			delete akinator.data[sessionId];
+			const char = _.first(characters);
+			return akiClient.resolver({
+				speech: `Stiamo parlando di ${char.name} - ${char.description}`,
+				data: {
+					url: char.absolute_picture_path
+				},
+				contextOut: [
+					{ name: "akinator_answer", lifespan: 0 } // Reset
+				],
+
+			});
+		});
 	});
 };

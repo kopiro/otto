@@ -1,12 +1,11 @@
 exports.id = 'repeat.index';
 
-module.exports = function(e) {
+module.exports = function({ sessionId, result }) {
 	return new Promise((resolve, reject) => {
-		console.debug(exports.id, e);
-		let { parameters:p, fulfillment, resolvedQuery } = e;
+		let { parameters: p, fulfillment } = result;
 
 		return resolve({
-			text: p.q
+			speech: p.q
 		});
 	});
 };

@@ -42,10 +42,9 @@ const apiai_to_wunderground = {
 	wind: ['flurries','chanceflurries'],
 };
 
-module.exports = function(e) {
+module.exports = function({ sessionId, result }) {
 	return new Promise((resolve, reject) => {
-		console.debug(exports.id, e);
-		const { parameters:p } = e;
+		let { parameters: p, fulfillment } = result;
 
 		let date = null;
 		if (!_.isEmpty(p.date)) {		
@@ -80,11 +79,11 @@ module.exports = function(e) {
 						const qualifier = wg_qualifiers_to_lang[wg_qualifier] || '';
 
 						resolve({
-							text: `Si, è prevista ${qualifier} ${wg_conditions_to_lang[wg_condition_wt_qualifiers]} a ${p.location}`
+							speech: `Si, è prevista ${qualifier} ${wg_conditions_to_lang[wg_condition_wt_qualifiers]} a ${p.location}`
 						});
 					} else { // no snow
 						resolve({
-							text: `No, non è prevista ${apiai_to_lang[desc]} a ${p.location}`
+							speech: `No, non è prevista ${apiai_to_lang[desc]} a ${p.location}`
 						});
 					}
 					break;
@@ -94,7 +93,7 @@ module.exports = function(e) {
 				case 'explicit':
 				const avg_temp = ((parseInt(obs.high.celsius, 10) + parseInt(obs.low.celsius, 10)) / 2).toFixed(0);
 				resolve({
-					text: `A ${p.location}, il tempo risulta essere ${obs.conditions}, con una temperatura media di ${avg_temp} gradi`
+					speech: `A ${p.location}, il tempo risulta essere ${obs.conditions}, con una temperatura media di ${avg_temp} gradi`
 				});
 				break;
 

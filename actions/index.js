@@ -23,5 +23,3 @@
 		}
 	});
 })(__dirname);
-
-console.debug('Available actions', _.keys(exports));
