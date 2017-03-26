@@ -8,6 +8,10 @@ if (config.server) {
 	require(__basedir + '/server');
 }
 
+if (config.awh) {
+	require(__basedir + '/awh');
+}
+
 function outCognitive(data, image, io) {
 	return new Promise((resolve, reject) => {
 		const Cognitive = require(__basedir + '/support/cognitive');
@@ -86,8 +90,8 @@ function onIoResponse({ error, data, params }) {
 
 			if (params.text) {
 				promise = APIAI.textRequest({
-					data: data, 
 					text: params.text, 
+					data: data, 
 					io: io
 				});
 			} else if (params.image) {

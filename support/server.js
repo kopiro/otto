@@ -18,8 +18,12 @@ app.engine('handlebars', exphbs({
 	partialsDir: __basedir + '/web/views/partials'
 }));
 
-const router_api = express.Router();
+////////////
+// Router //
+////////////
 
+const router_api = express.Router();
+router_api.use(require('body-parser').json());
 router_api.use(require('body-parser').urlencoded({
 	extended: true
 }));
@@ -31,7 +35,25 @@ router_api.get('/', (req, res) => {
 	});
 });
 
+///////////
+// Admin //
+///////////
+
 const router_admin = express.Router();
+
+////////////////////
+// API.AI webhook //
+////////////////////
+
+const router_awh = express.Router();
+router_awh.use(require('body-parser').json());
+router_awh.use(require('body-parser').urlencoded({
+	extended: true
+}));
+
+///////////
+// Mount //
+///////////
 
 // public
 app.use(express.static(__basedir + '/public'));
@@ -46,6 +68,7 @@ app.use('/styles', express.static(__basedir + '/build-web/styles'));
 // dynamics
 app.use('/api', router_api);
 app.use('/admin', router_admin);
+app.use('/awh', router_awh);
 
 app.listen(port, () => {
 	console.info(`HTTP Server has started on port ${port}`);
@@ -54,5 +77,6 @@ app.listen(port, () => {
 module.exports = {
 	app: app,
 	routerAdmin: router_admin,
-	routerApi: router_api
+	routerApi: router_api,
+	routerAwh: router_awh
 };
