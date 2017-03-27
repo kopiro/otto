@@ -1,22 +1,36 @@
 exports.id = 'translate.text';
 
-const Translator = require(__basedir + '/support/translator');
+const Translator = apprequire('translator');
 
 module.exports = function({ sessionId, result }) {
 	return new Promise((resolve, reject) => {
-		let { parameters: p, fulfillment } = result;
-		
-		let lang_iso_code;
+		const { parameters: p, fulfillment } = result;
 
-		if (p.to) lang_iso_code = p.to.langCode;
-		else lang_iso_code = config.language;
+		const languages = JSON.parse(fs.readFileSync(__basedir + '/etc/languages.json'));
+		let lang = null;
 
-		Translator.translate(p.text, lang_iso_code, (err, translation) => {
+		for (let lang_iso in languages) {
+			if (languages.hasOwnProperty(lang_iso)) {
+				if (languages[lang_iso].toLowerCase() == p.language.toLowerCase()) {
+					lang = lang_iso;
+				}
+			}
+		}
+	
+		Translator.translate(p.q, lang || config.language, (err, translation) => {
 			if (err) {
+				console.error(exports.id, err);
 				return reject();
 			}
-
-			resolve(translation);
+			
+			resolve({
+				speech: translation,
+				data: {
+					speech: {
+						language: lang
+					}
+				}
+			});
 		});
 	});
 };
