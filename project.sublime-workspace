@@ -614,15 +614,27 @@
 	"expanded_folders":
 	[
 		"/Users/flavio.destefano/Repos/otto-ai",
-		"/Users/flavio.destefano/Repos/otto-ai/etc",
-		"/Users/flavio.destefano/Repos/otto-ai/io"
+		"/Users/flavio.destefano/Repos/otto-ai/bin",
+		"/Users/flavio.destefano/Repos/otto-ai/support"
 	],
 	"file_history":
 	[
+		"/Users/flavio.destefano/Repos/otto-ai/io/telegram.js",
+		"/Users/flavio.destefano/Repos/otto-ai/io/kid.js",
+		"/Users/flavio.destefano/Repos/otto-ai/support/speechrecognizer.js",
+		"/Users/flavio.destefano/Repos/otto-ai/bin/spid_enroll.js",
+		"/Users/flavio.destefano/Repos/otto-ai/bin/spid_verify.js",
+		"/Users/flavio.destefano/Repos/otto-ai/support/cognitive.js",
+		"/Users/flavio.destefano/Repos/otto-ai/config.json",
+		"/Users/flavio.destefano/Repos/otto-ai/support/rec.js",
+		"/Users/flavio.destefano/Repos/otto-ai/bin/impersonator.js",
+		"/Users/flavio.destefano/Repos/otto-ai/actions/index.js",
+		"/Users/flavio.destefano/Repos/otto-ai/io/api.js",
+		"/Users/flavio.destefano/Repos/otto-ai/support/polly.js",
+		"/Users/flavio.destefano/Repos/otto-ai/cache/polly.json",
+		"/Users/flavio.destefano/Repos/otto-ai/io/test.js",
 		"/Users/flavio.destefano/Repos/otto-ai/etc/languages.json",
 		"/Users/flavio.destefano/Repos/otto-ai/html/memories.html",
-		"/Users/flavio.destefano/Repos/otto-ai/io/api.js",
-		"/Users/flavio.destefano/Repos/otto-ai/io/kid.js",
 		"/Users/flavio.destefano/Repos/otto-ai/html/cron.html",
 		"/Users/flavio.destefano/Repos/otto-ai/project.sublime-project",
 		"/Users/flavio.destefano/Repos/otto-ai/raspi_start.sh",
@@ -638,7 +650,6 @@
 		"/Users/flavio.destefano/Repos/otto-ai/support/akinator.js",
 		"/Users/flavio.destefano/Repos/otto-ai/support/play.js",
 		"/Users/flavio.destefano/Repos/otto-ai/support/lumenvoxhack.js",
-		"/Users/flavio.destefano/Repos/otto-ai/config.json",
 		"/Users/flavio.destefano/Repos/otto-ai/support/mopidy.js",
 		"/Users/flavio.destefano/Repos/otto-ai/cron.js",
 		"/Users/flavio.destefano/Repos/otto-ai/actions/datetime/now.js",
@@ -663,7 +674,6 @@
 		"/Users/flavio.destefano/Repos/otto-ai/actions/contacts/nicknames_get.js",
 		"/Users/flavio.destefano/Repos/otto-ai/actions/alarm/set.js",
 		"/Users/flavio.destefano/Repos/otto-ai/actions/akinator/start.js",
-		"/Users/flavio.destefano/Repos/otto-ai/actions/index.js",
 		"/Users/flavio.destefano/Repos/otto-ai/actions/__example.js",
 		"/Users/flavio.destefano/Repos/otto-ai/apiai.js",
 		"/Users/flavio.destefano/Repos/otto-ai/forever.json",
@@ -736,21 +746,11 @@
 		"/Users/flavio.destefano/Downloads/1-FOCFAgent_Contest1/agent.json",
 		"/Users/flavio.destefano/Repos/otto-ai/main.js",
 		"/Users/flavio.destefano/Repos/otto-ai/web/views/layouts/main.handlebars",
-		"/Users/flavio.destefano/Repos/otto-ai/yarn.lock",
-		"/Users/flavio.destefano/Repos/otto-ai/util.js",
-		"/Users/flavio.destefano/Repos/otto-ai/io/messenger.js",
-		"/Users/flavio.destefano/Repos/otto-ai/io/telegram.js",
-		"/Users/flavio.destefano/Desktop/otto/entities/drawq.json",
-		"/Users/flavio.destefano/Desktop/test.html",
-		"/Users/flavio.destefano/Repos/otto-ai/memory.js",
-		"/Users/flavio.destefano/Repos/otto-ai/io/test.js",
-		"/Users/flavio.destefano/Repos/otto-ai/bin/start.sh",
-		"/Users/flavio.destefano/Repos/otto-ai/cache/lumenvox.json",
-		"/Users/flavio.destefano/Repos/otto-ai/support/speechrecognizer.js"
+		"/Users/flavio.destefano/Repos/otto-ai/yarn.lock"
 	],
 	"find":
 	{
-		"height": 32.0
+		"height": 73.0
 	},
 	"find_in_files":
 	{
@@ -767,9 +767,20 @@
 	},
 	"find_state":
 	{
-		"case_sensitive": false,
+		"case_sensitive": true,
 		"find_history":
 		[
+			"end",
+			"recognizeAudioStream",
+			"tmp_file",
+			"rec_strem",
+			"Cogntive",
+			"verbose",
+			"options",
+			"Play",
+			"f.media",
+			"params",
+			"fulfillment",
 			"Play",
 			"/Play",
 			"Play",
@@ -886,18 +897,7 @@
 			"isoWeekday",
 			"return moment().hour(); ",
 			"new Memory",
-			"new ",
-			"isoWeekday",
-			"PITCH",
-			"localFile",
-			"outCognitive",
-			"telegram",
-			"require('node-uuid').v4()",
-			"Date.now",
-			"AI_NAME_REGEX",
-			"emit",
-			"callback",
-			"errorResponse"
+			"new "
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -924,7 +924,7 @@
 	],
 	"incremental_find":
 	{
-		"height": 32.0
+		"height": 35.0
 	},
 	"input":
 	{
@@ -961,7 +961,7 @@
 	"project": "project.sublime-project",
 	"replace":
 	{
-		"height": 60.0
+		"height": 66.0
 	},
 	"save_all_on_build": true,
 	"select_file":
@@ -975,16 +975,44 @@
 				"io/kid.js"
 			],
 			[
+				"conf",
+				"config.json"
+			],
+			[
+				"rec.js",
+				"support/rec.js"
+			],
+			[
+				"rec",
+				"support/rec.js"
+			],
+			[
+				"cognti",
+				"support/cognitive.js"
+			],
+			[
+				"kid.",
+				"io/kid.js"
+			],
+			[
+				"id",
+				"actions/index.js"
+			],
+			[
+				"spee",
+				"support/speechrecognizer.js"
+			],
+			[
+				"poll",
+				"support/polly.js"
+			],
+			[
 				"index",
 				"index.php"
 			],
 			[
 				"luoghi",
 				"site/templates/luoghi.php"
-			],
-			[
-				"conf",
-				"config.json"
 			],
 			[
 				"play",
@@ -1453,34 +1481,6 @@
 			[
 				"con",
 				"app/config.json"
-			],
-			[
-				"app.tss",
-				"app/styles/app.tss"
-			],
-			[
-				"chat/inde",
-				"app/assets/webkit/chat/index.html"
-			],
-			[
-				"signxml",
-				"app/views/signup.xml"
-			],
-			[
-				"chat",
-				"app/controllers/chat.js"
-			],
-			[
-				"sixml",
-				"app/views/signup.xml"
-			],
-			[
-				"viewsn",
-				"app/controllers/widgets/viewsNavigator.js"
-			],
-			[
-				"signsj",
-				"app/controllers/signup.js"
 			]
 		],
 		"width": 0.0

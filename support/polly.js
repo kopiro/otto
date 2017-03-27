@@ -24,7 +24,7 @@ function setCache(text, file) {
 exports.download = function(text, callback) {
 	text = text.trim();
 	if (cache[text] && fs.existsSync(cache[text])) {
-		console.debug(TAG, 'text in cache', text);
+		console.debug(TAG, cache[text], '(cached)');
 		callback(null, cache[text]);
 	} else {
 		Polly.synthesizeSpeech({
@@ -43,6 +43,8 @@ exports.download = function(text, callback) {
 					console.error(TAG, err);
 					return callback(err);
 				}
+
+				console.debug(TAG, cached_audio_file);
 
 				setCache(text, cached_audio_file);
 				callback(null, cached_audio_file);
@@ -67,13 +69,23 @@ exports.play = function(text, callback) {
 	});
 };
 
-exports.playToFile = function(text, callback) {
-	exports.download(text, (err, file) => {
+exports.playToFile = function(text, file, callback) {
+	exports.download(text, (err, polly_file) => {
+		if (err) return callback(err);
+		play.fileToFile(polly_file, file, (err) => {
+			if (err) return callback(err);
+			callback(null);
+		});
+	});
+};
+
+exports.playToTmpFile = function(text, callback) {
+	exports.download(text, (err, polly_file) => {
 		if (err) {
 			return callback(err);
 		}
 
-		play.fileToFile(file, (err) => {
+		play.fileToTmpFile(polly_file, (err) => {
 			if (err) {
 				return callback(err);
 			}

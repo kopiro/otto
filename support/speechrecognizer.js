@@ -4,14 +4,15 @@ const speechClient = require('@google-cloud/speech')({
 
 const TAG = 'SpeechRecognizer';
 
-function createRecognizeStream(opt, callback, end) {
+function createRecognizeStream(opt, callback) {
 	let processing = true;
 	let recognized = false;
-	end = end || (() => {});
+	let text = null;
+	let timeout = null;
 
 	const speechRecognizer = speechClient.createRecognizeStream({
 		// If false or omitted, the recognizer will perform continuous recognition
-		singleUtterance: false,
+		singleUtterance: true,
 		// If true, interim results (tentative hypotheses) may be returned as they become available 
 		interimResults: false,
 		config: {
@@ -24,36 +25,39 @@ function createRecognizeStream(opt, callback, end) {
 	speechRecognizer.on('error', (err) => {
 		console.error(TAG, err);
 		callback(err);
-		end();
 	});
 
 	speechRecognizer.on('data', function(data) {
+		console.debug(TAG, data.endpointerType);
 		switch (data.endpointerType) {
 
 			case 'START_OF_SPEECH':
-			console.debug(TAG, 'start of speech');
+			// console.debug(TAG, 'start of speech');
 			break;
 
 			case 'ENDPOINTER_EVENT_UNSPECIFIED':
-			let text = data.results;
-			console.debug(TAG, 'recognized: ' + text);
-			recognized = true;
+			text = data.results;
+			console.debug(TAG, text);
+			clearTimeout(timeout);
 			callback(null, text);
-			// no-break
-
-			case 'END_OF_UTTERANCE':
-			case 'END_OF_AUDIO':
-			end();
-			end = (() => {}); // who the first call
 			break;
 
+			case 'END_OF_UTTERANCE':
+			case 'END_OF_SPEECH':
+			case 'END_OF_AUDIO':
+			if (text == null) {
+				timeout = setTimeout(() => {
+					callback({ unrecognized: true });
+				}, 500);
+			}
+			break;
 		}
 	});
 
 	return speechRecognizer;
 }
 
-exports.recognizeAudioStream = function(stream, end, must_convert) {
+exports.recognizeAudioStream = function(stream, must_convert) {
 	return new Promise((resolve, reject) => {
 
 		if (must_convert) {
@@ -68,7 +72,6 @@ exports.recognizeAudioStream = function(stream, end, must_convert) {
 				if (err) return reject(err);
 				resolve(text);
 			}, () => {
-				end();
 				fs.unlink(tmp_file_audio, () => {});
 			});
 
@@ -87,7 +90,7 @@ exports.recognizeAudioStream = function(stream, end, must_convert) {
 			stream.pipe(createRecognizeStream({}, (err, text) => {
 				if (err) return reject(err);
 				resolve(text);
-			}, end));
+			}));
 		}
 	});
 };

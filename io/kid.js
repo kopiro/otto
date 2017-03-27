@@ -38,16 +38,22 @@ exports.startInput = function(opt) {
 		sessionId: sessionId
 	};
 
+	
 	let rec_stream = Rec.start(_.extend({
 		sampleRate: 16000,
-		verbose: true
+		verbose: false,
+		silence: true,
+		time: 10
 	}, config.recorder));
 
-	SpeechRecognizer.recognizeAudioStream(rec_stream, () => {
-		Rec.stop();
-	}, false)
+	SpeechRecognizer.recognizeAudioStream(rec_stream, false)
 	.then((text) => {
-		console.user(TAG, 'input', text);
+		Rec.stop();
+		process.stdout.write(
+		"-------------------\n\n" + 
+		text + "\n\n" + 
+		"-------------------\n"
+		);
 		exports.emitter.emit('input', {
 			data: data,
 			params: {
@@ -56,8 +62,9 @@ exports.startInput = function(opt) {
 		});
 	})
 	.catch((err) => {
+		Rec.stop();
 		console.error(TAG, 'input', err);
-		reject();
+		exports.startInput({ listenSound: false });
 	});
 };
 

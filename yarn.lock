@@ -3879,6 +3879,10 @@ watchify@^3.9.0:
     through2 "^2.0.0"
     xtend "^4.0.0"
 
+weather-yahoo@^1.0.2:
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/weather-yahoo/-/weather-yahoo-1.0.2.tgz#e97dc1a3fcf90a9107fc28fcc55468c141d844b7"
+
 websocket-driver@>=0.5.1:
   version "0.6.5"
   resolved "https://registry.yarnpkg.com/websocket-driver/-/websocket-driver-0.6.5.tgz#5cb2556ceb85f4373c6d8238aa691c8454e13a36"

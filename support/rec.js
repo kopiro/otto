@@ -1,21 +1,24 @@
 const TAG = 'Rec';
 
 const spawn = require('child_process').spawn;
-const stream = require('stream');
-
-let recstream;
 let rec;
 
 // returns a Readable stream
 exports.start = function(opt) {
 	_.defaults(opt, {
 		sampleRate: 16000,
-		compress: true
+		threshold: 0.5,
+		silence: false,
+		device: null,
+		verbose: false,
+		time: false
 	});
 
-	recstream = new stream.PassThrough();
+	let rec_opt = {
+		encoding: 'binary'
+	};
 
-	rec = spawn('rec', [
+	let rec_args = [
 	'-q',
 	'-r', opt.sampleRate,
 	'-c', '1',
@@ -23,22 +26,36 @@ exports.start = function(opt) {
 	'-b', '16',
 	'-t', 'wav',
 	'-',
-	]);
+	];
 
-	rec.stdout.setEncoding('binary');
-	rec.stdout.on('data', (data) => {
-		try {
-			recstream.write(new Buffer(data, 'binary'));
-		} catch (ex) {
-			console.error(TAG, ex.message);
-		}
+	if (opt.silence) {
+		rec_args = rec_args.concat('silence', '1', '0.1', opt.threshold + '%', '1', '1.0', opt.threshold + '%');
+	}
+
+	if (opt.time) {
+		rec_args = rec_args.concat('trim', '0', opt.time);
+	}
+
+	if (opt.device) {
+		rec_opt.env = Object.assign({}, process.env, { AUDIODEV: opt.device });
+	}
+
+	rec = spawn('rec', rec_args, rec_opt);
+
+	if (opt.verbose) {
+		rec.stdout.on('data', function (data) {
+			console.debug(TAG, 'recording');
+		});
+	}
+
+	rec.stdout.on('end', function () {
+		console.debug(TAG, 'end');
 	});
 
-	return recstream;
+	return rec.stdout;
 };
 
 exports.stop = function () {
-	recstream.end();
+	if (null == rec) return;
 	rec.kill();
-	return recstream;
 };
