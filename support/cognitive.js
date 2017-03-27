@@ -29,6 +29,7 @@ function req(callback, ep, body, method) {
 
 exports.vision = {};
 exports.face = {};
+exports.spid = {};
 
 exports.vision.analyze = function(url, callback) {
 	const ep = `vision/v1.0/analyze?visualFeatures=categories,tags,description,faces,imagetype&details=celebrities`;
@@ -88,4 +89,26 @@ exports.face.addPersonFace = function(person_id, url, callback) {
 	return req(callback, `face/v1.0/persongroups/contacts/persons/${person_id}/persistedFaces`, {
 		url: url
 	});
+};
+
+exports.spid.createEnrollment = function(profile_id, audio_stream, callback) {
+	const ep = `spid/v1.0/identificationProfiles/${profile_id}/enroll?shortAudio=true`;
+	audio_stream.pipe(req(callback, ep, null, 'POST'));
+};
+
+exports.spid.createProfile = function(locale, callback) {
+	const ep = `spid/v1.0/identificationProfiles`;
+	return req(callback, ep, {
+		locale: locale
+	}, 'POST');
+};
+
+exports.spid.verify = function(profile_id, audio_stream, callback) {
+	const ep = `spid/v1.0/verify?verificationProfileId=${profile_id}`;
+	audio_stream.pipe(req(callback, ep, null, 'POST'));
+};
+
+exports.spid.identify = function(profile_ids, audio_stream, callback) {
+	const ep = `spid/v1.0/identify?shortAudio=true&identificationProfileIds=` + profile_ids.join(',');
+	audio_stream.pipe(req(callback, ep, null, 'POST'));
 };
