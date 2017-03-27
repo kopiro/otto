@@ -9,6 +9,4 @@ if (process.argv[2] == null) {
 	process.exit(1);
 }
 
-Polly.play(process.argv[2], () => {
-	process.exit(0);
-});
+Polly.play(process.argv[2]);

@@ -1,3 +1,5 @@
+exports.list = {};
+
 (function iterate(dir) {
 	fs.readdirSync(dir).forEach(function(file) {
 		file = dir + '/' + file;
@@ -13,7 +15,7 @@
 				.replace(/\//g, '.')
 				.replace('.js','');
 				if (action_name) {
-					exports[action_name] = function() { 
+					exports.list[action_name] = function() { 
 						let mod = require(file); 
 						mod.id = action_name;
 						return mod;

@@ -48,7 +48,6 @@ function outCognitive(data, image, io) {
 	});
 }
 
-
 let IOs = [];
 config.ioDrivers.forEach((driver) => {
 	IOs.push(require(__basedir + '/io/' + driver));

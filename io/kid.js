@@ -38,7 +38,6 @@ exports.startInput = function(opt) {
 		sessionId: sessionId
 	};
 
-	
 	let rec_stream = Rec.start(_.extend({
 		sampleRate: 16000,
 		verbose: false,
@@ -74,15 +73,15 @@ exports.output = function({ data, fulfillment:f }) {
 
 	return new Promise((resolve, reject) => {
 		if (f.error) {
-			if (f.error.speech) {		
-				polly.play(f.error.speech, resolve);
+			if (f.error.speech) {	
+				Polly.play(f.error.speech, resolve);
 			} else {
 				return resolve();
 			}
 		}
 
 		if (f.speech) {
-			return Polly.play(f.speech, resolve);
+			return Polly.play(f.speech, f.data.speech).then(resolve);
 		} 
 
 		if (f.data.media) {
@@ -149,7 +148,7 @@ exports.output = function({ data, fulfillment:f }) {
 		}
 
 		if (f.data.lyrics) {
-			return Polly.play(f.data.lyrics.lyrics_body.split("\n")[0], resolve);
+			return Polly.play(f.data.lyrics.lyrics_body.split("\n")[0]).then(resolve);
 		}
 
 		return reject({ unkownOutputType: true });

@@ -1,7 +1,8 @@
 const TAG = 'AWH';
 const router = require(__basedir + '/support/server').routerAwh;
-const actions = require(__basedir + '/actions');
 
+const Actions = require(__basedir + '/actions');
+ 
 router.post('/', (req, res) => {
 	if (req.body == null) {
 		console.error(TAG, 'Empty body', req.body);
@@ -33,7 +34,9 @@ router.post('/', (req, res) => {
 		});
 	}
 
-	if ( ! _.isFunction(actions[action])) {
+	const action_fn_promise = Actions.list[ action ];
+
+	if (!_.isFunction(action_fn_promise)) {
 		console.error(TAG, `action ${action} not found`);
 		return res.json({
 			error: {
@@ -42,16 +45,14 @@ router.post('/', (req, res) => {
 		});
 	}
 
-	actions[action]()(req.body, {})
-	.then((action_result) => {
-		console.debug(TAG, 'action_result', action_result);
-		res.json(action_result);
+	AI.fulfillmentPromiseTransformer( action_fn_promise(), req.body )
+	.then((fullfilment) => {
+		console.debug(TAG, 'fullfilment', fullfilment);
+		res.json(fullfilment);
 	})
-	.catch((action_err) => {
-		console.error(TAG, 'action_err', action_err);
-		res.json({
-			error: action_err
-		});
+	.catch((err) => {
+		console.error(TAG, 'error', err);
+		res.json({ error: err });
 	});
 });
 

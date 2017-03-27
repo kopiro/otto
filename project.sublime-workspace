@@ -4,6 +4,18 @@
 		"selected_items":
 		[
 			[
+				"lang",
+				"languages"
+			],
+			[
+				"l",
+				"languages"
+			],
+			[
+				"encodeUri",
+				"encodeURIComponent"
+			],
+			[
 				"cache",
 				"cached_audio_file"
 			],
@@ -479,6 +491,31 @@
 	},
 	"buffers":
 	[
+		{
+			"file": "config.json",
+			"settings":
+			{
+				"buffer_size": 1962,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "main.js",
+			"settings":
+			{
+				"buffer_size": 2324,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "apiai.js",
+			"settings":
+			{
+				"buffer_size": 3072,
+				"line_ending": "Unix"
+			}
+		}
 	],
 	"build_system": "",
 	"build_system_choices":
@@ -614,26 +651,46 @@
 	"expanded_folders":
 	[
 		"/Users/flavio.destefano/Repos/otto-ai",
-		"/Users/flavio.destefano/Repos/otto-ai/bin",
-		"/Users/flavio.destefano/Repos/otto-ai/support"
+		"/Users/flavio.destefano/Repos/otto-ai/actions",
+		"/Users/flavio.destefano/Repos/otto-ai/actions/settings",
+		"/Users/flavio.destefano/Repos/otto-ai/test"
 	],
 	"file_history":
 	[
-		"/Users/flavio.destefano/Repos/otto-ai/io/telegram.js",
-		"/Users/flavio.destefano/Repos/otto-ai/io/kid.js",
+		"/Users/flavio.destefano/Repos/otto-ai/awh.js",
+		"/Users/flavio.destefano/Repos/otto-ai/actions/index.js",
+		"/Users/flavio.destefano/Repos/otto-ai/support/translator.js",
+		"/Users/flavio.destefano/Repos/otto-ai/actions/akinator/start.js",
+		"/Users/flavio.destefano/Repos/otto-ai/actions/settings/switchlang.js",
 		"/Users/flavio.destefano/Repos/otto-ai/support/speechrecognizer.js",
+		"/Users/flavio.destefano/Repos/otto-ai/actions/translate/text.js",
+		"/Users/flavio.destefano/Repos/otto-ai/util.js",
+		"/Users/flavio.destefano/Repos/otto-ai/io/kid.js",
+		"/Users/flavio.destefano/Repos/otto-ai/config.json",
+		"/Users/flavio.destefano/Repos/otto-ai/in.txt",
+		"/Users/flavio.destefano/Repos/otto-ai/support/polly.js",
+		"/Users/flavio.destefano/Repos/otto-ai/boot.js",
+		"/Users/flavio.destefano/Repos/otto-ai/actions/repeat/index.js",
+		"/Users/flavio.destefano/Repos/otto-ai/cache/polly.json",
+		"/Users/flavio.destefano/Repos/otto-ai/bin/say.js",
+		"/Users/flavio.destefano/Repos/otto-ai/support/mopidy.js",
+		"/Users/flavio.destefano/Repos/otto-ai/etc/languages.json",
+		"/Users/flavio.destefano/Repos/otto-ai/actions/weather/search.js",
+		"/Users/flavio.destefano/Repos/otto-ai/actions/draw/index.js",
+		"/Users/flavio.destefano/Repos/otto-ai/package.json",
+		"/Users/flavio.destefano/Repos/otto-ai/actions/lyrics/search.js",
+		"/Users/flavio.destefano/Repos/otto-ai/actions/weather/__search.js",
+		"/Users/flavio.destefano/Repos/otto-ai/support/play.js",
+		"/Users/flavio.destefano/Repos/otto-ai/io/api.js",
+		"/Users/flavio.destefano/Repos/otto-ai/config.example.json",
+		"/Users/flavio.destefano/Repos/otto-ai/bin/impersonator.js",
+		"/Users/flavio.destefano/Repos/otto-ai/io/telegram.js",
+		"/Users/flavio.destefano/Repos/otto-ai/support/yahoo.js",
 		"/Users/flavio.destefano/Repos/otto-ai/bin/spid_enroll.js",
 		"/Users/flavio.destefano/Repos/otto-ai/bin/spid_verify.js",
 		"/Users/flavio.destefano/Repos/otto-ai/support/cognitive.js",
-		"/Users/flavio.destefano/Repos/otto-ai/config.json",
 		"/Users/flavio.destefano/Repos/otto-ai/support/rec.js",
-		"/Users/flavio.destefano/Repos/otto-ai/bin/impersonator.js",
-		"/Users/flavio.destefano/Repos/otto-ai/actions/index.js",
-		"/Users/flavio.destefano/Repos/otto-ai/io/api.js",
-		"/Users/flavio.destefano/Repos/otto-ai/support/polly.js",
-		"/Users/flavio.destefano/Repos/otto-ai/cache/polly.json",
 		"/Users/flavio.destefano/Repos/otto-ai/io/test.js",
-		"/Users/flavio.destefano/Repos/otto-ai/etc/languages.json",
 		"/Users/flavio.destefano/Repos/otto-ai/html/memories.html",
 		"/Users/flavio.destefano/Repos/otto-ai/html/cron.html",
 		"/Users/flavio.destefano/Repos/otto-ai/project.sublime-project",
@@ -648,18 +705,13 @@
 		"/Users/flavio.destefano/Sites/fai-giornate-2016/redis.php",
 		"/Users/flavio.destefano/Sites/teetee-website-2015/redis.php",
 		"/Users/flavio.destefano/Repos/otto-ai/support/akinator.js",
-		"/Users/flavio.destefano/Repos/otto-ai/support/play.js",
 		"/Users/flavio.destefano/Repos/otto-ai/support/lumenvoxhack.js",
-		"/Users/flavio.destefano/Repos/otto-ai/support/mopidy.js",
 		"/Users/flavio.destefano/Repos/otto-ai/cron.js",
 		"/Users/flavio.destefano/Repos/otto-ai/actions/datetime/now.js",
 		"/Users/flavio.destefano/Repos/otto-ai/actions/media/what.js",
 		"/Users/flavio.destefano/Repos/otto-ai/actions/media/navigation/next.js",
 		"/Users/flavio.destefano/Repos/otto-ai/actions/media/navigation/previous.js",
 		"/Users/flavio.destefano/Repos/otto-ai/actions/media/navigation/stop.js",
-		"/Users/flavio.destefano/Repos/otto-ai/actions/repeat/index.js",
-		"/Users/flavio.destefano/Repos/otto-ai/actions/translate/text.js",
-		"/Users/flavio.destefano/Repos/otto-ai/actions/weather/search.js",
 		"/Users/flavio.destefano/Repos/otto-ai/actions/wisdom/person.js",
 		"/Users/flavio.destefano/Repos/otto-ai/actions/wisdom/unknown.js",
 		"/Users/flavio.destefano/Repos/otto-ai/actions/learn/commands_add.js",
@@ -669,16 +721,12 @@
 		"/Users/flavio.destefano/Repos/otto-ai/actions/media/navigation/play.js",
 		"/Users/flavio.destefano/Repos/otto-ai/actions/media/navigation/pause.js",
 		"/Users/flavio.destefano/Repos/otto-ai/actions/math/expression.js",
-		"/Users/flavio.destefano/Repos/otto-ai/actions/lyrics/search.js",
-		"/Users/flavio.destefano/Repos/otto-ai/actions/draw/index.js",
 		"/Users/flavio.destefano/Repos/otto-ai/actions/contacts/nicknames_get.js",
 		"/Users/flavio.destefano/Repos/otto-ai/actions/alarm/set.js",
-		"/Users/flavio.destefano/Repos/otto-ai/actions/akinator/start.js",
 		"/Users/flavio.destefano/Repos/otto-ai/actions/__example.js",
 		"/Users/flavio.destefano/Repos/otto-ai/apiai.js",
 		"/Users/flavio.destefano/Repos/otto-ai/forever.json",
 		"/Users/flavio.destefano/Repos/otto-ai/support/server.js",
-		"/Users/flavio.destefano/Repos/otto-ai/package.json",
 		"/Users/flavio.destefano/Repos/otto-ai/support/webcam.js",
 		"/Users/flavio.destefano/Repos/otto-ai/pi/start.sh",
 		"/Users/flavio.destefano/Desktop/otto",
@@ -736,21 +784,11 @@
 		"/Users/flavio.destefano/Repos/follagenerator/.gitignore",
 		"/Users/flavio.destefano/Repos/follagenerator/cache/b7fd370f-dc4b-40f8-9272-1a98c76125f8.aiff",
 		"/Users/flavio.destefano/Repos/follagenerator/package.json",
-		"/Users/flavio.destefano/Repos/follagenerator/cache/.gitignore",
-		"/Users/flavio.destefano/Repos/otto-ai/server.js",
-		"/Users/flavio.destefano/Repos/otto-ai/web/views/admin/memories/edit.handlebars",
-		"/Users/flavio.destefano/Repos/otto-ai/web/scripts/main.jsx",
-		"/Users/flavio.destefano/Downloads/1-FOCFAgent_Contest1/intents/focf.films.show_school.prague.json",
-		"/Users/flavio.destefano/Downloads/4-FOCFAgent_PostEvent/customDomainsResponses.json",
-		"/Users/flavio.destefano/Downloads/1-FOCFAgent_Contest1/intents/sxsw.show_films.json",
-		"/Users/flavio.destefano/Downloads/1-FOCFAgent_Contest1/agent.json",
-		"/Users/flavio.destefano/Repos/otto-ai/main.js",
-		"/Users/flavio.destefano/Repos/otto-ai/web/views/layouts/main.handlebars",
-		"/Users/flavio.destefano/Repos/otto-ai/yarn.lock"
+		"/Users/flavio.destefano/Repos/follagenerator/cache/.gitignore"
 	],
 	"find":
 	{
-		"height": 73.0
+		"height": 70.0
 	},
 	"find_in_files":
 	{
@@ -770,6 +808,41 @@
 		"case_sensitive": true,
 		"find_history":
 		[
+			"action_err",
+			"fullfilment",
+			"action_result",
+			"action_promise",
+			"action",
+			"p.language",
+			"opt.language",
+			"opt.language ",
+			"opt.locale = ",
+			"opt.language",
+			"getCache",
+			"polly",
+			"getVoiceId",
+			"opt.",
+			"stringHash",
+			"cache[text]",
+			"file",
+			"Polly.",
+			"resolve",
+			"callback",
+			"Carla",
+			"callback",
+			"language",
+			"lang",
+			"lang_iso_code",
+			"fileToFile",
+			"argv",
+			"playToFile",
+			"listenSound",
+			"reject",
+			"recognizeAudioStream",
+			"body",
+			"url",
+			"fulfillment",
+			"date_human",
 			"end",
 			"recognizeAudioStream",
 			"tmp_file",
@@ -862,42 +935,7 @@
 			"getEulerTxtFileStream",
 			"uler",
 			"number_ZIP_REMOTE_FILE",
-			"euler_",
-			"euler_stream",
-			"cache_file",
-			"var",
-			"exp",
-			"Tags",
-			"req.params",
-			"jQuery",
-			"this",
-			"title",
-			"self",
-			"spotify",
-			"akinatorClients[data.sessionId]",
-			"e.attachment",
-			"photo",
-			"params.photo",
-			"Photo",
-			"photo",
-			"Photo",
-			"photo",
-			"isChatAvailable",
-			"chatId",
-			"chat_id",
-			"onIoResponse",
-			"onIOResponse",
-			"promise_error",
-			"let callback;\n",
-			"AI_NAME_REGEX",
-			"action",
-			"Action",
-			"action",
-			"startlisten",
-			"isoWeekday",
-			"return moment().hour(); ",
-			"new Memory",
-			"new "
+			"euler_"
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -917,14 +955,108 @@
 	"groups":
 	[
 		{
+			"selected": 2,
 			"sheets":
 			[
+				{
+					"buffer": 0,
+					"file": "config.json",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1962,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"auto_complete": false,
+							"color_scheme": "Packages/User/Color Highlighter/themes/Monokai (SL).tmTheme",
+							"syntax": "Packages/JavaScript/JSON.sublime-syntax",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "main.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 2324,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								335,
+								335
+							]
+						],
+						"settings":
+						{
+							"auto_complete": false,
+							"color_scheme": "Packages/User/Color Highlighter/themes/Monokai (SL).tmTheme",
+							"syntax": "Packages/JavaScript/JavaScript.sublime-syntax",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 2,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "apiai.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 3072,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								972,
+								972
+							]
+						],
+						"settings":
+						{
+							"auto_complete": false,
+							"color_scheme": "Packages/User/Color Highlighter/themes/Monokai (SL).tmTheme",
+							"syntax": "Packages/JavaScript/JavaScript.sublime-syntax",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 246.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				}
 			]
 		}
 	],
 	"incremental_find":
 	{
-		"height": 35.0
+		"height": 30.0
 	},
 	"input":
 	{
@@ -961,7 +1093,7 @@
 	"project": "project.sublime-project",
 	"replace":
 	{
-		"height": 66.0
+		"height": 56.0
 	},
 	"save_all_on_build": true,
 	"select_file":
@@ -971,12 +1103,92 @@
 		"selected_items":
 		[
 			[
-				"kid",
-				"io/kid.js"
+				"awh",
+				"awh.js"
+			],
+			[
+				"tr",
+				"support/translator.js"
+			],
+			[
+				"actions",
+				"actions/akinator/start.js"
+			],
+			[
+				"apiai",
+				"apiai.js"
+			],
+			[
+				"transt",
+				"support/translator.js"
+			],
+			[
+				"main",
+				"main.js"
+			],
+			[
+				"sswitc",
+				"actions/settings/switchlang.js"
 			],
 			[
 				"conf",
 				"config.json"
+			],
+			[
+				"kid",
+				"io/kid.js"
+			],
+			[
+				"speec",
+				"support/speechrecognizer.js"
+			],
+			[
+				"boot",
+				"boot.js"
+			],
+			[
+				"polly",
+				"support/polly.js"
+			],
+			[
+				"util",
+				"util.js"
+			],
+			[
+				"text",
+				"actions/translate/text.js"
+			],
+			[
+				"in",
+				"in.txt"
+			],
+			[
+				"translate",
+				"actions/translate/text.js"
+			],
+			[
+				"pack",
+				"package.json"
+			],
+			[
+				"sea",
+				"actions/lyrics/search.js"
+			],
+			[
+				"play",
+				"support/play.js"
+			],
+			[
+				"play.j",
+				"support/play.js"
+			],
+			[
+				"file.js",
+				"config.example.json"
+			],
+			[
+				"in.",
+				"in.txt"
 			],
 			[
 				"rec.js",
@@ -1015,10 +1227,6 @@
 				"site/templates/luoghi.php"
 			],
 			[
-				"play",
-				"support/play.js"
-			],
-			[
 				"tele",
 				"io/telegram.js"
 			],
@@ -1029,10 +1237,6 @@
 			[
 				"mopi",
 				"support/mopidy.js"
-			],
-			[
-				"apiai",
-				"apiai.js"
 			],
 			[
 				"cron",
@@ -1073,10 +1277,6 @@
 			[
 				"sushi",
 				"node_modules/stream-splicer/test/unshift.js"
-			],
-			[
-				"pack",
-				"package.json"
 			],
 			[
 				"choo",
@@ -1151,10 +1351,6 @@
 				"support/akinator.js"
 			],
 			[
-				"main",
-				"main.js"
-			],
-			[
 				"memo",
 				"memory.js"
 			],
@@ -1183,16 +1379,8 @@
 				"boot.js"
 			],
 			[
-				"in.",
-				"in.txt"
-			],
-			[
 				"mes",
 				"io/messenger.js"
-			],
-			[
-				"boot",
-				"boot.js"
 			],
 			[
 				"facebook",
@@ -1425,62 +1613,6 @@
 			[
 				"login.xml",
 				"app/views/login.xml"
-			],
-			[
-				"logint",
-				"app/styles/login.tss"
-			],
-			[
-				"login.js",
-				"app/controllers/login.js"
-			],
-			[
-				"splash.",
-				"app/views/login/splash.xml"
-			],
-			[
-				"splash.sj",
-				"app/controllers/login/splash.js"
-			],
-			[
-				"asplsh.tss",
-				"app/styles/login/splash.tss"
-			],
-			[
-				"splash.tss",
-				"app/styles/login/splash.tss"
-			],
-			[
-				"splash.xml",
-				"app/views/login/splash.xml"
-			],
-			[
-				"profile.xml",
-				"app/views/personalupgrade/profile.xml"
-			],
-			[
-				"profile.js",
-				"app/controllers/personalupgrade/profile.js"
-			],
-			[
-				"profile.tss",
-				"app/styles/personalupgrade/profile.tss"
-			],
-			[
-				"weba",
-				"app/lib/T/weballoy.js"
-			],
-			[
-				"donu",
-				"app/assets/web/views/doughnuts.html"
-			],
-			[
-				"app",
-				"app/styles/app.tss"
-			],
-			[
-				"con",
-				"app/config.json"
 			]
 		],
 		"width": 0.0

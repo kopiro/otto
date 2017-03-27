@@ -2,6 +2,7 @@ const TAG = 'Polly';
 
 const aws = require('aws-sdk');
 const fs = require('fs');
+const md5 = require('md5');
 
 const play = require(__basedir + '/support/play');
 
@@ -16,81 +17,127 @@ let cache = null;
 try { cache = require(CACHE_FILE); } 
 catch (ex) { cache = {}; }
 
-function setCache(text, file) {
-	cache[text] = file;
+let locale_to_voice = {};
+
+function setCache(text, voice, file) {
+	cache[ md5(text + voice) ] = file;
 	fs.writeFile(CACHE_FILE, JSON.stringify(cache), () => {});
 }
 
-exports.download = function(text, callback) {
-	text = text.trim();
-	if (cache[text] && fs.existsSync(cache[text])) {
-		console.debug(TAG, cache[text], '(cached)');
-		callback(null, cache[text]);
-	} else {
-		Polly.synthesizeSpeech({
-			Text: text,
-			OutputFormat: 'mp3',
-			VoiceId: 'Carla'
-		}, (err, data) => {
-			if (err) {
-				console.error(TAG, err);
-				return callback(err);
-			}
+function getCache(text, voice) {
+	const file = cache[ md5(text + voice) ];
+	if (file != null && fs.existsSync(file)) return file;
+}
 
-			const cached_audio_file = __cachedir + '/polly_' + require('uuid').v4() + '.mp3';
-			fs.writeFile(cached_audio_file, data.AudioStream, function(err) {
+function getVoice(opt) {
+	return new Promise((resolve, reject) => {
+		if (locale_to_voice[opt.locale]) {
+			resolve(locale_to_voice[opt.locale]);
+		} else {
+			Polly.describeVoices({
+				LanguageCode: opt.locale
+			}, (err, data) => {
 				if (err) {
-					console.error(TAG, err);
-					return callback(err);
+					console.error(TAG, 'falling back to locale due errors');
+					return getVoice(_.extend(config, { locale: config.locale }))
+					.then(resolve)
+					.catch(reject);
 				}
 
-				console.debug(TAG, cached_audio_file);
-
-				setCache(text, cached_audio_file);
-				callback(null, cached_audio_file);
+				console.debug(TAG, data);
+				locale_to_voice[opt.locale] = data.Voices.find((v) => { return v.Gender == opt.gender; });
+				resolve(locale_to_voice[opt.locale]);
 			});
-		});
-	}
-};
+		}
+	});
+}
 
-exports.play = function(text, callback) {
-	exports.download(text, (err, file) => {
-		if (err) {
-			return callback(err);
+exports.download = function(text, opt) {
+	return new Promise((resolve, reject) => {
+		text = text.trim();
+		opt = opt || {};
+
+		if (opt.language != null) {
+			opt.locale = Util.getLocaleFromLanguageCode(opt.language);
 		}
 
-		play.fileToSpeaker(file, (err) => {
-			if (err) {
-				return callback(err);
-			}
+		opt = _.extend(config.polly, {
+			locale: config.locale
+		}, opt);
 
-			callback(null);
-		});
+		let cached_file = getCache(text, opt.locale);
+		if (cached_file) {
+			console.debug(TAG, cached_file, '(cached)');
+			resolve(cached_file);
+			return;
+		}
+		
+		getVoice(opt)
+		.then((voice) => {
+			Polly.synthesizeSpeech({
+				VoiceId: voice.Id,
+				Text: text,
+				OutputFormat: 'mp3',
+			}, (err, data) => {
+				if (err) {
+					console.error(TAG, err);
+					return reject(err);
+				}
+
+				const cached_audio_file = __cachedir + '/polly_' + require('uuid').v4() + '.mp3';
+				fs.writeFile(cached_audio_file, data.AudioStream, function(err) {
+					if (err) {
+						console.error(TAG, err);
+						return reject(err);
+					}
+
+					console.debug(TAG, cached_audio_file);
+
+					setCache(text, voice, cached_audio_file);
+					resolve(cached_audio_file);
+				});
+			});
+		})
+		.catch(reject);
+
 	});
 };
 
-exports.playToFile = function(text, file, callback) {
-	exports.download(text, (err, polly_file) => {
-		if (err) return callback(err);
-		play.fileToFile(polly_file, file, (err) => {
-			if (err) return callback(err);
-			callback(null);
-		});
+exports.play = function(text, opt) {
+	return new Promise((resolve, reject) => {
+		exports.download(text, opt)
+		.then((polly_file) => {
+			play.fileToSpeaker(polly_file, (err) => {
+				if (err) return reject(err);
+				resolve();
+			});
+		})
+		.catch(reject);
 	});
 };
 
-exports.playToTmpFile = function(text, callback) {
-	exports.download(text, (err, polly_file) => {
-		if (err) {
-			return callback(err);
-		}
+exports.playToFile = function(text, file, opt) {
+	return new Promise((resolve, reject) => {
+		exports.download(text, opt)
+		.then((polly_file) => {
+			play.fileToFile(polly_file, file, (err) => {
+				if (err) return reject(err);
+				resolve();
+			});
+		})
+		.catch(reject);
+	});
+};
 
-		play.fileToTmpFile(polly_file, (err) => {
-			if (err) {
-				return callback(err);
-			}
-
-			callback(null);
-		});
+exports.playToTmpFile = function(text, opt) {
+	return new Promise((resolve, reject) => {
+		exports.download(text, opt)
+		.then((polly_file) => {
+			play.fileToTmpFile(polly_file, (err) => {
+				if (err) return reject(err);
+				resolve();
+			});
+		})
+		.catch(reject);
 	});
 };

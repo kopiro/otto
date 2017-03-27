@@ -1,4 +1,4 @@
-const TAG = 'Translatore';
+const TAG = 'Translator';
 
 const translate = require('@google-cloud/translate');
 const translateClient = translate({
