@@ -1,3 +1,5 @@
+require('console-ultimate/global').replace();
+
 global.__basedir = __dirname;
 global.__tmpdir = __dirname + '/tmp';
 global.__cachedir = __dirname + '/cache';
@@ -10,22 +12,6 @@ global.apprequire = function(k) {
 };
 
 global.AI_NAME = "Otto";
-
-[
-[ 'warn',  '\x1b[33m' ],
-[ 'error', '\x1b[31m' ],
-[ 'info',   '\x1b[32m' ],
-[ 'debug',   '\x1b[90m' ],
-// Custom methods
-[ 'user',   '\x1b[39m' ],
-[ 'ai',   '\x1b[39m' ],
-].forEach(function(pair) {
-	var method = pair[0], reset = '\x1b[0m', color = '\x1b[36m' + pair[1];
-	var func = console[method] || console.log;
-	console[method] = function() {
-		func.apply(console, [ color + '[' + method.toUpperCase() + ']' ].concat(_.toArray(arguments)).concat(reset) );
-	};
-});
 
 global._ = require('underscore');
 global.path = require('path');

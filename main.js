@@ -79,7 +79,7 @@ function errorResponse(fulfilment, session_model) {
 }
 
 function onIoResponse({ session_model, error, params }) {
-	console.info('onIoResponse', session_model.id, params);
+	console.debug('onIoResponse', session_model.id, params);
 	let io = this;
 
 	try {

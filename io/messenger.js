@@ -109,7 +109,7 @@ bot.on('error', (err) => {
 });
 
 bot.on('message', (e) => {
-	console.user(TAG, 'input', e);
+	console.info(TAG, 'input', e);
 
 	let sessionId = e.sender.id;
 

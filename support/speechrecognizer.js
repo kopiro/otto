@@ -39,7 +39,7 @@ function createRecognizeStream(opt, callback) {
 
 			case 'ENDPOINTER_EVENT_UNSPECIFIED':
 			text = data.results;
-			console.debug(TAG, text);
+			console.info(TAG, text);
 			clearTimeout(timeout);
 			callback(null, text);
 			break;

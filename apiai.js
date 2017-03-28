@@ -61,6 +61,8 @@ exports.textRequest = function(text, session_model) {
 				sessionId: session_model.id
 			});
 
+			console.debug(TAG, 'request', { text });
+
 			request.on('response', (body) => {
 				const action = body.result.action;
 
@@ -100,7 +102,7 @@ exports.textRequest = function(text, session_model) {
 						.catch(reject);
 					}
 
-					console.info(TAG, 'local resolution');
+					console.warn(TAG, 'local resolution');
 
 					return AI.fulfillmentTransformer( body.result.fulfillment, session_model )
 					.then(resolve)

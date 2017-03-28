@@ -53,12 +53,6 @@ exports.startInput = function(opt) {
 
 			Rec.stop();
 
-			process.stdout.write(
-			"-------------------\n" + 
-			text + "\n" + 
-			"-------------------\n"
-			);
-
 			IOManager.writeLogForSession(session_model.id, text);
 		
 			exports.emitter.emit('input', {

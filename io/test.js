@@ -27,7 +27,7 @@ exports.startInput = function() {
 
 		if (_.isEmpty(msg)) {
 			rl.question('> ', (answer) => {
-				console.user(TAG, 'input', answer);
+				console.info(TAG, 'input', answer);
 				exports.emitter.emit('input', {
 					session_model: session_model,
 					params: {
@@ -36,7 +36,7 @@ exports.startInput = function() {
 				});
 			});
 		} else {
-			console.user(TAG, 'input', msg);
+			console.info(TAG, 'input', msg);
 			exports.emitter.emit('input', {
 				session_model: session_model,
 				params: {
