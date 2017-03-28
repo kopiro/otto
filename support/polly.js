@@ -41,7 +41,8 @@ function getVoice(opt) {
 				LanguageCode: locale
 			}, (err, data) => {
 				if (err) {
-					console.error(TAG, `falling back to locale ${config.locale} instead of ${locale}`);
+					console.error(TAG, err);
+					console.debug(TAG, `falling back to locale ${config.locale} instead of ${locale}`);
 					return getVoice(_.extend(config, { language: config.language }))
 					.then(resolve)
 					.catch(reject);
