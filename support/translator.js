@@ -6,6 +6,14 @@ const translateClient = translate({
 });
 
 exports.translate = function(text, lang, callback) {
-	console.debug(TAG, { text, lang });
-	translateClient.translate(text, lang, callback);
+	console.debug(TAG, 'input', { text, lang });
+	translateClient.translate(text, lang, (err, text) => {
+		if (err) {
+			console.error(TAG, err);
+			return callback(err);
+		}
+		
+		console.debug(TAG, 'output', { text });
+		callback(err, text);
+	});
 };

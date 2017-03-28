@@ -25,12 +25,19 @@ module.exports = function({ sessionId, result }, session_model) {
 			}
 		}
 
+		let from = Util.getStringFromLanguageCode(session_model.get('translate_from'));
+		let to = Util.getStringFromLanguageCode(session_model.get('translate_to'));
 
 		session_model
 		.save()
 		.then(() => {
 			resolve({
-				speech: "Ok!"
+				speech: "Ok, io ti parlo in ${to}, tu mi parli in ${from}",
+				data: {
+					speech: {
+						language: session_model.get('translate_to')
+					}
+				}
 			});
 		});
 	});
