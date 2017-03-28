@@ -31,22 +31,25 @@ function getCache(text, voice) {
 
 function getVoice(opt) {
 	return new Promise((resolve, reject) => {
-		if (locale_to_voice[opt.locale]) {
-			resolve(locale_to_voice[opt.locale]);
+
+		const locale = Util.getLocaleFromLanguageCode(opt.language);
+
+		if (locale_to_voice[locale]) {
+			resolve(locale_to_voice[locale]);
 		} else {
 			Polly.describeVoices({
-				LanguageCode: opt.locale
+				LanguageCode: locale
 			}, (err, data) => {
 				if (err) {
-					console.error(TAG, `falling back to config locale (${config.locale}) due errors`);
-					return getVoice(_.extend(config, { locale: config.locale }))
+					console.error(TAG, `falling back to locale ${config.locale} instead of ${locale}`);
+					return getVoice(_.extend(config, { language: config.language }))
 					.then(resolve)
 					.catch(reject);
 				}
 
 				console.debug(TAG, data);
-				locale_to_voice[opt.locale] = data.Voices.find((v) => { return v.Gender == opt.gender; });
-				resolve(locale_to_voice[opt.locale]);
+				locale_to_voice[locale] = data.Voices.find((v) => { return v.Gender == opt.gender; });
+				resolve(locale_to_voice[locale]);
 			});
 		}
 	});
@@ -57,15 +60,13 @@ exports.download = function(text, opt) {
 		text = text.trim();
 		opt = opt || {};
 
-		if (opt.language != null) {
-			opt.locale = Util.getLocaleFromLanguageCode(opt.language);
-		}
-
 		opt = _.extend(config.polly, {
-			locale: config.locale
+			language: config.language
 		}, opt);
 
-		let cached_file = getCache(text, opt.locale);
+		const locale = Util.getLocaleFromLanguageCode(opt.language);
+
+		let cached_file = getCache(text, locale);
 		if (cached_file) {
 			console.debug(TAG, cached_file, '(cached)');
 			resolve(cached_file);
