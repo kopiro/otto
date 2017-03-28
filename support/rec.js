@@ -5,11 +5,11 @@ let rec;
 
 // returns a Readable stream
 exports.start = function(opt) {
-	_.defaults(opt, {
+	_.defaults(opt, config.rec, {
+		bin: 'rec',
 		sampleRate: 16000,
 		threshold: 0.5,
 		silence: false,
-		device: null,
 		verbose: false,
 		time: false
 	});
@@ -40,7 +40,8 @@ exports.start = function(opt) {
 		rec_opt.env = Object.assign({}, process.env, { AUDIODEV: opt.device });
 	}
 
-	rec = spawn('rec', rec_args, rec_opt);
+	console.debug(TAG, 'start', opt);
+	rec = spawn(opt.bin, rec_args, rec_opt);
 
 	if (opt.verbose) {
 		rec.stdout.on('data', function (data) {
