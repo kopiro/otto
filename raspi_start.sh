@@ -35,7 +35,7 @@ while true; do
 			echo "Auto updating..."
 			git fetch --all
 			git reset --hard origin/master
-			yarn
+			# yarn
 
 			echo "Stopping older instances..."
 			forever stop otto
