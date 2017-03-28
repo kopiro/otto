@@ -1,9 +1,9 @@
 const TAG = 'AWH';
-const router = require(__basedir + '/support/server').routerAwh;
 
+const Router = require(__basedir + '/support/server').routerAwh;
 const Actions = require(__basedir + '/actions');
  
-router.post('/', (req, res) => {
+Router.post('/', (req, res) => {
 	if (req.body == null) {
 		console.error(TAG, 'Empty body', req.body);
 		return res.json({
@@ -13,57 +13,44 @@ router.post('/', (req, res) => {
 		});
 	}
 
-	console.debug(TAG, req.body);
-	const action = req.body.result.action;
+	const body = req.body;
+	const result = req.body.result;
+	const action = result.action;
 
-	if (_.isEmpty(action)) {
-		console.error(TAG, 'Empty action');
-		return res.json({
-			error: {
-				message: 'Empty action'
-			}
+	const resolve = (data) => {
+		console.info(TAG, 'output', data);
+		res.json(data);
+	};
+
+	const reject = (err) => {
+		console.info(TAG, 'error', err);
+		res.json({
+			error: err
 		});
-	}
+	};
 
-	if (req.body.result.actionIncomplete) {
-		console.debug(TAG, 'action ${action} incomplete');
-		return res.json({
-			error: {
-				message: 'Action incomplete'
-			}
-		});
-	}
+	console.debug(TAG, body);
 
-	const action_fn_promise = Actions.list[ action ];
-
-	if (!_.isFunction(action_fn_promise)) {
-		console.error(TAG, `action ${action} not found`);
-		return res.json({
-			error: {
-				message: 'Action not found'
-			}
-		});
-	}
-
-	new Memory.Session({ id: req.body.sessionId })
+	new Memory.Session({ id: body.sessionId })
 	.fetch()
 	.then((session_model) => {
 
 		if (session_model == null) {
-			console.error(TAG, `Creating a model (fpt) with ${sessionId}`);
+			console.error(TAG, `Creating a missing session ID with ${sessionId}`);
 			session_model = new Memory.Session({ id: sessionId });
 			session_model.save();
 		}
 
-		AI.fulfillmentPromiseTransformer( action_fn_promise(), req.body, session_model )
-		.then((fullfilment) => {
-			console.debug(TAG, 'fullfilment', fullfilment);
-			res.json(fullfilment);
-		})
-		.catch((err) => {
-			console.error(TAG, 'error', err);
-			res.json({ error: err });
-		});
+		if (result.actionIncomplete !== true && !_.isEmpty(action) && _.isFunction(Actions.list[ action ])) {
+			console.info(TAG, 'calling action', action);
+			return AI.fulfillmentPromiseTransformer( Actions.list[ action ](), body, session_model )
+			.then(resolve)
+			.catch(reject);
+		}
+
+		AI.fulfillmentTransformer( result.fulfillment, session_model )
+		.then(resolve)
+		.catch(reject);
 
 	});
 });

@@ -8,7 +8,7 @@ const Actions = require(__basedir + '/actions');
 exports.fulfillmentTransformer = function(fulfillment, session_model) {
 	return new Promise((resolve, reject) => {
 		if (session_model.get('translate_to')) {
-			if (fulfillment.speech) {
+			if (!_.isEmpty(fulfillment.speech)) {
 				apprequire('translator').translate(fulfillment.speech, session_model.get('translate_to'), (err, new_speech) => {
 					if (err) return resolve(fulfillment);
 
@@ -29,8 +29,8 @@ exports.fulfillmentTransformer = function(fulfillment, session_model) {
 exports.fulfillmentPromiseTransformer = function(promise_fn, body, session_model) {
 	return new Promise((resolve, reject) => {
 		promise_fn(body, session_model)
-		.then((fullfilment) => {
-			return exports.fulfillmentTransformer(fullfilment, session_model);
+		.then((fulfillment) => {
+			return exports.fulfillmentTransformer(fulfillment, session_model);
 		})
 		.then(resolve)
 		.catch(reject);
@@ -60,54 +60,56 @@ exports.textRequest = function(text, session_model) {
 				sessionId: session_model.id
 			});
 
-			console.debug(TAG, 'textRequest', text, session_model.id);
+			request.on('response', (body) => {
+				console.debug(TAG, 'response', body);
 
-			request.on('response', (res) => {
-				console.debug(TAG, 'response', JSON.stringify(res, null, 2));
-				let fulfillment = res.result.fulfillment;
-				fulfillment.data = fulfillment.data || {};
+				const result = body.result;
+				const action = result.action;
 
-				// Try to resolve this action locally if no webhook is used
-				if (res.result.metadata.webhookUsed == "false") {
+				// If this action has not solved using webhook, reparse
+				if (result.metadata.webhookUsed === "false") {
 
-					if (!_.isEmpty(res.result.action) && res.result.actionIncomplete === false) {
-						const action_fn_promise = Actions.list[ res.result.action ];
-						if (_.isFunction(action_fn_promise)) {
-							return exports.fulfillmentPromiseTransformer( action_fn_promise(), res, session_model )
-							.then(resolve)
-							.catch(reject);
-						} else {
-							console.error(TAG, `action ${res.result.action} not exists`);
+					if (result.actionIncomplete !== true && !_.isEmpty(action) && _.isFunction(Actions.list[ action ])) {
+						console.info(TAG, 'calling action', action);
+						return AI.fulfillmentPromiseTransformer( Actions.list[ action ](), body, session_model )
+						.then(resolve)
+						.catch(reject);
+					}
+
+					AI.fulfillmentTransformer( result.fulfillment, session_model )
+					.then(resolve)
+					.catch(reject);
+
+				} else {
+
+					let fulfillment = body.result.fulfillment;
+					fulfillment.data = fulfillment.data || {};
+
+					// Edit msg from API.AI to reflect IO interface
+					if (!_.isEmpty(body.result.fulfillment.messages)) {
+						let msg = body.result.fulfillment.messages.getRandom();
+						switch (msg.type) {
+							case 0:
+							break;
+							case 2:
+							fulfillment.data.replies = msg.replies;
+							break;
+							case 3:
+							fulfillment.data = { image: { remoteFile: msg.imageUrl } };
+							break;
+							case 4:
+							fulfillment.data = msg.payload;
+							break;
+							default:
+							console.error(TAG, 'Type not recognized');
+							break;
 						}
+						delete fulfillment.messages;
 					}
 
-				} 
-				
-				// Edit msg from API.AI to reflect IO interface
-				if (!_.isEmpty(res.result.fulfillment.messages)) {
-					let msg = res.result.fulfillment.messages.getRandom();
-					switch (msg.type) {
-						case 0:
-						break;
-						case 2:
-						fulfillment.data.replies = msg.replies;
-						break;
-						case 3:
-						fulfillment.data = { image: { remoteFile: msg.imageUrl } };
-						break;
-						case 4:
-						fulfillment.data = msg.payload;
-						break;
-						default:
-						console.error(TAG, 'Type not recognized');
-						break;
-					}
-					delete fulfillment.messages;
+					resolve(fulfillment);
+
 				}
-
-				exports.fulfillmentTransformer(fulfillment, session_model)
-				.then(resolve)
-				.catch(reject);
 			});
 
 			request.on('error', (err) => {

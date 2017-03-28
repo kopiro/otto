@@ -53,21 +53,21 @@ config.ioDrivers.forEach((driver) => {
 	IOs.push(require(__basedir + '/io/' + driver));
 });
 
-function successResponse(fullfilment, session_model) {
-	console.debug('Success', session_model.id, fullfilment);
+function successResponse(fulfilment, session_model) {
+	console.debug('Success', session_model.id, fulfilment);
 
 	let io = this;
-	io.output(fullfilment, session_model)
+	io.output(fulfilment, session_model)
 	.then(io.startInput)
 	.catch(io.startInput);
 }
 
-function errorResponse(fullfilment, session_model) {
-	console.error('Error', session_model.id, fullfilment);
+function errorResponse(fulfilment, session_model) {
+	console.error('Error', session_model.id, fulfilment);
 
 	let io = this;
-	fullfilment.error = fullfilment.error || {};
-	io.output(fullfilment, session_model)
+	fulfilment.error = fulfilment.error || {};
+	io.output(fulfilment, session_model)
 	.then(io.startInput)
 	.catch(io.startInput);
 }

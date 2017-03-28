@@ -3,5 +3,5 @@ config.json
 node_modules/
 build/
 build-web/
-app.sublime-workspace
+*.sublime-workspace
 npm-debug.log
