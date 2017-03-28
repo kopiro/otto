@@ -7,9 +7,6 @@ start_node=1
 BLUE_ID="FC:58:FA:35:48:95"
 BLUEZ_CARD="FC_58_FA_35_48_95"
 
-echo "Starting SSH tunnel..."
-/usr/bin/sshtunneldb
-
 echo "Starting PulseAudio..."
 pulseaudio --start
 
@@ -28,6 +25,9 @@ while true; do
 	pacmd set-default-sink "bluez_sink.$BLUEZ_CARD"
 
 	if ping -c 1 google.com >> /dev/null 2>&1; then
+
+		echo "Starting SSH tunnel..."
+		/usr/bin/sshtunneldb
 
 		if [ $start_node -ge 1 ]; then
 			play "$DIR/audio/startup.wav" vol 0.4
