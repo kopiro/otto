@@ -32,12 +32,7 @@ module.exports = function({ sessionId, result }, session_model) {
 		.save()
 		.then(() => {
 			resolve({
-				speech: "Ok, io ti parlo in ${to}, tu mi parli in ${from}",
-				data: {
-					speech: {
-						language: session_model.get('translate_to')
-					}
-				}
+				speech: `Ok, io ti parlo in ${to}, tu mi parli in ${from}`
 			});
 		});
 	});

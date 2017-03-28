@@ -5,30 +5,31 @@ const apiaiClient = require('apiai')(config.APIAI_TOKEN);
 const AI_NAME_REGEX = /^(?:Otto(,\s*)?)|(\s*Otto)$/i;
 const Actions = require(__basedir + '/actions');
 
-exports.fulfillmentTransformer = function(fulfillment, session_model) {
+exports.fulfillmentTransformer = function(f, session_model) {
 	return new Promise((resolve, reject) => {
-		if (session_model.get('translate_to')) {
-			if (!_.isEmpty(fulfillment.speech)) {
-				apprequire('translator').translate(fulfillment.speech, session_model.get('translate_to'), (err, new_speech) => {
-					if (err) return resolve(fulfillment);
 
-					fulfillment.translated = true;
-					fulfillment.speech = new_speech;
-					
-					resolve(fulfillment);
+		// Ensure always data object exists
+		f.data = f.data || {};
+
+		if (session_model.get('translate_to')) {
+			if (!_.isEmpty(f.speech)) {
+				apprequire('translator').translate(f.speech, session_model.get('translate_to'), (err, new_speech) => {
+					if (err) return resolve(f);
+					f.speech = new_speech;					
+					resolve(f);
 				});
 			} else {
-				resolve(fulfillment);
+				resolve(f);
 			}
 		} else {
-			resolve(fulfillment);
+			resolve(f);
 		}
 	});
 };
 
-exports.fulfillmentPromiseTransformer = function(promise_fn, body, session_model) {
+exports.fulfillmentPromiseTransformer = function(fn, data, session_model) {
 	return new Promise((resolve, reject) => {
-		promise_fn(body, session_model)
+		fn(data, session_model)
 		.then((fulfillment) => {
 			return exports.fulfillmentTransformer(fulfillment, session_model);
 		})
@@ -61,55 +62,53 @@ exports.textRequest = function(text, session_model) {
 			});
 
 			request.on('response', (body) => {
+				const action = body.result.action;
+
+				// Edit msg from API.AI to reflect IO interface
+				if (!_.isEmpty(body.result.fulfillment.messages)) {
+					let msg = body.result.fulfillment.messages.getRandom();
+					switch (msg.type) {
+						case 0:
+						break;
+						case 2:
+						body.result.fulfillment.data.replies = msg.replies;
+						break;
+						case 3:
+						body.result.fulfillment.data = { image: { remoteFile: msg.imageUrl } };
+						break;
+						case 4:
+						body.result.fulfillment.data = msg.payload;
+						break;
+						default:
+						console.error(TAG, 'Type not recognized');
+						break;
+					}
+					delete body.result.fulfillment.messages;
+				}
+
+				body.result.fulfillment.data = body.result.fulfillment.data || {};
+
 				console.debug(TAG, 'response', body);
 
-				const result = body.result;
-				const action = result.action;
-
 				// If this action has not solved using webhook, reparse
-				if (result.metadata.webhookUsed === "false") {
+				if (body.result.metadata.webhookUsed === "false") {
 
-					if (result.actionIncomplete !== true && !_.isEmpty(action) && _.isFunction(Actions.list[ action ])) {
+					if (body.result.actionIncomplete !== true && !_.isEmpty(action) && _.isFunction(Actions.list[ action ])) {
 						console.info(TAG, 'calling action', action);
 						return AI.fulfillmentPromiseTransformer( Actions.list[ action ](), body, session_model )
 						.then(resolve)
 						.catch(reject);
 					}
 
-					AI.fulfillmentTransformer( result.fulfillment, session_model )
+					console.info(TAG, 'local resolution');
+
+					return AI.fulfillmentTransformer( body.result.fulfillment, session_model )
 					.then(resolve)
 					.catch(reject);
 
-				} else {
-
-					let fulfillment = body.result.fulfillment;
-					fulfillment.data = fulfillment.data || {};
-
-					// Edit msg from API.AI to reflect IO interface
-					if (!_.isEmpty(body.result.fulfillment.messages)) {
-						let msg = body.result.fulfillment.messages.getRandom();
-						switch (msg.type) {
-							case 0:
-							break;
-							case 2:
-							fulfillment.data.replies = msg.replies;
-							break;
-							case 3:
-							fulfillment.data = { image: { remoteFile: msg.imageUrl } };
-							break;
-							case 4:
-							fulfillment.data = msg.payload;
-							break;
-							default:
-							console.error(TAG, 'Type not recognized');
-							break;
-						}
-						delete fulfillment.messages;
-					}
-
-					resolve(fulfillment);
-
 				}
+
+				resolve(body.result.fulfillment);
 			});
 
 			request.on('error', (err) => {

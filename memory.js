@@ -26,6 +26,10 @@ exports.Session = bookshelf.Model.extend({
 	},
 });
 
+exports.SessionInput = bookshelf.Model.extend({
+	tableName: 'sessions_inputs',
+});
+
 exports.Contact = bookshelf.Model.extend({
 	tableName: 'contacts',
 	photos: function() {

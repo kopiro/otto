@@ -1,4 +1,5 @@
 const TAG = 'IO.Kid';
+const IOManager = require(__basedir + '/iomanager');
 
 const EventEmitter = require('events').EventEmitter;
 exports.emitter = new EventEmitter();
@@ -15,25 +16,6 @@ const Play = apprequire('play');
 
 const sessionId = config.io.kid.sessionId || require('node-uuid').v4();
 
-function registerSession(sessionId, data) {
-	return new Promise((resolve, reject) => {
-		new Memory.Session({ id: sessionId })
-		.fetch({ require: true })
-		.then((session_model) => {
-			if (!session_model.get('approved')) return reject(session_model);
-			resolve(session_model);
-		})
-		.catch((err) => {
-			let session_model = new Memory.Session({ 
-				id: sessionId,
-				io_id: exports.id,
-				io_data: JSON.stringify(data)
-			}).save(null, { method: 'insert' });
-			reject(session_model);
-		});
-	});
-}
-
 exports.getChats = function() {
 	return Promise.resolve([]);
 };
@@ -45,7 +27,7 @@ exports.getAlarmsAt = function() {
 exports.startInput = function(opt) {
 	console.debug(TAG, 'startInput');
 
-	registerSession(sessionId, process.platform)
+	IOManager.registerSession(sessionId, exports.id, process.platform)
 	.then((session_model) => {
 
 		opt = _.defaults(opt || {},  {
@@ -68,18 +50,24 @@ exports.startInput = function(opt) {
 			language: session_model.get('translate_from')
 		})
 		.then((text) => {
+
 			Rec.stop();
+
 			process.stdout.write(
-			"-------------------\n\n" + 
-			text + "\n\n" + 
+			"-------------------\n" + 
+			text + "\n" + 
 			"-------------------\n"
 			);
+
+			IOManager.writeLogForSession(session_model.id, text);
+		
 			exports.emitter.emit('input', {
 				session_model: session_model,
 				params: {
 					text: text
 				}
 			});
+
 		})
 		.catch((err) => {
 			Rec.stop();
@@ -99,24 +87,25 @@ exports.startInput = function(opt) {
 };
 
 exports.output = function(f, session_model) {
-	console.ai(TAG, 'output', session_model.id, f);
+	console.info(TAG, 'output', session_model.id, f);
 
 	return new Promise((resolve, reject) => {
+		const language = (f.data.speech || {}).language || session_model.get('translate_to');
+
 		if (f.error) {
 			if (f.error.speech) {	
 				Polly.play(f.error.speech, {
-					language: session_model.get('translate_to')
+					language: language
 				}).then(resolve);
 			} else {
 				return resolve();
 			}
 		}
 
-		const lang = f.data.speech || session_model.get('translate_to');
 
 		if (f.speech) {
 			return Polly.play(f.speech, {
-				language: session_model.get('translate_to')
+				language: language
 			}).then(resolve);
 		} 
 

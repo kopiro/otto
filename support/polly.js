@@ -40,17 +40,30 @@ function getVoice(opt) {
 			Polly.describeVoices({
 				LanguageCode: locale
 			}, (err, data) => {
-				if (err) {
-					console.error(TAG, err);
+				if (err && err.code === 'ValidationException') {
 					console.debug(TAG, `falling back to locale ${config.locale} instead of ${locale}`);
 					return getVoice(_.extend(config, { language: config.language }))
 					.then(resolve)
 					.catch(reject);
 				}
 
-				console.debug(TAG, data);
-				locale_to_voice[locale] = data.Voices.find((v) => { return v.Gender == opt.gender; });
-				resolve(locale_to_voice[locale]);
+				if (err) {
+					console.error(TAG, err);
+					reject(err);
+				}
+
+				console.debug(TAG, 'available voices', data);
+				const voice = data.Voices.find((v) => { return v.Gender == opt.gender; });
+
+				if (voice == null) {
+					console.debug(TAG, `falling back to locale ${config.locale} instead of ${locale}`);
+					return getVoice(_.extend(config, { language: config.language }))
+					.then(resolve)
+					.catch(reject);
+				}
+
+				locale_to_voice[locale] = voice; // cache voice id
+				resolve(voice);
 			});
 		}
 	});
@@ -64,6 +77,8 @@ exports.download = function(text, opt) {
 		opt = _.extend(config.polly, {
 			language: config.language
 		}, opt);
+
+		console.debug(TAG, 'request', { text, opt });
 
 		const locale = Util.getLocaleFromLanguageCode(opt.language);
 

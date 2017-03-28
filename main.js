@@ -59,7 +59,10 @@ function successResponse(fulfilment, session_model) {
 	let io = this;
 	io.output(fulfilment, session_model)
 	.then(io.startInput)
-	.catch(io.startInput);
+	.catch((err) => {
+		console.error('Error in success', err);
+		io.startInput();
+	});
 }
 
 function errorResponse(fulfilment, session_model) {
@@ -69,7 +72,10 @@ function errorResponse(fulfilment, session_model) {
 	fulfilment.error = fulfilment.error || {};
 	io.output(fulfilment, session_model)
 	.then(io.startInput)
-	.catch(io.startInput);
+	.catch((err) => {
+		console.error('Error in error', err);
+		io.startInput();
+	});
 }
 
 function onIoResponse({ session_model, error, params }) {

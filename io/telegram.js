@@ -1,5 +1,6 @@
 const TAG = 'IO.Telegram';
 const _config = config.io.telegram;
+const IOManager = require(__basedir + '/iomanager');
 
 const EventEmitter = require('events').EventEmitter;
 exports.emitter = new EventEmitter();
@@ -13,33 +14,6 @@ const TelegramBot = require('node-telegram-bot-api');
 const bot = new TelegramBot(_config.token, _config.options);
 
 const SpeechRecognizer = apprequire('speechrecognizer');
-
-function log(msg) {
-	fs.writeFileSync(__basedir + '/log/' + 'telegram_' + moment().format('YYYY-MM-DD') + '.txt', msg + "\n");
-}
-
-function registerSession(sessionId, data) {
-	return new Promise((resolve, reject) => {
-		new Memory.Session({ id: sessionId })
-		.fetch({ require: true })
-		.then((session_model) => {
-			if (!session_model.get('approved')) return reject(session_model);
-			resolve(session_model);
-		})
-		.catch((err) => {
-			let session_model = new Memory.Session({ 
-				id: sessionId,
-				io_id: exports.id,
-				io_data: JSON.stringify(data),
-				title: data.title,
-				first_name: data.first_name,
-				last_name: data.last_name,
-				type: data.type
-			}).save(null, { method: 'insert' });
-			reject(session_model);
-		});
-	});
-}
 
 exports.getAlarmsAt = function(when) {
 	return new Memory.Alarm()
@@ -67,7 +41,7 @@ exports.startInput = function() {
 };
 
 exports.output = function(f, session_model) {
-	console.ai(TAG, 'output', session_model.id, f);
+	console.info(TAG, 'output', session_model.id, f);
 	
 	return new Promise((resolve, reject) => {
 		if (f.error) {
@@ -152,9 +126,13 @@ bot.on('webhook_error', (err) => {
 bot.on('message', (e) => {
 	console.user(TAG, 'input', e);
 
-	let sessionId = 'telegram-' + e.chat.id;
+	let sessionId = e.chat.id;
 
-	registerSession(sessionId, e.chat)
+	IOManager.registerSession(sessionId, exports.id, e.chat, {
+		first_name: e.chat.first_name,
+		last_name: e.chat.last_name,
+		type: e.chat.type
+	}, e.text)
 	.then((session_model) => {
 		if (e.text) {
 			return exports.emitter.emit('input', {

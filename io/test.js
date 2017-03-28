@@ -1,4 +1,5 @@
 const TAG = 'IO.Test';
+const IOManager = require(__basedir + '/iomanager');
 
 const EventEmitter = require('events').EventEmitter;
 exports.emitter = new EventEmitter();
@@ -17,37 +18,10 @@ const rl = readline.createInterface({
 let strings = fs.readFileSync(__basedir + '/in.txt').toString().split("\n");
 const sessionId = config.io.test.sessionId || require('node-uuid').v4();
 
-function registerSession(sessionId, data) {
-	return new Promise((resolve, reject) => {
-		new Memory.Session({ id: sessionId })
-		.fetch({ require: true })
-		.then((session_model) => {
-			if (!session_model.get('approved')) return reject(session_model);
-			resolve(session_model);
-		})
-		.catch((err) => {
-			let session_model = new Memory.Session({ 
-				id: sessionId,
-				io_id: exports.id,
-				io_data: JSON.stringify(data)
-			}).save(null, { method: 'insert' });
-			reject(session_model);
-		});
-	});
-}
-
-exports.getChats = function() {
-	return Promise.resolve([]);
-};
-
-exports.getAlarmsAt = function() {
-	return Promise.resolve([]);
-};
-
 exports.startInput = function() {
 	console.info(TAG, 'start');
 
-	registerSession(sessionId, process.platform)
+	IOManager.registerSession(sessionId, exports.id, process.platform)
 	.then((session_model) => {
 		let msg = strings.shift();
 
@@ -83,7 +57,7 @@ exports.startInput = function() {
 
 exports.output = function(f, session_model) {
 	if (null == config.testDriverOut) {
-		console.ai(TAG, 'output', session_model.id, JSON.stringify(f, null, 2));
+		console.info(TAG, 'output', session_model.id, JSON.stringify(f, null, 2));
 		return Promise.resolve();
 	}
 

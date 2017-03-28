@@ -51,7 +51,7 @@ exports.startInput = function() {
 };
 
 exports.output = function({ data, fulfillment:f }) {
-	console.ai(TAG, 'output', data, f);
+	console.info(TAG, 'output', data, f);
 	f.data = f.data || {};
 
 	return new Promise((resolve, reject) => {
