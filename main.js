@@ -53,16 +53,27 @@ config.ioDrivers.forEach((driver) => {
 	IOs.push(require(__basedir + '/io/' + driver));
 });
 
-function errorResponse(e) {
+function successResponse(fullfilment, session_model) {
+	console.debug('Success', session_model.id, fullfilment);
+
 	let io = this;
-	e.error = e.error || {};
-	io.output(e)
+	io.output(fullfilment, session_model)
 	.then(io.startInput)
 	.catch(io.startInput);
 }
 
-function onIoResponse({ error, data, params }) {
-	console.info('onIoResponse', { error, data, params });
+function errorResponse(fullfilment, session_model) {
+	console.error('Error', session_model.id, fullfilment);
+
+	let io = this;
+	fullfilment.error = fullfilment.error || {};
+	io.output(fullfilment, session_model)
+	.then(io.startInput)
+	.catch(io.startInput);
+}
+
+function onIoResponse({ session_model, error, params }) {
+	console.info('onIoResponse', session_model.id, params);
 	let io = this;
 
 	try {
@@ -72,37 +83,24 @@ function onIoResponse({ error, data, params }) {
 		}
 
 		if (params.text) {
-			AI.textRequest(params.text, data)
+			AI.textRequest(params.text, session_model)
 			.then((fulfillment) => { 
-				io.output({
-					fulfillment: fulfillment,
-					data: data
-				})
-				.then(io.startInput)
-				.catch(io.startInput); 
+				successResponse.call(io, fulfillment, session_model);
 			})
-			.catch((promise_error) => {
-				console.error('Promise error', promise_error);
-				errorResponse.call(io, {
-					error: promise_error,
-					data: data
-				});
+			.catch((aierror) => {
+				console.error('AI error', aierror);
+				errorResponse.call(io, aierror, session_model);
 			});
+
 		} else if (params.fulfillment) {
-			io.output({
-				fulfillment: params.fulfillment,
-				data: data
-			})
-			.then(io.startInput)
-			.catch(io.startInput); 
+			successResponse.call(io, params.fulfillment, session_model);
+		
+		} else {
+			throw 'Unrecognized type';
 		}
 
 	} catch (ex) {
-		console.error('Unhandled exception', ex);
-		errorResponse.call(io, {
-			error: ex,
-			data: data
-		});
+		errorResponse.call(io, { error: ex }, session_model);
 	}
 }
 

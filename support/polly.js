@@ -4,7 +4,7 @@ const aws = require('aws-sdk');
 const fs = require('fs');
 const md5 = require('md5');
 
-const play = require(__basedir + '/support/play');
+const Play = require(__basedir + '/support/play');
 
 // Create an Polly client
 const Polly = new aws.Polly({
@@ -38,7 +38,7 @@ function getVoice(opt) {
 				LanguageCode: opt.locale
 			}, (err, data) => {
 				if (err) {
-					console.error(TAG, 'falling back to locale due errors');
+					console.error(TAG, `falling back to config locale (${config.locale}) due errors`);
 					return getVoice(_.extend(config, { locale: config.locale }))
 					.then(resolve)
 					.catch(reject);
@@ -107,7 +107,7 @@ exports.play = function(text, opt) {
 	return new Promise((resolve, reject) => {
 		exports.download(text, opt)
 		.then((polly_file) => {
-			play.fileToSpeaker(polly_file, (err) => {
+			Play.fileToSpeaker(polly_file, (err) => {
 				if (err) return reject(err);
 				resolve();
 			});
@@ -120,7 +120,7 @@ exports.playToFile = function(text, file, opt) {
 	return new Promise((resolve, reject) => {
 		exports.download(text, opt)
 		.then((polly_file) => {
-			play.fileToFile(polly_file, file, (err) => {
+			Play.fileToFile(polly_file, file, (err) => {
 				if (err) return reject(err);
 				resolve();
 			});
@@ -133,7 +133,7 @@ exports.playToTmpFile = function(text, opt) {
 	return new Promise((resolve, reject) => {
 		exports.download(text, opt)
 		.then((polly_file) => {
-			play.fileToTmpFile(polly_file, (err) => {
+			Play.fileToTmpFile(polly_file, (err) => {
 				if (err) return reject(err);
 				resolve();
 			});

@@ -13,12 +13,10 @@ exports.Cron = bookshelf.Model.extend({
 	tableName: 'cron',
 });
 
-exports.TelegramChat = bookshelf.Model.extend({
-	tableName: 'telegram_chats',
-	// This function is used to build the data 
-	// that will be sent over the IO driver
-	buildData: function() {
-		return { chatId: this.id };
+exports.Session = bookshelf.Model.extend({
+	tableName: 'sessions',
+	getIOData: function() {
+		return JSON.parse( this.get('io_data') );
 	},
 	getName: function() {
 		return this.get('first_name') || this.get('title');
@@ -26,21 +24,6 @@ exports.TelegramChat = bookshelf.Model.extend({
 	contact: function() {
 		return this.belongsTo(exports.Contact, 'contact_id');
 	},
-});
-
-exports.MessengerChat = bookshelf.Model.extend({
-	tableName: 'messenger_chats',
-	// This function is used to build the data 
-	// that will be sent over the IO driver
-	buildData: function() {
-		return { senderId: this.id };
-	},
-	getName: function() {
-		return this.get('first_name') || this.get('title');
-	},
-	contact: function() {
-		return this.belongsTo(exports.Contact, 'contact_id');
-	}
 });
 
 exports.Contact = bookshelf.Model.extend({

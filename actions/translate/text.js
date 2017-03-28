@@ -6,9 +6,9 @@ module.exports = function({ sessionId, result }) {
 	console.log(result);
 	return new Promise((resolve, reject) => {
 		const { parameters: p, fulfillment } = result;
-		const lang = Util.getLocaleFromString(p.language);
+		const language = Util.getLocaleFromString(p.language);
 
-		Translator.translate(p.q, lang, (err, translation) => {
+		Translator.translate(p.q, language, (err, translation) => {
 			if (err) {
 				console.error(exports.id, err);
 				return reject();
@@ -18,7 +18,7 @@ module.exports = function({ sessionId, result }) {
 				speech: translation,
 				data: {
 					speech: {
-						language: lang
+						language: language
 					}
 				}
 			});

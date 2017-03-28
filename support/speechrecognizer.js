@@ -10,6 +10,8 @@ function createRecognizeStream(opt, callback) {
 	let text = null;
 	let timeout = null;
 
+	console.debug(TAG, 'creating recognize stream', opt);
+
 	const speechRecognizer = speechClient.createRecognizeStream({
 		// If false or omitted, the recognizer will perform continuous recognition
 		singleUtterance: true,
@@ -18,7 +20,7 @@ function createRecognizeStream(opt, callback) {
 		config: {
 			encoding: opt.encoding || 'LINEAR16',
 			sampleRate: opt.sampleRate || 16000,
-			languageCode: config.locale,
+			languageCode: opt.locale
 		}
 	});
 
@@ -57,17 +59,22 @@ function createRecognizeStream(opt, callback) {
 	return speechRecognizer;
 }
 
-exports.recognizeAudioStream = function(stream, must_convert) {
+exports.recognizeAudioStream = function(stream, opt) {
 	return new Promise((resolve, reject) => {
 
-		if (must_convert) {
+		opt = _.defaults(opt, {
+			must_convert: false
+		});
+
+		if (opt.must_convert) {
 
 			const tmp_file_audio = __tmpdir + '/' + require('uuid').v4() + '.flac';
 			const sampleRate = 16000;
 
 			const rec_stream = createRecognizeStream({
 				sampleRate: sampleRate,
-				encoding: 'FLAC'
+				encoding: 'FLAC',
+				locale: Util.getLocaleFromLanguageCode(opt.language)
 			}, (err, text) => {
 				if (err) return reject(err);
 				resolve(text);
@@ -87,7 +94,9 @@ exports.recognizeAudioStream = function(stream, must_convert) {
 			.run();
 
 		} else {
-			stream.pipe(createRecognizeStream({}, (err, text) => {
+			stream.pipe(createRecognizeStream({
+				locale: Util.getLocaleFromLanguageCode(opt.language)
+			}, (err, text) => {
 				if (err) return reject(err);
 				resolve(text);
 			}));

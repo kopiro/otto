@@ -45,14 +45,26 @@ router.post('/', (req, res) => {
 		});
 	}
 
-	AI.fulfillmentPromiseTransformer( action_fn_promise(), req.body )
-	.then((fullfilment) => {
-		console.debug(TAG, 'fullfilment', fullfilment);
-		res.json(fullfilment);
-	})
-	.catch((err) => {
-		console.error(TAG, 'error', err);
-		res.json({ error: err });
+	new Memory.Session({ id: req.body.sessionId })
+	.fetch()
+	.then((session_model) => {
+
+		if (session_model == null) {
+			console.error(TAG, `Creating a model (fpt) with ${sessionId}`);
+			session_model = new Memory.Session({ id: sessionId });
+			session_model.save();
+		}
+
+		AI.fulfillmentPromiseTransformer( action_fn_promise(), req.body, session_model )
+		.then((fullfilment) => {
+			console.debug(TAG, 'fullfilment', fullfilment);
+			res.json(fullfilment);
+		})
+		.catch((err) => {
+			console.error(TAG, 'error', err);
+			res.json({ error: err });
+		});
+
 	});
 });
 

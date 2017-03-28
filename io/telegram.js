@@ -18,47 +18,28 @@ function log(msg) {
 	fs.writeFileSync(__basedir + '/log/' + 'telegram_' + moment().format('YYYY-MM-DD') + '.txt', msg + "\n");
 }
 
-function isChatAvailable(chat, callback) {
-	new Memory.TelegramChat()
-	.where({ id: chat.id })
-	.fetch()
-	.then((tc) => {
-		if (!tc.get('approved')) {
-			return callback('Papà mi ha detto di non parlare con te!!!');
-		}
-		callback();
-	})
-	.catch((err) => {
-		new Memory.TelegramChat({ 
-			id: chat.id,
-			title: chat.title,
-			first_name: chat.first_name,
-			last_name: chat.last_name,
-			type: chat.type
-		}).save(null, { method: 'insert' });
-		callback('Ciao, papà mi ha detto di non parlare con gli sconosciuti! Scusa :(');
+function registerSession(sessionId, data) {
+	return new Promise((resolve, reject) => {
+		new Memory.Session({ id: sessionId })
+		.fetch({ require: true })
+		.then((session_model) => {
+			if (!session_model.get('approved')) return reject(session_model);
+			resolve(session_model);
+		})
+		.catch((err) => {
+			let session_model = new Memory.Session({ 
+				id: sessionId,
+				io_id: exports.id,
+				io_data: JSON.stringify(data),
+				title: data.title,
+				first_name: data.first_name,
+				last_name: data.last_name,
+				type: data.type
+			}).save(null, { method: 'insert' });
+			reject(session_model);
+		});
 	});
 }
-
-exports.getChats = function() {
-	return new Memory.TelegramChat()
-	.where(_.extend({ 
-		approved: 1, 
-		type: 'private',
-	}, 
-	config.cron === "debug" ? { debug: 1 } : {}
-	)).fetchAll({
-		withRelated: ['contact']
-	});
-};
-
-exports.getChat = function(id) {
-	return new Memory.TelegramChat({
-		id: id
-	}).fetch({
-		withRelated: ['contact']
-	});
-};
 
 exports.getAlarmsAt = function(when) {
 	return new Memory.Alarm()
@@ -85,15 +66,14 @@ exports.startInput = function() {
 	}
 };
 
-exports.output = function({ data, fulfillment:f }) {
-	console.ai(TAG, 'output', data, f);
-	f.data = f.data || {};
+exports.output = function(f, session_model) {
+	console.ai(TAG, 'output', session_model.id, f);
 	
 	return new Promise((resolve, reject) => {
 		if (f.error) {
 			if (f.error.speech) {		
-				bot.sendChatAction(data.chatId, 'typing');
-				bot.sendMessage(data.chatId, f.error.speech);	
+				bot.sendChatAction(session_model.getIOData().id, 'typing');
+				bot.sendMessage(session_model.getIOData().id, f.error.speech);	
 				return resolve();
 			} else {
 				return resolve();
@@ -118,23 +98,23 @@ exports.output = function({ data, fulfillment:f }) {
 			if (f.data.url) {
 				f.speech += "\n" + f.data.url;
 			}
-			bot.sendChatAction(data.chatId, 'typing');
-			bot.sendMessage(data.chatId, f.speech, message_opt);
+			bot.sendChatAction(session_model.getIOData().id, 'typing');
+			bot.sendMessage(session_model.getIOData().id, f.speech, message_opt);
 			return resolve();
 		}
 
 		if (f.data.media) {
-			bot.sendChatAction(data.chatId, 'typing');
+			bot.sendChatAction(session_model.getIOData().id, 'typing');
 			if (f.data.media.artist) {
-				bot.sendMessage(data.chatId, f.data.media.artist.external_urls.spotify, message_opt);
+				bot.sendMessage(session_model.getIOData().id, f.data.media.artist.external_urls.spotify, message_opt);
 				return resolve();
 			}
 			if (f.data.media.track) {
-				bot.sendMessage(data.chatId, f.data.media.track.external_urls.spotify, message_opt);
+				bot.sendMessage(session_model.getIOData().id, f.data.media.track.external_urls.spotify, message_opt);
 				return resolve();
 			}
 			if (f.data.media.playlist) {
-				bot.sendMessage(data.chatId, f.data.media.playlist.external_urls.spotify, message_opt);
+				bot.sendMessage(session_model.getIOData().id, f.data.media.playlist.external_urls.spotify, message_opt);
 				return resolve();
 			}
 			return reject();
@@ -142,18 +122,18 @@ exports.output = function({ data, fulfillment:f }) {
 
 		if (f.data.image) {
 			if (f.data.image.remoteFile) {
-				bot.sendChatAction(data.chatId, 'upload_photo');
-				bot.sendPhoto(data.chatId, f.data.image.remoteFile, message_opt);
+				bot.sendChatAction(session_model.getIOData().id, 'upload_photo');
+				bot.sendPhoto(session_model.getIOData().id, f.data.image.remoteFile, message_opt);
 			} else if (f.data.image.localFile) {
-				bot.sendChatAction(data.chatId, 'upload_photo');
-				bot.sendPhoto(data.chatId, f.data.image.localFile, message_opt);
+				bot.sendChatAction(session_model.getIOData().id, 'upload_photo');
+				bot.sendPhoto(session_model.getIOData().id, f.data.image.localFile, message_opt);
 			}
 			return resolve();
 		}
 
 		if (f.lyrics) {
-			bot.sendChatAction(data.chatId, 'typing');
-			bot.sendMessage(data.chatId, f.lyrics.lyrics_body, message_opt);
+			bot.sendChatAction(session_model.getIOData().id, 'typing');
+			bot.sendMessage(session_model.getIOData().id, f.lyrics.lyrics_body, message_opt);
 			return resolve();
 		}
 
@@ -172,30 +152,13 @@ bot.on('webhook_error', (err) => {
 bot.on('message', (e) => {
 	console.user(TAG, 'input', e);
 
-	let data = { 
-		chatId: e.chat.id,
-		ioId: e.chat.id,
-		sessionId: e.chat.id,
-		title: e.from.username || e.from.first_name
-	};
+	let sessionId = 'telegram-' + e.chat.id;
 
-	if (e.text) {
-		log('[' + data.title + '] ' + e.text);
-	}
-
-	isChatAvailable(e.chat, (err) => {
-		if (err) {
-			return exports.emitter.emit('input', {
-				data: data,
-				params: {
-					speech: err
-				}
-			});
-		}
-
+	registerSession(sessionId, e.chat)
+	.then((session_model) => {
 		if (e.text) {
 			return exports.emitter.emit('input', {
-				data: data,
+				session_model: session_model,
 				params: {
 					text: e.text
 				}
@@ -207,7 +170,7 @@ bot.on('message', (e) => {
 				SpeechRecognizer.recognizeAudioStream( request(file_link) )
 				.then((text) => {
 					return exports.emitter.emit('input', {
-						data: data,
+						session_model: session_model,
 						params: {
 							text: text
 						}
@@ -215,7 +178,7 @@ bot.on('message', (e) => {
 				})
 				.catch((err) => { 
 					return exports.emitter.emit('input', {
-						data: data,
+						session_model: session_model,
 						error: err
 					});
 				});
@@ -225,7 +188,7 @@ bot.on('message', (e) => {
 		if (e.photo) {
 			return bot.getFileLink( _.last(e.photo).file_id ).then((file_link) => {
 				return exports.emitter.emit('input', {
-					data: data,
+					session_model: session_model,
 					params: {
 						image: {
 							remoteFile: file_link,
@@ -236,9 +199,17 @@ bot.on('message', (e) => {
 		}
 
 		return exports.emitter.emit('input', {
-			data: data,
+			session_model: session_model,
 			error: {
 				unknowInputType: true
+			}
+		});
+	})
+	.catch((session_model) => {
+		exports.emitter.emit('input', {
+			session_model: session_model,
+			error: {
+				unauthorized: true
 			}
 		});
 	});

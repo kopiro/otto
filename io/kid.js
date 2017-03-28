@@ -13,7 +13,26 @@ const SpeechRecognizer = apprequire('speechrecognizer');
 const Polly = apprequire('polly');
 const Play = apprequire('play');
 
-const sessionId = require('uuid').v4();
+const sessionId = config.io.kid.sessionId || require('node-uuid').v4();
+
+function registerSession(sessionId, data) {
+	return new Promise((resolve, reject) => {
+		new Memory.Session({ id: sessionId })
+		.fetch({ require: true })
+		.then((session_model) => {
+			if (!session_model.get('approved')) return reject(session_model);
+			resolve(session_model);
+		})
+		.catch((err) => {
+			let session_model = new Memory.Session({ 
+				id: sessionId,
+				io_id: exports.id,
+				io_data: JSON.stringify(data)
+			}).save(null, { method: 'insert' });
+			reject(session_model);
+		});
+	});
+}
 
 exports.getChats = function() {
 	return Promise.resolve([]);
@@ -26,62 +45,79 @@ exports.getAlarmsAt = function() {
 exports.startInput = function(opt) {
 	console.debug(TAG, 'startInput');
 
-	opt = _.defaults(opt || {},  {
-		listenSound: true
-	});
+	registerSession(sessionId, process.platform)
+	.then((session_model) => {
 
-	if (opt.listenSound == true) {
-		Play.fileToSpeaker(__basedir + '/audio/startlisten.wav');
-	}
-	
-	let data = {
-		sessionId: sessionId
-	};
+		opt = _.defaults(opt || {},  {
+			listenSound: true
+		});
 
-	let rec_stream = Rec.start(_.extend({
-		sampleRate: 16000,
-		verbose: false,
-		silence: true,
-		time: 10
-	}, config.recorder));
+		if (opt.listenSound == true) {
+			Play.fileToSpeaker(__basedir + '/audio/startlisten.wav');
+		}
+		
+		let rec_stream = Rec.start(_.extend({
+			sampleRate: 16000,
+			verbose: false,
+			silence: true,
+			time: 10
+		}, config.recorder));
 
-	SpeechRecognizer.recognizeAudioStream(rec_stream, false)
-	.then((text) => {
-		Rec.stop();
-		process.stdout.write(
-		"-------------------\n\n" + 
-		text + "\n\n" + 
-		"-------------------\n"
-		);
+		SpeechRecognizer.recognizeAudioStream(rec_stream, {
+			must_convert: false,
+			language: session_model.get('translate_from')
+		})
+		.then((text) => {
+			Rec.stop();
+			process.stdout.write(
+			"-------------------\n\n" + 
+			text + "\n\n" + 
+			"-------------------\n"
+			);
+			exports.emitter.emit('input', {
+				session_model: session_model,
+				params: {
+					text: text
+				}
+			});
+		})
+		.catch((err) => {
+			Rec.stop();
+			console.error(TAG, 'input', err);
+			exports.startInput({ listenSound: false });
+		});
+
+	})
+	.catch((session_model) => {
 		exports.emitter.emit('input', {
-			data: data,
-			params: {
-				text: text
+			session_model: session_model,
+			error: {
+				unauthorized: true
 			}
 		});
-	})
-	.catch((err) => {
-		Rec.stop();
-		console.error(TAG, 'input', err);
-		exports.startInput({ listenSound: false });
 	});
 };
 
-exports.output = function({ data, fulfillment:f }) {
-	console.ai(TAG, 'output', data, f);
-	f.data = f.data || {};
+exports.output = function(f, session_model) {
+	console.ai(TAG, 'output', session_model.id, f);
 
 	return new Promise((resolve, reject) => {
 		if (f.error) {
 			if (f.error.speech) {	
-				Polly.play(f.error.speech, resolve);
+				Polly.play(f.error.speech, {
+					language: session_model.get('translate_to')
+				}).then(resolve);
 			} else {
 				return resolve();
 			}
 		}
 
+		const lang = f.data.speech || session_model.get('translate_to');
+
 		if (f.speech) {
-			return Polly.play(f.speech, f.data.speech).then(resolve);
+			return Polly.play(f.speech, {
+				language: session_model.get('translate_to')
+			}).then(resolve);
 		} 
 
 		if (f.data.media) {
