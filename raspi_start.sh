@@ -34,8 +34,8 @@ while true; do
 			play "$DIR/audio/startup.wav" vol 0.4
 
 			echo "Auto updating..."
-			git fetch --all
-			git reset --hard origin/master
+			# git fetch --all
+			# git reset --hard origin/master
 			# yarn
 
 			echo "Stopping older instances..."
