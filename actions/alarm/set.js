@@ -1,29 +1,26 @@
 exports.id = 'alarm.set';
 
-module.exports = function({ sessionId, result }) {
+module.exports = function({ sessionId, result }, session_model) {
 	return new Promise((resolve, reject) => {
 		let { parameters: p, fulfillment } = result;
 
-		const when = moment((p.date || moment().format('YYYY-MM-DD')) + ' ' + p.time, 'YYYY-MM-DD HH:mm:ss');
+		const when = moment(
+		(_.isEmpty(p.date) ? moment().format('YYYY-MM-DD') : p.date) + ' ' + p.time, 
+		'YYYY-MM-DD HH:mm:ss'
+		);
+		const when_human = when.calendar();
 
 		new Memory.Alarm({
-			io: io.id,
-			io_id: data.ioId,
+			session_id: session_model.id,
 			when: when.format('YYYY-MM-DD HH:mm:00')
 		})
 		.save()
 		.then((contact) => {
-			const when_human = when.calendar();
 			resolve({
-				speech: [
-					`Perfetto, ti sveglierò ${when_human}`,
-					`D'accord, ci sentiamo ${when_human}`
-				].getRandom()
+				speech: fulfillment.speech.replace('$when', when_human)
 			});
 		})
-		.catch(() => {
-			reject();
-		});
+		.catch(reject);
 		
 	});
 };

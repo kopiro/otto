@@ -1,7 +1,7 @@
 const TAG = "IOManager";
 
 exports.getSessions = function(ioId) {
-	return Memory.Session()
+	return new Memory.Session()
 	.query((qb) => {
 		qb.where('approved', '=', '1');
 		if (config.cron === "debug") {
@@ -12,7 +12,7 @@ exports.getSessions = function(ioId) {
 };
 
 exports.getAlarmsAt = function(ioId, when) {
-	return Memory.Alarm()
+	return new Memory.Alarm()
 	.query((qb) => {
 		qb.join('sessions', 'alarms.session_id', '=', 'sessions.id');
 		qb.where('sessions.io_id', '=', ioId);

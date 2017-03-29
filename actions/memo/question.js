@@ -13,10 +13,10 @@ module.exports = function({ sessionId, result }) {
 		.fetch({ require: true })
 		.then((memory) => {
 			resolve({
+				speech: memory.get('text'),
 				data: {
 					url: memory.get('url')
-				},
-				speech: memory.get('text')
+				}
 			});
 		})
 		.catch((err) => {
