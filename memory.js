@@ -24,6 +24,20 @@ exports.Session = bookshelf.Model.extend({
 	contact: function() {
 		return this.belongsTo(exports.Contact, 'contact_id');
 	},
+	setTranslateFrom: function(x) {
+		if (x == config.language) x = null;
+		this.set('translate_from', x);
+	},
+	setTranslateTo: function(x) {
+		if (x == config.language) x = null;
+		this.set('translate_to', x);
+	},
+	getTranslateFrom: function() {
+		return this.get('translate_from') || config.language;
+	},
+	getTranslateTo: function() {
+		return this.get('translate_to') || config.language;
+	}
 });
 
 exports.SessionInput = bookshelf.Model.extend({

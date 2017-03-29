@@ -1,6 +1,6 @@
-const TAG = 'API.AI';
+const TAG = 'AI';
 
-const apiaiClient = require('apiai')(config.APIAI_TOKEN);
+const client = require('apiai')(config.APIAI_TOKEN);
 
 const AI_NAME_REGEX = /^(?:Otto(,\s*)?)|(\s*Otto)$/i;
 const Actions = require(__basedir + '/actions');
@@ -10,14 +10,22 @@ exports.fulfillmentTransformer = function(f, session_model) {
 		f.data = f.data || {}; // Ensure always data object exists
 		
 		if (session_model.get('translate_to')) {
-		
+			const language = session_model.get('translate_to');
+			console.info(TAG, 'Translating output', language);
+
 			if (!_.isEmpty(f.speech)) {
-				const language = session_model.get('translate_to');
 				apprequire('translator').translate(f.speech, language, (err, new_speech) => {
 					if (err) return resolve(f);
-					f.speech = new_speech;					
+					f.speech = new_speech;	
 					resolve(f);
 				});
+			} else if (f.data.error && !_.isEmpty(f.data.error.speech)) {
+				apprequire('translator').translate(f.data.error.speech, language, (err, new_speech) => {
+					if (err) return resolve(f);
+					f.data.error.speech = new_speech;	
+					resolve(f);
+				});
+
 			} else {
 				resolve(f);
 			}
@@ -32,15 +40,20 @@ exports.fulfillmentPromiseTransformer = function(fn, data, session_model) {
 	return new Promise((resolve, reject) => {
 		fn(data, session_model)
 		.then((fulfillment) => {
-			return exports.fulfillmentTransformer(fulfillment, session_model);
+
+			exports.fulfillmentTransformer(fulfillment, session_model)
+			.then(resolve);
+
 		})
-		.then(resolve)
 		.catch((err) => {
-			resolve({
+
+			exports.fulfillmentTransformer({
 				data: {
 					error: err
 				}
-			});
+			}, session_model)
+			.then(resolve);
+
 		});
 	});
 };
@@ -51,6 +64,7 @@ exports.textRequestTransformer = function(text, session_model) {
 		text = text.replace(AI_NAME_REGEX, ''); // Remove the AI name in the text
 
 		if (session_model.get('translate_to')) {
+			console.info(TAG, 'Translating input');
 			apprequire('translator').translate(text, 'it', (err, new_text) => {
 				if (err) return resolve(text, session_model);
 				resolve(new_text);
@@ -67,7 +81,7 @@ exports.textRequest = function(text, session_model) {
 		exports.textRequestTransformer(text, session_model)
 		.then((text) => {
 
-			let request = apiaiClient.textRequest(text, {
+			let request = client.textRequest(text, {
 				sessionId: session_model.id
 			});
 
@@ -112,8 +126,7 @@ exports.textRequest = function(text, session_model) {
 					} else {
 						console.warn(TAG, 'local resolution');
 						AI.fulfillmentTransformer( body.result.fulfillment, session_model )
-						.then(resolve)
-						.catch(reject);
+						.then(resolve);
 					}
 				} else {
 					resolve(body.result.fulfillment);
