@@ -22,7 +22,6 @@ exports.searchTrack = function(opt, callback) {
 		s_track_rating: "desc"
 	});
 
-	console.log( _config.apiKey );
 	request({
 		url: endpoint + call,
 		json: true,

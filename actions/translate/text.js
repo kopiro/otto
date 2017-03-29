@@ -16,9 +16,7 @@ module.exports = function({ sessionId, result }) {
 			resolve({
 				speech: translation,
 				data: {
-					speech: {
-						language: language
-					}
+					language: language
 				}
 			});
 		});

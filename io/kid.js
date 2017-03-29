@@ -84,7 +84,7 @@ exports.output = function(f, session_model) {
 	console.info(TAG, 'output', session_model.id, f);
 
 	return new Promise((resolve, reject) => {
-		const language = (f.data.speech || {}).language || session_model.get('translate_to');
+		const language = f.data.language || session_model.get('translate_to');
 
 		if (f.error) {
 			if (f.error.speech) {	
@@ -103,7 +103,7 @@ exports.output = function(f, session_model) {
 			}).then(resolve);
 		} 
 
-		if (f.data.media) {
+		if (f.data.media != null) {
 			const mopidy = apprequire('mopidy');
 
 			if (f.data.media.artist) {
@@ -167,7 +167,8 @@ exports.output = function(f, session_model) {
 		}
 
 		if (f.data.lyrics) {
-			return Polly.play(f.data.lyrics.lyrics_body.split("\n")[0]).then(resolve);
+			const speech = f.data.lyrics.lyrics_body.split("\n")[0];
+			return Polly.play(speech).then(resolve);
 		}
 
 		return reject({ unkownOutputType: true });
