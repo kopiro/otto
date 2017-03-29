@@ -1,10 +1,10 @@
-let knex = require('knex')({
+const knex = require('knex')({
   client: 'mysql',
   debug: false,
   connection: config.mysql
 });
 
-let bookshelf = require('bookshelf')(knex);
+const bookshelf = require('bookshelf')(knex);
 
 exports.__knex = knex;
 exports.__bookshelf = bookshelf;
@@ -66,5 +66,8 @@ exports.Learning = bookshelf.Model.extend({
 });
 
 exports.Alarm = bookshelf.Model.extend({
-	tableName: 'alarms'
+	tableName: 'alarms',
+	session: function() {
+		return this.belongsTo(exports.Session, 'session_id');
+	},
 });

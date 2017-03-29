@@ -16,14 +16,6 @@ const Play = apprequire('play');
 
 const sessionId = config.io.kid.sessionId || require('node-uuid').v4();
 
-exports.getChats = function() {
-	return Promise.resolve([]);
-};
-
-exports.getAlarmsAt = function() {
-	return Promise.resolve([]);
-};
-
 exports.startInput = function(opt) {
 	console.debug(TAG, 'startInput');
 

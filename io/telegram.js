@@ -15,17 +15,6 @@ const bot = new TelegramBot(_config.token, _config.options);
 
 const SpeechRecognizer = apprequire('speechrecognizer');
 
-exports.getAlarmsAt = function(when) {
-	return new Memory.Alarm()
-	.where(_.extend({ 
-		io: exports.id,
-		when: when,
-		notified: 0
-	}, 
-	config.cron === "debug" ? { debug: 1 } : {}
-	)).fetchAll();
-};
-
 exports.startInput = function() {
 	if (exports.startInput.started) return;
 	exports.startInput.started = true;

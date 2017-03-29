@@ -3,10 +3,28 @@ const TAG = 'MusixMatch';
 
 const endpoint = "https://musixmatchcom-musixmatch.p.mashape.com/wsr/1.1/";
 
+function req(opt, callback) {
+	console.debug(TAG, 'input', opt);
+
+	request(_.extend({
+		json: true,
+		headers: {
+			'X-Mashape-Key': _config.apiKey
+		},
+	}, opt), (err, response, body) => {
+		if (err) {
+			console.error(TAG, err);
+			return callback(err);
+		}
+
+		console.debug(TAG, 'result', body);
+		callback(null, body);
+	});
+}
+
 exports.api = function(opt, callback) {
 	
 };
-
 
 exports.searchTrack = function(opt, callback) {
 	let call = "track.search";
@@ -22,12 +40,8 @@ exports.searchTrack = function(opt, callback) {
 		s_track_rating: "desc"
 	});
 
-	request({
-		url: endpoint + call,
-		json: true,
-		headers: {
-			'X-Mashape-Key': _config.apiKey
-		},
+	req({
+		url: endpoint + call,		
 		qs: opt
 	}, function(error, response, body) {
 		console.debug(TAG, call, 'result', body);
@@ -43,14 +57,8 @@ exports.trackLyrics = function(opt, callback) {
 		track_id: ''
 	});
 
-	console.log(opt);
-
-	request({
+	req({
 		url: endpoint + call,
-		json: true,
-		headers: {
-			'X-Mashape-Key': _config.apiKey
-		},
 		qs: opt
 	}, function(error, response, body) {
 		console.debug(TAG, call, 'result', body);
@@ -64,12 +72,8 @@ exports.music = function(opt, callback) {
 		track_id: 0,
 	});
 
-	request({
+	req({
 		url: endpoint + call,
-		json: true,
-		headers: {
-			'X-Mashape-Key': _config.apiKey
-		},
 		qs: opt
 	}, function(error, response, body) {
 		console.debug(TAG, call, 'result', body);
@@ -84,12 +88,8 @@ exports.artist = function(opt, callback) {
 		artist_id: 0,
 	});
 
-	request({
+	req({
 		url: endpoint + call,
-		json: true,
-		headers: {
-			'X-Mashape-Key': _config.apiKey
-		},
 		qs: opt
 	}, function(error, response, body) {
 		console.debug(TAG, call, 'result', body);

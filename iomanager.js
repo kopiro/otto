@@ -1,3 +1,31 @@
+const TAG = "IOManager";
+
+exports.getSessions = function(ioId) {
+	return Memory.Session()
+	.query((qb) => {
+		qb.where('approved', '=', '1');
+		if (config.cron === "debug") {
+			qb.where('debug', '=', '1');
+		}
+	})
+	.fetchAll();
+};
+
+exports.getAlarmsAt = function(ioId, when) {
+	return Memory.Alarm()
+	.query((qb) => {
+		qb.join('sessions', 'alarms.session_id', '=', 'sessions.id');
+		qb.where('sessions.io_id', '=', ioId);
+		qb.where('when', '=', when);
+		qb.where('notified', '=', '0');
+		qb.where('sessions.approved', '=', '1');
+		if (config.cron === "debug") {
+			qb.where('sessions.debug', '=', '1');
+		}
+	})
+	.fetchAll();
+};
+
 exports.writeLogForSession = function(sessionId, text) {
 	if (_.isEmpty(text)) return;
 	new Memory.SessionInput({ 
