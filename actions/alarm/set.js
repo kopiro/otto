@@ -8,6 +8,19 @@ module.exports = function({ sessionId, result }, session_model) {
 		(_.isEmpty(p.date) ? moment().format('YYYY-MM-DD') : p.date) + ' ' + p.time, 
 		'YYYY-MM-DD HH:mm:ss'
 		);
+
+		if (false == when.isValid()) {
+			return reject({
+				speech: "Non riesco a capire quando mettere la sveglia."
+			});
+		}
+
+		if (when.unix() < moment().unix()) {
+			return reject({
+				speech: "Non posso ancora andare indietro nel tempo!"
+			});
+		}
+
 		const when_human = when.calendar();
 
 		new Memory.Alarm({
