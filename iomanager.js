@@ -23,7 +23,9 @@ exports.getAlarmsAt = function(ioId, when) {
 			qb.where('sessions.debug', '=', '1');
 		}
 	})
-	.fetchAll();
+	.fetchAll({
+		withRelated: ['session']
+	});
 };
 
 exports.writeLogForSession = function(sessionId, text) {
