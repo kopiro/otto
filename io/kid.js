@@ -78,16 +78,15 @@ exports.output = function(f, session_model) {
 	return new Promise((resolve, reject) => {
 		const language = f.data.language || session_model.get('translate_to');
 
-		if (f.error) {
-			if (f.error.speech) {	
-				Polly.play(f.error.speech, {
+		if (f.data.error) {
+			if (f.data.error.speech) {	
+				Polly.play(f.data.error.speech, {
 					language: language
 				}).then(resolve);
 			} else {
 				return resolve();
 			}
 		}
-
 
 		if (f.speech) {
 			return Polly.play(f.speech, {

@@ -25,7 +25,9 @@ Router.post('/', (req, res) => {
 	const reject = (err) => {
 		console.info(TAG, 'error', err);
 		res.json({
-			error: err
+			data: {
+				error: err
+			}
 		});
 	};
 

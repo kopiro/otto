@@ -57,6 +57,7 @@ function successResponse(fulfilment, session_model) {
 	console.debug('Success', session_model.id, fulfilment);
 
 	let io = this;
+
 	io.output(fulfilment, session_model)
 	.then(io.startInput)
 	.catch((err) => {
@@ -69,7 +70,9 @@ function errorResponse(fulfilment, session_model) {
 	console.error('Error', session_model.id, fulfilment);
 
 	let io = this;
+
 	fulfilment.error = fulfilment.error || {};
+
 	io.output(fulfilment, session_model)
 	.then(io.startInput)
 	.catch((err) => {
@@ -85,10 +88,9 @@ function onIoResponse({ session_model, error, params }) {
 	try {
 
 		if (error) {
-			throw error;
-		}
+			errorResponse.call(io, { error: error }, session_model);
 
-		if (params.text) {
+		} else if (params.text) {
 			AI.textRequest(params.text, session_model)
 			.then((fulfillment) => { 
 				successResponse.call(io, fulfillment, session_model);
@@ -106,7 +108,7 @@ function onIoResponse({ session_model, error, params }) {
 		}
 
 	} catch (ex) {
-		errorResponse.call(io, { error: ex }, session_model);
+		errorResponse.call(io, null, session_model);
 	}
 }
 

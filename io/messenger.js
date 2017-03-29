@@ -27,10 +27,10 @@ exports.output = function(f, session_model) {
 	console.info(TAG, 'output', session_model.id, f);
 
 	return new Promise((resolve, reject) => {
-		if (f.error) {
-			if (f.error.speech) {		
+		if (f.data.error) {
+			if (f.data.error.speech) {		
 				bot.sendChatAction(session_model.getIOData().sender.id, 'typing');
-				bot.sendMessage(session_model.getIOData().sender.id, f.error.speech);	
+				bot.sendMessage(session_model.getIOData().sender.id, f.data.error.speech);	
 				return resolve();
 			} else {
 				return resolve();

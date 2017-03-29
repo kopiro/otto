@@ -7,13 +7,13 @@ const Actions = require(__basedir + '/actions');
 
 exports.fulfillmentTransformer = function(f, session_model) {
 	return new Promise((resolve, reject) => {
-
-		// Ensure always data object exists
-		f.data = f.data || {};
-
+		f.data = f.data || {}; // Ensure always data object exists
+		
 		if (session_model.get('translate_to')) {
+		
 			if (!_.isEmpty(f.speech)) {
-				apprequire('translator').translate(f.speech, session_model.get('translate_to'), (err, new_speech) => {
+				const language = session_model.get('translate_to');
+				apprequire('translator').translate(f.speech, language, (err, new_speech) => {
 					if (err) return resolve(f);
 					f.speech = new_speech;					
 					resolve(f);
@@ -21,6 +21,7 @@ exports.fulfillmentTransformer = function(f, session_model) {
 			} else {
 				resolve(f);
 			}
+
 		} else {
 			resolve(f);
 		}
@@ -34,13 +35,21 @@ exports.fulfillmentPromiseTransformer = function(fn, data, session_model) {
 			return exports.fulfillmentTransformer(fulfillment, session_model);
 		})
 		.then(resolve)
-		.catch(reject);
+		.catch((err) => {
+			resolve({
+				data: {
+					error: err
+				}
+			});
+		});
 	});
 };
 
 exports.textRequestTransformer = function(text, session_model) {
 	return new Promise((resolve, reject) => {
-		text = text.replace(AI_NAME_REGEX, '');
+
+		text = text.replace(AI_NAME_REGEX, ''); // Remove the AI name in the text
+
 		if (session_model.get('translate_to')) {
 			apprequire('translator').translate(text, 'it', (err, new_text) => {
 				if (err) return resolve(text, session_model);
@@ -49,6 +58,7 @@ exports.textRequestTransformer = function(text, session_model) {
 		} else {
 			resolve(text);
 		}
+
 	});
 };
 
@@ -94,23 +104,20 @@ exports.textRequest = function(text, session_model) {
 
 				// If this action has not solved using webhook, reparse
 				if (body.result.metadata.webhookUsed === "false") {
-
 					if (body.result.actionIncomplete !== true && !_.isEmpty(action) && _.isFunction(Actions.list[ action ])) {
-						console.info(TAG, 'calling action', action);
-						return AI.fulfillmentPromiseTransformer( Actions.list[ action ](), body, session_model )
+						console.warn(TAG, 'calling local action', action);
+						AI.fulfillmentPromiseTransformer( Actions.list[ action ](), body, session_model )
+						.then(resolve)
+						.catch(reject);
+					} else {
+						console.warn(TAG, 'local resolution');
+						AI.fulfillmentTransformer( body.result.fulfillment, session_model )
 						.then(resolve)
 						.catch(reject);
 					}
-
-					console.warn(TAG, 'local resolution');
-
-					return AI.fulfillmentTransformer( body.result.fulfillment, session_model )
-					.then(resolve)
-					.catch(reject);
-
+				} else {
+					resolve(body.result.fulfillment);
 				}
-
-				resolve(body.result.fulfillment);
 			});
 
 			request.on('error', (err) => {
