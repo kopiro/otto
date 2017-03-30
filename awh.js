@@ -33,7 +33,9 @@ Router.post('/', (req, res) => {
 
 	console.debug(TAG, body);
 
-	new Memory.Session({ id: body.sessionId })
+	const sessionId = body.sessionId;
+
+	new Memory.Session({ id: sessionId })
 	.fetch()
 	.then((session_model) => {
 
