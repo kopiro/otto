@@ -62,7 +62,7 @@ function createRecognizeStream(opt, callback) {
 exports.recognizeAudioStream = function(stream, opt) {
 	return new Promise((resolve, reject) => {
 
-		opt = _.defaults(opt, {
+		opt = _.defaults(opt || {}, {
 			must_convert: false
 		});
 

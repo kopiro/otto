@@ -126,6 +126,7 @@ bot.on('message', (e) => {
 		type: e.chat.type
 	}, e.text)
 	.then((session_model) => {
+
 		if (e.text) {
 			return exports.emitter.emit('input', {
 				session_model: session_model,
@@ -137,7 +138,10 @@ bot.on('message', (e) => {
 
 		if (e.voice) {
 			return bot.getFileLink(e.voice.file_id).then((file_link) => {
-				SpeechRecognizer.recognizeAudioStream( request(file_link) )
+				SpeechRecognizer.recognizeAudioStream(request(file_link), {
+					must_convert: true,
+					language: session_model.get('translate_from')
+				})
 				.then((text) => {
 					return exports.emitter.emit('input', {
 						session_model: session_model,
@@ -149,7 +153,9 @@ bot.on('message', (e) => {
 				.catch((err) => { 
 					return exports.emitter.emit('input', {
 						session_model: session_model,
-						error: err
+						error: {
+							speech: "Scusami, ma non ho capito quello che hai detto!"
+						}
 					});
 				});
 			});
