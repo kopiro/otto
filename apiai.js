@@ -80,7 +80,7 @@ exports.textRequestTransformer = function(text, session_model) {
 
 		text = text.replace(AI_NAME_REGEX, ''); // Remove the AI name in the text
 
-		if (session_model.get('translate_to')) {
+		if (session_model.get('translate_from')) {
 			console.info(TAG, 'Translating input');
 			apprequire('translator').translate(text, 'it', (err, new_text) => {
 				if (err) return resolve(text, session_model);

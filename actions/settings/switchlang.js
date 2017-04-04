@@ -9,12 +9,12 @@ module.exports = function({ sessionId, result }, session_model) {
 			p.translate_to = p.translate_both;
 		}
 
-		const language_target = session_model.get('translate_from') || config.language;
-
-		apprequire('translator').getLanguages(language_target, (err, avail_langs) => {
+		// Get languages every time the original language (IT), 
+		// because all input requests are translated, and the language is translated too!
+		// Example: "ние говорим английски" --> "Parliamo in inglese"
+		// So we should request the languages in Italiano to match "inglese"
+		apprequire('translator').getLanguages(config.language, (err, avail_langs) => {
 			if (err) return reject();
-
-			console.debug(exports.id, avail_langs);
 
 			[ 'from', 'to' ].forEach((x) => {
 				let language_request = p['translate_' + x];
@@ -36,18 +36,14 @@ module.exports = function({ sessionId, result }, session_model) {
 			.save()
 			.then(() => {
 
-				apprequire('translator').getLanguages(config.language, (err, avail_langs) => {
-					if (err) return reject();
+				const from = _.findWhere(avail_langs, { code: session_model.getTranslateFrom() }).name;
+				const to = _.findWhere(avail_langs, { code: session_model.getTranslateTo() }).name;
 
-					const from = _.findWhere(avail_langs, { code: session_model.getTranslateFrom() }).name;
-					const to = _.findWhere(avail_langs, { code: session_model.getTranslateTo() }).name;
-
-					resolve({
-						speech: `Ok, da ora in poi io ti parlo in ${to}, mentre tu mi parli in ${from}`,
-						data: {
-							language: session_model.getTranslateTo()
-						}
-					});
+				resolve({
+					speech: `Ok, da ora in poi io ti parlo in ${to}, mentre tu mi parli in ${from}`,
+					data: {
+						language: session_model.getTranslateTo()
+					}
 				});
 
 			});
