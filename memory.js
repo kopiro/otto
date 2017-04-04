@@ -52,8 +52,26 @@ exports.Contact = bookshelf.Model.extend({
 	memories: function() {
 		return this.hasMany(exports.ContactMemory, 'contact_id');
 	},
+	sessions: function() {
+		return this.hasMany(exports.Session, 'contact_id');
+	},
 	getName: function() {
 		return this.get('alias') || (this.get('first_name') + ' ' + this.get('last_name'));
+	},
+	getUniqueName: function() {
+		return (this.get('first_name') + ' ' + this.get('last_name'));
+	}
+}, {
+	search: function(text, fetch_opt = {}) {
+		return new Memory.Contact()
+		.query((qb) => {
+			qb.select(Memory.__knex.raw(`*, 
+			MATCH (first_name, last_name, alias) AGAINST ("${text}") AS score
+			`));
+			qb.having('score', '>', '0');
+			qb.orderBy('score', 'DESC');
+		})
+		.fetchAll(fetch_opt);
 	}
 });
 

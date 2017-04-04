@@ -51,7 +51,10 @@ exports.output = function(f, session_model) {
 					resize_keyboard: true,
 					one_time_keyboard: true,
 					keyboard: [ 
-					f.data.replies.map((r) => { return r.text; }) 
+					f.data.replies.map((r) => { 
+						if (_.isObject(r)) return r.text; 
+						if (_.isString(r)) return r;
+					}) 
 					]
 				}
 			};

@@ -59,16 +59,13 @@ function tickPerIO(IO) {
 			const contact = session_model.related('contact');
 			let text = ALARM_STRINGS.getRandom().replace('{name}', contact.id ? contact.getName() : session_model.getName());
 
-			AI.fulfillmentTransformer({ speech: text }, session_model)
-			.then((f) => {
-				IO.output(f, session_model)
-				.then(() => {
-					alarm.set('notified', true);
-					alarm.save();
-				})
-				.catch((err) => {
-					console.error(TAG, IO.id, err);
-				});
+			IOManager.output({ speech: text }, session_model)
+			.then(() => {
+				alarm.set('notified', true);
+				alarm.save();
+			})
+			.catch((err) => {
+				console.error(TAG, IO.id, err);
 			});
 		
 		});

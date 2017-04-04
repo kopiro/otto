@@ -36,7 +36,7 @@ Router.post('/', (req, res) => {
 	const sessionId = body.sessionId;
 
 	new Memory.Session({ id: sessionId })
-	.fetch()
+	.fetch({ withRelated: ['contact'] })
 	.then((session_model) => {
 
 		if (session_model == null) {

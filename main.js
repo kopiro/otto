@@ -53,12 +53,12 @@ config.ioDrivers.forEach((driver) => {
 	IOs.push(require(__basedir + '/io/' + driver));
 });
 
-function successResponse(fulfilment, session_model) {
-	console.debug('Success', session_model.id, fulfilment);
+function successResponse(f, session_model) {
+	console.debug('Success', session_model.id, f);
 
 	let io = this;
 
-	io.output(fulfilment, session_model)
+	io.output(f, session_model)
 	.then(io.startInput)
 	.catch((err) => {
 		console.error('Error in success', err);
@@ -66,41 +66,58 @@ function successResponse(fulfilment, session_model) {
 	});
 }
 
-function errorResponse(fulfilment, session_model) {
-	console.error('Error', session_model.id, fulfilment);
+function errorResponse(f, session_model) {
+	console.error('Error', session_model.id, f);
 
 	let io = this;
 
-	fulfilment.error = fulfilment.error || {};
+	AI.fulfillmentTransformer(f, session_model)
+	.then((f) => {
 
-	io.output(fulfilment, session_model)
-	.then(io.startInput)
-	.catch((err) => {
-		console.error('Error in error', err);
-		io.startInput();
+		io.output(f, session_model)
+		.then(io.startInput)
+		.catch((err) => {
+			console.error('Error in error', err);
+			io.startInput();
+		});
+
 	});
 }
 
 function onIoResponse({ session_model, error, params }) {
-	console.debug('onIoResponse', session_model.id, params);
-	let io = this;
+	const io = this;
+
+	if (session_model == null) {
+		console.error('Invalid session model');
+		io.startInput();
+		return;
+	}
 
 	try {
 
+		console.debug('onIoResponse', 'SID = ' + session_model.id, { error, params });
+
 		if (error) {
-			errorResponse.call(io, { error: error }, session_model);
+
+			errorResponse.call(io, { 
+				data: {
+					error: error
+				}
+			}, session_model);
 
 		} else if (params.text) {
+
 			AI.textRequest(params.text, session_model)
 			.then((fulfillment) => { 
 				successResponse.call(io, fulfillment, session_model);
 			})
-			.catch((aierror) => {
-				console.error('AI error', aierror);
-				errorResponse.call(io, aierror, session_model);
+			.catch((fulfillment) => {
+				console.error('AI error', fulfillment);
+				errorResponse.call(io, fulfillment, session_model);
 			});
 
 		} else if (params.fulfillment) {
+
 			successResponse.call(io, params.fulfillment, session_model);
 		
 		} else {
@@ -108,7 +125,13 @@ function onIoResponse({ session_model, error, params }) {
 		}
 
 	} catch (ex) {
-		errorResponse.call(io, null, session_model);
+		errorResponse.call(io, { 
+			data: {
+				error: {
+					exception: ex 
+				}
+			}
+		}, session_model);
 	}
 }
 
