@@ -22,10 +22,6 @@ function req(opt, callback) {
 	});
 }
 
-exports.api = function(opt, callback) {
-	
-};
-
 exports.searchTrack = function(opt, callback) {
 	let call = "track.search";
 	opt = _.defaults(opt, {

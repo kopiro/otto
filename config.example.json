@@ -1,5 +1,7 @@
 {
-	"APIAI_TOKEN": "",
+	"apiai": {
+		"token": ""
+	},
 	"ioDrivers": ["messenger","telegram"],
 	"ioDriversCron": ["telegram"],
 	"language": "it",

@@ -1,6 +1,7 @@
 const TAG = 'AI';
+const _config = config.apiai;
 
-const client = require('apiai')(config.APIAI_TOKEN);
+const client = require('apiai')(_config.token);
 
 const AI_NAME_REGEX = /^(?:Otto(,\s*)?)|(\s*Otto)$/i;
 const Actions = require(__basedir + '/actions');
@@ -11,7 +12,7 @@ exports.fulfillmentTransformer = function(f, session_model) {
 		
 		if (session_model.get('translate_to')) {
 			const language = session_model.get('translate_to');
-			console.info(TAG, 'Translating output', language);
+			console.info(TAG, 'Translating output', { language });
 
 			if (!_.isEmpty(f.speech)) {
 				apprequire('translator').translate(f.speech, language, (err, new_speech) => {
@@ -38,8 +39,24 @@ exports.fulfillmentTransformer = function(f, session_model) {
 
 exports.fulfillmentPromiseTransformer = function(fn, data, session_model) {
 	return new Promise((resolve, reject) => {
+
+		// Start a timeout to ensure that the promise
+		// will be anyway triggered, also with an error
+		let timeout = setTimeout(() => {
+			exports.fulfillmentTransformer({
+				data: {
+					error: {
+						timeout: true
+					}
+				}
+			}, session_model)
+			.then(resolve);
+		}, 1000 * (_config.promiseTimeout || 10));
+
 		fn(data, session_model)
 		.then((fulfillment) => {
+
+			clearTimeout(timeout);
 
 			exports.fulfillmentTransformer(fulfillment, session_model)
 			.then(resolve);
@@ -114,7 +131,7 @@ exports.textRequest = function(text, session_model) {
 
 				body.result.fulfillment.data = body.result.fulfillment.data || {};
 
-				console.debug(TAG, 'response', body);
+				console.info(TAG, 'response', body);
 
 				// If this action has not solved using webhook, reparse
 				if (body.result.metadata.webhookUsed === "false") {
@@ -124,7 +141,7 @@ exports.textRequest = function(text, session_model) {
 						.then(resolve)
 						.catch(reject);
 					} else {
-						console.warn(TAG, 'local resolution');
+						console.debug(TAG, 'local resolution');
 						AI.fulfillmentTransformer( body.result.fulfillment, session_model )
 						.then(resolve);
 					}
