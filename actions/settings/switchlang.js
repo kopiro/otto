@@ -26,6 +26,7 @@ module.exports = function({ sessionId, result }, session_model) {
 							speech: 'Purtroppo non conosco questa lingua'
 						});
 					}
+					
 					let language_to_set = language.code;
 					if (language_to_set == config.language) language_to_set = null;
 					session_model.set('translate_' + x, language_to_set);
