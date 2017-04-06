@@ -4,8 +4,9 @@
   "description": "Simple AI for Otto",
   "main": "index.js",
   "scripts": {
-    "build": "./package_scripts/build.sh",
-    "dev": "./package_scripts/dev.sh"
+    "web-build": "./package_scripts/build.sh",
+    "web-dev": "./package_scripts/dev.sh",
+    "dev": "node main.js"
   },
   "repository": {
     "type": "git",

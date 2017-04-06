@@ -1,7 +1,7 @@
 const TAG = 'Polly';
 
 const aws = require('aws-sdk');
-aws.config.loadFromPath(__dirname + '/keys/aws.json');
+aws.config.loadFromPath(__basedir + '/keys/aws.json');
 
 const fs = require('fs');
 const md5 = require('md5');
