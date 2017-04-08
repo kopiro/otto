@@ -1,12 +1,13 @@
 FROM node
 
-RUN mkdir -p /usr/src/app
-WORKDIR /usr/src/app
+COPY ./bin/dockerboot.sh /bin/dockerboot
+COPY ./keys /keys
 
-COPY . /usr/src/app
-RUN yarn install
+VOLUME /app
 
-EXPOSE 8880 
-EXPOSE 443
+COPY ./config.json /config.json
 
-CMD [ "npm", "run", "dev" ]
+EXPOSE 8880 443
+
+WORKDIR /app
+CMD /bin/dockerboot

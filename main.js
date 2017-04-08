@@ -14,6 +14,8 @@ if (config.awh) {
 	require(__basedir + '/awh');
 }
 
+const Chess = require(__basedir + '/actions_support/chess');
+
 function outCognitive(data, image, io) {
 	return new Promise((resolve, reject) => {
 		const Cognitive = require(__basedir + '/support/cognitive');

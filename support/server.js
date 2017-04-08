@@ -6,6 +6,9 @@ const http = require('http');
 const express = require('express');
 const app = express();
 
+const server = require('http').createServer(app);
+const io = require('socket.io')(server);
+
 const exphbs  = require('express-handlebars');
 
 app.set('title', require(__basedir + '/package.json').name);
@@ -51,6 +54,12 @@ router_awh.use(require('body-parser').urlencoded({
 	extended: true
 }));
 
+//////////////////
+// Actions part //
+//////////////////
+
+const router_actions = express.Router();
+
 ///////////
 // Mount //
 ///////////
@@ -69,13 +78,17 @@ app.use('/styles', express.static(__basedir + '/build-web/styles'));
 app.use('/api', router_api);
 app.use('/admin', router_admin);
 app.use('/awh', router_awh);
+app.use('/actions', router_actions);
 
-app.listen(port, () => {
+// Start
+server.listen(port, () => {
 	console.info(`HTTP Server has started on port ${port}`);
 });
 
 module.exports = {
 	app: app,
+	io: io,
+	routerActions: router_actions,
 	routerAdmin: router_admin,
 	routerApi: router_api,
 	routerAwh: router_awh

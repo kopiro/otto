@@ -1,4 +1,4 @@
-const TAG = "IOManager";
+const TAG = 'IOManager';
 
 exports.getDriver = function(io_id) {
 	return require(__basedir + '/io/' + io_id);
