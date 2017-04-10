@@ -33,7 +33,7 @@ module.exports = function({ sessionId, result }) {
 			return akiClient.resolver({
 				speech: akiClient.speech,
 				contextOut: [
-				{ name: "akinator_answer", lifespan: 1 }
+				{ name: "akinator_answer", lifespan: 10 }
 				],
 				data: {
 					forceText: true,

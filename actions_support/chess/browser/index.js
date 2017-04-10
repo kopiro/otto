@@ -39,11 +39,44 @@ function onDrop(source, target) {
 		promotion: 'q'
 	});
 	if (move === null) return 'snapback';
-	updateStatus();
 }
 
 function onSnapEnd() {
 	board.position(game.fen());
+}
+
+var removeGreySquares = function() {
+    $('.square-55d63').css('background', '');
+};
+
+function greySquare(square) {
+	var squareEl = $('.square-' + square);
+
+	var background = '#a9a9a9';
+	if (squareEl.hasClass('black-3c85d') === true) {
+		background = '#696969';
+	}
+
+	squareEl.css('background', background);
+}
+
+function onMouseoverSquare(square, piece) {
+    var moves = game.moves({
+        square: square,
+        verbose: true
+    });
+
+    if (moves.length === 0) return;
+
+    greySquare(square);
+
+    for (var i = 0; i < moves.length; i++) {
+        greySquare(moves[i].to);
+    }
+}
+
+function onMouseoutSquare(square, piece) {
+    removeGreySquares();
 }
 
 const board = ChessBoard('board1', {
@@ -51,5 +84,7 @@ const board = ChessBoard('board1', {
 	position: 'start',
 	onDragStart: onDragStart,
 	onDrop: onDrop,
-	onSnapEnd: onSnapEnd
+	onSnapEnd: onSnapEnd,
+	onMouseoutSquare: onMouseoutSquare,
+	onMouseoverSquare: onMouseoverSquare
 });

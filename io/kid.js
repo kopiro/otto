@@ -88,6 +88,10 @@ exports.output = function(f, session_model) {
 			}
 		}
 
+		if (f.data.url) {
+			apprequire('urlmanager').open(f.data.url);
+		}
+
 		if (f.speech) {
 			return Polly.play(f.speech, {
 				language: language

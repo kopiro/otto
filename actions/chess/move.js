@@ -6,50 +6,55 @@ module.exports = function({ sessionId, result }) {
 	return new Promise((resolve, reject) => {
 		let { parameters: p, fulfillment } = result;
 
-		const from = p.from.toLowerCase();
-		const to = p.to.toLowerCase();
+		Chess.getGame(sessionId)
+		.then((game) => {
 
-		const game = Chess.getGame(sessionId);
+			const from = p.from.toLowerCase();
+			const to = (p.to || '').toLowerCase();
 
-		const user_move = game.chess.moves({ verbose: true }).filter((m) => { 
-			return m.color === 'w'; 
-		}).find((m) => {
-			return m.from === from && m.to === to;
-		});
+			const logic = game.getLogic();
+			const socket = game.getSocket();
 
-		if (user_move == null) {
+			const user_move = logic.moves({ verbose: true })
+			.filter((m) => { 
+				return m.color === 'w'; 
+			})
+			.find((m) => {
+				if (p.piece) return m.piece === p.piece && m.to === to;
+				if (from) return m.from === from && m.to === to;
+			});
+
+			if (user_move == null) {
+				return resolve({
+					speech: "Mi dispiace, ma questa mossa non sembra essere valida",
+					contextOut: [
+					{ name: "chess_game", lifespan: 10 }
+					],
+				});
+			}
+
+			logic.move(user_move);
+			if (socket) socket.emit('fen', logic.fen());
+
+			const ai_move = logic.moves({ verbose: true }).filter((m) => { 
+				return m.color === 'b'; 
+			}).getRandom();
+
+			logic.move(ai_move);
+			if (socket) socket.emit('fen', logic.fen());
+
+			game.set('fen', logic.fen());
+			game.save();
+
 			return resolve({
-				speech: "Mi dispiace, ma questa mossa non sembra essere valida",
+				speech: "Ok, io muovo " + Chess.PIECES[ai_move.piece] + " in " + ai_move.to,
 				contextOut: [
-				{ name: "chess_game", lifespan: 1 }
+				{ name: "chess_game", lifespan: 10 }
 				],
 			});
-		}
 
-		game.chess.move(user_move);
-		
-		// Socket could be nil
-		if (game.socket) {
-			game.socket.emit('fen', game.chess.fen());
-		}
-
-		const ai_move = game.chess.moves({ verbose: true }).filter((m) => { 
-			return m.color === 'b'; 
-		}).getRandom()
-
-		game.chess.move(ai_move);
-
-		// Socket could be nil
-		if (game.socket) {
-			game.socket.emit('fen', game.chess.fen());
-		}
-
-		return resolve({
-			speech: "Ok, io muovo " + ai_move.from + " in " + ai_move.to,
-			contextOut: [
-			{ name: "chess_game", lifespan: 1 }
-			],
-		});
+		})
+		.catch(reject);
 
 	});
 };

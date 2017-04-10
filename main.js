@@ -14,7 +14,9 @@ if (config.awh) {
 	require(__basedir + '/awh');
 }
 
-const Chess = require(__basedir + '/actions_support/chess');
+// const X =  require('chess.js').Chess;
+// const x = new X();
+// console.log(x.moves({verbose:true}));
 
 function outCognitive(data, image, io) {
 	return new Promise((resolve, reject) => {

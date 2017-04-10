@@ -6,16 +6,19 @@ module.exports = function({ sessionId, result }) {
 	return new Promise((resolve, reject) => {
 		let { parameters: p, fulfillment } = result;
 
-		const game = Chess.createGame(sessionId);
+		Chess.createGame(sessionId)
+		.then((game) => {
 
-		resolve({
-			speech: 'Perfetto, giochiamo!',
-			contextOut: [
-			{ name: "chess_game", lifespan: 1 }
-			],
-			data: {
-				url: game.url
-			}
+			resolve({
+				speech: 'Perfetto, giochiamo!',
+				contextOut: [
+				{ name: "chess_game", lifespan: 10 }
+				],
+				data: {
+					url: game.getUrl()
+				}
+			});
+
 		});
 
 	});
