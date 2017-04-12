@@ -2,7 +2,7 @@ exports.id = 'chess.start';
 
 const Chess = require(__basedir + '/actions_support/chess');
 
-module.exports = function({ sessionId, result }) {
+module.exports = function({ sessionId, result }, session_model) {
 	return new Promise((resolve, reject) => {
 		let { parameters: p, fulfillment } = result;
 
@@ -40,16 +40,23 @@ module.exports = function({ sessionId, result }) {
 			// Process my move
 			game.move(user_move);
 
-			// Think and move
-			const ai_move = game.getAIMove();
-			game.move(ai_move);
-
-			return resolve({
-				speech: "Ok, io muovo " + Chess.PIECES[ai_move.piece] + " in " + ai_move.to,
+			// The AI could be very slow to detect the right move to do,
+			// so resolve immediately and think about later
+			resolve({
+				speech: '',
 				contextOut: [
 				{ name: "chess_game", lifespan: 10 }
 				],
 			});
+
+			// Think and move
+			const ai_move = game.getAIMove();
+			game.move(ai_move);
+
+			const speech = "Ok, io muovo " + Chess.PIECES[ai_move.piece] + " in " + ai_move.to;
+			IOManager.output({
+				speech: speech
+			}, session_model);
 
 		})
 		.catch(reject);
