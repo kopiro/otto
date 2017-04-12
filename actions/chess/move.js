@@ -6,19 +6,23 @@ module.exports = function({ sessionId, result }) {
 	return new Promise((resolve, reject) => {
 		let { parameters: p, fulfillment } = result;
 
+		// We are the white
+		// Otto is black
+
 		Chess.getGame(sessionId)
 		.then((game) => {
 
 			const from = p.from.toLowerCase();
 			const to = (p.to || '').toLowerCase();
 
-			const logic = game.getLogic();
-			const socket = game.getSocket();
-
-			const user_move = logic.moves({ verbose: true })
+			const user_moves = game.getLogic().moves({ verbose: true })
 			.filter((m) => { 
 				return m.color === 'w'; 
-			})
+			});
+
+			console.debug(exports.id, 'user moves', user_moves);
+
+			const user_move = user_moves
 			.find((m) => {
 				if (p.piece) return m.piece === p.piece && m.to === to;
 				if (from) return m.from === from && m.to === to;
@@ -33,18 +37,12 @@ module.exports = function({ sessionId, result }) {
 				});
 			}
 
-			logic.move(user_move);
-			if (socket) socket.emit('fen', logic.fen());
+			// Process my move
+			game.move(user_move);
 
-			const ai_move = logic.moves({ verbose: true }).filter((m) => { 
-				return m.color === 'b'; 
-			}).getRandom();
-
-			logic.move(ai_move);
-			if (socket) socket.emit('fen', logic.fen());
-
-			game.set('fen', logic.fen());
-			game.save();
+			// Think and move
+			const ai_move = game.getAIMove();
+			game.move(ai_move);
 
 			return resolve({
 				speech: "Ok, io muovo " + Chess.PIECES[ai_move.piece] + " in " + ai_move.to,

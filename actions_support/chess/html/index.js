@@ -1808,7 +1808,7 @@ const board = ChessBoard('board1', {
 
 },{"./chessboard.js":1,"chess.js":3,"jquery":4}],3:[function(require,module,exports){
 /*
- * Copyright (c) 2016, Jeff Hlywa (jhlywa@gmail.com)
+ * Copyright (c) 2017, Jeff Hlywa (jhlywa@gmail.com)
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -1837,7 +1837,7 @@ const board = ChessBoard('board1', {
 /* minified license below  */
 
 /* @license
- * Copyright (c) 2016, Jeff Hlywa (jhlywa@gmail.com)
+ * Copyright (c) 2017, Jeff Hlywa (jhlywa@gmail.com)
  * Released under the BSD license
  * https://github.com/jhlywa/chess.js/blob/master/LICENSE
  */
@@ -3097,6 +3097,26 @@ var Chess = function(fen) {
 
     fen: function() {
       return generate_fen();
+    },
+
+    board: function() {
+      var output = [],
+          row    = [];
+
+      for (var i = SQUARES.a8; i <= SQUARES.h1; i++) {
+        if (board[i] == null) {
+          row.push(null)
+        } else {
+          row.push({type: board[i].type, color: board[i].color})
+        }
+        if ((i + 1) & 0x88) {
+          output.push(row);
+          row = []
+          i += 8;
+        }
+      }
+
+      return output;
     },
 
     pgn: function(options) {

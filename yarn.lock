@@ -1170,9 +1170,9 @@ charenc@~0.0.1:
   version "0.0.2"
   resolved "https://registry.yarnpkg.com/charenc/-/charenc-0.0.2.tgz#c0a1d2f3a7092e03774bfa83f14c0fc5790a8667"
 
-chess.js@^0.10.2:
+"chess.js@git+https://github.com/jhlywa/chess.js":
   version "0.10.2"
-  resolved "https://registry.yarnpkg.com/chess.js/-/chess.js-0.10.2.tgz#eacefa2067155f87f046e80cc12d2019eef1b81a"
+  resolved "git+https://github.com/jhlywa/chess.js#128aedec937823caab94492102548697f222170e"
 
 chokidar@^1.0.0, chokidar@^1.6.1:
   version "1.6.1"

@@ -14,9 +14,11 @@ if (config.awh) {
 	require(__basedir + '/awh');
 }
 
-// const X =  require('chess.js').Chess;
-// const x = new X();
-// console.log(x.moves({verbose:true}));
+const X = require(__dirname + '/actions_support/chess');
+X.createGame('test/kopirobook')
+.then((game) => {
+	console.log( game.getAIMove() );
+});
 
 function outCognitive(data, image, io) {
 	return new Promise((resolve, reject) => {
