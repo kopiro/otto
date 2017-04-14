@@ -20,8 +20,6 @@ module.exports = function({ sessionId, result }, session_model) {
 				return m.color === 'w'; 
 			});
 
-			console.debug(exports.id, 'user moves', user_moves);
-
 			const user_move = user_moves
 			.find((m) => {
 				if (p.piece) return m.piece === p.piece && m.to === to;
@@ -43,7 +41,7 @@ module.exports = function({ sessionId, result }, session_model) {
 			// The AI could be very slow to detect the right move to do,
 			// so resolve immediately and think about later
 			resolve({
-				speech: '',
+				speech: 'Ok, perfetto. Ora lasciami pensare...',
 				contextOut: [
 				{ name: "chess_game", lifespan: 10 }
 				],

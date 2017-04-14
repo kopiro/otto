@@ -17,7 +17,7 @@ Server.routerAdmin.get('/memories', (req, res) => {
 });
 
 Server.routerAdmin.get('/memories/:id', (req, res) => {
-	new Memory.Memory({ id: req.params.id })
+	new ORM.Memory({ id: req.params.id })
 	.fetch({ require: true })
 	.then((data) => {
 		res.render('admin/memories/edit', {
@@ -32,7 +32,7 @@ Server.routerAdmin.get('/memories/:id', (req, res) => {
 /////////
 
 Server.routerApi.get('/cron', (req, res) => {
-	new Memory.Cron()
+	new ORM.Cron()
 	.fetchAll()
 	.then((data) => res.json({ data }))
 	.catch((err) => res.json({ error: err }));
@@ -47,7 +47,7 @@ Server.routerApi.post('/cron', (req, res) => {
 		}
 	}
 
-	new Memory.Cron(
+	new ORM.Cron(
 	_.pick(req.body, attrs)
 	)
 	.save()
@@ -56,14 +56,14 @@ Server.routerApi.post('/cron', (req, res) => {
 });
 
 Server.routerApi.get('/memories', (req, res) => {
-	new Memory.Memory()
+	new ORM.Memory()
 	.fetchAll()
 	.then((data) => res.json({ data }))
 	.catch((err) => res.json({ error: err }));
 });
 
 Server.routerApi.get('/memories/:id', (req, res) => {
-	new Memory.Memory({ id: req.params.id })
+	new ORM.Memory({ id: req.params.id })
 	.fetchAll()
 	.then((data) => res.json(data))
 	.catch((err) => res.json({ error: err }));
@@ -80,7 +80,7 @@ Server.routerApi.post('/memories/:id', (req, res) => {
 		}
 	}
 
-	new Memory.Memory({ id: req.params.id })
+	new ORM.Memory({ id: req.params.id })
 	.set(_.pick(req.body, attrs))
 	.save()
 	.then((data) => res.json({ data }))
@@ -98,7 +98,7 @@ Server.routerApi.post('/memories', (req, res) => {
 		}
 	}
 
-	new Memory.Memory(
+	new ORM.Memory(
 	_.pick(req.body, attrs)
 	)
 	.save()

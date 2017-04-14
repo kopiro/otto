@@ -8,7 +8,7 @@ module.exports = function({ sessionId, result }, session_model) {
 	return new Promise((resolve, reject) => {
 		let { parameters: p, fulfillment } = result;
 
-		Memory.Contact.search(p.to, {
+		ORM.Contact.search(p.to, {
 			withRelated: ['sessions']
 		})
 		.then((contacts) => {

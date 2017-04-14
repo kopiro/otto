@@ -14,15 +14,15 @@ function tick() {
 
 function tickPerIO(IO) {
 	const now = moment();
-	console.info(TAG, 'WK=' + now.isoWeekday(), 'H=' + now.hours(), 'M=' + now.minutes());
+	// console.info(TAG, 'WK=' + now.isoWeekday(), 'H=' + now.hours(), 'M=' + now.minutes());
 
 	// Get standard messages
-	// new Memory.Cron()
+	// new ORM.Cron()
 	// .query((qb) => {
-	// 	qb.where(Memory.__knex.raw('FIND_IN_SET(' + now.isoWeekday() + ', iso_weekday)'));
-	// 	qb.where(Memory.__knex.raw('FIND_IN_SET(' + now.hours() + ', hours)'));
-	// 	qb.where(Memory.__knex.raw('FIND_IN_SET(' + now.minutes() + ', minutes)'));
-	// 	qb.orderBy(Memory.__knex.raw('RAND()'));
+	// 	qb.where(ORM.__knex.raw('FIND_IN_SET(' + now.isoWeekday() + ', iso_weekday)'));
+	// 	qb.where(ORM.__knex.raw('FIND_IN_SET(' + now.hours() + ', hours)'));
+	// 	qb.where(ORM.__knex.raw('FIND_IN_SET(' + now.minutes() + ', minutes)'));
+	// 	qb.orderBy(ORM.__knex.raw('RAND()'));
 	// 	qb.limit(1);
 	// })
 	// .fetch()

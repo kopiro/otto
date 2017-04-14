@@ -35,13 +35,13 @@ Router.post('/', (req, res) => {
 
 	const sessionId = body.sessionId;
 
-	new Memory.Session({ id: sessionId })
+	new ORM.Session({ id: sessionId })
 	.fetch({ withRelated: ['contact'] })
 	.then((session_model) => {
 
 		if (session_model == null) {
 			console.error(TAG, `Creating a missing session ID with ${sessionId}`);
-			session_model = new Memory.Session({ id: sessionId });
+			session_model = new ORM.Session({ id: sessionId });
 			session_model.save();
 		}
 

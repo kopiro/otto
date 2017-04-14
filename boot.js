@@ -32,6 +32,5 @@ DB.connect();
 
 // Global (App) packages
 global.AI = require(__basedir + '/apiai');
-global.Memory = require(__basedir + '/memory');
+global.ORM = require(__basedir + '/orm');
 global.Util = require(__basedir + '/util');
-global.Volatile = require(__basedir + '/volatile');

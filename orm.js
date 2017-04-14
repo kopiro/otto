@@ -9,6 +9,16 @@ const bookshelf = require('bookshelf')(knex);
 exports.__knex = knex;
 exports.__bookshelf = bookshelf;
 
+exports.IOQueue = bookshelf.Model.extend({
+	tableName: 'io_queue',
+	session: function() {
+		return this.belongsTo(exports.Session, 'session_id');
+	},
+	getData: function() {
+		return JSON.parse(this.get('data'));
+	}
+});
+
 exports.Cron = bookshelf.Model.extend({
 	tableName: 'cron',
 });
@@ -63,9 +73,9 @@ exports.Contact = bookshelf.Model.extend({
 	}
 }, {
 	search: function(text, fetch_opt = {}) {
-		return new Memory.Contact()
+		return new ORM.Contact()
 		.query((qb) => {
-			qb.select(Memory.__knex.raw(`*, 
+			qb.select(ORM.__knex.raw(`*, 
 			MATCH (first_name, last_name, alias) AGAINST ("${text}") AS score
 			`));
 			qb.having('score', '>', '0');

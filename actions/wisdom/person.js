@@ -8,16 +8,16 @@ module.exports = function({ sessionId, result }) {
 			case 'whatis':
 			case 'whois':
 
-			new Memory.Contact()
+			new ORM.Contact()
 			.query((qb) => {
-				qb.select(Memory.__knex.raw(`*, MATCH (first_name, last_name, alias, tags) AGAINST ("${p.q}" IN NATURAL LANGUAGE MODE) AS score`));
+				qb.select(ORM.__knex.raw(`*, MATCH (first_name, last_name, alias, tags) AGAINST ("${p.q}" IN NATURAL LANGUAGE MODE) AS score`));
 				qb.having('score', '>', '0');
-				qb.orderBy(Memory.__knex.raw('RAND()'));
+				qb.orderBy(ORM.__knex.raw('RAND()'));
 			})
 			.fetch({ require: true })
 			.then((contact) => {
 
-				new Memory.ContactMemory()
+				new ORM.ContactMemory()
 				.where({ id_contact: contact.id })
 				.fetchAll()
 				.then((memories) => {

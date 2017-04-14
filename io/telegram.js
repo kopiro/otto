@@ -11,9 +11,9 @@ exports.capabilities = {
 };
 
 const TelegramBot = require('node-telegram-bot-api');
-const bot = new TelegramBot(_config.token, _config.options);
-
 const SpeechRecognizer = apprequire('speechrecognizer');
+
+const bot = new TelegramBot(_config.token, _config.options);
 
 exports.startInput = function() {
 	if (exports.startInput.started) return;

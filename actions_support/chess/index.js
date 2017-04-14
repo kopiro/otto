@@ -143,7 +143,7 @@ function getPieceValue(piece, x, y) {
 	return sign * (scoreBoard[piece.type] + evaluationBoard[piece.color][piece.type][y][x]);
 }
 
-const Game = Memory.__bookshelf.Model.extend({
+const Game = ORM.__bookshelf.Model.extend({
 	tableName: 'chess_games',
 	getLogic: function() {
 		if (this.logic == null) this.logic = new Chess( this.get('fen') || void(0) );

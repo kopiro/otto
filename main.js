@@ -25,7 +25,7 @@ function outCognitive(data, image, io) {
 				if (resp.length === 0 || resp[0] == null || resp[0].candidates.length === 0) return reject(err);
 				let person_id = resp[0].candidates[0].personId;
 
-				Memory.Contact
+				new ORM.Contact
 				.where({ person_id: person_id })
 				.fetch({ required: true })
 				.then((contact) => {

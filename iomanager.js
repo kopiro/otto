@@ -20,7 +20,7 @@ exports.output = function(f, session_model) {
 };
 
 exports.getSessions = function(io_id) {
-	return new Memory.Session()
+	return new ORM.Session()
 	.query((qb) => {
 		qb.where('approved', '=', '1');
 		if (config.cron === "debug") {
@@ -31,7 +31,7 @@ exports.getSessions = function(io_id) {
 };
 
 exports.getAlarmsAt = function(io_id, when) {
-	return new Memory.Alarm()
+	return new ORM.Alarm()
 	.query((qb) => {
 		qb.join('sessions', 'alarms.session_id', '=', 'sessions.id');
 		qb.where('sessions.io_id', '=', io_id);
@@ -49,7 +49,7 @@ exports.getAlarmsAt = function(io_id, when) {
 
 exports.writeLogForSession = function(sessionId, text) {
 	if (_.isEmpty(text)) return;
-	new Memory.SessionInput({ 
+	new ORM.SessionInput({ 
 		session_id: sessionId,
 		text: text
 	}).save();
@@ -62,7 +62,7 @@ exports.registerSession = function(sessionId, io_id, data, attrs, text) {
 	return new Promise((resolve, reject) => {
 		let sessionIdComposite = io_id + '/' + sessionId;
 
-		new Memory.Session({ 
+		new ORM.Session({ 
 			id: sessionIdComposite
 		})
 		.fetch({
@@ -82,7 +82,7 @@ exports.registerSession = function(sessionId, io_id, data, attrs, text) {
 		})
 		.catch((err) => {
 
-			let session_model = new Memory.Session(_.extend(attrs || {}, { 
+			let session_model = new ORM.Session(_.extend(attrs || {}, { 
 				id: sessionIdComposite,
 				io_id: io_id,
 				io_data: JSON.stringify(data),
@@ -101,3 +101,37 @@ exports.registerSession = function(sessionId, io_id, data, attrs, text) {
 
 	});
 };
+
+exports.processQueue = function() {
+	new ORM.IOQueue()
+	.fetchAll({
+		withRelated: ['session']
+	})
+	.then((queue_items) => {
+		if (queue_items == null || queue_items.length === 0) {
+			setTimeout(exports.processQueue, 1000);
+			return;
+		}
+
+		console.info(TAG, 'processing queue with ' + queue_items.length + ' items');
+		async.eachOfSeries(queue_items, (queue_item, key, callback) => {
+			exports.output(queue_item.getData(), queue_item.related('session'))
+			.then(() => {
+				queue_item.destroy();
+			})
+			.catch(() => {
+			})
+			.then(() => {
+				callback();
+			});
+		}, () => {
+			setTimeout(exports.processQueue, 1000);
+		});
+	});
+};
+
+exports.startPolling = function() {
+	exports.processQueue();
+};
+
+exports.startPolling();
