@@ -1,6 +1,12 @@
 require('./boot');
 
-console.info('IO: drivers loaded => ' + config.ioDrivers.join(', '));
+console.info('IO: drivers to load => ' + config.ioDrivers.join(', '));
+
+let IOs = [];
+config.ioDrivers.forEach((driver) => {
+	console.debug('IO: loading', driver);
+	IOs.push(require(__basedir + '/io/' + driver));
+});
 
 if (config.cron) {
 	require(__basedir + '/cron');
@@ -47,11 +53,6 @@ function outCognitive(data, image, io) {
 		});
 	});
 }
-
-let IOs = [];
-config.ioDrivers.forEach((driver) => {
-	IOs.push(require(__basedir + '/io/' + driver));
-});
 
 function successResponse(f, session_model) {
 	console.debug('Success', session_model.id, f);

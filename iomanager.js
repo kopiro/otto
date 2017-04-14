@@ -130,8 +130,8 @@ exports.processQueue = function() {
 	});
 };
 
-exports.startPolling = function() {
-	exports.processQueue();
-};
+// exports.startPolling = function() {
+// 	exports.processQueue();
+// };
 
-exports.startPolling();
+// exports.startPolling();
