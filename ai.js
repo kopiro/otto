@@ -5,6 +5,7 @@ const client = require('apiai')(_config.token);
 
 const AI_NAME_REGEX = /^(?:Otto(,\s*)?)|(\s*Otto)$/i;
 const Actions = require(__basedir + '/actions');
+const Translator = apprequire('translator');
 
 exports.fulfillmentTransformer = function(f, session_model) {
 	return new Promise((resolve, reject) => {
@@ -15,13 +16,14 @@ exports.fulfillmentTransformer = function(f, session_model) {
 			console.info(TAG, 'Translating output', { language });
 
 			if (!_.isEmpty(f.speech)) {
-				apprequire('translator').translate(f.speech, language, (err, new_speech) => {
+				Translator.translate(f.speech, language, (err, new_speech) => {
 					if (err) return resolve(f);
 					f.speech = new_speech;	
 					resolve(f);
 				});
+				
 			} else if (f.data.error && !_.isEmpty(f.data.error.speech)) {
-				apprequire('translator').translate(f.data.error.speech, language, (err, new_speech) => {
+				Translator.translate(f.data.error.speech, language, (err, new_speech) => {
 					if (err) return resolve(f);
 					f.data.error.speech = new_speech;	
 					resolve(f);
@@ -82,7 +84,7 @@ exports.textRequestTransformer = function(text, session_model) {
 
 		if (session_model.get('translate_from')) {
 			console.info(TAG, 'Translating input');
-			apprequire('translator').translate(text, 'it', (err, new_text) => {
+			Translator.translate(text, 'it', (err, new_text) => {
 				if (err) return resolve(text, session_model);
 				resolve(new_text);
 			});

@@ -1,13 +1,8 @@
 require('./boot');
 
-console.info('IO: drivers to load => ' + config.ioDrivers.join(', '));
-
-let IOs = [];
-config.ioDrivers.forEach((driver) => {
-	console.debug('IO: loading', driver);
-	IOs.push(require(__basedir + '/io/' + driver));
-});
-
+IOManager.loadDrivers();
+IOManager.startPolling();
+	
 if (config.cron) {
 	require(__basedir + '/cron');
 }
@@ -136,7 +131,7 @@ function onIoResponse({ session_model, error, params }) {
 	}
 }
 
-IOs.forEach((io) => {
+_.each(IOManager.drivers, (io) => {
 	io.emitter.on('input', onIoResponse.bind(io));
 	io.startInput();
 });

@@ -61,7 +61,6 @@ module.exports = function({ sessionId, result }, session_model) {
 			}
 
 			// Finally send the message
-			const IOManager = require(__basedir + '/iomanager');
 			const eligible_contact_session = eligible_contact.related('sessions').first();
 			const from_name = session_model.get('first_name');
 

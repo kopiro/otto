@@ -1,5 +1,4 @@
 const TAG = 'IO.Test';
-const IOManager = require(__basedir + '/iomanager');
 
 const EventEmitter = require('events').EventEmitter;
 exports.emitter = new EventEmitter();
@@ -56,10 +55,10 @@ exports.startInput = function() {
 };
 
 exports.output = function(f, session_model) {
-	if (null == config.testDriverOut) {
-		console.info(TAG, 'output', session_model.id, JSON.stringify(f, null, 2));
+	if (null == config.testDriver) {
+		console.info(TAG, 'output', session_model.id, f);
 		return Promise.resolve();
 	}
 
-	return require(__basedir + '/io/' + config.testDriverOut).output(f, session_model);
+	return IOManager.getDriver(config.testDriver).output(f, session_model);
 };

@@ -31,6 +31,7 @@ global.DB = require('mysql').createConnection(config.mysql);
 DB.connect();
 
 // Global (App) packages
-global.AI = require(__basedir + '/apiai');
+global.AI = require(__basedir + '/ai');
 global.ORM = require(__basedir + '/orm');
 global.Util = require(__basedir + '/util');
+global.IOManager = require(__basedir + '/iomanager');

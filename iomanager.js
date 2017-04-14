@@ -1,21 +1,59 @@
 const TAG = 'IOManager';
 
+exports.drivers = {};
+
+exports.isDriverEnabled = function(io_id) {
+	return (io_id in exports.drivers);
+};
+
 exports.getDriver = function(io_id) {
-	return require(__basedir + '/io/' + io_id);
+	return exports.drivers[io_id];
+};
+
+exports.loadDrivers = function() {
+	console.info(TAG, 'drivers to load => ' + config.ioDrivers.join(', '));
+
+	config.ioDrivers.forEach((io_id) => {
+		console.debug(TAG, 'loading', io_id);
+		exports.drivers[ io_id ] = require(__basedir + '/io/' + io_id);
+	});
 };
 
 exports.output = function(f, session_model) {
 	return new Promise((resolve, reject) => {
-		AI.fulfillmentTransformer(f, session_model)
-		.then((f) => {
-			exports.getDriver( session_model.get('io_id') )
-			.output(f, session_model)
-			.then(resolve)
-			.catch(reject);
-		})
-		.catch((err) => {
-			console.error(TAG, 'output', err);
-		});
+
+		if (exports.isDriverEnabled(session_model.get('io_id'))) {	
+
+			// If driver is enabled, instantly resolve
+			
+			AI.fulfillmentTransformer(f, session_model)
+			.then((f) => {
+
+				exports.getDriver( session_model.get('io_id') )
+				.output(f, session_model)
+				.then(resolve)
+				.catch(reject);
+
+			})
+			.catch((err) => {
+				console.error(TAG, 'output', err);
+			});
+
+		} else {
+
+			// otherwise, put in the queue and make resolve to other clients
+			console.info(TAG, 'putting in IO queue', session_model.id, f);
+
+			new ORM.IOQueue({
+				session_id: session_model.id,
+				data: JSON.stringify(f),
+			}).save();
+			
+			resolve({
+				inQueue: true
+			});
+
+		}
 	});
 };
 
@@ -107,31 +145,38 @@ exports.processQueue = function() {
 	.fetchAll({
 		withRelated: ['session']
 	})
-	.then((queue_items) => {
-		if (queue_items == null || queue_items.length === 0) {
+	.then((qitems) => {
+		if (qitems == null || qitems.length === 0) {
 			setTimeout(exports.processQueue, 1000);
 			return;
 		}
 
-		console.info(TAG, 'processing queue with ' + queue_items.length + ' items');
-		async.eachOfSeries(queue_items, (queue_item, key, callback) => {
-			exports.output(queue_item.getData(), queue_item.related('session'))
+		async.eachOfSeries(qitems.toArray(), (qitem, key, callback) => {
+			const session_model = qitem.related('session');
+
+			if (exports.isDriverEnabled( session_model.get('io_id') ) === false) {
+				return callback();
+			}
+
+			const data = qitem.getData();
+			console.info(TAG, 'processing queue item', session_model.id, data);
+
+			exports.output(data, session_model)
 			.then(() => {
-				queue_item.destroy();
+				qitem.destroy();
 			})
 			.catch(() => {
 			})
 			.then(() => {
 				callback();
 			});
+
 		}, () => {
 			setTimeout(exports.processQueue, 1000);
 		});
 	});
 };
 
-// exports.startPolling = function() {
-// 	exports.processQueue();
-// };
-
-// exports.startPolling();
+exports.startPolling = function() {
+	exports.processQueue();
+};

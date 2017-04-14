@@ -1,5 +1,4 @@
 const TAG = 'Cron';
-const IOManager = require(__basedir + '/iomanager');
 
 const ALARM_STRINGS = [
 "Hey {name}, sveglia!"

@@ -1,5 +1,4 @@
 const TAG = 'IO.Kid';
-const IOManager = require(__basedir + '/iomanager');
 
 const EventEmitter = require('events').EventEmitter;
 exports.emitter = new EventEmitter();

@@ -1,6 +1,5 @@
 const TAG = 'IO.Telegram';
 const _config = config.io.telegram;
-const IOManager = require(__basedir + '/iomanager');
 
 const EventEmitter = require('events').EventEmitter;
 exports.emitter = new EventEmitter();
@@ -14,6 +13,11 @@ const TelegramBot = require('node-telegram-bot-api');
 const SpeechRecognizer = apprequire('speechrecognizer');
 
 const bot = new TelegramBot(_config.token, _config.options);
+
+const STICKERS = {
+	me: 'CAADBAADRQMAAokSaQP3vsj1u7oQ9wI',
+	logo: 'CAADBAADRAMAAokSaQMXx8V8QvEybAI'
+};
 
 exports.startInput = function() {
 	if (exports.startInput.started) return;
@@ -33,10 +37,13 @@ exports.output = function(f, session_model) {
 	console.info(TAG, 'output', session_model.id, f);
 	
 	return new Promise((resolve, reject) => {
+
+		const chat_id = session_model.getIOData().id;
+
 		if (f.data.error) {
 			if (f.data.error.speech) {		
-				bot.sendChatAction(session_model.getIOData().id, 'typing');
-				bot.sendMessage(session_model.getIOData().id, f.data.error.speech);	
+				bot.sendChatAction(chat_id, 'typing');
+				bot.sendMessage(chat_id, f.data.error.speech);	
 				return resolve();
 			} else {
 				return resolve();
@@ -64,23 +71,23 @@ exports.output = function(f, session_model) {
 			if (f.data.url) {
 				f.speech += "\n" + f.data.url;
 			}
-			bot.sendChatAction(session_model.getIOData().id, 'typing');
-			bot.sendMessage(session_model.getIOData().id, f.speech, message_opt);
+			bot.sendChatAction(chat_id, 'typing');
+			bot.sendMessage(chat_id, f.speech, message_opt);
 			return resolve();
 		}
 
 		if (f.data.media) {
-			bot.sendChatAction(session_model.getIOData().id, 'typing');
+			bot.sendChatAction(chat_id, 'typing');
 			if (f.data.media.artist) {
-				bot.sendMessage(session_model.getIOData().id, f.data.media.artist.external_urls.spotify, message_opt);
+				bot.sendMessage(chat_id, f.data.media.artist.external_urls.spotify, message_opt);
 				return resolve();
 			}
 			if (f.data.media.track) {
-				bot.sendMessage(session_model.getIOData().id, f.data.media.track.external_urls.spotify, message_opt);
+				bot.sendMessage(chat_id, f.data.media.track.external_urls.spotify, message_opt);
 				return resolve();
 			}
 			if (f.data.media.playlist) {
-				bot.sendMessage(session_model.getIOData().id, f.data.media.playlist.external_urls.spotify, message_opt);
+				bot.sendMessage(chat_id, f.data.media.playlist.external_urls.spotify, message_opt);
 				return resolve();
 			}
 			return reject();
@@ -88,18 +95,18 @@ exports.output = function(f, session_model) {
 
 		if (f.data.image) {
 			if (f.data.image.remoteFile) {
-				bot.sendChatAction(session_model.getIOData().id, 'upload_photo');
-				bot.sendPhoto(session_model.getIOData().id, f.data.image.remoteFile, message_opt);
+				bot.sendChatAction(chat_id, 'upload_photo');
+				bot.sendPhoto(chat_id, f.data.image.remoteFile, message_opt);
 			} else if (f.data.image.localFile) {
-				bot.sendChatAction(session_model.getIOData().id, 'upload_photo');
-				bot.sendPhoto(session_model.getIOData().id, f.data.image.localFile, message_opt);
+				bot.sendChatAction(chat_id, 'upload_photo');
+				bot.sendPhoto(chat_id, f.data.image.localFile, message_opt);
 			}
 			return resolve();
 		}
 
 		if (f.lyrics) {
-			bot.sendChatAction(session_model.getIOData().id, 'typing');
-			bot.sendMessage(session_model.getIOData().id, f.lyrics.lyrics_body, message_opt);
+			bot.sendChatAction(chat_id, 'typing');
+			bot.sendMessage(chat_id, f.lyrics.lyrics_body, message_opt);
 			return resolve();
 		}
 
@@ -112,7 +119,7 @@ exports.output = function(f, session_model) {
 /////////////////
 
 bot.on('webhook_error', (err) => {
-  console.error(TAG, 'webhook error', err);
+	console.error(TAG, 'webhook error', err);
 });
 
 bot.on('message', (e) => {

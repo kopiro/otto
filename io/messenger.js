@@ -1,6 +1,5 @@
 const TAG = 'IO.Messenger';
 const _config = config.io.messenger;
-const IOManager = require(__basedir + '/iomanager');
 
 const EventEmitter = require('events').EventEmitter;
 exports.emitter = new EventEmitter();
