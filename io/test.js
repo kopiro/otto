@@ -60,5 +60,5 @@ exports.output = function(f, session_model) {
 		return Promise.resolve();
 	}
 
-	return IOManager.getDriver(config.testDriver).output(f, session_model);
+	return IOManager.getDriver(config.testDriver, true).output(f, session_model);
 };

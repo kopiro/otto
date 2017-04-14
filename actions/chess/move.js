@@ -47,14 +47,18 @@ module.exports = function({ sessionId, result }, session_model) {
 				],
 			});
 
-			// Think and move
-			const ai_move = game.getAIMove();
-			game.move(ai_move);
+			setTimeout(() => {
 
-			const speech = "Ok, io muovo " + Chess.PIECES[ai_move.piece] + " in " + ai_move.to;
-			IOManager.output({
-				speech: speech
-			}, session_model);
+				// Think and move
+				const ai_move = game.getAIMove();
+				game.move(ai_move);
+
+				const speech = "Ok, io muovo " + Chess.PIECES[ai_move.piece] + " in " + ai_move.to;
+				IOManager.output({
+					speech: speech
+				}, session_model);
+
+			}, 0);
 
 		})
 		.catch(reject);

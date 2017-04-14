@@ -6,7 +6,8 @@ exports.isDriverEnabled = function(io_id) {
 	return (io_id in exports.drivers);
 };
 
-exports.getDriver = function(io_id) {
+exports.getDriver = function(io_id, force_load) {
+	if (force_load) return require(__basedir + '/io/' + io_id);
 	return exports.drivers[io_id];
 };
 
