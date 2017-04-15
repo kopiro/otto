@@ -39,10 +39,9 @@ exports.searchTrack = function(opt, callback) {
 	req({
 		url: endpoint + call,		
 		qs: opt
-	}, function(error, response, body) {
-		console.debug(TAG, call, 'result', body);
+	}, function(error, body) {
 		if (callback) {
-			callback(error, (body || ''));
+			callback(error, body);
 		}
 	});
 };
@@ -56,8 +55,7 @@ exports.trackLyrics = function(opt, callback) {
 	req({
 		url: endpoint + call,
 		qs: opt
-	}, function(error, response, body) {
-		console.debug(TAG, call, 'result', body);
+	}, function(error, body) {
 		if (callback) callback(error, body);
 	});
 };
@@ -71,8 +69,7 @@ exports.music = function(opt, callback) {
 	req({
 		url: endpoint + call,
 		qs: opt
-	}, function(error, response, body) {
-		console.debug(TAG, call, 'result', body);
+	}, function(error, body) {
 		if (callback) callback(error, body);
 	});
 };
@@ -87,8 +84,7 @@ exports.artist = function(opt, callback) {
 	req({
 		url: endpoint + call,
 		qs: opt
-	}, function(error, response, body) {
-		console.debug(TAG, call, 'result', body);
+	}, function(error, body) {
 		if (callback) callback(error, body);
 	});
 };
