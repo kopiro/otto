@@ -142,13 +142,13 @@ exports.output = function(f, session_model) {
 				.then((track) => {
 					const name = track.name;
 					const artist = track.artists[0].name;
-					return exports.output(data, { 
+					return IOManager.output({ 
 						speech: [
 						`Questa canzone si chiama ${name} di ${artist}`,
 						`Bella questa! É ${name} di ${artist}!`,
 						`Come fai a non conoscerla? Si tratta di ${name} di ${artist}`
 						].getRandom()
-					});
+					}, session_model);
 				})
 				.catch(reject)
 				.then(() => {

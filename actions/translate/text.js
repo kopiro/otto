@@ -5,19 +5,20 @@ const Translator = apprequire('translator');
 module.exports = function({ sessionId, result }) {
 	return new Promise((resolve, reject) => {
 		const { parameters: p, fulfillment } = result;
-		const language = Util.getLocaleFromString(p.language);
 
-		Translator.translate(p.q, language, (err, translation) => {
-			if (err) {
-				console.error(exports.id, err);
-				return reject();
-			}
-			
-			resolve({
-				speech: translation,
-				data: {
-					language: language
-				}
+		Translator.getLanguages(config.language, (err, avail_langs) => {
+			if (err) return reject(err);
+
+			const language = _.findWhere(avail_langs, { name: p.language });
+			Translator.translate(p.q, language.code, (err, translation) => {
+				if (err) return reject(err);
+
+				resolve({
+					speech: translation,
+					data: {
+						language: language.code
+					}
+				});
 			});
 		});
 	});

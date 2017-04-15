@@ -41,7 +41,7 @@ module.exports = function({ sessionId, result }, session_model) {
 			// The AI could be very slow to detect the right move to do,
 			// so resolve immediately and think about later
 			resolve({
-				speech: 'Ok, ora penso...',
+				speech: '',
 				contextOut: [
 				{ name: "chess_game", lifespan: 10 }
 				],
@@ -49,7 +49,7 @@ module.exports = function({ sessionId, result }, session_model) {
 
 			setTimeout(() => { 
 				game.aiMove(); 
-			}, 500);
+			}, 0);
 		})
 		.catch(reject);
 
