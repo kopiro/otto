@@ -1722,9 +1722,7 @@ const Chess = require('chess.js').Chess;
 
 const game = new Chess();
 
-const config = { 
-	sessionId: decodeURIComponent(window.location.hash.replace('#', '')) 
-};
+const sessionId = decodeURIComponent(window.location.hash.replace('#', ''));
 
 ////////////
 // Socket //
@@ -1732,9 +1730,12 @@ const config = {
 
 const socket = io();
 
-socket.emit('start', config);
+socket.emit('start', {
+	sessionId: sessionId,
+});
 
 socket.on('fen', (fen) => {
+	console.log('FEN', fen);
 	game.load(fen);
 	board.position(fen);
 });
@@ -1744,26 +1745,20 @@ socket.on('fen', (fen) => {
 ////////////
 
 function onDragStart(source, piece, position, orientation) {
-	if (game.game_over() === true || (game.turn() === 'w' && piece.search(/^b/) !== -1) || (game.turn() === 'b' && piece.search(/^w/) !== -1)) {
-		return false;
-	}
+	if (piece.color === 'b') return false;
+	if (game.game_over() === true || game.turn() === 'b') return false;
 }
 
 function onDrop(source, target) {
-	let move = game.move({
+	socket.emit('move', {
+		sessionId: sessionId,
 		from: source,
-		to: target,
-		promotion: 'q'
+		to: target
 	});
-	if (move === null) return 'snapback';
-}
-
-function onSnapEnd() {
-	board.position(game.fen());
 }
 
 var removeGreySquares = function() {
-    $('.square-55d63').css('background', '');
+	$('.square-55d63').css('background', '');
 };
 
 function greySquare(square) {
@@ -1778,22 +1773,22 @@ function greySquare(square) {
 }
 
 function onMouseoverSquare(square, piece) {
-    var moves = game.moves({
-        square: square,
-        verbose: true
-    });
+	var moves = game.moves({
+		square: square,
+		verbose: true
+	});
 
-    if (moves.length === 0) return;
+	if (moves.length === 0) return;
 
-    greySquare(square);
+	greySquare(square);
 
-    for (var i = 0; i < moves.length; i++) {
-        greySquare(moves[i].to);
-    }
+	for (var i = 0; i < moves.length; i++) {
+		greySquare(moves[i].to);
+	}
 }
 
 function onMouseoutSquare(square, piece) {
-    removeGreySquares();
+	removeGreySquares();
 }
 
 const board = ChessBoard('board1', {
@@ -1801,7 +1796,6 @@ const board = ChessBoard('board1', {
 	position: 'start',
 	onDragStart: onDragStart,
 	onDrop: onDrop,
-	onSnapEnd: onSnapEnd,
 	onMouseoutSquare: onMouseoutSquare,
 	onMouseoverSquare: onMouseoverSquare
 });

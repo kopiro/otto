@@ -36,30 +36,20 @@ module.exports = function({ sessionId, result }, session_model) {
 			}
 
 			// Process my move
-			game.move(user_move);
+			game.userMove(user_move);
 
 			// The AI could be very slow to detect the right move to do,
 			// so resolve immediately and think about later
 			resolve({
-				speech: 'Ok, perfetto. Ora lasciami pensare...',
+				speech: 'Ok, ora penso...',
 				contextOut: [
 				{ name: "chess_game", lifespan: 10 }
 				],
 			});
 
-			setTimeout(() => {
-
-				// Think and move
-				const ai_move = game.getAIMove();
-				game.move(ai_move);
-
-				const speech = "Ok, io muovo " + Chess.PIECES[ai_move.piece] + " in " + ai_move.to;
-				IOManager.output({
-					speech: speech
-				}, session_model);
-
-			}, 0);
-
+			setTimeout(() => { 
+				game.aiMove(); 
+			}, 500);
 		})
 		.catch(reject);
 

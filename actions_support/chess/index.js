@@ -4,9 +4,18 @@ const Chess = require('chess.js').Chess;
 const Server = apprequire('server');
 const Sockets = {};
 
-const DEPTH = 3;
+const DEPTH = 1;
+
+const SPEECH_MOVING = [
+"Sto muovendo {piece} in {to}",
+"Sto sposando {piece} in {to}",
+"Vediamo cosa fai, sposto {piece} in {to}",
+"Provo a mettere {piece} in {to}",
+"Uhm... forse spostando {piece} in {to}"
+];
 
 const evaluationBoard = { w: {
+
 	p: [
 	[0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0],
 	[5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0,  5.0],
@@ -89,36 +98,41 @@ const scoreBoard = {
 	k: 900
 };
 
-function minimaxRoot(depth, game, isMaximisingPlayer) {
-	let newGameMoves = game.moves({ verbose: true });
+function minimaxRoot(depth, game, turn) {
+	let new_game_moves = game.moves({ verbose: true });
 	let best_move = -9999;
 	let best_move_found;
 
-	for (let i = 0; i < newGameMoves.length; i++) {
-		const newGameMove = newGameMoves[i];
-		game.move(newGameMove);
-		let value = minimax(depth - 1, game, -10000, 10000, !isMaximisingPlayer);
+	for (let i = 0; i < new_game_moves.length; i++) {
+		const new_game_move = new_game_moves[i];
+		game.move(new_game_move);
+		let value = minimax(depth - 1, game, -10000, 10000, !turn);
+		console.debug(TAG, new_game_move.from, new_game_move.to, turn, value);
 		game.undo();
 		if (value >= best_move) {
 			best_move = value;
-			best_move_found = newGameMove;
+			best_move_found = new_game_move;
 		}
 	}
+
+	console.debug(TAG, best_move, best_move_found);
 
 	return best_move_found;
 }
 
-function minimax(depth, game, alpha, beta, isMaximisingPlayer) {
+function minimax(depth, game, alpha, beta, turn) {
 	if (depth === 0) return -evaluateBoard(game.board());
 
-	let newGameMoves = game.moves({ verbose: true });
-	let best_move = (isMaximisingPlayer ? -1 : 1) * 9999;
+	let new_game_moves = game.moves({ verbose: true });
+	let best_move = (turn ? -1 : 1) * 9999;
 	
-	for (let i = 0; i < newGameMoves.length; i++) {
-		game.move(newGameMoves[i]);
-		best_move = Math.max(best_move, minimax(depth - 1, game, alpha, beta, !isMaximisingPlayer));
+	for (let i = 0; i < new_game_moves.length; i++) {
+		game.move(new_game_moves[i]);
+		let best_move_opt = minimax(depth - 1, game, alpha, beta, !turn);
+		best_move = Math[ turn ? 'max' : 'min' ](best_move, best_move_opt);
 		game.undo();
-		alpha = Math[ isMaximisingPlayer ? 'max' : 'min' ](alpha, best_move);
+		if (turn) alpha = Math.max(alpha, best_move);
+		else beta = Math.min(beta, best_move);
 		if (beta <= alpha) {
 			return best_move;
 		}
@@ -145,6 +159,21 @@ function getPieceValue(piece, x, y) {
 
 const Game = ORM.__bookshelf.Model.extend({
 	tableName: 'chess_games',
+	session: function() {
+		return this.belongsTo(ORM.Session, 'session_id');
+	},
+	recover: function() {
+		const logic = this.getLogic();
+		if (logic.game_over()) {
+			console.debug(TAG, 'recovering game, reset');
+			logic.reset();
+			this.set('fen', logic.fen());
+			this.save();
+		} else if (logic.turn() === 'b') {
+			console.debug(TAG, 'recovering game, AI move');
+			this.aiMove();
+		}
+	},
 	getLogic: function() {
 		if (this.logic == null) this.logic = new Chess( this.get('fen') || void(0) );
 		return this.logic;
@@ -156,11 +185,9 @@ const Game = ORM.__bookshelf.Model.extend({
 		const sessionId = encodeURIComponent( this.get('session_id') );
 		return `${config.server.domainWithPort}/actions/chess#${sessionId}`;
 	},
-	getAIMove: function() {
-		return minimaxRoot(DEPTH, this.getLogic(), true);
-	},
-	move: function(move) {
+	move: function(move, source) {
 		const logic = this.getLogic();
+
 		logic.move(move);
 		this.set('fen', logic.fen());
 		this.save();
@@ -168,6 +195,44 @@ const Game = ORM.__bookshelf.Model.extend({
 		if (this.getSocket() != null) {
 			this.getSocket().emit('fen', this.get('fen'));
 		}
+
+		if (logic.game_over()) {
+			if (source === 'user') {
+				IOManager.output({
+					speech: "Uffa, come fai ad essere così forte!"
+				}, this.related('session'));
+			} else if (source === 'ai') {
+				IOManager.output({
+					speech: "Ops, forse ho vinto!"
+				}, this.related('session'));
+			}
+		} else {
+			if (source === 'ai') {
+				IOManager.output({
+					speech: 
+					SPEECH_MOVING.getRandom()
+					.replace('{piece}', exports.PIECES[move.piece])
+					.replace('{to}', move.to)
+				}, this.related('session'));
+			}
+		}
+	},
+	userMove: function(move) {
+		const logic = this.getLogic();
+		if (logic.game_over()) return;
+		if (logic.turn() === 'b') return;
+
+		this.move(move, 'user');
+	},
+	aiMove: function() {
+		const logic = this.getLogic();
+		if (logic.game_over()) return;
+		if (logic.turn() === 'w') return;
+
+		console.debug(TAG, 'thinking...');
+
+		const ai_move = minimaxRoot(DEPTH, logic, true);
+		this.move(ai_move, 'ai');
 	}
 });
 
@@ -201,13 +266,24 @@ Server.io.on('connection', (socket) => {
 		});
 	});
 
+	socket.on('move', (data) => {
+		exports.getGame(data.sessionId)
+		.then((game) => {
+			game.userMove({
+				from: data.from,
+				to: data.to
+			});
+			game.aiMove();
+		});
+	});
+
 });
 
 exports.createGame = function(sessionId) {
 	return new Promise((resolve, reject) => {
 		exports.getGame(sessionId)
 		.then(resolve)
-		.catch(() => {
+		.catch((err) => {
 			new Game({ session_id: sessionId })
 			.save()
 			.then(resolve)
@@ -225,7 +301,18 @@ exports.assignSocket = function(sessionId, socket) {
 };
 
 exports.getGame = function(sessionId) {
-	return new Game()
-	.where('session_id', sessionId)
-	.fetch({ require: true });
+	return new Promise((resolve, reject) => {
+		new Game()
+		.where('session_id', sessionId)
+		.fetch({ 
+			require: true,
+			withRelated: ['session']
+		})
+		.then((game) => {
+			game.recover();
+			resolve(game);
+		})
+		.catch(reject);
+
+	});
 };
