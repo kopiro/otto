@@ -1,4 +1,4 @@
-const Cognitive = require(__basedir + '/support/cognitive');
+const Cognitive = apprequire('cognitive');
 
 const NodeWebcam = require('node-webcam');
 const im = require('imagemagick');

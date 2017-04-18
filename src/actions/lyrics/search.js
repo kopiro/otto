@@ -1,6 +1,6 @@
 exports.id = 'lyrics.search';
 
-const MusixMatch = require(__basedir + '/support/musixmatch');
+const MusixMatch = apprequire('musixmatch');
 
 module.exports = function({ sessionId, result }) {
 	return new Promise((resolve, reject) => {

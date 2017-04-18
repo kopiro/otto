@@ -1,12 +1,12 @@
 exports.id = 'akinator.start';
-const akinator = require(__basedir + '/support/akinator');
+const Akinator = apprequire('akinator');
 
 module.exports = function({ sessionId, result }) {
 	return new Promise((resolve, reject) => {
 		let { parameters: p, fulfillment } = result;
 		
-		const akiClient = akinator.data[sessionId] = {
-			client: akinator.create('it'),
+		const akiClient = Akinator.data[sessionId] = {
+			client: Akinator.create('it'),
 			speech: null, 
 			replies: null,
 			resolver: resolve
@@ -44,7 +44,7 @@ module.exports = function({ sessionId, result }) {
 
 		// on finish
 		(characters) => {
-			delete akinator.data[sessionId];
+			delete Akinator.data[sessionId];
 			const char = _.first(characters);
 			return akiClient.resolver({
 				speech: `Stiamo parlando di ${char.name} - ${char.description}`,

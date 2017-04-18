@@ -4,7 +4,7 @@ const _config = config.apiai;
 const client = require('apiai')(_config.token);
 
 const AI_NAME_REGEX = /^(?:Otto(,\s*)?)|(\s*Otto)$/i;
-const Actions = require(__basedir + '/actions');
+const Actions = require(__basedir + '/src/actions');
 const Translator = apprequire('translator');
 
 exports.fulfillmentTransformer = function(f, session_model) {

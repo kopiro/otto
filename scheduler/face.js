@@ -2,7 +2,7 @@ require('../boot');
 
 const TAG = path.basename(__filename);
 
-const Cognitive = require(__basedir + '/support/Cognitive');
+const Cognitive = apprequire('cognitive');
 
 Cognitive.face.createPersonGroup((err, resp) => {
 	Memory.Contact

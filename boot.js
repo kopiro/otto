@@ -11,7 +11,7 @@ global.config = require('./config.json');
 global.public_config = require('./public_config.json');
 
 // Define a new require to require files from our path
-global.apprequire = ((k) => require(__basedir + '/support/' + k));
+global.apprequire = ((k) => require(__basedir + '/src/lib/' + k));
 
 global.AI_NAME = "Otto";
 
@@ -31,7 +31,7 @@ global.DB = require('mysql').createConnection(config.mysql);
 DB.connect();
 
 // Global (App) packages
-global.AI = require(__basedir + '/ai');
-global.ORM = require(__basedir + '/orm');
-global.Util = require(__basedir + '/util');
-global.IOManager = require(__basedir + '/iomanager');
+global.AI = require(__basedir + '/src/ai');
+global.ORM = require(__basedir + '/src/orm');
+global.Util = require(__basedir + '/src/util');
+global.IOManager = require(__basedir + '/src/iomanager');

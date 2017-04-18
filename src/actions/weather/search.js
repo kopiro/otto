@@ -1,6 +1,6 @@
 exports.id = 'weather.search';
 
-const Wunderground = require(__basedir + '/support/wunderground');
+const Wunderground = apprequire('wunderground');
 
 const wg_qualifiers = ['chance','mostly','partly'];
 

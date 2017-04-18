@@ -6,7 +6,7 @@ aws.config.loadFromPath(__basedir + '/keys/aws.json');
 const fs = require('fs');
 const md5 = require('md5');
 
-const Play = require(__basedir + '/support/play');
+const Play = apprequire('play');
 
 // Create an Polly client
 const Polly = new aws.Polly({

@@ -1,5 +1,5 @@
 exports.id = 'akinator.answer';
-const akinator = require(__basedir + '/support/akinator');
+const Akinator = apprequire('akinator');
 
 function cleanText(t) {
 	const diacriticsRemove = require('diacritics').remove;
@@ -10,14 +10,14 @@ module.exports = function({ sessionId, result }) {
 	return new Promise((resolve, reject) => {
 		let { parameters: p, fulfillment } = result;
 
-		const akiClient = akinator.data[sessionId];
+		const akiClient = Akinator.data[sessionId];
 		if (akiClient == null) {
 			console.error(exports.id, 'Unable to find a client with this SID', sessionId);
 			return reject();
 		}
 
 		if (result.resolvedQuery === 'Stop') {
-			delete akinator.data[sessionId];
+			delete Akinator.data[sessionId];
 		} else {
 
 			const answer = _.find(akiClient.replies, (ans) => {

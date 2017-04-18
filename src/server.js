@@ -1,4 +1,4 @@
-let Server = require(__basedir + '/support/server');
+let Server = apprequire('server');
 
 ///////////
 // Admin //

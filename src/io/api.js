@@ -1,5 +1,5 @@
 const TAG = 'IO.API';
-const Server = require(__basedir + '/support/server').routerApi;
+const Server = apprequire('server').routerApi;
 
 const EventEmitter = require('events').EventEmitter;
 exports.emitter = new EventEmitter();

@@ -6,8 +6,8 @@ const ALARM_STRINGS = [
 
 function tick() {
 	setTimeout(tick, 60 * 1000);
-	config.ioDriversCron.forEach((io) => {
-		tickPerIO(require(__basedir + '/io/' + io));
+	config.ioDriversCron.forEach((io_id) => {
+		tickPerIO(IOManager.getDriver(io_id, true));
 	});
 }
 
