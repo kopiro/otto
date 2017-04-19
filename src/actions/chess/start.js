@@ -9,8 +9,6 @@ module.exports = function({ sessionId, result }) {
 		Chess.createGame(sessionId)
 		.then((game) => {
 
-
-
 			resolve({
 				contextOut: [
 				{ name: "chess_game", lifespan: 10 }

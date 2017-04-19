@@ -183,7 +183,7 @@ const Game = ORM.__bookshelf.Model.extend({
 	},
 	getUrl: function() {
 		const sessionId = encodeURIComponent( this.get('session_id') );
-		return `${config.server.domainWithPort}/actions/chess#${sessionId}`;
+		return `${config.server.domainWithPort}/actions/chess/#${sessionId}`;
 	},
 	move: function(move, source) {
 		const logic = this.getLogic();
@@ -245,7 +245,7 @@ exports.PIECES = {
 	r: "la torre",
 };
 
-Server.routerActions.use('/chess', require('express').static(__dirname + '/html'));
+Server.routerActions.use('/chess', require('express').static(__dirname + '/public'));
 
 // Instantiatate socket.io connection
 Server.io.on('connection', (socket) => {

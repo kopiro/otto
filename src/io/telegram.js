@@ -224,7 +224,6 @@ bot.on("callback_query", (e) => {
 		if (user) {
 			if (user[e.game_short_name]) {
 				bot.answerCallbackQuery(e.id, undefined, false, user[e.game_short_name]);
-				delete user[e.game_short_name];
 			}
 		}
 	}

@@ -19,8 +19,10 @@ socket.emit('start', {
 
 socket.on('fen', (fen) => {
 	console.log('FEN', fen);
-	game.load(fen);
-	board.position(fen);
+	if (game.fen() != fen) {
+		game.load(fen);
+		board.position(fen);
+	}
 });
 
 ////////////
