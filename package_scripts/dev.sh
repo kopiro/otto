@@ -2,10 +2,13 @@
 
 trap 'kill $(jobs -p)' EXIT
 
-mkdir -p build-web/scripts
+mkdir -p public/scripts
 
-watchify web/scripts/main.jsx -o build-web/scripts/main.js -t [ babelify ] &
-watchify web/scripts/memories.jsx -o build-web/scripts/memories.js -t [ babelify ] &
-watchify web/scripts/cron.jsx -o build-web/scripts/cron.js -t [ babelify ] &
+echo "Compiling base Javascript files..."
+watchify web/scripts/main.jsx -o public/scripts/main.min.js -t [ babelify ] &
+watchify web/scripts/memories.jsx -o public/scripts/memories.min.js -t [ babelify ] &
+watchify web/scripts/cron.jsx -o public/scripts/cron.min.js -t [ babelify ] &
+
+find . -name "devhook.sh" -exec ./{} \; &
 
 wait

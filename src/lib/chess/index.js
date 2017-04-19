@@ -247,12 +247,6 @@ exports.PIECES = {
 
 Server.routerActions.use('/chess', require('express').static(__dirname + '/html'));
 
-// Build index.js
-require('browserify')()
-.add(__dirname + '/browser/index.js')
-.bundle()
-.pipe(fs.createWriteStream(__dirname + '/html/index.js'));
-
 // Instantiatate socket.io connection
 Server.io.on('connection', (socket) => {
 

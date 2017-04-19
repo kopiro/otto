@@ -5,6 +5,7 @@ require('console-ultimate/global').replace();
 global.__basedir = __dirname;
 global.__tmpdir = __dirname + '/tmp';
 global.__cachedir = __dirname + '/cache';
+global.__publicdir = __dirname + '/public';
 
 // Read the config and expose as global
 global.config = require('./config.json');

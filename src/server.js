@@ -1,3 +1,5 @@
+const TAG = 'Server';
+
 let Server = apprequire('server');
 
 ///////////

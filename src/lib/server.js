@@ -70,10 +70,6 @@ app.use(express.static(__basedir + '/public'));
 // tmp
 app.use('/tmp', express.static(__basedir + '/tmp'));
 
-// build-web
-app.use('/scripts', express.static(__basedir + '/build-web/scripts'));
-app.use('/styles', express.static(__basedir + '/build-web/styles'));
-
 // dynamics
 app.use('/api', router_api);
 app.use('/admin', router_admin);
