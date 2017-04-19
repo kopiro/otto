@@ -76,6 +76,12 @@ exports.output = function(f, session_model) {
 			return resolve();
 		}
 
+		if (f.data.game) {
+			callback_queries[chat_id] = callback_queries[chat_id] || {};
+			callback_queries[chat_id][f.data.game.id] = f.data.game;
+			bot.sendGame(chat_id, f.data.game.id);
+		}
+
 		if (f.data.media) {
 			bot.sendChatAction(chat_id, 'typing');
 			if (f.data.media.artist) {
@@ -91,6 +97,17 @@ exports.output = function(f, session_model) {
 				return resolve();
 			}
 			return reject();
+		}
+
+		if (f.data.video) {
+			if (f.data.video.remoteFile) {
+				bot.sendChatAction(chat_id, 'upload_video');
+				bot.sendVideo(chat_id, f.data.video.remoteFile, message_opt);
+			} else if (f.data.video.localFile) {
+				bot.sendChatAction(chat_id, 'upload_video');
+				bot.sendVideo(chat_id, f.data.video.localFile, message_opt);
+			}
+			return resolve();
 		}
 
 		if (f.data.image) {
@@ -189,6 +206,7 @@ bot.on('message', (e) => {
 		});
 	})
 	.catch((session_model) => {
+		console.log(session_model);
 		exports.emitter.emit('input', {
 			session_model: session_model,
 			error: {
@@ -196,4 +214,18 @@ bot.on('message', (e) => {
 			}
 		});
 	});
+});
+
+const callback_queries = {};
+
+bot.on("callback_query", (e) => {
+	if (e.game_short_name) {
+		const user = callback_queries[e.from.id];
+		if (user) {
+			if (user[e.game_short_name]) {
+				bot.answerCallbackQuery(e.id, undefined, false, user[e.game_short_name]);
+				delete user[e.game_short_name];
+			}
+		}
+	}
 });

@@ -87,11 +87,13 @@ exports.getAlarmsAt = function(io_id, when) {
 };
 
 exports.writeLogForSession = function(sessionId, text) {
-	if (_.isEmpty(text)) return;
-	new ORM.SessionInput({ 
-		session_id: sessionId,
-		text: text
-	}).save();
+	setTimeout(() => {
+		if (_.isEmpty(text)) return;
+		new ORM.SessionInput({ 
+			session_id: sessionId,
+			text: text
+		}).save();
+	}, 0);
 };
 
 /**
@@ -121,20 +123,22 @@ exports.registerSession = function(sessionId, io_id, data, attrs, text) {
 		})
 		.catch((err) => {
 
-			let session_model = new ORM.Session(_.extend(attrs || {}, { 
+			new ORM.Session(_.extend(attrs || {}, { 
 				id: sessionIdComposite,
 				io_id: io_id,
 				io_data: JSON.stringify(data),
 			}))
 			.save(null, { method: 'insert' })
-			.then(() => {
+			.then((session_model) => {
+		
 				exports.writeLogForSession(sessionIdComposite, text);
+
+				reject(session_model);
+		
 			})
 			.catch((err) => {
 				console.error(TAG, 'Unable to register session', err);
 			});
-
-			reject(session_model);
 
 		});
 
