@@ -1,7 +1,5 @@
 #!/bin/bash
 
-npm install
-
 if [ "$(uname)" == "Darwin" ]; then
 
 	brew install sox
@@ -9,6 +7,8 @@ if [ "$(uname)" == "Darwin" ]; then
 	brew tap mopidy/mopidy
 	brew install mopidy
 	brew install mopidy-spotify
+
+	brew install libav
 
 elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
 
@@ -19,9 +19,13 @@ elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
 
 	sudo apt-get -y install libsox-fmt-mp3
 
+	sudo apt-get -y install libav
+
 else
 
 	echo "Platform not supported"
 	exit
 
 fi
+
+yarn install

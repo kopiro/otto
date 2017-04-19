@@ -1,3 +1,9 @@
+const uuid = require('uuid');
+
+global.uuid = function() {
+	return uuid.v4();
+};
+
 Array.prototype.getRandom = function() {
 	return this[ _.random(0, this.length - 1) ];
 };

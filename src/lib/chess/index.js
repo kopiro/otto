@@ -237,12 +237,12 @@ const Game = ORM.__bookshelf.Model.extend({
 });
 
 exports.PIECES = {
-	k: 'il re',
-	q: 'la regina',
-	p: 'una pedina', 
-	b: 'l\'alfiere',
-	n: 'il cavallo',
-	r: 'la torre',
+	k: "il re",
+	q: "la regina",
+	p: "una pedina", 
+	b: "l'alfiere",
+	n: "il cavallo",
+	r: "la torre",
 };
 
 Server.routerActions.use('/chess', require('express').static(__dirname + '/html'));

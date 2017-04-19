@@ -1,6 +1,6 @@
 var Mopidy = require("mopidy");
 var mopidy = new Mopidy({
-    webSocketUrl: "ws://localhost:6680/mopidy/ws/"
+	webSocketUrl: "ws://localhost:6680/mopidy/ws/"
 });
 
 let ready = false;

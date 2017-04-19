@@ -1,3 +1,18 @@
+apprequire('camera').takePhoto()
+.then((file) => {
+	const read_stream = fs.createReadStream(file);
+	const to = 'webcam/' + uuid() + '.jpg';
+	const write_stream = apprequire('gcs').file(to).createWriteStream();
+	console.log(to);
+	
+	read_stream.pipe(write_stream)
+	.on('error', function(err) {
+		console.error(err);
+	})
+	.on('finish', function() {
+	});
+});
+
 // function outCognitive(data, image, io) {
 // 	return new Promise((resolve, reject) => {
 // 		Cognitive.face.detect(image.remoteFile, (err, resp) => {
