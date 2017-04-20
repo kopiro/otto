@@ -4,7 +4,7 @@ const Chess = require('chess.js').Chess;
 const Server = apprequire('server');
 const Sockets = {};
 
-const DEPTH = 1;
+const DEPTH = 2;
 
 const SPEECH_MOVING = [
 "Sto muovendo {piece} in {to}",
@@ -107,15 +107,12 @@ function minimaxRoot(depth, game, turn) {
 		const new_game_move = new_game_moves[i];
 		game.move(new_game_move);
 		let value = minimax(depth - 1, game, -10000, 10000, !turn);
-		console.debug(TAG, new_game_move.from, new_game_move.to, turn, value);
 		game.undo();
 		if (value >= best_move) {
 			best_move = value;
 			best_move_found = new_game_move;
 		}
 	}
-
-	console.debug(TAG, best_move, best_move_found);
 
 	return best_move_found;
 }
