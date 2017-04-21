@@ -3,7 +3,7 @@ const _config = config.apiai;
 
 const client = require('apiai')(_config.token);
 
-const AI_NAME_REGEX = /^(?:Otto(,\s*)?)|(\s*Otto)$/i;
+const AI_NAME_REGEX = /Otto\b\W+/i;
 const Actions = require(__basedir + '/src/actions');
 const Translator = apprequire('translator');
 
