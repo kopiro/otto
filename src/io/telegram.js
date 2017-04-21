@@ -5,9 +5,6 @@ const EventEmitter = require('events').EventEmitter;
 exports.emitter = new EventEmitter();
 
 exports.id = 'telegram';
-exports.capabilities = { 
-	userCanViewUrls: true
-};
 
 const TelegramBot = require('node-telegram-bot-api');
 const SpeechRecognizer = apprequire('speechrecognizer');

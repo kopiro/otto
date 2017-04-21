@@ -5,9 +5,6 @@ const EventEmitter = require('events').EventEmitter;
 exports.emitter = new EventEmitter();
 
 exports.id = 'messenger';
-exports.capabilities = { 
-	userCanViewUrls: true
-};
 
 const messengerbot = require('messenger-bot');
 const bot = new messengerbot(_config);

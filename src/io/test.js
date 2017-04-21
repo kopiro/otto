@@ -4,9 +4,6 @@ const EventEmitter = require('events').EventEmitter;
 exports.emitter = new EventEmitter();
 
 exports.id = 'test';
-exports.capabilities = { 
-	userCanViewUrls: true
-};
 
 const readline = require('readline');
 const rl = readline.createInterface({

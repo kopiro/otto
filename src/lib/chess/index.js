@@ -180,7 +180,7 @@ const Game = ORM.__bookshelf.Model.extend({
 	},
 	getUrl: function() {
 		const sessionId = encodeURIComponent( this.get('session_id') );
-		return `${config.server.domainWithPort}/actions/chess/#${sessionId}`;
+		return `${config.server.domainWithPort}/actions/chess/${sessionId}`;
 	},
 	move: function(move, source) {
 		const logic = this.getLogic();
@@ -193,6 +193,7 @@ const Game = ORM.__bookshelf.Model.extend({
 			this.getSocket().emit('fen', this.get('fen'));
 		}
 
+
 		if (logic.game_over()) {
 			if (source === 'user') {
 				IOManager.output({
@@ -204,13 +205,14 @@ const Game = ORM.__bookshelf.Model.extend({
 				}, this.related('session'));
 			}
 		} else {
-			if (source === 'ai') {
-				IOManager.output({
-					speech: 
-					SPEECH_MOVING.getRandom()
-					.replace('{piece}', exports.PIECES[move.piece])
-					.replace('{to}', move.to)
-				}, this.related('session'));
+			// Check if we can speech over game. Otherwise just ignore this phase
+			const io_id = this.related('session').get('io_id');
+			if (IOManager.driversCapabilities[io_id].speechOverGame) {
+				if (source === 'ai') {
+					IOManager.output({
+						speech: SPEECH_MOVING.getRandom().replace('{piece}', exports.PIECES[move.piece]).replace('{to}', move.to)
+					}, this.related('session'));
+				}
 			}
 		}
 	},
@@ -225,8 +227,6 @@ const Game = ORM.__bookshelf.Model.extend({
 		const logic = this.getLogic();
 		if (logic.game_over()) return;
 		if (logic.turn() === 'w') return;
-
-		console.debug(TAG, 'thinking...');
 
 		const ai_move = minimaxRoot(DEPTH, logic, true);
 		this.move(ai_move, 'ai');
@@ -243,6 +243,14 @@ exports.PIECES = {
 };
 
 Server.routerActions.use('/chess', require('express').static(__dirname + '/public'));
+
+Server.routerActions.get('/chess/:sessionId', (req, res) => {
+	res.render(__dirname.replace(__basedir, '../..') + '/src/index', {
+		layout: false,
+		sessionId: req.params.sessionId
+	});
+});
+
 
 // Instantiatate socket.io connection
 Server.io.on('connection', (socket) => {

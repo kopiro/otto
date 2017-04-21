@@ -2,6 +2,29 @@ const TAG = 'IOManager';
 
 exports.drivers = {};
 
+exports.driversCapabilities = {
+	telegram: {
+		userCanViewUrls: true,
+		speechOverGame: false
+	},
+	messenger: {
+		userCanViewUrls: true,
+		speechOverGame: false
+	},
+	kid: {
+		userCanViewUrls: false,
+		speechOverGame: true
+	},
+	test: {
+		userCanViewUrls: true,
+		speechOverGame: true
+	},
+	api: {
+		userCanViewUrls: true,
+		speechOverGame: true
+	},
+};
+
 exports.isDriverEnabled = function(io_id) {
 	return (io_id in exports.drivers);
 };

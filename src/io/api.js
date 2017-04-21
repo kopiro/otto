@@ -4,12 +4,7 @@ const Server = apprequire('server').routerApi;
 const EventEmitter = require('events').EventEmitter;
 exports.emitter = new EventEmitter();
 
-exports.id = path.basename(__filename, '.js');
-exports.capabilities = { 
-	userCanViewUrls: true
-};
-
-exports.pendingActions = {};
+exports.id = 'api';
 
 function tmpFileToHttp(req, file) {
 	return (config.server.fullDomain || '') + '/tmp/' + path.basename(file);

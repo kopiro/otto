@@ -10,16 +10,15 @@ const server = require('http').createServer(app);
 const io = require('socket.io')(server);
 
 const exphbs  = require('express-handlebars');
-
 app.set('title', require(__basedir + '/package.json').name);
 app.set('views', __basedir + '/web/views');
-app.set('view engine', 'handlebars');
-
-app.engine('handlebars', exphbs({ 
+app.engine('hbs', exphbs({ 
 	defaultLayout: 'main',
+	extname: '.hbs',
 	layoutsDir: __basedir + '/web/views/layouts',
 	partialsDir: __basedir + '/web/views/partials'
 }));
+app.set('view engine', 'hbs');
 
 ////////////
 // Router //

@@ -102,4 +102,5 @@ _.each(IOManager.drivers, (io) => {
 	io.startInput();
 });
 
+console.log( require(__dirname + '/src/lib/chess').createGame('test/kopirobook') );
 // require('./test');

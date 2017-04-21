@@ -5,8 +5,6 @@ const Chess = require('chess.js').Chess;
 
 const game = new Chess();
 
-const sessionId = decodeURIComponent(window.location.hash.replace('#', ''));
-
 ////////////
 // Socket //
 ////////////
