@@ -2,25 +2,19 @@ exports.id = 'messaging.sendto';
 
 const ELIGIBLE_MIN_MUL = 2;
 
-let requests = {};
-
 module.exports = function({ sessionId, result }, session_model) {
 	return new Promise((resolve, reject) => {
 		let { parameters: p, fulfillment } = result;
+
+		if (p.eligibileMultiple) {
+			delete p.eligibileMultiple;
+			_.extend(p, { to: result.resolvedQuery });
+		}
 
 		ORM.Contact.search(p.to, {
 			withRelated: ['sessions']
 		})
 		.then((contacts) => {
-
-			// Extend a previous request
-			// This can happens when the messaging_sendto_multiplecontacts context is used
-			if (p.extend_previous) {
-				if (requests[sessionId] != null) {
-					_.extend(p, requests[sessionId].parameters);
-					delete requests[sessionId];
-				}
-			}
 
 			// If no contact is found, inform the user
 			if (contacts.length === 0) {
@@ -42,17 +36,13 @@ module.exports = function({ sessionId, result }, session_model) {
 
 			// Ask which of these is the contact to send the message
 			if (eligible_contact == null) {
-				requests[ sessionId ] = { 
-					parameters: { 
-						text: p. text 
-					} 
-				};
 				return resolve({
 					speech: `A quale di questi ${p.to} vuoi inviare il messaggio?`,
-					contextOut: [
-					{ name: "messaging_sendto_multiplecontacts", lifespan: 1 }
-					],
 					data: {
+						pending: {
+							action: exports.id,
+							data: _.extend(p, { eligibileMultiple: true })
+						},
 						replies: contacts.map((contact) => {
 							return contact.getUniqueName(); 
 						})
@@ -76,7 +66,5 @@ module.exports = function({ sessionId, result }, session_model) {
 
 		})
 		.catch(reject);
-
-		console.log(p);
 	});
 };
