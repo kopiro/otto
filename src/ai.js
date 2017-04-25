@@ -4,7 +4,6 @@ const _config = config.apiai;
 const client = require('apiai')(_config.token);
 
 const AI_NAME_REGEX = /Otto\b\W+/i;
-const Actions = require(__basedir + '/src/actions');
 const Translator = apprequire('translator');
 
 exports.fulfillmentTransformer = function(f, session_model) {
@@ -16,7 +15,7 @@ exports.fulfillmentTransformer = function(f, session_model) {
 			new ORM.IOPending({
 				session_id: session_model.id,
 				action: f.data.pending.action,
-				data: f.data.pending.data
+				data: f.data.pending.data ? JSON.stringify(f.data.pending.data) : null
 			}).save();
 		}
 
@@ -107,97 +106,71 @@ exports.textRequestTransformer = function(text, session_model) {
 exports.textRequest = function(text, session_model) {
 	return new Promise((resolve, reject) => {
 
-		new ORM.IOPending()
-		.where({ session_id: session_model.id })
-		.fetch({ require: true })
-		.then((pending) => {
+		exports.textRequestTransformer(text, session_model)
+		.then((text) => {
 
-			console.debug(TAG, 'Resolving pending action', pending);
+			let request = client.textRequest(text, {
+				sessionId: session_model.id
+			});
 
-			const action_fn = Actions.list[ pending.get('action') ];
-			AI.fulfillmentPromiseTransformer(fn(), {
-				sessionId: session_model.id,
-				result: { 
-					resolvedQuery: text,
-					action: pending.get('action'),
-					parameters: pending.getData(),
-					actionIncomplete: false,
-					contexts: [],
-					score: 1 
-				},
-			}, session_model)
-			.then((e) => {
-				pending.destroy();
-				resolve(e);
-			})
-			.catch(reject);
+			console.debug(TAG, 'request', { text });
 
-		})
-		.catch(() => {
+			request.on('response', (body) => {
+				const action = body.result.action;
 
-			exports.textRequestTransformer(text, session_model)
-			.then((text) => {
-
-				let request = client.textRequest(text, {
-					sessionId: session_model.id
-				});
-
-				console.debug(TAG, 'request', { text });
-
-				request.on('response', (body) => {
-					const action = body.result.action;
-
-					// Edit msg from API.AI to reflect IO interface
-					if (!_.isEmpty(body.result.fulfillment.messages)) {
-						let msg = body.result.fulfillment.messages.getRandom();
-						switch (msg.type) {
-							case 0:
-							break;
-							case 2:
-							body.result.fulfillment.data.replies = msg.replies;
-							break;
-							case 3:
-							body.result.fulfillment.data = { image: { remoteFile: msg.imageUrl } };
-							break;
-							case 4:
-							body.result.fulfillment.data = msg.payload;
-							break;
-							default:
-							console.error(TAG, 'Type not recognized');
-							break;
-						}
-						delete body.result.fulfillment.messages;
+				// Edit msg from API.AI to reflect IO interface
+				if (!_.isEmpty(body.result.fulfillment.messages)) {
+					let msg = body.result.fulfillment.messages.getRandom();
+					switch (msg.type) {
+						case 0:
+						break;
+						case 2:
+						body.result.fulfillment.data.replies = msg.replies;
+						break;
+						case 3:
+						body.result.fulfillment.data = { image: { remoteFile: msg.imageUrl } };
+						break;
+						case 4:
+						body.result.fulfillment.data = msg.payload;
+						break;
+						default:
+						console.error(TAG, 'Type not recognized');
+						break;
 					}
+					delete body.result.fulfillment.messages;
+				}
 
-					body.result.fulfillment.data = body.result.fulfillment.data || {};
+				body.result.fulfillment.data = body.result.fulfillment.data || {};
 
-					console.info(TAG, 'response', body);
+				console.info(TAG, 'response', body);
 
 					// If this action has not solved using webhook, reparse
 					if (body.result.metadata.webhookUsed === "false") {
-						if (body.result.actionIncomplete !== true && !_.isEmpty(action) && _.isFunction(Actions.list[ action ])) {
+						if (body.result.actionIncomplete !== true && !_.isEmpty(action)) {
 							console.warn(TAG, 'calling local action', action);
-							AI.fulfillmentPromiseTransformer( Actions.list[ action ](), body, session_model )
+
+							const action_fn = Actions.list[ action ];
+							AI.fulfillmentPromiseTransformer(fn(), body, session_model)
 							.then(resolve)
 							.catch(reject);
+
 						} else {
 							console.debug(TAG, 'local resolution');
-							AI.fulfillmentTransformer( body.result.fulfillment, session_model )
-							.then(resolve);
+							AI.fulfillmentTransformer(body.result.fulfillment, session_model)
+							.then(resolve)
+							.catch(reject);
 						}
 					} else {
 						resolve(body.result.fulfillment);
 					}
 				});
 
-				request.on('error', (err) => {
-					console.error(TAG, 'error', err);
-					reject(err);
-				});
-
-				request.end();
-
+			request.on('error', (err) => {
+				console.error(TAG, 'error', err);
+				reject(err);
 			});
+
+			request.end();
 		});
 	});
 };

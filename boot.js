@@ -36,3 +36,4 @@ global.AI = require(__basedir + '/src/ai');
 global.ORM = require(__basedir + '/src/orm');
 global.Util = require(__basedir + '/src/util');
 global.IOManager = require(__basedir + '/src/iomanager');
+global.Actions = require(__basedir + '/src/actions');

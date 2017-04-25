@@ -1,7 +1,6 @@
 const TAG = 'AWH';
 
 const Router = apprequire('server').routerAwh;
-const Actions = require(__basedir + '/src/actions');
  
 Router.post('/', (req, res) => {
 	if (req.body == null) {

@@ -2,7 +2,7 @@ require('./boot');
 
 IOManager.loadDrivers();
 IOManager.startPolling();
-	
+
 if (config.cron) {
 	require(__basedir + '/src/cron');
 }
@@ -55,19 +55,64 @@ function onIoResponse({ session_model, error, params }) {
 		return;
 	}
 
-	try {
+	console.debug('onIoResponse', 'SID = ' + session_model.id, { error, params });
 
-		console.debug('onIoResponse', 'SID = ' + session_model.id, { error, params });
+	if (error) {
+		return errorResponse.call(io, { 
+			data: {
+				error: error
+			}
+		}, session_model);
+	}
 
-		if (error) {
+	new ORM.IOPending()
+	.where({ session_id: session_model.id })
+	.fetch()
+	.then((pending) => {
 
-			errorResponse.call(io, { 
-				data: {
-					error: error
-				}
-			}, session_model);
+		if (pending != null) {
 
-		} else if (params.text) {
+			if (params.text == 'Stop') {
+				console.debug('Stopping pending action', pending.toJSON());
+				
+				pending.destroy()
+				.then(() => {
+					resolve({
+						speech: 'OK'
+					});
+				});
+
+				return;
+			}
+
+			console.debug('Resolving pending action', pending.toJSON());
+
+			const action_fn = Actions.list[ pending.get('action') ];
+			AI.fulfillmentPromiseTransformer(action_fn(), {
+				sessionId: session_model.id,
+				query: params,
+				result: {
+					resolvedQuery: params.text,
+					action: pending.get('action'),
+					parameters: pending.getData(),
+					actionIncomplete: false,
+					contexts: [],
+					score: 1 
+				},
+			}, session_model)
+			.then((fulfillment) => {
+				pending.destroy();
+				successResponse.call(io, fulfillment, session_model);
+			})
+			.catch((err) => {
+				console.error('Pending action error', err);
+				errorResponse.call(io, { error: err }, session_model);
+			});
+
+			return;
+		}
+
+		if (params.text) {
 
 			AI.textRequest(params.text, session_model)
 			.then((fulfillment) => { 
@@ -79,28 +124,13 @@ function onIoResponse({ session_model, error, params }) {
 			});
 
 		} else if (params.fulfillment) {
-
 			successResponse.call(io, params.fulfillment, session_model);
-		
-		} else {
-			throw 'Unrecognized type';
 		}
 
-	} catch (ex) {
-		errorResponse.call(io, { 
-			data: {
-				error: {
-					exception: ex 
-				}
-			}
-		}, session_model);
-	}
+	});
 }
 
 _.each(IOManager.drivers, (io) => {
 	io.emitter.on('input', onIoResponse.bind(io));
 	io.startInput();
 });
-
-console.log( require(__dirname + '/src/lib/chess').createGame('test/kopirobook') );
-// require('./test');

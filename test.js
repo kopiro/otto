@@ -3,7 +3,6 @@ apprequire('camera').takePhoto()
 	const read_stream = fs.createReadStream(file);
 	const to = 'webcam/' + uuid() + '.jpg';
 	const write_stream = apprequire('gcs').file(to).createWriteStream();
-	console.log(to);
 	
 	read_stream.pipe(write_stream)
 	.on('error', function(err) {

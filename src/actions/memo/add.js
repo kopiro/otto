@@ -11,21 +11,23 @@ module.exports = function({ sessionId, result }, session_model) {
 	return new Promise((resolve, reject) => {
 		let { parameters: p, fulfillment } = result;
 
-		let prevk = null;
 		for (const k in required_params) {
-			if (_.isEmpty(p[k])) {
-				if (prevk) p[prevk] = result.resolvedQuery;
+			if (_.isEmpty(p[k])) {	
+				if (p.wasPending) {
+					p[k] = result.resolvedQuery;
+					delete p.wasPending;
+					continue;
+				}
 				return resolve({
 					speech: required_params[k],
 					data: {
 						pending: {
 							action: exports.id,
-							data: p
+							data: _.extend(p, { wasPending: 1 })
 						}
 					},
 				}, session_model);
 			}
-			prevk = k;
 		}
 
 		new ORM.Memory({
