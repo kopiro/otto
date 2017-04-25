@@ -11,7 +11,7 @@ exports.fulfillmentTransformer = function(f, session_model) {
 		f.data = f.data || {}; // Ensure always data object exists
 		
 		if (f.data.pending) {
-			console.debug(TAG, 'Saving pending action', session_model.id, f.data.pending);
+			console.info(TAG, 'Saving pending action', session_model.id, f.data.pending);
 			new ORM.IOPending({
 				session_id: session_model.id,
 				action: f.data.pending.action,

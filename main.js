@@ -72,7 +72,7 @@ function onIoResponse({ session_model, error, params }) {
 
 		if (pending != null) {
 
-			if (params.text == 'Stop') {
+			if (/stop/i.test(params.text)) {
 				console.debug('Stopping pending action', pending.toJSON());
 				
 				pending.destroy()
@@ -85,7 +85,7 @@ function onIoResponse({ session_model, error, params }) {
 				return;
 			}
 
-			console.debug('Resolving pending action', pending.toJSON());
+			console.info('Resolving pending action', pending.toJSON());
 
 			const action_fn = Actions.list[ pending.get('action') ];
 			AI.fulfillmentPromiseTransformer(action_fn(), {
