@@ -19,6 +19,16 @@ exports.IOQueue = bookshelf.Model.extend({
 	}
 });
 
+exports.IOPending = bookshelf.Model.extend({
+	tableName: 'io_pending',
+	session: function() {
+		return this.belongsTo(exports.Session, 'session_id');
+	},
+	getData: function() {
+		return JSON.parse(this.get('data'));
+	}
+});
+
 exports.Cron = bookshelf.Model.extend({
 	tableName: 'cron',
 });
