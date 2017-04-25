@@ -73,19 +73,24 @@ function onIoResponse({ session_model, error, params }) {
 		if (pending != null) {
 
 			if (/stop/i.test(params.text)) {
-				console.debug('Stopping pending action', pending.toJSON());
+				console.info('Stopping pending action', pending.id);
 				
 				pending.destroy()
 				.then(() => {
-					resolve({
-						speech: 'OK'
+					AI.fulfillmentTransformer({ speech: 'Ok' }, session_model)
+					.then((f) => {
+						successResponse.call(io, f, session_model);
 					});
+				})
+				.catch((err) => {
+					console.error('Deleting pending action error', err);
+					errorResponse.call(io, { error: err }, session_model);
 				});
 
 				return;
 			}
 
-			console.info('Resolving pending action', pending.toJSON());
+			console.info('Resolving pending action', pending.id);
 
 			const action_fn = Actions.list[ pending.get('action') ];
 			AI.fulfillmentPromiseTransformer(action_fn(), {
