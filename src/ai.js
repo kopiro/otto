@@ -24,14 +24,22 @@ exports.fulfillmentTransformer = function(f, session_model, callback) {
 
 		if (!_.isEmpty(f.speech)) {
 			Translator.translate(f.speech, language, (err, new_speech) => {
-				if (err) return resolve(f);
+				if (err) {
+					console.warn(TAG, 'fallback to original text');
+					return callback(f);
+				}
+
 				f.speech = new_speech;	
 				callback(f);
 			});
 
 		} else if (f.data.error && !_.isEmpty(f.data.error.speech)) {
 			Translator.translate(f.data.error.speech, language, (err, new_speech) => {
-				if (err) return callback(f);
+				if (err) {
+					console.warn(TAG, 'fallback to original text');
+					return callback(f);
+				}
+
 				f.data.error.speech = new_speech;	
 				callback(f);
 			});
@@ -46,15 +54,17 @@ exports.fulfillmentTransformer = function(f, session_model, callback) {
 };
 
 exports.fulfillmentPromiseTransformer = function(fn, data, session_model, callback) {
+	if (!_.isFunction(fn)) {
+		return exports.fulfillmentTransformer({
+			data: { error: "Not a function" }
+		}, session_model, callback);
+	}
+
 	// Start a timeout to ensure that the promise
 	// will be anyway triggered, also with an error
 	let timeout = setTimeout(() => {
 		exports.fulfillmentTransformer({
-			data: {
-				error: {
-					timeout: true
-				}
-			}
+			data: { error: { timeout: true } }
 		}, session_model, callback);
 	}, 1000 * (_config.promiseTimeout || 10));
 
@@ -65,9 +75,7 @@ exports.fulfillmentPromiseTransformer = function(fn, data, session_model, callba
 	})
 	.catch((err) => {
 		exports.fulfillmentTransformer({
-			data: {
-				error: err
-			}
+			data: { error: err }
 		}, session_model, callback);
 	});
 };
@@ -78,7 +86,11 @@ exports.textRequestTransformer = function(text, session_model, callback) {
 	if (session_model.get('translate_from')) {
 		console.info(TAG, 'Translating input');
 		Translator.translate(text, 'it', (err, new_text) => {
-			if (err) return callback(text, session_model);
+			if (err) {
+				console.warn(TAG, 'fallback to original text');
+				return callback(text);
+			}
+			
 			callback(new_text);
 		});
 	} else {
@@ -87,7 +99,7 @@ exports.textRequestTransformer = function(text, session_model, callback) {
 };
 
 exports.textRequest = function(text, session_model) {
-	return new Promise((resolve, reject) => {
+	return new Promise((callback, reject) => {
 
 		exports.textRequestTransformer(text, session_model, (text) => {
 

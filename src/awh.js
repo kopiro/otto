@@ -46,8 +46,8 @@ Router.post('/', (req, res) => {
 
 		if (result.actionIncomplete !== true && !_.isEmpty(action)) {
 			console.info(TAG, 'calling action', action);
-			const action_fn = Actions.list[ action ]();
-			return AI.fulfillmentPromiseTransformer(action_fn, body, session_model, resolve);
+			const action_fn = Actions.list[ action ];
+			return AI.fulfillmentPromiseTransformer(action_fn(), body, session_model, resolve);
 		}
 
 		AI.fulfillmentTransformer(result.fulfillment, session_model, resolve);
