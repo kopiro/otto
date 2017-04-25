@@ -49,7 +49,6 @@ exports.output = function(f, session_model) {
 		if (exports.isDriverEnabled(session_model.get('io_id'))) {	
 
 			// If driver is enabled, instantly resolve
-			
 			AI.fulfillmentTransformer(f, session_model)
 			.then((f) => {
 
@@ -60,21 +59,28 @@ exports.output = function(f, session_model) {
 
 			})
 			.catch((err) => {
-				console.error(TAG, 'output', err);
+				console.error(TAG, 'fft', err);
+				reject(err);
 			});
 
 		} else {
 
-			// otherwise, put in the queue and make resolve to other clients
+			// Otherwise, put in the queue and make resolve to other clients
 			console.info(TAG, 'putting in IO queue', session_model.id, f);
 
 			new ORM.IOQueue({
 				session_id: session_model.id,
 				data: JSON.stringify(f),
-			}).save();
-			
-			resolve({
-				inQueue: true
+			})
+			.save()
+			.then(() => {
+				resolve({
+					inQueue: true
+				});
+			})
+			.catch((err) => {
+				console.error(TAG, 'in queue', err);
+				reject(err);
 			});
 
 		}
