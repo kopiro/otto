@@ -6,8 +6,7 @@ module.exports = function({ sessionId, result }, session_model) {
 	return new Promise((resolve, reject) => {
 		let { parameters: p, fulfillment } = result;
 
-		if (p.eligibileMultiple) {
-			delete p.eligibileMultiple;
+		if (result.eligibileMultiple) {
 			_.extend(p, { to: result.resolvedQuery });
 		}
 
@@ -41,7 +40,7 @@ module.exports = function({ sessionId, result }, session_model) {
 					data: {
 						pending: {
 							action: exports.id,
-							data: _.extend(p, { eligibileMultiple: true })
+							data: _.extend(result, { eligibileMultiple: true })
 						},
 						replies: contacts.map((contact) => {
 							return contact.getUniqueName(); 

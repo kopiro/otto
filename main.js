@@ -90,15 +90,9 @@ function onIoResponse({ session_model, error, params }) {
 			const action_fn = Actions.list[ pending.get('action') ];
 			AI.fulfillmentPromiseTransformer(action_fn(), {
 				sessionId: session_model.id,
-				query: params,
-				result: {
+				result: _.extend(pending.getData(), { 
 					resolvedQuery: params.text,
-					action: pending.get('action'),
-					parameters: pending.getData(),
-					actionIncomplete: false,
-					contexts: [],
-					score: 1 
-				},
+				})
 			}, session_model)
 			.then((fulfillment) => {
 				pending.destroy();

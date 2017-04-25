@@ -144,26 +144,26 @@ exports.textRequest = function(text, session_model) {
 
 				console.info(TAG, 'response', body);
 
-					// If this action has not solved using webhook, reparse
-					if (body.result.metadata.webhookUsed === "false") {
-						if (body.result.actionIncomplete !== true && !_.isEmpty(action)) {
-							console.warn(TAG, 'calling local action', action);
+				// If this action has not solved using webhook, reparse
+				if (body.result.metadata.webhookUsed === "false") {
+					if (body.result.actionIncomplete !== true && !_.isEmpty(action)) {
+						console.warn(TAG, 'calling local action', action);
 
-							const action_fn = Actions.list[ action ];
-							AI.fulfillmentPromiseTransformer(fn(), body, session_model)
-							.then(resolve)
-							.catch(reject);
+						const action_fn = Actions.list[ action ];
+						AI.fulfillmentPromiseTransformer(fn(), body, session_model)
+						.then(resolve)
+						.catch(reject);
 
-						} else {
-							console.debug(TAG, 'local resolution');
-							AI.fulfillmentTransformer(body.result.fulfillment, session_model)
-							.then(resolve)
-							.catch(reject);
-						}
 					} else {
-						resolve(body.result.fulfillment);
+						console.debug(TAG, 'local resolution');
+						AI.fulfillmentTransformer(body.result.fulfillment, session_model)
+						.then(resolve)
+						.catch(reject);
 					}
-				});
+				} else {
+					resolve(body.result.fulfillment);
+				}
+			});
 
 			request.on('error', (err) => {
 				console.error(TAG, 'error', err);
