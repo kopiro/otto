@@ -44,16 +44,13 @@ Router.post('/', (req, res) => {
 			session_model.save();
 		}
 
-		if (result.actionIncomplete !== true && !_.isEmpty(action) && _.isFunction(Actions.list[ action ])) {
+		if (result.actionIncomplete !== true && !_.isEmpty(action)) {
 			console.info(TAG, 'calling action', action);
-			return AI.fulfillmentPromiseTransformer( Actions.list[ action ](), body, session_model )
-			.then(resolve)
-			.catch(reject);
+			const action_fn = Actions.list[ action ]();
+			return AI.fulfillmentPromiseTransformer(action_fn, body, session_model, resolve);
 		}
 
-		AI.fulfillmentTransformer( result.fulfillment, session_model )
-		.then(resolve)
-		.catch(reject);
+		AI.fulfillmentTransformer(result.fulfillment, session_model, resolve);
 
 	});
 });

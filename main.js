@@ -33,8 +33,7 @@ function errorResponse(f, session_model) {
 
 	let io = this;
 
-	AI.fulfillmentTransformer(f, session_model)
-	.then((f) => {
+	AI.fulfillmentTransformer(f, session_model, (f) => {
 
 		io.output(f, session_model)
 		.then(io.startInput)
@@ -75,18 +74,10 @@ function onIoResponse({ session_model, error, params }) {
 			if (/stop/i.test(params.text)) {
 				console.info('Stopping pending action', pending.id);
 				
-				pending.destroy()
-				.then(() => {
-					AI.fulfillmentTransformer({ speech: 'Ok' }, session_model)
-					.then((f) => {
-						successResponse.call(io, f, session_model);
-					});
-				})
-				.catch((err) => {
-					console.error('Deleting pending action error', err);
-					errorResponse.call(io, { error: err }, session_model);
+				pending.destroy();
+				AI.fulfillmentTransformer({ speech: 'Ok' }, session_model, (f) => {
+					successResponse.call(io, f, session_model);
 				});
-
 				return;
 			}
 
@@ -98,14 +89,9 @@ function onIoResponse({ session_model, error, params }) {
 				result: _.extend(pending.getData(), { 
 					resolvedQuery: params.text,
 				})
-			}, session_model)
-			.then((fulfillment) => {
+			}, session_model, (fulfillment) => {
 				pending.destroy();
 				successResponse.call(io, fulfillment, session_model);
-			})
-			.catch((err) => {
-				console.error('Pending action error', err);
-				errorResponse.call(io, { error: err }, session_model);
 			});
 
 			return;

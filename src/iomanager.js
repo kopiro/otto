@@ -49,18 +49,11 @@ exports.output = function(f, session_model) {
 		if (exports.isDriverEnabled(session_model.get('io_id'))) {	
 
 			// If driver is enabled, instantly resolve
-			AI.fulfillmentTransformer(f, session_model)
-			.then((f) => {
-
+			AI.fulfillmentTransformer(f, session_model, (f) => {
 				exports.getDriver( session_model.get('io_id') )
 				.output(f, session_model)
 				.then(resolve)
 				.catch(reject);
-
-			})
-			.catch((err) => {
-				console.error(TAG, 'fft', err);
-				reject(err);
 			});
 
 		} else {
