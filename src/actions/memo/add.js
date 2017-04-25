@@ -13,9 +13,9 @@ module.exports = function({ sessionId, result }, session_model) {
 
 		for (const k in required_params) {
 			if (_.isEmpty(p[k])) {	
-				if (p.wasPending) {
+				if (result.wasPending) {
 					p[k] = result.resolvedQuery;
-					delete p.wasPending;
+					delete result.wasPending;
 					continue;
 				}
 				return resolve({
@@ -23,7 +23,7 @@ module.exports = function({ sessionId, result }, session_model) {
 					data: {
 						pending: {
 							action: exports.id,
-							data: _.extend(p, { wasPending: 1 })
+							data: _.extend(result, { wasPending: 1 })
 						}
 					},
 				}, session_model);
