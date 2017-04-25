@@ -99,7 +99,7 @@ exports.textRequestTransformer = function(text, session_model, callback) {
 };
 
 exports.textRequest = function(text, session_model) {
-	return new Promise((callback, reject) => {
+	return new Promise((resolve, reject) => {
 
 		exports.textRequestTransformer(text, session_model, (text) => {
 
