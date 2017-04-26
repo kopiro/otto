@@ -11,10 +11,11 @@ global.__publicdir = __dirname + '/public';
 global.config = require('./config.json');
 global.public_config = require('./public_config.json');
 
+// Const
+global.AI_NAME = "Otto";
+
 // Define a new require to require files from our path
 global.apprequire = ((k) => require(__basedir + '/src/lib/' + k));
-
-global.AI_NAME = "Otto";
 
 // Global packages
 global._ = require('underscore');
