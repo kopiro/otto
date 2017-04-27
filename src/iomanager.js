@@ -46,6 +46,10 @@ exports.loadDrivers = function() {
 exports.output = function(f, session_model) {
 	return new Promise((resolve, reject) => {
 
+		if (session_model == null) {
+			return reject('Invalid session model');
+		}
+
 		if (exports.isDriverEnabled(session_model.get('io_id'))) {	
 
 			// If driver is enabled, instantly resolve

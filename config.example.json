@@ -1,11 +1,12 @@
 {
-	"apiai": {
-		"token": ""
-	},
 	"ioDrivers": ["messenger","telegram"],
 	"ioDriversCron": ["telegram"],
 	"language": "it",
 	"locale": "it-IT",
+	"apiai": {
+		"promiseTimeout": 10,
+		"token": "ì"
+	},
 	"io": {
 		"telegram": {
 			"token": "",
@@ -15,11 +16,12 @@
 		}
 	},
 	"recorder": {
-		"recordProgram": "",
 		"device": ""
 	},
 	"cron": true,
 	"server": {
+		"domainWithPort": "localhost:8880",
+		"fullDomain": "localhost:8880",
 		"port": "8880"
 	},
 	"knex": {

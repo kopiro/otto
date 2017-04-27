@@ -9,10 +9,9 @@ module.exports = function({ sessionId, result }) {
 	return new Promise((resolve, reject) => {
 		let { parameters: p, fulfillment } = result;
 
-		client.search(`disegno "${parameters.q}"`)
+		client.search(`disegno "${p.q}"`)
 		.then((images) => {
 			let img = images.getRandom();
-			console.debug(exports.id, 'result', img);
 			resolve({
 				data: {
 					photo: {
@@ -21,8 +20,6 @@ module.exports = function({ sessionId, result }) {
 				}
 			});
 		})
-		.catch((err) => {
-			reject();
-		});
+		.catch(reject);
 	});
 };
