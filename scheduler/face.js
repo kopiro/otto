@@ -1,6 +1,6 @@
 require('../boot');
 
-const TAG = path.basename(__filename);
+const TAG = 'FaceScheduler';
 
 const Cognitive = apprequire('cognitive');
 

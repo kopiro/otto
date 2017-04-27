@@ -19,7 +19,7 @@ Drivers.raspi = {
 			'-w', opt.width,
 			'-h', opt.height,
 			'-o', opt.file,
-			'-t', 0,
+			'-t', 300,
 			'-e', 'jpg',
 			];
 
@@ -34,6 +34,11 @@ Drivers.raspi = {
 			});
 		});
 	},
+	/*
+	raspivid -t 300000 -w 1280 -h 720 -b 2000000 -fps 30 -n -awb fluorescent -sa -10 -br 60 -co 50 -o v.h264 | \
+   arecord -D plug:default -f S16_LE -c 1 -r 16000 -d 300 a.wav; \
+   ffmpeg -y -i a.wav  -r 30 -i v.h264  -filter:a aresample=async=1 -c:a flac -c:v copy av.mkv
+	 */
 	recordVideo: function(opt) {
 		return new Promise((resolve, reject) => {
 			const args = [ 

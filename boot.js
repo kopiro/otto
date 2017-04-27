@@ -28,9 +28,8 @@ moment.locale(config.language);
 global.util = require('util');
 
 // Database instance
-// Connect instantly, because we want to throw the exception at boot
 global.DB = require('mysql').createConnection(config.mysql);
-DB.connect();
+// DB.connect();
 
 // Global (App) packages
 global.AI = require(__basedir + '/src/ai');
@@ -38,3 +37,5 @@ global.ORM = require(__basedir + '/src/orm');
 global.Util = require(__basedir + '/src/util');
 global.IOManager = require(__basedir + '/src/iomanager');
 global.Actions = require(__basedir + '/src/actions');
+
+console.info('Boot complete');

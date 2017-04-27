@@ -27,15 +27,19 @@
 
 			apt-get install -y gpac
 
+			wget https://github.com/ccrisan/motioneye/wiki/precompiled/ffmpeg_3.1.1-1_armhf.deb && 
+			dpkg -i ffmpeg_3.1.1-1_armhf.deb &&
+			rm ffmpeg_3.1.1-1_armhf.deb
+
 		else
 
 			echo "==> Subplatform: Generic Linux"
 
 			apt-get install nodejs
 
-		fi
+			apt-get -y install ffmpeg
 
-		npm -g install yarn
+		fi
 
 		apt-get -y install libsox-fmt-mp3
 		
@@ -44,8 +48,9 @@
 		apt-get -y install mopidy
 		apt-get -y install mopidy-spotify
 
-		apt-get -y install ffmpeg
 		apt-get -y install libav-tools
+
+		npm -g install yarn
 
 	else
 
