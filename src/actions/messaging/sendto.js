@@ -54,7 +54,7 @@ module.exports = function({ sessionId, result }, session_model) {
 			const from_name = session_model.get('first_name');
 
 			IOManager.output({
-				speech: `${from_name} voleva dirti: ${p.text}`
+				speech: `Hey! ${from_name} mi ha detto di riferirti questo: ${p.text}`
 			}, eligible_contact_session)
 			.then(() => {
 				resolve({
