@@ -119,3 +119,5 @@ _.each(IOManager.drivers, (io) => {
 	io.emitter.on('input', onIoResponse.bind(io));
 	io.startInput();
 });
+
+apprequire('camera').recordVideo();
