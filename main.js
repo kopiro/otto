@@ -7,6 +7,10 @@ if (config.cron) {
 	require(__basedir + '/src/cron');
 }
 
+if (config.cronvision) {
+	require(__basedir + '/src/cronvision');
+}
+
 if (config.server) {
 	require(__basedir + '/src/server');
 }
@@ -119,5 +123,3 @@ _.each(IOManager.drivers, (io) => {
 	io.emitter.on('input', onIoResponse.bind(io));
 	io.startInput();
 });
-
-apprequire('camera').recordVideo();

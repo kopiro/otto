@@ -33,6 +33,10 @@ exports.Cron = bookshelf.Model.extend({
 	tableName: 'cron',
 });
 
+exports.Vision = bookshelf.Model.extend({
+	tableName: 'vision'
+});
+
 exports.Session = bookshelf.Model.extend({
 	tableName: 'sessions',
 	getIOData: function() {

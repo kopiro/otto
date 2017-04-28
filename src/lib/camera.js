@@ -38,7 +38,6 @@ Drivers.raspi = {
 	},
 	recordVideo: function(opt) {
 		return new Promise((resolve, reject) => {
-			
 			_.defaults(opt, {
 				audioDevice: _config.audioDevice
 			});
@@ -49,7 +48,7 @@ Drivers.raspi = {
 			const file_wav = __tmpdir + '/' + uuid() + '.wav';
 
 			require('child_process').exec([
-			`raspivid -t ${raspivid_time} -w ${opt.width} -h ${opt.height} -b 2000000 -fps ${opt.fps} -n -awb fluorescent -sa -10 -br 60 -co 50 -o "${file_h264}" | ` + 
+			`raspivid -t ${raspivid_time} -w ${opt.width} -h ${opt.height} -b 2000000 -fps ${opt.fps} -n -o "${file_h264}" | ` + 
 			`arecord -f S16_LE -c 1 -r 16000 -d ${opt.time} "${file_wav}"`,
 			`ffmpeg -y -i "${file_wav}" -r ${opt.fps} -i "${file_h264}" -filter:a aresample=async=1 -c:a flac -c:v copy "${opt.file}"`,
 			].join(' && '), (err, stdout, stderr) => {
@@ -66,9 +65,8 @@ Drivers.raspi = {
 Drivers.ffmpeg = {
 	takePhoto: function(opt) {
 		return new Promise((resolve, reject) => {
-		
 			const args = [ 
-			'-r', opt.fps,
+			'-r', 30,
 			'-f', 'avfoundation',
 			'-i', 0,
 			'-s', (opt.width + 'x' + opt.height),
@@ -91,23 +89,12 @@ Drivers.ffmpeg = {
 	},
 	recordVideo: function(opt) {
 		return new Promise((resolve, reject) => {
-
-			_.defaults(opt, {
-				source: 'avfoundation'
-			});
-
 			const args = [ 
 			'-r', opt.fps,
-			'-f', opt.source,
+			'-f', 'avfoundation',
 			'-i', '0:0',
 			'-t', opt.time,
 			'-s', opt.size,
-			// '-an', 
-			// '-c:v', 
-			// 'libx264', 
-			// '-crf', 
-			// '26',
-			// '-vf', 'scale=640:-1',
 			'-y', 
 			opt.file
 			];
@@ -143,7 +130,7 @@ exports.recordVideo = function(opt) {
 		height: 480,
 		fps: 30,
 		time: 10,
-		file: __tmpdir + '/cam_' + uuid() + '.mp4'
+		file: __tmpdir + '/cam_' + uuid() + '.mkv'
 	});
 
 	return driver.recordVideo(opt);
