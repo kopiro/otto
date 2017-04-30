@@ -85,20 +85,7 @@ exports.output = function(f, session_model) {
 };
 
 exports.getAlarmsAt = function(io_id, when) {
-	return new ORM.Alarm()
-	.query((qb) => {
-		qb.join('sessions', 'alarms.session_id', '=', 'sessions.id');
-		qb.where('sessions.io_id', '=', io_id);
-		qb.where('when', '=', when);
-		qb.where('notified', '=', '0');
-		qb.where('sessions.approved', '=', '1');
-		if (config.cron === "debug") {
-			qb.where('sessions.debug', '=', '1');
-		}
-	})
-	.fetchAll({
-		withRelated: ['session']
-	});
+	// TODO
 };
 
 exports.writeLogForSession = function(sessionId, text) {
@@ -109,17 +96,13 @@ exports.writeLogForSession = function(sessionId, text) {
 	}).save();
 };
 
-/**
- * Register a new session and write a log for this message
- */
-exports.registerSession = function(sessionId, io_id, data, attrs, text) {
+exports.registerSession = function(sessionId, io_id, data, text) {
 	return new Promise((resolve, reject) => {
 		let sessionIdComposite = io_id + '/' + sessionId;
 
 		ORM.Session
-		.findOne({ 
-			_id: sessionIdComposite
-		})
+		.findOne({ _id: sessionIdComposite })
+		.populate('contact')
 		.then((session_model) => {
 
 			exports.writeLogForSession(sessionIdComposite, text);
@@ -133,11 +116,11 @@ exports.registerSession = function(sessionId, io_id, data, attrs, text) {
 		})
 		.catch((err) => {
 
-			new ORM.Session(_.extend(attrs || {}, { 
+			new ORM.Session({ 
 				_id: sessionIdComposite,
 				io_id: io_id,
 				io_data: data
-			}))
+			})
 			.save()
 			.then((session_model) => {
 		
@@ -158,14 +141,15 @@ exports.registerSession = function(sessionId, io_id, data, attrs, text) {
 exports.processQueue = function() {
 	ORM.IOQueue
 	.find()
+	.populate('session')
 	.then((qitems) => {
 		if (qitems == null || qitems.length === 0) {
 			setTimeout(exports.processQueue, 1000);
 			return;
 		}
 
-		async.eachOfSeries(qitems.toArray(), (qitem, key, callback) => {
-			const session_model = qitem.related('session');
+		async.eachOfSeries(qitems, (qitem, key, callback) => {
+			const session_model = qitem.session;
 
 			if (exports.isDriverEnabled( session_model.io_id ) === false) {
 				return callback();
@@ -175,7 +159,7 @@ exports.processQueue = function() {
 
 			exports.output(qitem.data, session_model)
 			.then(() => {
-				qitem.destroy();
+				qitem.remove().exec();
 			})
 			.catch(() => {
 			})

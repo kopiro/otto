@@ -154,17 +154,18 @@ function getPieceValue(piece, x, y) {
 	return sign * (scoreBoard[piece.type] + evaluationBoard[piece.color][piece.type][y][x]);
 }
 
-const Game = ORM.__bookshelf.Model.extend({
-	tableName: 'chess_games',
-	session: function() {
-		return this.belongsTo(ORM.Session, 'session_id');
-	},
+const GameSchema = new mongoose.Schema({
+	session: { type: String, ref: 'sessions' },
+	fen: String
+});
+
+_.extend(GameSchema.methods, {
 	recover: function() {
 		const logic = this.getLogic();
 		if (logic.game_over()) {
 			console.debug(TAG, 'recovering game, reset');
 			logic.reset();
-			this.set('fen', logic.fen());
+			this.fen = logic.fen();
 			this.save();
 		} else if (logic.turn() === 'b') {
 			console.debug(TAG, 'recovering game, AI move');
@@ -172,14 +173,14 @@ const Game = ORM.__bookshelf.Model.extend({
 		}
 	},
 	getLogic: function() {
-		if (this.logic == null) this.logic = new Chess( this.get('fen') || void(0) );
+		if (this.logic == null) this.logic = new Chess( this.fen || void(0) );
 		return this.logic;
 	},
 	getSocket: function() {
-		return Sockets[ this.get('session_id') ];
+		return Sockets[ this.session_id ];
 	},
 	getUrl: function() {
-		const sessionId = encodeURIComponent( this.get('session_id') );
+		const sessionId = encodeURIComponent( this.session_id );
 		return `${config.server.domainWithPort}/actions/chess/${sessionId}`;
 	},
 	move: function(move, source) {
@@ -190,28 +191,26 @@ const Game = ORM.__bookshelf.Model.extend({
 		this.save();
 
 		if (this.getSocket() != null) {
-			this.getSocket().emit('fen', this.get('fen'));
+			this.getSocket().emit('fen', this.fen);
 		}
-
 
 		if (logic.game_over()) {
 			if (source === 'user') {
 				IOManager.output({
 					speech: "Uffa, come fai ad essere così forte!"
-				}, this.related('session'));
+				}, this.session);
 			} else if (source === 'ai') {
 				IOManager.output({
 					speech: "Ops, forse ho vinto!"
-				}, this.related('session'));
+				}, this.session);
 			}
 		} else {
 			// Check if we can speech over game. Otherwise just ignore this phase
-			const io_id = this.related('session').get('io_id');
-			if (IOManager.driversCapabilities[io_id].speechOverGame) {
+			if (IOManager.driversCapabilities[ this.session.io_id ].speechOverGame) {
 				if (source === 'ai') {
 					IOManager.output({
 						speech: SPEECH_MOVING.getRandom().replace('{piece}', exports.PIECES[move.piece]).replace('{to}', move.to)
-					}, this.related('session'));
+					}, this.session);
 				}
 			}
 		}
@@ -232,6 +231,8 @@ const Game = ORM.__bookshelf.Model.extend({
 		this.move(ai_move, 'ai');
 	}
 });
+
+const Game = mongoose.model('chess_games', GameSchema);
 
 exports.PIECES = {
 	k: "il re",
@@ -283,7 +284,7 @@ exports.createGame = function(sessionId) {
 		exports.getGame(sessionId)
 		.then(resolve)
 		.catch((err) => {
-			new Game({ session_id: sessionId })
+			new Game({ session: sessionId })
 			.save()
 			.then(resolve)
 			.catch(reject);
@@ -292,7 +293,10 @@ exports.createGame = function(sessionId) {
 };
 
 exports.destroyGame = function(sessionId) {
-	
+	Game
+	.findOne({ session: sessionId })
+	.remove()
+	.exec();
 };
 
 exports.assignSocket = function(sessionId, socket) {
@@ -301,12 +305,9 @@ exports.assignSocket = function(sessionId, socket) {
 
 exports.getGame = function(sessionId) {
 	return new Promise((resolve, reject) => {
-		new Game()
-		.where('session_id', sessionId)
-		.fetch({ 
-			require: true,
-			withRelated: ['session']
-		})
+		Game
+		.findOne({ session: sessionId })
+		.populate('session')
 		.then((game) => {
 			game.recover();
 			resolve(game);

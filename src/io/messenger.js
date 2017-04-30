@@ -114,9 +114,6 @@ bot.on('message', (e) => {
 		IOManager.registerSession(sessionId, exports.id, {
 			profile: profile,
 			sender: e.sender
-		}, {
-			first_name: profile.first_name,
-			last_name: profile.last_name
 		}, e.message.text)
 		.then((session_model) => {
 			if (e.message.text) {

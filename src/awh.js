@@ -35,12 +35,12 @@ Router.post('/', (req, res) => {
 	const sessionId = body.sessionId;
 
 	ORM.Session
-	.findOne({ id: sessionId })
+	.findOne({ _id: sessionId })
 	.then((session_model) => {
 
 		if (session_model == null) {
 			console.error(TAG, `Creating a missing session ID with ${sessionId}`);
-			session_model = new ORM.Session({ id: sessionId });
+			session_model = new ORM.Session({ _id: sessionId });
 			session_model.save();
 		}
 

@@ -10,9 +10,16 @@ module.exports = function({ sessionId, result }, session_model) {
 			_.extend(p, { to: result.resolvedQuery });
 		}
 
-		ORM.Contact.search(p.to, {
-			withRelated: ['sessions']
+		ORM.Contact
+		.find({ 
+			$text: { $search: p.to }
+		}, { 
+			score: { $meta: "textScore" }
 		})
+		.sort({
+			score: { $meta:"textScore" }
+		})
+		.populate('session')
 		.then((contacts) => {
 
 			// If no contact is found, inform the user
@@ -28,8 +35,8 @@ module.exports = function({ sessionId, result }, session_model) {
 			if (contacts.length === 1) {
 				eligible_contact = contacts.first();
 			} else {
-				if (contacts.at(0).get('score') >= ELIGIBLE_MIN_MUL *  contacts.at(1).get('score')) {
-					eligible_contact = contacts.at(0);
+				if (contacts[0].score >= ELIGIBLE_MIN_MUL *  contacts[1].score) {
+					eligible_contact = contacts[0];
 				}
 			}
 
@@ -43,18 +50,17 @@ module.exports = function({ sessionId, result }, session_model) {
 							data: _.extend(result, { eligibileMultiple: true })
 						},
 						replies: contacts.map((contact) => {
-							return contact.getUniqueName(); 
+							return contact.name;
 						})
 					}
 				});
 			}
 
 			// Finally send the message
-			const eligible_contact_session = eligible_contact.related('sessions').first();
-			const from_name = session_model.name;
+			const eligible_contact_session = eligible_contact.sessions[0];
 
 			IOManager.output({
-				speech: `Hey! ${from_name} mi ha detto di riferirti questo: ${p.text}`
+				speech: `Hey! ${session_model.contact.name} mi ha detto di riferirti questo: ${p.text}`
 			}, eligible_contact_session)
 			.then(() => {
 				resolve({

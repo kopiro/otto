@@ -141,11 +141,7 @@ bot.on('message', (e) => {
 
 	let sessionId = e.chat.id;
 
-	IOManager.registerSession(sessionId, exports.id, e.chat, {
-		first_name: e.chat.first_name,
-		last_name: e.chat.last_name,
-		type: e.chat.type
-	}, e.text)
+	IOManager.registerSession(sessionId, exports.id, e.chat, e.text)
 	.then((session_model) => {
 
 		if (e.text) {

@@ -17,7 +17,7 @@ const sessionId = config.io.test.sessionId;
 exports.startInput = function() {
 	console.info(TAG, 'start');
 
-	IOManager.registerSession(sessionId, exports.id, process.platform)
+	IOManager.registerSession(sessionId, exports.id, { platform: process.platform })
 	.then((session_model) => {
 		let msg = strings.shift();
 

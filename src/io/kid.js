@@ -18,7 +18,7 @@ const sessionId = config.io.kid.sessionId || require('node-uuid').v4();
 exports.startInput = function(opt) {
 	console.debug(TAG, 'startInput');
 
-	IOManager.registerSession(sessionId, exports.id, process.platform)
+	IOManager.registerSession(sessionId, exports.id, { platform: process.platform })
 	.then((session_model) => {
 
 		opt = _.defaults(opt || {},  {
@@ -75,7 +75,7 @@ exports.output = function(f, session_model) {
 	console.info(TAG, 'output', session_model._id, f);
 
 	return new Promise((resolve, reject) => {
-		const language = f.data.language || session_model.translate_to
+		const language = f.data.language || session_model.translate_to || config.language;
 
 		if (f.data.error) {
 			if (f.data.error.speech) {	

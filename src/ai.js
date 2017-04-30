@@ -18,7 +18,7 @@ exports.fulfillmentTransformer = function(f, session_model, callback) {
 		}).save();
 	}
 
-	if (session_model.translate_to) {
+	if (session_model.translate_to && session_model.translate_to != config.language) {
 		const language = session_model.translate_to;
 		console.info(TAG, 'Translating output', { language });
 
@@ -83,7 +83,7 @@ exports.fulfillmentPromiseTransformer = function(fn, data, session_model, callba
 exports.textRequestTransformer = function(text, session_model, callback) {
 	text = text.replace(AI_NAME_REGEX, ''); // Remove the AI name in the text
 
-	if (session_model.translate_from) {
+	if (session_model.translate_from && session_model.translate_from != config.language) {
 		console.info(TAG, 'Translating input');
 		Translator.translate(text, 'it', (err, new_text) => {
 			if (err) {
@@ -146,7 +146,7 @@ exports.textRequest = function(text, session_model) {
 				if (body.result.actionIncomplete !== true && !_.isEmpty(action)) {
 					console.warn(TAG, 'calling local action', action);
 					const action_fn = Actions.list[ action ];
-					AI.fulfillmentPromiseTransformer(fn(), body, session_model, resolve);
+					AI.fulfillmentPromiseTransformer(action_fn(), body, session_model, resolve);
 				} else {
 					console.debug(TAG, 'local resolution');
 					AI.fulfillmentTransformer(body.result.fulfillment, session_model, resolve);

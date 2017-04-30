@@ -77,9 +77,11 @@ function onIoResponse({ session_model, error, params }) {
 			if (/stop/i.test(params.text)) {
 				console.info('Stopping pending action', pending.id);
 				
-				pending.destroy();
-				AI.fulfillmentTransformer({ speech: 'Ok' }, session_model, (f) => {
-					successResponse.call(io, f, session_model);
+				pending.remove()
+				.then(() => {
+					AI.fulfillmentTransformer({ speech: 'Ok' }, session_model, (f) => {
+						successResponse.call(io, f, session_model);
+					});
 				});
 				return;
 			}
@@ -93,8 +95,10 @@ function onIoResponse({ session_model, error, params }) {
 					resolvedQuery: params.text,
 				})
 			}, session_model, (fulfillment) => {
-				pending.destroy();
-				successResponse.call(io, fulfillment, session_model);
+				pending.remove()
+				.then(() => {
+					successResponse.call(io, fulfillment, session_model);
+				});
 			});
 
 			return;

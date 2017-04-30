@@ -1,138 +1,45 @@
 const Schema = mongoose.Schema;
 
-
-const SchemaSessions = new Schema({
+const Session = new Schema({
 	_id: String,
 	io_id: String,
 	io_data: Schema.Types.Mixed,
-	first_name: String,
-	last_name: String,
-	type: String,
+	contact: { type: Schema.Types.ObjectId, ref: 'contacts' },
 	debug: Boolean,
 	approved: Boolean,
 	translate_from: String,
 	translate_to: String
 });
-exports.Session = mongoose.model('sessions', SchemaSessions);
+exports.Session = mongoose.model('sessions', Session);
 
-const SchemaSessionInputs = new Schema({
-	session_id: String,
+const Contact = new Schema({
+	id: String,
+	first_name: String,
+	last_name: String,
+	alias: String,
+	tags: String,
+	sessions: [{ type: String, ref: 'sessions' }]
+});
+Contact.virtual('name').get(function() {
+	return this.first_name + ' ' + this.last_name;
+});
+exports.Contact = mongoose.model('contacts', Contact);
+
+const SessionInput = new Schema({
+	session: { type: String, ref: 'sessions' },
 	text: String,
 });
-exports.SessionInput = mongoose.model('session_inputs', SchemaSessionInputs);
+exports.SessionInput = mongoose.model('session_inputs', SessionInput);
 
-const SchemaIOQueue = new Schema({
-	session_id: { type: String, ref: 'sessions' },
+const IOQueue = new Schema({
+	session: { type: String, ref: 'sessions' },
 	data: Schema.Types.Mixed,
-	sessions: [{ type: Schema.Types.ObjectId, ref: 'sessions' }]
 });
-exports.IOQueue = mongoose.model('io_queue', SchemaIOQueue);
+exports.IOQueue = mongoose.model('io_queue', IOQueue);
 
-const SchemaIOPending = new Schema({
-	session_id: { type: String, ref: 'sessions' },
+const IOPending = new Schema({
+	session: { type: String, ref: 'sessions' },
 	action: String,
-	data: Schema.Types.Mixed
+	data: Schema.Types.Mixed,
 });
-exports.IOPending = mongoose.model('io_pending', SchemaIOPending);
-
-// {
-// 	methods: {
-// 		getName: function() {
-// 			return this.get('first_name') || this.get('title');
-// 		},
-// 		contact: function() {
-// 			return this.belongsTo(exports.Contact, 'contact_id');
-// 		},
-// 		setTranslateFrom: function(x) {
-// 			if (x == config.language) x = null;
-// 			this.set('translate_from', x);
-// 		},
-// 		setTranslateTo: function(x) {
-// 			if (x == config.language) x = null;
-// 			this.set('translate_to', x);
-// 		},
-// 		getTranslateFrom: function() {
-// 			return this.get('translate_from') || config.language;
-// 		},
-// 		getTranslateTo: function() {
-// 			return this.get('translate_to') || config.language;
-// 		}
-// });
-
-// exports.IOQueue = bookshelf.Model.extend({
-// 	tableName: 'io_queue',
-// 	session: function() {
-// 		return this.belongsTo(exports.Session, 'session_id');
-// 	},
-// 	getData: function() {
-// 		return JSON.parse(this.get('data'));
-// 	}
-// });
-
-// exports.IOPending = bookshelf.Model.extend({
-// 	tableName: 'io_pending',
-// 	session: function() {
-// 		return this.belongsTo(exports.Session, 'session_id');
-// 	},
-// 	getData: function() {
-// 		return JSON.parse(this.get('data'));
-// 	}
-// });
-
-// exports.Cron = bookshelf.Model.extend({
-// 	tableName: 'cron',
-// });
-
-// exports.Vision = bookshelf.Model.extend({
-// 	tableName: 'vision'
-// });
-
-// exports.SessionInput = bookshelf.Model.extend({
-// 	tableName: 'sessions_inputs',
-// });
-
-// exports.Contact = bookshelf.Model.extend({
-// 	tableName: 'contacts',
-// 	photos: function() {
-// 		return this.hasMany(exports.ContactPhoto, 'contact_id');
-// 	},
-// 	sessions: function() {
-// 		return this.hasMany(exports.Session, 'contact_id');
-// 	},
-// 	getName: function() {
-// 		return this.get('alias') || (this.get('first_name') + ' ' + this.get('last_name'));
-// 	},
-// 	getUniqueName: function() {
-// 		return (this.get('first_name') + ' ' + this.get('last_name'));
-// 	}
-// }, {
-// 	search: function(text, fetch_opt = {}) {
-// 		return new ORM.Contact()
-// 		.query((qb) => {
-// 			qb.select(ORM.__knex.raw(`*, 
-// 			MATCH (first_name, last_name, alias) AGAINST ("${text}") AS score
-// 			`));
-// 			qb.having('score', '>', '0');
-// 			qb.orderBy('score', 'DESC');
-// 		})
-// 		.fetchAll(fetch_opt);
-// 	}
-// });
-
-// exports.ContactPhoto = bookshelf.Model.extend({
-// 	tableName: 'contacts_photos',
-// 	contact: function() {
-// 		return this.belongsTo(exports.Contact);
-// 	}
-// });
-
-// exports.Story = bookshelf.Model.extend({
-// 	tableName: 'stories'
-// });
-
-// exports.Alarm = bookshelf.Model.extend({
-// 	tableName: 'alarms',
-// 	session: function() {
-// 		return this.belongsTo(exports.Session, 'session_id');
-// 	},
-// });
+exports.IOPending = mongoose.model('io_pending', IOPending);

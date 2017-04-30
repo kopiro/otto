@@ -2,11 +2,11 @@ exports.id = 'chess.start';
 
 const Chess = apprequire('chess');
 
-module.exports = function({ sessionId, result }) {
+module.exports = function({ sessionId, result }, session_model) {
 	return new Promise((resolve, reject) => {
 		let { parameters: p, fulfillment } = result;
 
-		Chess.createGame(sessionId)
+		Chess.createGame(session_model.id)
 		.then((game) => {
 
 			resolve({
