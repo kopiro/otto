@@ -73,9 +73,6 @@ exports.Contact = bookshelf.Model.extend({
 	photos: function() {
 		return this.hasMany(exports.ContactPhoto, 'contact_id');
 	},
-	memories: function() {
-		return this.hasMany(exports.ContactMemory, 'contact_id');
-	},
 	sessions: function() {
 		return this.hasMany(exports.Session, 'contact_id');
 	},
@@ -99,13 +96,6 @@ exports.Contact = bookshelf.Model.extend({
 	}
 });
 
-exports.ContactMemory = bookshelf.Model.extend({
-	tableName: 'contacts_memories',
-	contact: function() {
-		return this.belongsTo(exports.Contact);
-	}
-});
-
 exports.ContactPhoto = bookshelf.Model.extend({
 	tableName: 'contacts_photos',
 	contact: function() {
@@ -113,12 +103,8 @@ exports.ContactPhoto = bookshelf.Model.extend({
 	}
 });
 
-exports.Memory = bookshelf.Model.extend({
-	tableName: 'memories'
-});
-
-exports.Learning = bookshelf.Model.extend({
-	tableName: 'learning'
+exports.Story = bookshelf.Model.extend({
+	tableName: 'stories'
 });
 
 exports.Alarm = bookshelf.Model.extend({

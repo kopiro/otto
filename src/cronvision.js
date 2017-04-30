@@ -5,7 +5,7 @@ const Camera = apprequire('camera');
 const GCS = apprequire('gcs');
 
 function tick() {
-	setTimeout(tick, 5 * 1000);
+	setTimeout(tick, 60 * 1000);
 	console.info(TAG, 'Tick');
 
 	Camera.takePhoto()

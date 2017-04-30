@@ -1,4 +1,4 @@
-exports.id = 'memo.add';
+exports.id = 'stories.add';
 
 let required_params = {
 	title: "Dimmi il titolo",
@@ -30,14 +30,14 @@ module.exports = function({ sessionId, result }, session_model) {
 			}
 		}
 
-		new ORM.Memory({
+		new ORM.Story({
 			title: p.title,
 			text: p.text,
 			tags: p.tags,
 			url: p.url
 		})
 		.save()
-		.then((memory) => {
+		.then((story) => {
 			resolve({
 				speech: 'Grazie!'
 			});
