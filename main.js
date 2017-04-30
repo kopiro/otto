@@ -88,17 +88,19 @@ function onIoResponse({ session_model, error, params }) {
 
 			console.info('Resolving pending action', pending.id);
 
-			const action_fn = Actions.list[ pending.action ];
-			AI.fulfillmentPromiseTransformer(action_fn(), {
-				sessionId: session_model._id,
-				result: _.extend(pending.data, { 
-					resolvedQuery: params.text,
-				})
-			}, session_model, (fulfillment) => {
-				pending.remove()
-				.then(() => {
+			pending.remove()
+			.then(() => {
+
+				const action_fn = Actions.list[ pending.action ];
+				AI.fulfillmentPromiseTransformer(action_fn(), {
+					sessionId: session_model._id,
+					result: _.extend(pending.data, { 
+						resolvedQuery: params.text,
+					})
+				}, session_model, (fulfillment) => {
 					successResponse.call(io, fulfillment, session_model);
 				});
+				
 			});
 
 			return;

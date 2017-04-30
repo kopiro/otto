@@ -25,7 +25,7 @@ module.exports = function({ sessionId, result }, session_model) {
 
 		new ORM.Alarm({
 			session: session_model._id,
-			when: when.format('YYYY-MM-DD HH:mm:00')
+			when: when.toDate()
 		})
 		.save()
 		.then((contact) => {

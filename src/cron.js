@@ -38,26 +38,26 @@ function tickPerIO(IO) {
 	});
 	
 	// Get alarms
-	// IOManager.getAlarmsAt( IO.id, now.format('YYYY-MM-DD HH:mm:00') )
-	// .then((alarms) => {
-	// 	if (_.isEmpty(alarms)) return;
-	// 	alarms.forEach((alarm) => {
+	IOManager.getAlarmsAt( IO.id, now.format('YYYY-MM-DD HH:mm:00') )
+	.then((alarms) => {
+		if (_.isEmpty(alarms)) return;
+		alarms.forEach((alarm) => {
 
-	// 		const session_model = alarm.related('session');
-	// 		const contact = session_model.related('contact');
-	// 		let text = ALARM_STRINGS.getRandom().replace('{name}', contact.id ? contact.name : session_model.name);
+			const session_model = alarm.related('session');
+			const contact = session_model.related('contact');
+			let text = ALARM_STRINGS.getRandom().replace('{name}', contact.id ? contact.name : session_model.name);
 
-	// 		IOManager.output({ speech: text }, session_model)
-	// 		.then(() => {
-	// 			alarm.set('notified', true);
-	// 			alarm.save();
-	// 		})
-	// 		.catch((err) => {
-	// 			console.error(TAG, IO.id, err);
-	// 		});
+			IOManager.output({ speech: text }, session_model)
+			.then(() => {
+				alarm.set('notified', true);
+				alarm.save();
+			})
+			.catch((err) => {
+				console.error(TAG, IO.id, err);
+			});
 		
-	// 	});
-	// });
+		});
+	});
 }
 
 console.info(TAG, 'started with drivers => ' + config.ioDriversCron.join(', '));

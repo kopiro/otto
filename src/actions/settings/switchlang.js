@@ -37,8 +37,8 @@ module.exports = function({ sessionId, result }, session_model) {
 			.save()
 			.then(() => {
 
-				const from = _.findWhere(avail_langs, { code: session_model.getTranslateFrom() }).name;
-				const to = _.findWhere(avail_langs, { code: session_model.getTranslateTo() }).name;
+				const from = _.findWhere(avail_langs, { code: session_model.translate_from || config.language }).name;
+				const to = _.findWhere(avail_langs, { code: session_model.translate_to || config.language }).name;
 
 				resolve({
 					speech: `Ok, da ora in poi io ti parlo in ${to}, mentre tu mi parli in ${from}`,

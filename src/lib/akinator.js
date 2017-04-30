@@ -16,7 +16,7 @@ Akinator.prototype.hello = function(playerName, onAsk, onFound) {
 		console.debug(TAG, body);
 		if (!error && response.statusCode == 200) {
 			var rs = JSON.parse(body);
-			console.debug(exports.id, rs);
+			console.debug(TAG, rs);
 			this.session = rs.parameters.identification.session;
 			this.signature = rs.parameters.identification.signature;
 			rs = this.extractQuestion(rs);
@@ -52,7 +52,7 @@ Akinator.prototype.sendAnswer = function(answerId) {
 		console.debug(TAG, body);
 		if (!error && response.statusCode == 200) {
 			var rs = JSON.parse(body);
-			console.debug(exports.id, rs);
+			console.debug(TAG, rs);
 			rs = this.extractQuestion(rs);
 			if (rs.last) {
 				this.getCharacters();
@@ -69,7 +69,7 @@ Akinator.prototype.getCharacters = function() {
 		console.debug(TAG, body);
 		if (!error && response.statusCode == 200) {
 			var rs = JSON.parse(body);
-			console.debug(exports.id, rs);
+			console.debug(TAG, rs);
 			var characters = rs.parameters.elements.map((el) => {
 				return el.element;
 			});

@@ -36,7 +36,7 @@ const Alarm = new Schema({
 	when: Date,
 	what: String
 });
-exports.IOPending = mongoose.model('alarms', Alarm);
+exports.Alarm = mongoose.model('alarms', Alarm);
 
 // Memory
 
@@ -61,3 +61,10 @@ const Story = new Schema({
 	date: Date
 });
 exports.Story = mongoose.model('stories', Story);
+
+const Vision = new Schema({
+	url: String,
+	labels: String,
+	date: Date
+});
+exports.Vision = mongoose.model('vision', Vision);

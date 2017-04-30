@@ -1,4 +1,4 @@
-exports.id = 'akinator.start';
+exports.id = 'akinator';
 const Akinator = apprequire('akinator');
 
 function cleanText(t) {
