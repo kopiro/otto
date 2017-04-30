@@ -10,7 +10,7 @@ exports.fulfillmentTransformer = function(f, session_model, callback) {
 
 	if (f.data.pending) {
 		console.info(TAG, 'Saving pending action', session_model._id, f.data.pending);
-		new ORM.IOPending({
+		new Data.IOPending({
 			session: session_model._id,
 			action: f.data.pending.action,
 			data: f.data.pending.data

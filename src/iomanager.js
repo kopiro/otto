@@ -65,7 +65,7 @@ exports.output = function(f, session_model) {
 			// Otherwise, put in the queue and make resolve to other clients
 			console.info(TAG, 'putting in IO queue', session_model._id, f);
 
-			new ORM.IOQueue({
+			new Data.IOQueue({
 				session: session_model._id,
 				data: f
 			})
@@ -90,7 +90,7 @@ exports.getAlarmsAt = function(io_id, when) {
 
 exports.writeLogForSession = function(sessionId, text) {
 	if (_.isEmpty(text)) return;
-	new ORM.SessionInput({ 
+	new Data.SessionInput({ 
 		session: sessionId,
 		text: text
 	}).save();
@@ -100,7 +100,7 @@ exports.registerSession = function(sessionId, io_id, data, text) {
 	return new Promise((resolve, reject) => {
 		let sessionIdComposite = io_id + '/' + sessionId;
 
-		ORM.Session
+		Data.Session
 		.findOne({ _id: sessionIdComposite })
 		.populate('contact')
 		.then((session_model) => {
@@ -116,7 +116,7 @@ exports.registerSession = function(sessionId, io_id, data, text) {
 		})
 		.catch((err) => {
 
-			new ORM.Session({ 
+			new Data.Session({ 
 				_id: sessionIdComposite,
 				io_id: io_id,
 				io_data: data
@@ -139,7 +139,7 @@ exports.registerSession = function(sessionId, io_id, data, text) {
 };
 
 exports.processQueue = function() {
-	ORM.IOQueue
+	Data.IOQueue
 	.find()
 	.populate('session')
 	.then((qitems) => {

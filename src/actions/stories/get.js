@@ -4,7 +4,7 @@ module.exports = function({ sessionId, result }) {
 	return new Promise((resolve, reject) => {
 		let { parameters: p, fulfillment } = result;
 
-		ORM.Story
+		Data.Story
 		.findOne({ $text: { $search: p.q }}, { score: { $meta: "textScore" }})
 		.sort({ score: { $meta:"textScore" } })
 		.then((story) => {

@@ -15,11 +15,11 @@ function tickPerIO(IO) {
 	const now = moment();
 	console.info(TAG, 'WK=' + now.isoWeekday(), 'H=' + now.hours(), 'M=' + now.minutes());
 
-	ORM.Cron
-	.find()
+	Data.Cron
+	.findOne()
 	.then((cron_row) => {
 
-		ORM.Session
+		Data.Session
 		.find()
 		.populate('contact')
 		.then((sessions) => {

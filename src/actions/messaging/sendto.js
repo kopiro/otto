@@ -10,7 +10,7 @@ module.exports = function({ sessionId, result }, session_model) {
 			_.extend(p, { to: result.resolvedQuery });
 		}
 
-		ORM.Contact
+		Data.Contact
 		.find({ $text: { $search: p.to }}, { score: { $meta: "textScore" }})
 		.sort({ score: { $meta:"textScore" } })
 		.populate('session')

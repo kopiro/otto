@@ -23,7 +23,7 @@ module.exports = function({ sessionId, result }, session_model) {
 
 		const when_human = when.calendar();
 
-		new ORM.Alarm({
+		new Data.Alarm({
 			session: session_model._id,
 			when: when.toDate()
 		})

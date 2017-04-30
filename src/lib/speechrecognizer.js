@@ -5,8 +5,6 @@ const speechClient = require('@google-cloud/speech')({
 });
 
 function createRecognizeStream(opt, callback) {
-	let processing = true;
-	let recognized = false;
 	let text = null;
 	let timeout = null;
 
@@ -32,12 +30,11 @@ function createRecognizeStream(opt, callback) {
 		switch (data.endpointerType) {
 
 			case 'START_OF_SPEECH':
-			// console.debug(TAG, 'start of speech');
 			break;
 
 			case 'ENDPOINTER_EVENT_UNSPECIFIED':
 			text = data.results;
-			console.info(TAG, text);
+			console.info(TAG, '==>', text);
 			clearTimeout(timeout);
 			callback(null, text);
 			break;

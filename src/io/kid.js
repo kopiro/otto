@@ -48,7 +48,7 @@ exports.startInput = function(opt) {
 
 			if (_config.waitForActivator) {
 				if (false === AI_NAME_ACTIVATOR.test(text)) {
-					console.debug(TAG, 'skipping input for missing activator', text);
+					console.info(TAG, 'skipping input for missing activator', text);
 					exports.startInput({ listenSound: false });
 					return;
 				}

@@ -22,7 +22,7 @@ function tick() {
 			.then((results) => {
 				const labels = results[0];
 
-				new ORM.Vision({
+				new Data.Vision({
 					url: path,
 					labels: labels.join(',')
 				}).save();

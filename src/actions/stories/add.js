@@ -30,7 +30,7 @@ module.exports = function({ sessionId, result }, session_model) {
 			}
 		}
 
-		new ORM.Story({
+		new Data.Story({
 			title: p.title,
 			text: p.text,
 			tags: p.tags,
