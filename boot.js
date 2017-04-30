@@ -27,9 +27,11 @@ global.moment = require('moment');
 moment.locale(config.language);
 global.util = require('util');
 
-// Database instance
-global.DB = require('mysql').createConnection(config.mysql);
-// DB.connect();
+global.mongoose = require('mongoose');
+mongoose.Promise = global.Promise;
+
+// DB Connect
+global.db = mongoose.connect('mongodb://localhost:27018/otto');
 
 // Global (App) packages
 global.AI = require(__basedir + '/src/ai');

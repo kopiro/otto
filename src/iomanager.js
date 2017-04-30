@@ -172,10 +172,8 @@ exports.registerSession = function(sessionId, io_id, data, attrs, text) {
 };
 
 exports.processQueue = function() {
-	new ORM.IOQueue()
-	.fetchAll({
-		withRelated: ['session']
-	})
+	ORM.IOQueue
+	.find()
 	.then((qitems) => {
 		if (qitems == null || qitems.length === 0) {
 			setTimeout(exports.processQueue, 1000);

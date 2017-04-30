@@ -56,6 +56,7 @@
     "md5": "^2.2.1",
     "messenger-bot": "^2.4.0",
     "moment": "^2.17.1",
+    "mongoose": "^4.9.6",
     "mopidy": "^0.5.0",
     "mysql": "^2.13.0",
     "node-telegram-bot-api": "^0.27.0",
