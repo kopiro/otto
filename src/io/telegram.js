@@ -145,6 +145,14 @@ bot.on('message', (e) => {
 	.then((session_model) => {
 
 		if (e.text) {
+			// If we are in a group, only listen for activators
+			if (session_model.io_data.type != 'private') {
+				if (false === AI_NAME_ACTIVATOR.test(e.text)) {
+					console.debug(TAG, 'skipping input for missing activator', e.text);
+					return;
+				}
+			}
+
 			return exports.emitter.emit('input', {
 				session_model: session_model,
 				params: {
@@ -157,15 +165,25 @@ bot.on('message', (e) => {
 			return bot.getFileLink(e.voice.file_id).then((file_link) => {
 				SpeechRecognizer.recognizeAudioStream(request(file_link), {
 					must_convert: true,
-					language: session_model.translate_from
+					language: session_model.translate_from || config.language
 				})
 				.then((text) => {
+
+					// If we are in a group, only listen for activators
+					if (session_model.io_data.type != 'private') {
+						if (false === AI_NAME_ACTIVATOR.test(e.text)) {
+							console.debug(TAG, 'skipping input for missing activator', e.text);
+							return;
+						}
+					}
+				
 					return exports.emitter.emit('input', {
 						session_model: session_model,
 						params: {
 							text: text
 						}
 					});
+				
 				})
 				.catch((err) => { 
 					return exports.emitter.emit('input', {
@@ -199,7 +217,6 @@ bot.on('message', (e) => {
 		});
 	})
 	.catch((session_model) => {
-		console.log(session_model);
 		exports.emitter.emit('input', {
 			session_model: session_model,
 			error: {

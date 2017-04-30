@@ -1,5 +1,8 @@
 const TAG = 'IO.Kid';
 
+const _config = config.io.kid;
+const sessionId = _config.sessionId;
+
 const EventEmitter = require('events').EventEmitter;
 exports.emitter = new EventEmitter();
 
@@ -12,8 +15,6 @@ const Rec = apprequire('rec');
 const SpeechRecognizer = apprequire('speechrecognizer');
 const Polly = apprequire('polly');
 const Play = apprequire('play');
-
-const sessionId = config.io.kid.sessionId || require('node-uuid').v4();
 
 exports.startInput = function(opt) {
 	console.debug(TAG, 'startInput');
@@ -43,9 +44,16 @@ exports.startInput = function(opt) {
 		.then((text) => {
 
 			Rec.stop();
+			IOManager.writeLogForSession(session_model.id, text);
 
-			IOManager.writeLogForSession(session_model._id, text);
-		
+			if (_config.waitForActivator) {
+				if (false === AI_NAME_ACTIVATOR.test(text)) {
+					console.debug(TAG, 'skipping input for missing activator', text);
+					exports.startInput({ listenSound: false });
+					return;
+				}
+			}
+
 			exports.emitter.emit('input', {
 				session_model: session_model,
 				params: {
@@ -55,9 +63,12 @@ exports.startInput = function(opt) {
 
 		})
 		.catch((err) => {
-			Rec.stop();
+
 			console.error(TAG, 'input', err);
+
+			Rec.stop();
 			exports.startInput({ listenSound: false });
+
 		});
 
 	})
@@ -72,7 +83,7 @@ exports.startInput = function(opt) {
 };
 
 exports.output = function(f, session_model) {
-	console.info(TAG, 'output', session_model._id, f);
+	console.info(TAG, 'output', session_model.id, f);
 
 	return new Promise((resolve, reject) => {
 		const language = f.data.language || session_model.translate_to || config.language;

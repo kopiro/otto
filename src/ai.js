@@ -3,7 +3,6 @@ const _config = config.apiai;
 
 const client = require('apiai')(_config.token);
 
-const AI_NAME_REGEX = /Otto\b\W+/i;
 const Translator = apprequire('translator');
 
 exports.fulfillmentTransformer = function(f, session_model, callback) {
@@ -81,7 +80,7 @@ exports.fulfillmentPromiseTransformer = function(fn, data, session_model, callba
 };
 
 exports.textRequestTransformer = function(text, session_model, callback) {
-	text = text.replace(AI_NAME_REGEX, ''); // Remove the AI name in the text
+	text = text.replace(AI_NAME_ACTIVATOR, ''); // Remove the AI name in the text
 
 	if (session_model.translate_from && session_model.translate_from != config.language) {
 		console.info(TAG, 'Translating input');

@@ -10,8 +10,6 @@ function createRecognizeStream(opt, callback) {
 	let text = null;
 	let timeout = null;
 
-	console.debug(TAG, 'creating recognize stream', opt);
-
 	const speechRecognizer = speechClient.createRecognizeStream({
 		// If false or omitted, the recognizer will perform continuous recognition
 		singleUtterance: true,

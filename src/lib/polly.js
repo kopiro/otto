@@ -53,7 +53,6 @@ function getVoice(opt) {
 					reject(err);
 				}
 
-				console.debug(TAG, 'available voices', data);
 				const voice = data.Voices.find((v) => { return v.Gender == opt.gender; });
 
 				if (voice == null) {
