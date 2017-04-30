@@ -11,14 +11,8 @@ module.exports = function({ sessionId, result }, session_model) {
 		}
 
 		ORM.Contact
-		.find({ 
-			$text: { $search: p.to }
-		}, { 
-			score: { $meta: "textScore" }
-		})
-		.sort({
-			score: { $meta:"textScore" }
-		})
+		.find({ $text: { $search: p.to }}, { score: { $meta: "textScore" }})
+		.sort({ score: { $meta:"textScore" } })
 		.populate('session')
 		.then((contacts) => {
 

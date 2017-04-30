@@ -139,12 +139,16 @@ exports.textRequest = function(text, session_model) {
 				console.info(TAG, 'response', body);
 
 				if (body.result.metadata.webhookUsed === "true") {
-					return resolve(body.result.fulfillment);
+					if (body.status.errorType === 'partial_content') {
+						console.warn(TAG, 'webhook failed, solving locally');
+					} else {
+						return resolve(body.result.fulfillment);
+					}
 				}
 
 				// If this action has not solved using webhook, reparse
 				if (body.result.actionIncomplete !== true && !_.isEmpty(action)) {
-					console.warn(TAG, 'calling local action', action);
+					console.debug(TAG, 'calling local action', action);
 					const action_fn = Actions.list[ action ];
 					AI.fulfillmentPromiseTransformer(action_fn(), body, session_model, resolve);
 				} else {

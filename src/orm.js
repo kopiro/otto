@@ -12,19 +12,6 @@ const Session = new Schema({
 });
 exports.Session = mongoose.model('sessions', Session);
 
-const Contact = new Schema({
-	id: String,
-	first_name: String,
-	last_name: String,
-	alias: String,
-	tags: String,
-	sessions: [{ type: String, ref: 'sessions' }]
-});
-Contact.virtual('name').get(function() {
-	return this.first_name + ' ' + this.last_name;
-});
-exports.Contact = mongoose.model('contacts', Contact);
-
 const SessionInput = new Schema({
 	session: { type: String, ref: 'sessions' },
 	text: String,
@@ -50,3 +37,27 @@ const Alarm = new Schema({
 	what: String
 });
 exports.IOPending = mongoose.model('alarms', Alarm);
+
+// Memory
+
+const Contact = new Schema({
+	id: String,
+	first_name: String,
+	last_name: String,
+	alias: String,
+	tags: String,
+	sessions: [{ type: String, ref: 'sessions' }]
+});
+Contact.virtual('name').get(function() {
+	return this.first_name + ' ' + this.last_name;
+});
+exports.Contact = mongoose.model('contacts', Contact);
+
+const Story = new Schema({
+	title: String,
+	text: String,
+	tags: String,
+	url: String,
+	date: Date
+});
+exports.Story = mongoose.model('stories', Story);

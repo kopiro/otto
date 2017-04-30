@@ -5,9 +5,9 @@ module.exports = function({ sessionId, result }) {
 		let { parameters: p, fulfillment } = result;
 
 		ORM.Story
-		.find()
-		.then((stories) => {
-			const story = stories[0];
+		.findOne({ $text: { $search: p.q }}, { score: { $meta: "textScore" }})
+		.sort({ score: { $meta:"textScore" } })
+		.then((story) => {
 			resolve({
 				speech: story.text,
 				data: {
