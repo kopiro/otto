@@ -51,7 +51,7 @@ module.exports = function({ sessionId, result }, session_model) {
 
 			// Finally send the message
 			const eligible_contact_session = eligible_contact.related('sessions').first();
-			const from_name = session_model.get('first_name');
+			const from_name = session_model.name;
 
 			IOManager.output({
 				speech: `Hey! ${from_name} mi ha detto di riferirti questo: ${p.text}`

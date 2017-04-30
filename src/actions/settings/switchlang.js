@@ -43,7 +43,7 @@ module.exports = function({ sessionId, result }, session_model) {
 				resolve({
 					speech: `Ok, da ora in poi io ti parlo in ${to}, mentre tu mi parli in ${from}`,
 					data: {
-						language: session_model.getTranslateTo()
+						language: session_model.translate_to
 					}
 				});
 

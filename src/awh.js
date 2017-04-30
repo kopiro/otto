@@ -34,8 +34,8 @@ Router.post('/', (req, res) => {
 
 	const sessionId = body.sessionId;
 
-	new ORM.Session({ id: sessionId })
-	.fetch({ withRelated: ['contact'] })
+	ORM.Session
+	.findOne({ id: sessionId })
 	.then((session_model) => {
 
 		if (session_model == null) {

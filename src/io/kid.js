@@ -38,13 +38,13 @@ exports.startInput = function(opt) {
 
 		SpeechRecognizer.recognizeAudioStream(rec_stream, {
 			must_convert: false,
-			language: session_model.get('translate_from')
+			language: session_model.translate_from
 		})
 		.then((text) => {
 
 			Rec.stop();
 
-			IOManager.writeLogForSession(session_model.id, text);
+			IOManager.writeLogForSession(session_model._id, text);
 		
 			exports.emitter.emit('input', {
 				session_model: session_model,
@@ -72,10 +72,10 @@ exports.startInput = function(opt) {
 };
 
 exports.output = function(f, session_model) {
-	console.info(TAG, 'output', session_model.id, f);
+	console.info(TAG, 'output', session_model._id, f);
 
 	return new Promise((resolve, reject) => {
-		const language = f.data.language || session_model.get('translate_to');
+		const language = f.data.language || session_model.translate_to
 
 		if (f.data.error) {
 			if (f.data.error.speech) {	

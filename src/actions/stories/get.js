@@ -13,9 +13,9 @@ module.exports = function({ sessionId, result }) {
 		.fetch({ require: true })
 		.then((story) => {
 			resolve({
-				speech: story.get('text'),
+				speech: story.text,
 				data: {
-					url: story.get('url')
+					url: story.url
 				}
 			});
 		})

@@ -1,7 +1,8 @@
 const Schema = mongoose.Schema;
 
+
 const SchemaSessions = new Schema({
-	id: String,
+	_id: String,
 	io_id: String,
 	io_data: Schema.Types.Mixed,
 	first_name: String,
@@ -12,15 +13,27 @@ const SchemaSessions = new Schema({
 	translate_from: String,
 	translate_to: String
 });
-
 exports.Session = mongoose.model('sessions', SchemaSessions);
 
-const SchemaIOQueue = new Schema({
+const SchemaSessionInputs = new Schema({
 	session_id: String,
+	text: String,
+});
+exports.SessionInput = mongoose.model('session_inputs', SchemaSessionInputs);
+
+const SchemaIOQueue = new Schema({
+	session_id: { type: String, ref: 'sessions' },
+	data: Schema.Types.Mixed,
+	sessions: [{ type: Schema.Types.ObjectId, ref: 'sessions' }]
+});
+exports.IOQueue = mongoose.model('io_queue', SchemaIOQueue);
+
+const SchemaIOPending = new Schema({
+	session_id: { type: String, ref: 'sessions' },
+	action: String,
 	data: Schema.Types.Mixed
 });
-
-exports.IOQueue = mongoose.model('io_queue', SchemaIOQueue);
+exports.IOPending = mongoose.model('io_pending', SchemaIOPending);
 
 // {
 // 	methods: {

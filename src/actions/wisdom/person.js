@@ -23,11 +23,11 @@ module.exports = function({ sessionId, result }) {
 				.then((memories) => {
 					if (memories.length > 0) {
 						resolve({
-							speech: memories.at( _.random(0, memories.length-1) ).get('text')
+							speech: memories.at( _.random(0, memories.length-1) ).text
 						});
 					} else {
 						resolve({
-							speech: contact.getName()
+							speech: contact.name
 						});
 					}
 				});

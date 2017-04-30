@@ -12,7 +12,7 @@ const rl = readline.createInterface({
 });
 
 let strings = fs.readFileSync(__basedir + '/in.txt').toString().split("\n");
-const sessionId = config.io.test.sessionId || require('node-uuid').v4();
+const sessionId = config.io.test.sessionId;
 
 exports.startInput = function() {
 	console.info(TAG, 'start');
@@ -53,7 +53,7 @@ exports.startInput = function() {
 
 exports.output = function(f, session_model) {
 	if (null == config.testDriver) {
-		console.info(TAG, 'output', session_model.id, f);
+		console.info(TAG, 'output', session_model._id, f);
 		return Promise.resolve();
 	}
 

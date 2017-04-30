@@ -27,14 +27,14 @@ function tickPerIO(IO) {
 	.then((cron_row) => {
 		if (_.isEmpty(cron_row)) return;
 
-		IOManager.getSessions( IO.id )
+		ORM.Session.find()
 		.then((sessions) => {
 			if (_.isEmpty(sessions)) return;
 
 			sessions.forEach((session_model) => {
 				const contact = session_model.related('contact');
-				const name = contact.id ? contact.getName() : session_model.getName();
-				const text = cron_row.get('text').replace('{name}', name);
+				const name = contact.id ? contact.name : session_model.name;
+				const text = cron_row.text.replace('{name}', name);
 
 				IOManager.output({ speech: text }, session_model)
 				.catch((err) => {
@@ -53,7 +53,7 @@ function tickPerIO(IO) {
 
 			const session_model = alarm.related('session');
 			const contact = session_model.related('contact');
-			let text = ALARM_STRINGS.getRandom().replace('{name}', contact.id ? contact.getName() : session_model.getName());
+			let text = ALARM_STRINGS.getRandom().replace('{name}', contact.id ? contact.name : session_model.name);
 
 			IOManager.output({ speech: text }, session_model)
 			.then(() => {

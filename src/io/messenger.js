@@ -20,13 +20,13 @@ exports.startInput = function() {
 };
 
 exports.output = function(f, session_model) {
-	console.info(TAG, 'output', session_model.id, f);
+	console.info(TAG, 'output', session_model._id, f);
 
 	return new Promise((resolve, reject) => {
 		if (f.data.error) {
 			if (f.data.error.speech) {		
-				bot.sendChatAction(session_model.getIOData().sender.id, 'typing');
-				bot.sendMessage(session_model.getIOData().sender.id, f.data.error.speech);	
+				bot.sendChatAction(session_model.io_data.sender.id, 'typing');
+				bot.sendMessage(session_model.io_data.sender.id, f.data.error.speech);	
 				return resolve();
 			} else {
 				return resolve();
@@ -52,7 +52,7 @@ exports.output = function(f, session_model) {
 			if (f.data.url) {
 				f.speech += "\n" + f.data.url;
 			}
-			bot.sendMessage(session_model.getIOData().sender.id, _.extend(message_opt, {
+			bot.sendMessage(session_model.io_data.sender.id, _.extend(message_opt, {
 				text: f.speech
 			}), (err, info) => {
 				if (err) console.error(TAG, err);
@@ -62,7 +62,7 @@ exports.output = function(f, session_model) {
 
 		if (f.data.media) {
 			if (f.data.media.track) {
-				bot.sendMessage(session_model.getIOData().sender.id, _.extend(message_opt, { 
+				bot.sendMessage(session_model.io_data.sender.id, _.extend(message_opt, { 
 					text: f.data.media.song.external_urls.spotify 
 				}), (err, info) => {
 					if (err) console.error(TAG, err);
@@ -73,7 +73,7 @@ exports.output = function(f, session_model) {
 		}
 
 		if (f.data.image) {
-			bot.sendMessage(session_model.getIOData().sender.id, _.extend(message_opt, { 
+			bot.sendMessage(session_model.io_data.sender.id, _.extend(message_opt, { 
 				attachment: {
 					type: 'image',
 					payload: {

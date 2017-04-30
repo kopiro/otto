@@ -24,7 +24,7 @@ module.exports = function({ sessionId, result }, session_model) {
 		const when_human = when.calendar();
 
 		new ORM.Alarm({
-			session_id: session_model.id,
+			session_id: session_model._id,
 			when: when.format('YYYY-MM-DD HH:mm:00')
 		})
 		.save()

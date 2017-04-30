@@ -20,7 +20,7 @@ if (config.awh) {
 }
 
 function successResponse(f, session_model) {
-	console.debug('Success', session_model.id, f);
+	console.debug('Success', session_model._id, f);
 
 	let io = this;
 
@@ -33,7 +33,7 @@ function successResponse(f, session_model) {
 }
 
 function errorResponse(f, session_model) {
-	console.error('Error', session_model.id, f);
+	console.error('Error', session_model._id, f);
 
 	let io = this;
 
@@ -58,7 +58,7 @@ function onIoResponse({ session_model, error, params }) {
 		return;
 	}
 
-	console.debug('onIoResponse', 'SID = ' + session_model.id, { error, params });
+	console.debug('onIoResponse', 'SID = ' + session_model._id, { error, params });
 
 	if (error) {
 		return errorResponse.call(io, { 
@@ -68,9 +68,8 @@ function onIoResponse({ session_model, error, params }) {
 		}, session_model);
 	}
 
-	new ORM.IOPending()
-	.where({ session_id: session_model.id })
-	.fetch()
+	ORM.IOPending
+	.findOne({ session_id: session_model._id })
 	.then((pending) => {
 
 		if (pending != null) {
@@ -87,10 +86,10 @@ function onIoResponse({ session_model, error, params }) {
 
 			console.info('Resolving pending action', pending.id);
 
-			const action_fn = Actions.list[ pending.get('action') ];
+			const action_fn = Actions.list[ pending.action ];
 			AI.fulfillmentPromiseTransformer(action_fn(), {
-				sessionId: session_model.id,
-				result: _.extend(pending.getData(), { 
+				sessionId: session_model._id,
+				result: _.extend(pending.data, { 
 					resolvedQuery: params.text,
 				})
 			}, session_model, (fulfillment) => {

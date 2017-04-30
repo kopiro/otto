@@ -31,11 +31,11 @@ exports.startInput = function() {
 };
 
 exports.output = function(f, session_model) {
-	console.info(TAG, 'output', session_model.id, f);
+	console.info(TAG, 'output', session_model._id, f);
 	
 	return new Promise((resolve, reject) => {
 
-		const chat_id = session_model.getIOData().id;
+		const chat_id = session_model.io_data.id;
 
 		if (f.data.error) {
 			if (f.data.error.speech) {		
@@ -161,7 +161,7 @@ bot.on('message', (e) => {
 			return bot.getFileLink(e.voice.file_id).then((file_link) => {
 				SpeechRecognizer.recognizeAudioStream(request(file_link), {
 					must_convert: true,
-					language: session_model.get('translate_from')
+					language: session_model.translate_from
 				})
 				.then((text) => {
 					return exports.emitter.emit('input', {

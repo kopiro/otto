@@ -10,16 +10,16 @@ exports.fulfillmentTransformer = function(f, session_model, callback) {
 	f.data = f.data || {}; // Ensure always data object exists
 
 	if (f.data.pending) {
-		console.info(TAG, 'Saving pending action', session_model.id, f.data.pending);
+		console.info(TAG, 'Saving pending action', session_model._id, f.data.pending);
 		new ORM.IOPending({
-			session_id: session_model.id,
+			session_id: session_model._id,
 			action: f.data.pending.action,
-			data: f.data.pending.data ? JSON.stringify(f.data.pending.data) : null
+			data: f.data.pending.data
 		}).save();
 	}
 
-	if (session_model.get('translate_to')) {
-		const language = session_model.get('translate_to');
+	if (session_model.translate_to) {
+		const language = session_model.translate_to;
 		console.info(TAG, 'Translating output', { language });
 
 		if (!_.isEmpty(f.speech)) {
@@ -83,7 +83,7 @@ exports.fulfillmentPromiseTransformer = function(fn, data, session_model, callba
 exports.textRequestTransformer = function(text, session_model, callback) {
 	text = text.replace(AI_NAME_REGEX, ''); // Remove the AI name in the text
 
-	if (session_model.get('translate_from')) {
+	if (session_model.translate_from) {
 		console.info(TAG, 'Translating input');
 		Translator.translate(text, 'it', (err, new_text) => {
 			if (err) {
@@ -104,7 +104,7 @@ exports.textRequest = function(text, session_model) {
 		exports.textRequestTransformer(text, session_model, (text) => {
 
 			let request = client.textRequest(text, {
-				sessionId: session_model.id
+				sessionId: session_model._id
 			});
 
 			console.debug(TAG, 'request', { text });

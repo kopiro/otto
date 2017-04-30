@@ -50,11 +50,11 @@ exports.output = function(f, session_model) {
 			return reject('Invalid session model');
 		}
 
-		if (exports.isDriverEnabled(session_model.get('io_id'))) {	
+		if (exports.isDriverEnabled(session_model.io_id)) {	
 
 			// If driver is enabled, instantly resolve
 			AI.fulfillmentTransformer(f, session_model, (f) => {
-				exports.getDriver( session_model.get('io_id') )
+				exports.getDriver( session_model.io_id )
 				.output(f, session_model)
 				.then(resolve)
 				.catch(reject);
@@ -63,11 +63,11 @@ exports.output = function(f, session_model) {
 		} else {
 
 			// Otherwise, put in the queue and make resolve to other clients
-			console.info(TAG, 'putting in IO queue', session_model.id, f);
+			console.info(TAG, 'putting in IO queue', session_model._id, f);
 
 			new ORM.IOQueue({
-				session_id: session_model.id,
-				data: JSON.stringify(f),
+				session_id: session_model._id,
+				data: f
 			})
 			.save()
 			.then(() => {
@@ -82,17 +82,6 @@ exports.output = function(f, session_model) {
 
 		}
 	});
-};
-
-exports.getSessions = function(io_id) {
-	return new ORM.Session()
-	.query((qb) => {
-		qb.where('approved', '=', '1');
-		if (config.cron === "debug") {
-			qb.where('debug', '=', '1');
-		}
-	})
-	.fetchAll();
 };
 
 exports.getAlarmsAt = function(io_id, when) {
@@ -113,13 +102,11 @@ exports.getAlarmsAt = function(io_id, when) {
 };
 
 exports.writeLogForSession = function(sessionId, text) {
-	setTimeout(() => {
-		if (_.isEmpty(text)) return;
-		new ORM.SessionInput({ 
-			session_id: sessionId,
-			text: text
-		}).save();
-	}, 0);
+	if (_.isEmpty(text)) return;
+	new ORM.SessionInput({ 
+		session_id: sessionId,
+		text: text
+	}).save();
 };
 
 /**
@@ -129,18 +116,15 @@ exports.registerSession = function(sessionId, io_id, data, attrs, text) {
 	return new Promise((resolve, reject) => {
 		let sessionIdComposite = io_id + '/' + sessionId;
 
-		new ORM.Session({ 
-			id: sessionIdComposite
-		})
-		.fetch({
-			withRelated: ['contact'],
-			require: true 
+		ORM.Session
+		.findOne({ 
+			_id: sessionIdComposite
 		})
 		.then((session_model) => {
 
 			exports.writeLogForSession(sessionIdComposite, text);
 
-			if (false == session_model.get('approved')) {
+			if (true !== session_model.approved) {
 				return reject(session_model);
 			}
 
@@ -150,11 +134,11 @@ exports.registerSession = function(sessionId, io_id, data, attrs, text) {
 		.catch((err) => {
 
 			new ORM.Session(_.extend(attrs || {}, { 
-				id: sessionIdComposite,
+				_id: sessionIdComposite,
 				io_id: io_id,
-				io_data: JSON.stringify(data),
+				io_data: data
 			}))
-			.save(null, { method: 'insert' })
+			.save()
 			.then((session_model) => {
 		
 				exports.writeLogForSession(sessionIdComposite, text);
@@ -183,14 +167,13 @@ exports.processQueue = function() {
 		async.eachOfSeries(qitems.toArray(), (qitem, key, callback) => {
 			const session_model = qitem.related('session');
 
-			if (exports.isDriverEnabled( session_model.get('io_id') ) === false) {
+			if (exports.isDriverEnabled( session_model.io_id ) === false) {
 				return callback();
 			}
 
-			const data = qitem.getData();
-			console.info(TAG, 'processing queue item', session_model.id, data);
+			console.info(TAG, 'processing queue item', session_model._id, qitem.data);
 
-			exports.output(data, session_model)
+			exports.output(qitem.data, session_model)
 			.then(() => {
 				qitem.destroy();
 			})
