@@ -12,15 +12,13 @@ const game = new Chess();
 const socket = io();
 
 socket.emit('start', {
-	sessionId: sessionId,
+	id: id,
 });
 
 socket.on('fen', (fen) => {
 	console.log('FEN', fen);
-	if (game.fen() != fen) {
-		game.load(fen);
-		board.position(fen);
-	}
+	game.load(fen);
+	board.position(fen);
 });
 
 ////////////
@@ -28,13 +26,13 @@ socket.on('fen', (fen) => {
 ////////////
 
 function onDragStart(source, piece, position, orientation) {
-	if (piece.color === 'b') return false;
+	if (piece.color && piece.color.substr(0,1) === 'b') return false;
 	if (game.game_over() === true || game.turn() === 'b') return false;
 }
 
 function onDrop(source, target) {
 	socket.emit('move', {
-		sessionId: sessionId,
+		id: id,
 		from: source,
 		to: target
 	});

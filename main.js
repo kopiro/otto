@@ -69,7 +69,7 @@ function onIoResponse({ session_model, error, params }) {
 	}
 
 	ORM.IOPending
-	.findOne({ session_id: session_model._id })
+	.findOne({ session: session_model._id })
 	.then((pending) => {
 
 		if (pending != null) {

@@ -2,6 +2,7 @@ const TAG = 'Chess';
 
 const Chess = require('chess.js').Chess;
 const Server = apprequire('server');
+
 const Sockets = {};
 
 const DEPTH = 2;
@@ -177,11 +178,13 @@ _.extend(GameSchema.methods, {
 		return this.logic;
 	},
 	getSocket: function() {
-		return Sockets[ this.session_id ];
+		return Sockets[ this._id ];
+	},
+	setSocket: function(socket) {
+		Sockets[ this._id ] = socket;
 	},
 	getUrl: function() {
-		const sessionId = encodeURIComponent( this.session_id );
-		return `${config.server.domainWithPort}/actions/chess/${sessionId}`;
+		return `${config.server.domainWithPort}/actions/chess/` + this._id;
 	},
 	move: function(move, source) {
 		const logic = this.getLogic();
@@ -190,9 +193,7 @@ _.extend(GameSchema.methods, {
 		this.set('fen', logic.fen());
 		this.save();
 
-		if (this.getSocket() != null) {
-			this.getSocket().emit('fen', this.fen);
-		}
+		this.sendFENToSocket();
 
 		if (logic.game_over()) {
 			if (source === 'user') {
@@ -215,17 +216,21 @@ _.extend(GameSchema.methods, {
 			}
 		}
 	},
+	sendFENToSocket: function() {
+		if (this.getSocket() == null) return;
+		this.getSocket().emit('fen', this.fen);
+	},
 	userMove: function(move) {
 		const logic = this.getLogic();
-		if (logic.game_over()) return;
-		if (logic.turn() === 'b') return;
+		if (logic.game_over()) return this.sendFENToSocket();
+		if (logic.turn() === 'b') return this.sendFENToSocket();
 
 		this.move(move, 'user');
 	},
 	aiMove: function() {
 		const logic = this.getLogic();
-		if (logic.game_over()) return;
-		if (logic.turn() === 'w') return;
+		if (logic.game_over()) return this.sendFENToSocket();
+		if (logic.turn() === 'w') return this.sendFENToSocket();
 
 		const ai_move = minimaxRoot(DEPTH, logic, true);
 		this.move(ai_move, 'ai');
@@ -243,12 +248,12 @@ exports.PIECES = {
 	r: "la torre",
 };
 
-Server.routerActions.use('/chess', require('express').static(__dirname + '/public'));
+Server.routerActions.use('/chess/public', require('express').static(__dirname + '/public'));
 
-Server.routerActions.get('/chess/:sessionId', (req, res) => {
+Server.routerActions.get('/chess/:id', (req, res) => {
 	res.render(__dirname.replace(__basedir, '../..') + '/src/index', {
 		layout: false,
-		sessionId: req.params.sessionId
+		id: req.params.id
 	});
 });
 
@@ -257,17 +262,23 @@ Server.routerActions.get('/chess/:sessionId', (req, res) => {
 Server.io.on('connection', (socket) => {
 
 	socket.on('start', (data) => {
-		console.log(`Client ${data.sessionId} opened UI`);
+		console.log(`Client ${data.id} opened UI`);
 
-		exports.getGame(data.sessionId)
+		Game
+		.findOne({ _id: data.id })
+		.populate('session')
 		.then((game) => {
-			exports.assignSocket(data.sessionId, socket);
+			game.setSocket(socket);
 			socket.emit('fen', game.getLogic().fen());
 		});
 	});
 
 	socket.on('move', (data) => {
-		exports.getGame(data.sessionId)
+		console.log(`Client ${data.id} move`);
+
+		Game
+		.findOne({ _id: data.id })
+		.populate('session')
 		.then((game) => {
 			game.userMove({
 				from: data.from,
@@ -297,10 +308,6 @@ exports.destroyGame = function(sessionId) {
 	.findOne({ session: sessionId })
 	.remove()
 	.exec();
-};
-
-exports.assignSocket = function(sessionId, socket) {
-	Sockets[ sessionId ] = socket;
 };
 
 exports.getGame = function(sessionId) {

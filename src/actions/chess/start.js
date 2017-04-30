@@ -6,7 +6,7 @@ module.exports = function({ sessionId, result }, session_model) {
 	return new Promise((resolve, reject) => {
 		let { parameters: p, fulfillment } = result;
 
-		Chess.createGame(session_model.id)
+		Chess.createGame(sessionId)
 		.then((game) => {
 
 			resolve({

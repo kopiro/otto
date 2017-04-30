@@ -43,3 +43,10 @@ const IOPending = new Schema({
 	data: Schema.Types.Mixed,
 });
 exports.IOPending = mongoose.model('io_pending', IOPending);
+
+const Alarm = new Schema({
+	session: { type: String, ref: 'sessions' },
+	when: Date,
+	what: String
+});
+exports.IOPending = mongoose.model('alarms', Alarm);

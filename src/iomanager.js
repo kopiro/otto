@@ -66,7 +66,7 @@ exports.output = function(f, session_model) {
 			console.info(TAG, 'putting in IO queue', session_model._id, f);
 
 			new ORM.IOQueue({
-				session_id: session_model._id,
+				session: session_model._id,
 				data: f
 			})
 			.save()
@@ -91,7 +91,7 @@ exports.getAlarmsAt = function(io_id, when) {
 exports.writeLogForSession = function(sessionId, text) {
 	if (_.isEmpty(text)) return;
 	new ORM.SessionInput({ 
-		session_id: sessionId,
+		session: sessionId,
 		text: text
 	}).save();
 };
