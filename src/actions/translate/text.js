@@ -10,6 +10,12 @@ module.exports = function({ sessionId, result }) {
 			if (err) return reject(err);
 
 			const language = _.findWhere(avail_langs, { name: p.language });
+			if (language == null) {
+				return reject({
+					speech: 'Purtroppo non conosco questa lingua'
+				});
+			}
+			
 			Translator.translate(p.q, language.code, (err, translation) => {
 				if (err) return reject(err);
 

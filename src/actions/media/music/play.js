@@ -29,7 +29,6 @@ module.exports = function({ sessionId, result }) {
 		} else if (p.artist) {
 			spotifyApi.searchArtists(p.artist)
 			.then(function(data) {
-
 				let items = data.body.artists.items;
 				if (items.length === 0) {
 					return reject();
