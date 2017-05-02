@@ -13,6 +13,8 @@
 
 		brew install ffmpeg
 		brew install libav
+		
+		brew install homebrew/science/dadadodo
 
 	elif [ uname | grep "Linux" ]; then
 
@@ -49,6 +51,8 @@
 		apt-get -y install mopidy-spotify
 
 		apt-get -y install libav-tools
+
+		apt-get -y install dadadodo
 
 		npm -g install yarn
 

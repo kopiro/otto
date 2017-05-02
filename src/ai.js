@@ -6,7 +6,9 @@ const client = require('apiai')(_config.token);
 const Translator = apprequire('translator');
 
 exports.fulfillmentTransformer = function(f, session_model, callback) {
-	f.data = f.data || {}; // Ensure always data object exists
+ 	// Ensure always data object exists
+	f = f || {};
+	f.data = f.data || {};
 
 	if (f.data.pending) {
 		console.info(TAG, 'Saving pending action', session_model._id, f.data.pending);
@@ -63,13 +65,16 @@ exports.fulfillmentPromiseTransformer = function(fn, data, session_model, callba
 	// will be anyway triggered, also with an error
 	let timeout = setTimeout(() => {
 		exports.fulfillmentTransformer({
-			data: { error: { timeout: true } }
+			data: { 
+				error: { timeout: true } 
+			}
 		}, session_model, callback);
 	}, 1000 * (_config.promiseTimeout || 10));
 
 	fn(data, session_model)
 	.then((fulfillment) => {
 		clearTimeout(timeout);
+		fulfillment = fulfillment || {};
 		exports.fulfillmentTransformer(fulfillment, session_model, callback);
 	})
 	.catch((err) => {

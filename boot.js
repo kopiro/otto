@@ -27,6 +27,7 @@ global.async = require('async');
 global.moment = require('moment');
 moment.locale(config.language);
 global.util = require('util');
+global.spawn = require('child_process').spawn;
 
 global.mongoose = require('mongoose');
 mongoose.Promise = global.Promise;
