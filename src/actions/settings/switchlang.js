@@ -29,7 +29,7 @@ module.exports = function({ sessionId, result }, session_model) {
 					
 					let language_to_set = language.code;
 					if (language_to_set == config.language) language_to_set = null;
-					session_model.set('translate_' + x, language_to_set);
+					session_model['translate_' + x] = language_to_set;
 				}
 			});
 
