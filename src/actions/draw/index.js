@@ -14,7 +14,7 @@ module.exports = function({ sessionId, result }) {
 			let img = images.getRandom();
 			resolve({
 				data: {
-					photo: {
+					image: {
 						remoteFile: img.url
 					}
 				}
