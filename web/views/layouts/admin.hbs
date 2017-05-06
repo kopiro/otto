@@ -4,10 +4,6 @@
 	<title>{{ title }}</title>
 	<meta charset="utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, maximum-scale=1, minimum-scale=1" />
-	<link href="http://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
-	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.98.0/css/materialize.css" />
-	<script src="/scripts/main.js"></script>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.98.1/js/materialize.min.js"></script>
 </head>
 <body>
 	
@@ -16,8 +12,6 @@
 			<div class="nav-wrapper">
 				<a href="/" class="brand-logo right"></a>
 				<ul id="nav-mobile" class="left hide-on-med-and-down">
-					<li><a href="/admin/memories">Memories</a></li>
-					<li><a href="/admin/cron">CRON</a></li>
 				</ul>
 			</div>
 		</nav>
@@ -26,6 +20,8 @@
 	<div id="main" class="container">
 		{{{body}}}
 	</div>	
+
+	<script src="/scripts/index.js"></script>
 
 </body>
 </html>

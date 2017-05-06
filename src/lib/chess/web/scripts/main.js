@@ -1,4 +1,6 @@
-window.$ = require('jquery');
+import './../styles/chessboard.css';
+
+const $ = require('jquery');
 
 const Chessboard = require('./chessboard.js');
 const Chess = require('chess.js').Chess;

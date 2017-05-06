@@ -1,13 +1,10 @@
 FROM node
 
-COPY ./bin/dockerboot.sh /bin/dockerboot
-COPY ./keys /keys
+RUN mkdir -p /app
+WORKDIR /app
 
-VOLUME /app
-
-COPY ./config.json /config.json
+COPY . /app
+RUN yarn
 
 EXPOSE 8880 443
-
-WORKDIR /app
-CMD /bin/dockerboot
+CMD [ "npm", "start" ]

@@ -251,12 +251,11 @@ exports.PIECES = {
 Server.routerActions.use('/chess/public', require('express').static(__dirname + '/public'));
 
 Server.routerActions.get('/chess/:id', (req, res) => {
-	res.render(__dirname.replace(__basedir, '../..') + '/src/index', {
+	res.render(__dirname.replace(__basedir, '../..') + '/web/views/main', {
 		layout: false,
 		id: req.params.id
 	});
 });
-
 
 // Instantiatate socket.io connection
 Server.io.on('connection', (socket) => {
