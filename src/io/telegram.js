@@ -16,6 +16,23 @@ const STICKERS = {
 	logo: 'CAADBAADRAMAAokSaQMXx8V8QvEybAI'
 };
 
+function sendMessage(chat_id, text, opt) {
+	return new Promise((resolve, reject) => {
+		// Split text to mimic humans
+		async.eachSeries(Util.mimicHumanMessage(text), (t, next) => {
+			bot.sendChatAction(chat_id, 'typing');
+			const time = Math.max(5000, _config.writeKeySpeed * t.length);
+			setTimeout(() => {
+				bot.sendMessage(chat_id, t, opt).then(() => {
+					next();
+				});
+			}, time);
+		}, () => {
+			resolve();
+		});
+	});
+}
+
 exports.startInput = function() {
 	if (exports.startInput.started) return;
 	exports.startInput.started = true;
@@ -39,8 +56,7 @@ exports.output = function(f, session_model) {
 
 		if (f.data.error) {
 			if (f.data.error.speech) {		
-				bot.sendChatAction(chat_id, 'typing');
-				bot.sendMessage(chat_id, f.data.error.speech);	
+				sendMessage(chat_id, f.data.error.speech);	
 				return resolve();
 			} else {
 				return resolve();
@@ -68,9 +84,9 @@ exports.output = function(f, session_model) {
 			if (f.data.url) {
 				f.speech += "\n" + f.data.url;
 			}
-			bot.sendChatAction(chat_id, 'typing');
-			bot.sendMessage(chat_id, f.speech, message_opt);
-			return resolve();
+			return sendMessage(chat_id, f.speech, message_opt)
+			.then(resolve)
+			.catch(reject);
 		}
 
 		if (f.data.game) {
@@ -80,18 +96,20 @@ exports.output = function(f, session_model) {
 		}
 
 		if (f.data.media) {
-			bot.sendChatAction(chat_id, 'typing');
 			if (f.data.media.artist) {
-				bot.sendMessage(chat_id, f.data.media.artist.external_urls.spotify, message_opt);
-				return resolve();
+				return sendMessage(chat_id, f.data.media.artist.external_urls.spotify, message_opt)
+				.then(resolve)
+				.catch(reject);
 			}
 			if (f.data.media.track) {
-				bot.sendMessage(chat_id, f.data.media.track.external_urls.spotify, message_opt);
-				return resolve();
+				return sendMessage(chat_id, f.data.media.track.external_urls.spotify, message_opt)
+				.then(resolve)
+				.catch(reject);
 			}
 			if (f.data.media.playlist) {
-				bot.sendMessage(chat_id, f.data.media.playlist.external_urls.spotify, message_opt);
-				return resolve();
+				return sendMessage(chat_id, f.data.media.playlist.external_urls.spotify, message_opt)
+				.then(resolve)
+				.catch(reject);
 			}
 			return reject();
 		}
@@ -119,9 +137,9 @@ exports.output = function(f, session_model) {
 		}
 
 		if (f.lyrics) {
-			bot.sendChatAction(chat_id, 'typing');
-			bot.sendMessage(chat_id, f.lyrics.lyrics_body, message_opt);
-			return resolve();
+			return sendMessage(chat_id, f.lyrics.lyrics_body, message_opt)
+			.then(resolve)
+			.catch(reject);
 		}
 
 		return reject({ unknownOutputType: true });

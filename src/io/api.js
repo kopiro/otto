@@ -66,13 +66,7 @@ exports.output = function({ data, fulfillment:f }) {
 				break;
 
 				case 'voice':
-				apprequire('polly')
-				.playToTmpFile(f.speech, (err, file) => {
-					if (err) return res.json({ error: err });
-					return res.json(_.extend(f, {
-						voice: tmpFileToHttp(req, file)
-					}));
-				});
+				
 				break;
 
 				default:

@@ -69,9 +69,8 @@ function getVoice(opt) {
 	});
 }
 
-exports.download = function(text, opt) {
+function download(text, opt) {
 	return new Promise((resolve, reject) => {
-		text = text.trim();
 		opt = opt || {};
 
 		opt = _.extend(config.polly, {
@@ -118,43 +117,19 @@ exports.download = function(text, opt) {
 		.catch(reject);
 
 	});
-};
+}
 
 exports.play = function(text, opt) {
 	return new Promise((resolve, reject) => {
-		exports.download(text, opt)
-		.then((polly_file) => {
-			Play.fileToSpeaker(polly_file, (err) => {
-				if (err) return reject(err);
-				resolve();
-			});
-		})
-		.catch(reject);
-	});
-};
-
-exports.playToFile = function(text, file, opt) {
-	return new Promise((resolve, reject) => {
-		exports.download(text, opt)
-		.then((polly_file) => {
-			Play.fileToFile(polly_file, file, (err) => {
-				if (err) return reject(err);
-				resolve();
-			});
-		})
-		.catch(reject);
-	});
-};
-
-exports.playToTmpFile = function(text, opt) {
-	return new Promise((resolve, reject) => {
-		exports.download(text, opt)
-		.then((polly_file) => {
-			Play.fileToTmpFile(polly_file, (err) => {
-				if (err) return reject(err);
-				resolve();
-			});
-		})
-		.catch(reject);
+		async.eachSeries(Util.mimicHumanMessage(text), (t, next) => {
+			download(t, opt)
+			.then((polly_file) => {
+				Play.fileToSpeaker(polly_file, (err) => {
+					if (err) return reject(err);
+					next();
+				});
+			})
+			.catch(reject);
+		}, resolve);
 	});
 };

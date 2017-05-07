@@ -159,11 +159,11 @@ exports.processQueue = function() {
 
 			exports.output(qitem.data, session_model)
 			.then(() => {
-				qitem.remove().exec();
 			})
 			.catch(() => {
 			})
 			.then(() => {
+				qitem.remove();
 				callback();
 			});
 
