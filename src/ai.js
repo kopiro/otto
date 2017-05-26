@@ -154,6 +154,9 @@ exports.textRequest = function(text, session_model) {
 				if (body.result.actionIncomplete !== true && !_.isEmpty(action)) {
 					console.debug(TAG, 'calling local action', action);
 					const action_fn = Actions.list[ action ];
+					if (action_fn == null) {
+						return reject();
+					}
 					AI.fulfillmentPromiseTransformer(action_fn(), body, session_model, resolve);
 				} else {
 					console.debug(TAG, 'local resolution');
