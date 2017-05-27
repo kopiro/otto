@@ -1,9 +1,9 @@
 import './../styles/chessboard.css';
 
-const $ = require('jquery');
+window.$ = require('jquery');
 
 const Chessboard = require('./chessboard.js');
-const Chess = require('chess.js').Chess;
+const Chess = require('chess.js');
 
 const game = new Chess();
 

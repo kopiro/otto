@@ -1,6 +1,6 @@
 exports.id = 'chess.start';
 
-const Chess = require(__basedir + '/src/actionslib/chess');
+const Chess = apprequire('chess');
 
 module.exports = function({ sessionId, result }, session_model) {
 	return new Promise((resolve, reject) => {
