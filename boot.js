@@ -30,6 +30,7 @@ global.util = require('util');
 global.spawn = require('child_process').spawn;
 
 global.mongoose = require('mongoose');
+// Set global promise
 mongoose.Promise = global.Promise;
 
 // DB Connect
