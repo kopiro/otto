@@ -107,9 +107,9 @@ exports.registerSession = function(sessionId, io_id, data, text) {
 
 			exports.writeLogForSession(sessionIdComposite, text);
 
-			if (true !== session_model.approved) {
-				return reject(session_model);
-			}
+			// if (true !== session_model.approved) {
+			// 	return reject(session_model);
+			// }
 
 			resolve(session_model);
 
@@ -126,7 +126,7 @@ exports.registerSession = function(sessionId, io_id, data, text) {
 		
 				exports.writeLogForSession(sessionIdComposite, text);
 
-				reject(session_model);
+				resolve(session_model);
 		
 			})
 			.catch((err) => {
