@@ -105,34 +105,32 @@ exports.registerSession = function(sessionId, io_id, data, text) {
 		.populate('contact')
 		.then((session_model) => {
 
-			exports.writeLogForSession(sessionIdComposite, text);
+			if (session_model == null) {
+				new Data.Session({ 
+					_id: sessionIdComposite,
+					io_id: io_id,
+					io_data: data
+				})
+				.save()
+				.then((session_model) => {
 
-			// if (true !== session_model.approved) {
-			// 	return reject(session_model);
-			// }
+					exports.writeLogForSession(sessionIdComposite, text);
+					resolve(session_model);
 
-			resolve(session_model);
+				})
+				.catch((err) => {
+					console.error(TAG, 'Unable to register session', err);
+				});
+			} else {
+
+				exports.writeLogForSession(sessionIdComposite, text);
+				resolve(session_model);
+
+			}
 
 		})
 		.catch((err) => {
-
-			new Data.Session({ 
-				_id: sessionIdComposite,
-				io_id: io_id,
-				io_data: data
-			})
-			.save()
-			.then((session_model) => {
-		
-				exports.writeLogForSession(sessionIdComposite, text);
-
-				resolve(session_model);
-		
-			})
-			.catch((err) => {
-				console.error(TAG, 'Unable to register session', err);
-			});
-
+			console.error(TAG, 'Register session', err);
 		});
 
 	});
