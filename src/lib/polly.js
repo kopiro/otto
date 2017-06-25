@@ -33,6 +33,8 @@ function getCache(text, voice) {
 function getVoice(opt) {
 	return new Promise((resolve, reject) => {
 
+		opt = opt || {}
+
 		const locale = Util.getLocaleFromLanguageCode(opt.language);
 
 		if (locale_to_voice[locale]) {
@@ -42,7 +44,7 @@ function getVoice(opt) {
 				LanguageCode: locale
 			}, (err, data) => {
 				if (err && err.code === 'ValidationException') {
-					console.debug(TAG, `falling back to locale ${config.locale} instead of ${locale}`);
+					console.debug(TAG, `falling back to locale ${config.locale} instead of ${locale}`, err);
 					return getVoice(_.extend(config, { language: config.language }))
 					.then(resolve)
 					.catch(reject);
@@ -73,8 +75,9 @@ function download(text, opt) {
 	return new Promise((resolve, reject) => {
 		opt = opt || {};
 
-		opt = _.extend(config.polly, {
-			language: config.language
+		opt = _.extend(config.polly || {}, {
+			language: config.language,
+			gender: 'Female'
 		}, opt);
 
 		console.debug(TAG, 'request', { text, opt });
