@@ -1,7 +1,7 @@
 #!/bin/bash
 
 {
-	if [ uname | grep "Darwin" ]; then
+	if [ $(uname | grep "Darwin") ]; then
 
 		echo "==> Platform: Darwin"
 
@@ -16,11 +16,11 @@
 		
 		brew install homebrew/science/dadadodo
 
-	elif [ uname | grep "Linux" ]; then
+	elif [ $(uname | grep "Linux") ]; then
 
 		echo "==> Platform: Linux"
 
-		if [ cat /etc/os-release | grep "Raspbian" ]; then
+		if [ $(cat /etc/os-release | grep "Raspbian") ]; then
 
 			echo "==> Subplatform: Raspbian"
 
