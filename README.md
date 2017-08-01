@@ -9,7 +9,7 @@ install.sh
 ## Develop locally
 
 ```
-npm run dev
+npm run start
 ```
 
 ## Build for prod
@@ -21,7 +21,7 @@ npm run build
 ## Run in prod
 
 ```
-npm run prod
+npm run start
 ```
 
 ## Develop

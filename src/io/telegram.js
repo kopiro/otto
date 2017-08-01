@@ -21,15 +21,16 @@ function sendMessage(chat_id, text, opt) {
 		// Split text to mimic humans
 		async.eachSeries(Util.mimicHumanMessage(text), (t, next) => {
 			bot.sendChatAction(chat_id, 'typing');
+
 			const time = Math.max(5000, _config.writeKeySpeed * t.length);
+			
 			setTimeout(() => {
 				bot.sendMessage(chat_id, t, opt).then(() => {
 					next();
 				});
 			}, time);
-		}, () => {
-			resolve();
-		});
+
+		}, resolve);
 	});
 }
 
@@ -162,13 +163,13 @@ bot.on('message', (e) => {
 	IOManager.registerSession(sessionId, exports.id, e.chat, e.text)
 	.then((session_model) => {
 
+		const chat_is_group = (session_model.io_data.type != 'private');
+
 		if (e.text) {
 			// If we are in a group, only listen for activators
-			if (session_model.io_data.type != 'private') {
-				if (false === AI_NAME_ACTIVATOR.test(e.text)) {
-					console.debug(TAG, 'skipping input for missing activator', e.text);
-					return;
-				}
+			if (chat_is_group && false === AI_NAME_ACTIVATOR.test(e.text)) {
+				console.debug(TAG, 'skipping input for missing activator', e.text);
+				return;
 			}
 
 			return exports.emitter.emit('input', {
@@ -188,13 +189,11 @@ bot.on('message', (e) => {
 				.then((text) => {
 
 					// If we are in a group, only listen for activators
-					if (session_model.io_data.type != 'private') {
-						if (false === AI_NAME_ACTIVATOR.test(e.text)) {
-							console.debug(TAG, 'skipping input for missing activator', e.text);
-							return;
-						}
+					if (chat_is_group && false === AI_NAME_ACTIVATOR.test(e.text)) {
+						console.debug(TAG, 'skipping input for missing activator', e.text);
+						return;
 					}
-				
+
 					return exports.emitter.emit('input', {
 						session_model: session_model,
 						params: {
@@ -203,19 +202,22 @@ bot.on('message', (e) => {
 					});
 				
 				})
-				.catch((err) => { 
-					return exports.emitter.emit('input', {
-						session_model: session_model,
-						error: {
-							speech: "Scusami, ma non ho capito quello che hai detto!"
-						}
-					});
+				.catch((err) => {
+					if (!chat_is_group) {
+						return exports.emitter.emit('input', {
+							session_model: session_model,
+							error: {
+								speech: "Scusami, ma non ho capito quello che hai detto!"
+							}
+						});
+					}
 				});
 			});
 		}
 
 		if (e.photo) {
 			return bot.getFileLink( _.last(e.photo).file_id ).then((file_link) => {
+				if (chat_is_group) return;
 				return exports.emitter.emit('input', {
 					session_model: session_model,
 					params: {
@@ -227,20 +229,24 @@ bot.on('message', (e) => {
 			});
 		}
 
-		return exports.emitter.emit('input', {
-			session_model: session_model,
-			error: {
-				unknowInputType: true
-			}
-		});
+		if (!chat_is_group) {
+			return exports.emitter.emit('input', {
+				session_model: session_model,
+				error: {
+					unknowInputType: true
+				}
+			});
+		}
 	})
 	.catch((session_model) => {
-		exports.emitter.emit('input', {
-			session_model: session_model,
-			error: {
-				unauthorized: true
-			}
-		});
+		if (!chat_is_group)  {
+			exports.emitter.emit('input', {
+				session_model: session_model,
+				error: {
+					unauthorized: true
+				}
+			});
+		}
 	});
 });
 
