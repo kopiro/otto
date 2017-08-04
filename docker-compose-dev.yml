@@ -4,6 +4,7 @@ services:
   otto:
     build: 
       context: .
-      dockerfile: dev.Dockerfile
+      dockerfile: Dockerfile
+    command: /app/docker/dev.sh
     volumes:
     - .:/app
