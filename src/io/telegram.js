@@ -22,7 +22,7 @@ function sendMessage(chat_id, text, opt) {
 		async.eachSeries(Util.mimicHumanMessage(text), (t, next) => {
 			bot.sendChatAction(chat_id, 'typing');
 
-			const time = Math.max(5000, _config.writeKeySpeed * t.length);
+			const time = Math.max(5000, (_config.writeKeySpeed ? _config.writeKeySpeed : 5)  * t.length);
 			
 			setTimeout(() => {
 				bot.sendMessage(chat_id, t, opt).then(() => {

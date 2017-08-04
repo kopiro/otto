@@ -27,11 +27,4 @@ EXPOSE 8880 8881 8882
 # END Dev/Prod part
 # =================
 
-COPY package.json /app/package.json
-RUN yarn
-
-COPY . /app
-
-RUN npm run build
-
-CMD /app/docker/prod.sh
+CMD /app/docker/dev.sh

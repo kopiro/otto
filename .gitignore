@@ -1,7 +1,4 @@
-gcloud.json
 config.json
 node_modules/
-build/
-build-web/
 *.sublime-workspace
 npm-debug.log

@@ -1,5 +1,7 @@
-{
-	"uid": "otto",
-	"append": true,
-	"script": "main.js"
+{ 
+	"uid": "otto", 
+	"script": "main.js",
+	"append": true, 
+	"watch": true,
+	"sourceDir": "/app"
 }

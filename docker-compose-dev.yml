@@ -1,0 +1,9 @@
+version: '3'
+
+services:
+  otto:
+    build: 
+      context: .
+      dockerfile: dev.Dockerfile
+    volumes:
+    - .:/app
