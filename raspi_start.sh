@@ -3,7 +3,6 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd $DIR
 
-start_node=1
 BLUE_ID="FC:58:FA:35:48:95"
 BLUEZ_CARD="FC_58_FA_35_48_95"
 
@@ -28,23 +27,18 @@ while true; do
 	if ping -c 1 google.com >> /dev/null 2>&1; then
 
 		echo "Starting SSH tunnel..."
-		/usr/bin/sshtunneldb
+		./tunnel.sh
 
-		if [ $start_node -ge 1 ]; then
+		# Check if PID is still running
+		if [ -z $PID || ! kill $PID > /dev/null 2>&1 ]; then
+		
+			npm run start &
+			PID=$!
+		
+			echo "Launched Node with pid $PID"
+
 			play "$DIR/audio/startup.wav" vol 0.4
-
-			echo "Auto updating..."
-			# git fetch --all
-			# git reset --hard origin/master
-			# yarn
-
-			echo "Stopping older instances..."
-			forever stop otto
-
-			echo "Starting Node instance..."
-			forever start forever.json
-
-			start_node=0
+		
 		fi
 
 	else
