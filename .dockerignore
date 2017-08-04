@@ -1,5 +1,9 @@
 config.json
 node_modules/
+cache/
+tmp/
+public/
+keys/
+log/
 *.sublime-workspace
 npm-debug.log
-keys/*
