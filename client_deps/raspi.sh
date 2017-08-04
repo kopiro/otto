@@ -11,8 +11,7 @@ dpkg -i ffmpeg_3.1.1-1_armhf.deb && \
 rm ffmpeg_3.1.1-1_armhf.deb
 
 # Other libraries
-apt-get -y install \
-sox \
-libsox-fmt-mp3 \
-dadadodo \
-libav-tools
+apt-get -y install sox libsox-fmt-mp3 libav-tools
+
+# Install deps
+yarn

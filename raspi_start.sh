@@ -5,38 +5,52 @@ cd $DIR
 
 BLUE_ID="FC:58:FA:35:48:95"
 BLUEZ_CARD="FC_58_FA_35_48_95"
+PID=""
+TUNNELED=0
 
 echo "Starting PulseAudio..."
 pulseaudio --k
 pulseaudio --start
+sleep 2
+
+echo "Powering on bluetooth..."
+echo -e "power on" | bluetoothctl
+sleep 1
+echo -e "trust $BLUE_ID" | bluetoothctl
+sleep 1
 
 while true; do
-
-	# echo "Powering on bluetooth..."
-	# echo -e "power on" | bluetoothctl
-	# echo -e "trust $BLUE_ID" | bluetoothctl
-	# echo -e "pair $BLUE_ID" | bluetoothctl
 
 	while [[ "$(pacmd list-sinks | grep bluez_card.$BLUEZ_CARD)" == "" ]]; do
 		echo "Connecting to bluetooth speaker..."
 		echo -e "connect $BLUE_ID" | bluetoothctl
-		sleep 5
+		sleep 8
 	done
+
+	# Set sink in pulseaudio
 	pacmd set-default-sink "bluez_sink.$BLUEZ_CARD"
 
+	# If internet is reachable
 	if ping -c 1 google.com >> /dev/null 2>&1; then
 
+		# Connect to the server
 		echo "Starting SSH tunnel..."
-		./tunnel.sh
+		if [ "$TUNNELED" == "0" ]; then
+			echo "Tunneling SSH..."
+			./tunnel.sh
+			TUNNELED=1
+		fi
 
 		# Check if PID is still running
-		if [ -z $PID || ! kill $PID > /dev/null 2>&1 ]; then
-		
+		if [ $PID="" || ! ps -p $PID ]; then
+
+			# Start real app
 			npm run start &
 			PID=$!
 		
 			echo "Launched Node with pid $PID"
 
+			# Play startup sound
 			play "$DIR/audio/startup.wav" vol 0.4
 		
 		fi
@@ -48,8 +62,7 @@ while true; do
 
 	fi
 	
-	# If speaker is gone, this loop exists
-	# This is also a method to retrigger startup
+	# If speaker is gone, this loop exits, so this is a method to retrigger startup
 	while [[ "$(pacmd list-sinks | grep bluez_card.$BLUEZ_CARD)" != "" ]]; do
 		sleep 10
 	done

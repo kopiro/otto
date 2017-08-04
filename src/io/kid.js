@@ -1,7 +1,14 @@
 const TAG = 'IO.Kid';
 
 const _config = config.io.kid;
-const sessionId = _config.sessionId;
+
+const sessionId = (function() {
+	try {
+		return config.io.kid.sessionId;
+	} catch (err) {
+		return require('os').hostname();
+	}
+})();
 
 const EventEmitter = require('events').EventEmitter;
 exports.emitter = new EventEmitter();

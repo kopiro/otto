@@ -12,7 +12,13 @@ const rl = readline.createInterface({
 });
 
 let strings = fs.readFileSync(__basedir + '/in.txt').toString().split("\n");
-const sessionId = config.io.test.sessionId;
+const sessionId = (function() {
+	try {
+		return config.io.test.sessionId;
+	} catch (err) {
+		return require('os').hostname();
+	}
+})();
 
 exports.startInput = function() {
 	console.info(TAG, 'start');
