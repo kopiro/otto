@@ -14,9 +14,8 @@ exports.mimicHumanMessage = function(text) {
 	let el = '';
 	for (var i = 0; i < splitted.length; i++) {
 		const t = splitted[i];
-		el += t;
+		el += t + '. ';
 		if (el.length > 200 || i == splitted.length - 1) {
-			if (el.length > 200) el += '. ';
 			buffer.push(el);
 			el = '';
 		}

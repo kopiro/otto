@@ -34,7 +34,6 @@ while true; do
 	if ping -c 1 google.com >> /dev/null 2>&1; then
 
 		# Connect to the server
-		echo "Starting SSH tunnel..."
 		if [ "$TUNNELED" == "0" ]; then
 			echo "Tunneling SSH..."
 			./tunnel.sh

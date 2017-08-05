@@ -7,5 +7,5 @@ glob.sync('webpack.config.js', {
 	nodir: true
 }).map((e) => {
 	console.log(e);
-	exec('webpack', { cwd: path.dirname(e),  stdio:[0,1,2] });
+	exec('webpack', { cwd: path.dirname(e), stdio:[0,1,2] });
 });
