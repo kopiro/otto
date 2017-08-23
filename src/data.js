@@ -58,7 +58,8 @@ const Story = new Schema({
 	text: String,
 	tags: String,
 	url: String,
-	date: Date
+	date: Date,
+	facebook: Schema.Types.Mixed,
 });
 exports.Story = mongoose.model('stories', Story);
 

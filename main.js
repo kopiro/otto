@@ -3,12 +3,8 @@ require('./boot');
 IOManager.loadDrivers();
 IOManager.startPolling();
 
-if (config.cron) {
-	require(__basedir + '/src/cron');
-}
-
-if (config.cronvision) {
-	require(__basedir + '/src/cronvision');
+if (config.scheduler) {
+	require(__basedir + '/src/schedulermanager');
 }
 
 if (config.server) {

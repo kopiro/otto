@@ -1,11 +1,11 @@
 {
 	"ioDrivers": ["messenger","telegram"],
-	"ioDriversCron": ["telegram"],
+	"testDriver": "kid",
+	"scheduler": ["facebook_stories"],
 	"language": "it",
 	"locale": "it-IT",
 	"apiai": {
-		"promiseTimeout": 10,
-		"token": "ì"
+		"token": ""
 	},
 	"io": {
 		"telegram": {
@@ -18,28 +18,29 @@
 	"recorder": {
 		"device": ""
 	},
-	"cron": true,
 	"server": {
 		"domainWithPort": "localhost:8880",
 		"fullDomain": "localhost:8880",
 		"port": "8880"
 	},
-	"knex": {
-		"debug": true
-	},
-	"mysql": {
+	"mongo":{
 		"host": "",
 		"port": "",
+		"database": "",
 		"user": "",
-		"password": "",
-		"database" : "",
-		"charset": "utf8mb4"
+		"password": ""
 	},
 	"aws": {
 		"s3": {
 			"bucket": "",
 			"directory": ""
 		}
+	},
+	"facebook": {
+		"appId": "",
+		"secret": "",
+		"pageId": "",
+		"accessToken": ""
 	},
 	"ai": {
 		"musixmatch": {

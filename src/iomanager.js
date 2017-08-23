@@ -84,8 +84,10 @@ exports.output = function(f, session_model) {
 	});
 };
 
-exports.getAlarmsAt = function(io_id, when) {
-	// TODO
+exports.getAlarmsAt = function(when) {
+	return new Promise((resolve, reject) => {
+		resolve([]);
+	});
 };
 
 exports.writeLogForSession = function(sessionId, text) {
