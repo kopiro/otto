@@ -13,7 +13,7 @@ global.public_config = require('./public_config.json');
 
 // Const
 global.AI_NAME = "Otto";
-global.AI_NAME_ACTIVATOR = /(otto|8)\b/gi;
+global.AI_NAME_ACTIVATOR = /(^(otto|8)\b)|(\b(otto|8)\b)/gmi;
 
 // Define a new require to require files from our path
 global.apprequire = ((k) => require(__basedir + '/src/lib/' + k));
