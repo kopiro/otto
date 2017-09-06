@@ -11,12 +11,12 @@ const io = require('socket.io')(server);
 
 const exphbs  = require('express-handlebars');
 app.set('title', require(__basedir + '/package.json').name);
-app.set('views', __basedir + '/web/views');
+app.set('views', __basedir + '/server/web/views');
 app.engine('hbs', exphbs({ 
 	defaultLayout: 'main',
 	extname: '.hbs',
-	layoutsDir: __basedir + '/web/views/layouts',
-	partialsDir: __basedir + '/web/views/partials'
+	layoutsDir: __basedir + '/server/web/views/layouts',
+	partialsDir: __basedir + '/server/web/views/partials'
 }));
 app.set('view engine', 'hbs');
 
@@ -31,9 +31,10 @@ router_api.use(require('body-parser').urlencoded({
 }));
 
 router_api.get('/', (req, res) => {
+	const package = require(__basedir + '/package.json');
 	res.json({
-		name: 'otto-ai',
-		version: 1
+		name: package.name,
+		version: package.version
 	});
 });
 
@@ -64,7 +65,7 @@ const router_actions = express.Router();
 ///////////
 
 // public
-app.use(express.static(__basedir + '/public'));
+app.use(express.static(__basedir + '/server/public'));
 
 // tmp
 app.use('/tmp', express.static(__basedir + '/tmp'));

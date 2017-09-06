@@ -1,6 +1,5 @@
 #!/bin/sh
 
-yarn global add forever
-yarn
+yarn --production=false
 /app/tunnel.sh
-npm run start
+npm run dev

@@ -8,8 +8,20 @@ const Session = new Schema({
 	debug: Boolean,
 	approved: Boolean,
 	translate_from: String,
-	translate_to: String
+	translate_to: String,
+	pipe: Schema.Types.Mixed
 });
+
+Session.methods.saveInPipe = function(data) {
+	this.pipe = _.extend(this.pipe || {}, data);
+	this.markModified('pipe');
+	return this.save();
+};
+
+Session.methods.getPipe = function() {
+	return this.pipe || {};
+}
+
 exports.Session = mongoose.model('sessions', Session);
 
 const SessionInput = new Schema({
@@ -69,3 +81,14 @@ const Vision = new Schema({
 	date: Date
 });
 exports.Vision = mongoose.model('vision', Vision);
+
+const Knowledge = new Schema({
+	input: String,
+	output: String,
+	session: { type: String, ref: 'sessions' },
+	score: Number
+});
+/*
+db.knowledges.createIndex({"input":"text"}, {"default_language":"it","language_override": "it" }))
+*/
+exports.Knowledge = mongoose.model('knowledge', Knowledge);

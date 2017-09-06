@@ -2,10 +2,19 @@ const path = require('path');
 const glob = require('glob');
 const exec = require('child_process').execSync;
 
-glob.sync('webpack.config.js', { 
+console.log('Searching for webpack.config.js...');
+
+let files = [];
+files.push('server/webpack.config.js');
+files = files.concat(glob.sync('src/**/webpack.config.js', { 
 	matchBase: true,
 	nodir: true
-}).map((e) => {
+}));
+
+files.map((e) => {
 	console.log(e);
-	exec('webpack', { cwd: path.dirname(e), stdio:[0,1,2] });
+	exec(__dirname + '/node_modules/.bin/webpack', { 
+		cwd: path.dirname(e), 
+		stdio: [0,1,2] 
+	});
 });

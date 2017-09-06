@@ -9,6 +9,9 @@ exports.id = 'telegram';
 const TelegramBot = require('node-telegram-bot-api');
 const SpeechRecognizer = apprequire('speechrecognizer');
 
+const Polly = apprequire('polly');
+const Play = apprequire('play');
+
 const bot = new TelegramBot(_config.token, _config.options);
 
 const STICKERS = {
@@ -16,23 +19,40 @@ const STICKERS = {
 	logo: 'CAADBAADRAMAAokSaQMXx8V8QvEybAI'
 };
 
-function sendMessage(chat_id, text, opt) {
+const WRITE_KEY_SPEED = (_config.writeKeySpeed ? _config.writeKeySpeed : 1);
+
+function sendMessage(chat_id, text, telegram_opt) {
 	return new Promise((resolve, reject) => {
-		// Split text to mimic humans
 		async.eachSeries(Util.mimicHumanMessage(text), (t, next) => {
 			bot.sendChatAction(chat_id, 'typing');
 
-			const time = Math.max(3000, (_config.writeKeySpeed ? _config.writeKeySpeed : 1)  * t.length);
-			
 			setTimeout(() => {
-				bot.sendMessage(chat_id, t, opt).then(() => {
-					next();
-				});
-			}, time);
-
+				bot.sendMessage(chat_id, t, telegram_opt)
+				.then(next);
+			}, Math.max(2000, WRITE_KEY_SPEED * t.length));
 		}, resolve);
 	});
 }
+
+function sendVoiceMessage(chat_id, text, polly_opt, telegram_opt) {
+	return new Promise((resolve, reject) => {
+		async.eachSeries(Util.mimicHumanMessage(text), (t, next) => {
+			bot.sendChatAction(chat_id, 'record_audio');
+
+			Polly.getAudioFile(t, polly_opt)
+			.then((polly_file) => {
+				Play.fileToTmpFile(polly_file, (err, audio_tmp_file) => {
+					if (err) return reject();
+
+					bot.sendVoice(chat_id, audio_tmp_file, telegram_opt)
+					.then(next);
+				});
+			})
+			.catch(reject);
+		}, resolve);
+	});
+}
+
 
 exports.startInput = function() {
 	if (exports.startInput.started) return;
@@ -52,13 +72,14 @@ exports.output = function(f, session_model) {
 	console.info(TAG, 'output', session_model._id, f);
 	
 	return new Promise((resolve, reject) => {
-
+		const language = f.data.language || session_model.translate_to || config.language;
 		const chat_id = session_model.io_data.id;
 
 		if (f.data.error) {
 			if (f.data.error.speech) {		
-				sendMessage(chat_id, f.data.error.speech);	
-				return resolve();
+				return sendMessage(chat_id, f.data.error.speech)
+				.then(resolve)
+				.catch(reject);	
 			} else {
 				return resolve();
 			}
@@ -80,14 +101,44 @@ exports.output = function(f, session_model) {
 				}
 			};
 		}
-		
+
 		if (f.speech) {
-			if (f.data.url) {
-				f.speech += "\n" + f.data.url;
+
+			
+			if (session_model.getPipe().nextOutputWithVoice) {
+
+				session_model.saveInPipe({ nextOutputWithVoice: false });
+
+				console.debug(TAG, 'using voice output');
+
+				return sendVoiceMessage(chat_id, f.speech, {
+					language: language
+				}, message_opt)
+				.then(() => {
+					if (f.data.url) {
+						bot.sendMessage(chat_id, f.data.url, message_opt)
+						.then(resolve)
+						.catch(reject);
+					} else {
+						resolve();
+					}
+				})
+				.catch(reject);
+
+			} else {
+				return sendMessage(chat_id, f.speech, message_opt)
+				.then(() => {
+					if (f.data.url) {
+						bot.sendMessage(chat_id, f.data.url, message_opt)
+						.then(resolve)
+						.catch(reject);
+					} else {
+						resolve();
+					}
+				})
+				.catch(reject);
 			}
-			return sendMessage(chat_id, f.speech, message_opt)
-			.then(resolve)
-			.catch(reject);
+
 		}
 
 		if (f.data.game) {
@@ -184,7 +235,7 @@ bot.on('message', (e) => {
 			return bot.getFileLink(e.voice.file_id).then((file_link) => {
 				SpeechRecognizer.recognizeAudioStream(request(file_link), {
 					must_convert: true,
-					language: session_model.translate_from || config.language
+					language: (session_model.translate_from || config.language)
 				})
 				.then((text) => {
 
@@ -193,6 +244,8 @@ bot.on('message', (e) => {
 						console.debug(TAG, 'skipping input for missing activator', e.text);
 						return;
 					}
+
+					session_model.saveInPipe({ nextOutputWithVoice: true });
 
 					return exports.emitter.emit('input', {
 						session_model: session_model,
@@ -203,14 +256,13 @@ bot.on('message', (e) => {
 				
 				})
 				.catch((err) => {
-					if (!chat_is_group) {
-						return exports.emitter.emit('input', {
-							session_model: session_model,
-							error: {
-								speech: "Scusami, ma non ho capito quello che hai detto!"
-							}
-						});
-					}
+					if (chat_is_group) return;
+					return exports.emitter.emit('input', {
+						session_model: session_model,
+						error: {
+							speech: "Scusami, ma non ho capito quello che hai detto!"
+						}
+					});
 				});
 			});
 		}

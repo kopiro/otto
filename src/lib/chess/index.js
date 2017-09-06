@@ -11,8 +11,8 @@ const SPEECH_MOVING = [
 "Sto muovendo {piece} in {to}",
 "Sto sposando {piece} in {to}",
 "Vediamo cosa fai, sposto {piece} in {to}",
-"Provo a mettere {piece} in {to}",
-"Uhm... forse spostando {piece} in {to}"
+"Io provo a mettere {piece} in {to}",
+"Uhm... forse se sposto {piece} in {to}"
 ];
 
 const evaluationBoard = { w: {

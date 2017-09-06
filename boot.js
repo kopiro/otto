@@ -13,7 +13,7 @@ global.public_config = require('./public_config.json');
 
 // Const
 global.AI_NAME = "Otto";
-global.AI_NAME_ACTIVATOR = /(^(otto|8)\b)|(\b(otto|8)\b)/gmi;
+global.AI_NAME_ACTIVATOR = /(^(otto|8)\b)|(\b(otto|8)\b)/mgi;
 
 // Define a new require to require files from our path
 global.apprequire = ((k) => require(__basedir + '/src/lib/' + k));
@@ -30,7 +30,7 @@ global.util = require('util');
 global.spawn = require('child_process').spawn;
 
 global.mongoose = require('mongoose');
-// Set global promise
+// Set global promise to ES promises
 mongoose.Promise = global.Promise;
 
 // DB Connect

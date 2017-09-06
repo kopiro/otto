@@ -2,9 +2,9 @@ version: '3'
 
 services:
   otto:
-    build: 
-      context: .
-      dockerfile: Dockerfile
+    build: .
     command: /app/docker/dev.sh
+    stdin_open: true
+    tty: true
     volumes:
     - .:/app

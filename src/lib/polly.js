@@ -71,7 +71,7 @@ function getVoice(opt) {
 	});
 }
 
-function download(text, opt) {
+exports.getAudioFile = function(text, opt) {
 	return new Promise((resolve, reject) => {
 		opt = opt || {};
 
@@ -121,18 +121,3 @@ function download(text, opt) {
 
 	});
 }
-
-exports.play = function(text, opt) {
-	return new Promise((resolve, reject) => {
-		async.eachSeries(Util.mimicHumanMessage(text), (t, next) => {
-			download(t, opt)
-			.then((polly_file) => {
-				Play.fileToSpeaker(polly_file, (err) => {
-					if (err) return reject(err);
-					next();
-				});
-			})
-			.catch(reject);
-		}, resolve);
-	});
-};

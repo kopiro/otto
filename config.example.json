@@ -4,6 +4,7 @@
 	"scheduler": ["facebook_stories"],
 	"language": "it",
 	"locale": "it-IT",
+	"promiseTimeout": 10,
 	"apiai": {
 		"token": ""
 	},

@@ -23,6 +23,21 @@ const SpeechRecognizer = apprequire('speechrecognizer');
 const Polly = apprequire('polly');
 const Play = apprequire('play');
 
+function sendMessage(text, opt) {
+	return new Promise((resolve, reject) => {
+		async.eachSeries(Util.mimicHumanMessage(text), (t, next) => {
+			Polly.getAudioFile(t, opt)
+			.then((polly_file) => {
+				Play.fileToSpeaker(polly_file, (err) => {
+					if (err) return reject(err);
+					next();
+				});
+			})
+			.catch(reject);
+		}, resolve);
+	});
+}
+
 exports.startInput = function(opt) {
 	console.debug(TAG, 'startInput');
 
@@ -97,9 +112,11 @@ exports.output = function(f, session_model) {
 
 		if (f.data.error) {
 			if (f.data.error.speech) {	
-				Polly.play(f.data.error.speech, {
+				sendMessage(f.data.error.speech, {
 					language: language
-				}).then(resolve);
+				})
+				.then(resolve)
+				.catch(reject);
 			} else {
 				return resolve();
 			}
@@ -110,9 +127,11 @@ exports.output = function(f, session_model) {
 		}
 
 		if (f.speech) {
-			return Polly.play(f.speech, {
+			return sendMessage(f.speech, {
 				language: language
-			}).then(resolve);
+			})
+			.then(resolve)
+			.catch(reject);
 		} 
 
 		if (f.data.media != null) {
@@ -180,7 +199,7 @@ exports.output = function(f, session_model) {
 
 		if (f.data.lyrics) {
 			const speech = f.data.lyrics.lyrics_body.split("\n")[0];
-			return Polly.play(speech).then(resolve);
+			return sendMessage(speech).then(resolve);
 		}
 
 		return reject({ unkownOutputType: true });

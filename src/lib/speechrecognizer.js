@@ -45,7 +45,7 @@ function createRecognizeStream(opt, callback) {
 			if (text == null) {
 				timeout = setTimeout(() => {
 					callback({ unrecognized: true });
-				}, 500);
+				}, 1000);
 			}
 			break;
 		}

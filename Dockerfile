@@ -14,7 +14,8 @@ RUN apt-get -y install \
 sox \
 libsox-fmt-mp3 \
 dadadodo \
-libav-tools
+libav-tools \
+ffmpeg
 
 WORKDIR /app
 EXPOSE 8880 8881 8882

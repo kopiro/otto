@@ -1,7 +1,0 @@
-{ 
-	"uid": "otto", 
-	"script": "main.js",
-	"append": true, 
-	"watch": true,
-	"sourceDir": "/app"
-}

@@ -7,9 +7,14 @@ let Server = apprequire('server');
 ///////////
 
 Server.routerAdmin.get('/', (req, res) => {
-	res.render('admin/home');
+	res.render('admin/home', {
+		layout: 'admin'
+	});
 });
 
 /////////
 // API //
 /////////
+
+
+console.info(TAG, 'started');

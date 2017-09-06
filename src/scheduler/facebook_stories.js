@@ -10,7 +10,7 @@ exports.run = function() {
 	const now = moment();
 
 	Facebook.api('/' + _config.pageId + '/posts?limit=100&fields=id,message,place,created_time,description,permalink_url,full_picture,story,type,targeting', function(res) {
-		res.data.forEach((fb_story) => {
+		(res.data || []).forEach((fb_story) => {
 
 			Data.Story
 			.findOne({ 
