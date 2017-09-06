@@ -2,14 +2,6 @@ const TAG = 'IO.Kid';
 
 const _config = config.io.kid;
 
-const sessionId = (function() {
-	try {
-		return config.io.kid.sessionId;
-	} catch (err) {
-		return require('os').hostname();
-	}
-})();
-
 const EventEmitter = require('events').EventEmitter;
 exports.emitter = new EventEmitter();
 
@@ -41,7 +33,7 @@ function sendMessage(text, opt) {
 exports.startInput = function(opt) {
 	console.debug(TAG, 'startInput');
 
-	IOManager.registerSession(sessionId, exports.id, { platform: process.platform })
+	IOManager.registerSession(clientId, exports.id, { platform: process.platform })
 	.then((session_model) => {
 
 		opt = _.defaults(opt || {},  {

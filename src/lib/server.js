@@ -44,6 +44,12 @@ router_api.get('/', (req, res) => {
 
 const router_admin = express.Router();
 
+///////////
+// Client //
+///////////
+
+const router_client = express.Router();
+
 ////////////////////
 // API.AI webhook //
 ////////////////////
@@ -75,6 +81,7 @@ app.use('/api', router_api);
 app.use('/admin', router_admin);
 app.use('/awh', router_awh);
 app.use('/actions', router_actions);
+app.use('/client', router_client);
 
 // Start
 server.listen(port, () => {
@@ -87,5 +94,6 @@ module.exports = {
 	routerActions: router_actions,
 	routerAdmin: router_admin,
 	routerApi: router_api,
-	routerAwh: router_awh
+	routerAwh: router_awh,
+	routerClient: router_client
 };

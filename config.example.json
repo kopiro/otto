@@ -1,7 +1,7 @@
 {
 	"ioDrivers": ["messenger","telegram"],
 	"testDriver": "kid",
-	"scheduler": ["facebook_stories"],
+	"scheduler": true,
 	"language": "it",
 	"locale": "it-IT",
 	"promiseTimeout": 10,

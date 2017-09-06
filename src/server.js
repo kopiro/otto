@@ -12,9 +12,18 @@ Server.routerAdmin.get('/', (req, res) => {
 	});
 });
 
+////////////
+// Client //
+////////////
+
+Server.routerClient.get('/', (req, res) => {
+	res.render('client/home', {
+		layout: 'client'
+	});
+});
+
 /////////
 // API //
 /////////
-
 
 console.info(TAG, 'started');

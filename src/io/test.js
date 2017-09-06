@@ -12,18 +12,11 @@ const rl = readline.createInterface({
 });
 
 let strings = fs.readFileSync(__basedir + '/in.txt').toString().split("\n");
-const sessionId = (function() {
-	try {
-		return config.io.test.sessionId;
-	} catch (err) {
-		return require('os').hostname();
-	}
-})();
 
 exports.startInput = function() {
 	console.info(TAG, 'start');
 
-	IOManager.registerSession(sessionId, exports.id, { platform: process.platform })
+	IOManager.registerSession(clientId, exports.id, { platform: process.platform })
 	.then((session_model) => {
 		let msg = strings.shift();
 
