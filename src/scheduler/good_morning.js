@@ -1,5 +1,4 @@
 const TAG = 'Scheduler/GoodMorning';
-const _config = config.goodmorning;
 
 exports.run = function({ session }) {
 	const now = moment();

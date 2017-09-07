@@ -5,7 +5,10 @@ function getScheduler(time) {
 		Data.Scheduler
 		.find({
 			client: clientId,
-			daily: (time.hours() + ':' + time.minutes())
+			$or: [
+			{ daily: (time.hours() + ':' + time.minutes()) },
+			{ hourly: (time.minutes()) }
+			]
 		}) 
 		.populate('session')
 		.then(resolve);
