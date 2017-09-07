@@ -2,7 +2,10 @@ const TAG = 'Play';
 
 const spawn = require('child_process').spawn;
 const PITCH = 700;
-const _config = config.speaker || {};
+const _config = _.defaults(config.speaker || {}, {
+	device: null,
+	delay: 0 // on RasPI, set this value to 1
+});
 
 exports.fileToSpeaker = function(file, callback) {
 	callback = callback || (() => {});
@@ -10,12 +13,17 @@ exports.fileToSpeaker = function(file, callback) {
 	console.debug(TAG, 'fileToSpeaker', file);
 
 	const opt = {};
+	const args = [];
 
 	if (_config.device) {
 		opt.env = Object.assign({}, process.env, { AUDIODEV: _config.device });
 	}
 
-	spawn('play', [file].concat('pitch', '-q', PITCH), opt)
+	if (_config.delay) {
+		args.push([ 'delay', _config.delay ]);
+	}
+
+	spawn('play', [file].concat('pitch', '-q', PITCH).concat(args), opt)
 	.on('close', (err) => {
 		callback(err != 0);
 	});
