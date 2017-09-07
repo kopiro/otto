@@ -5,8 +5,7 @@ function getScheduler(time) {
 		Data.Scheduler
 		.find({
 			client: clientId,
-			daily: '21:59',
-			// daily: (time.hours() + ':' + time.minutes())
+			daily: (time.hours() + ':' + time.minutes())
 		}) 
 		.populate('session')
 		.then(resolve);
