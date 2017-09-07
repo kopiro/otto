@@ -13,14 +13,15 @@ exports.fileToSpeaker = function(file, callback) {
 	console.debug(TAG, 'fileToSpeaker', file);
 
 	const opt = {};
-	const args = [];
+	let args = [];
 
 	if (_config.device) {
 		opt.env = Object.assign({}, process.env, { AUDIODEV: _config.device });
 	}
 
 	if (_config.delay) {
-		args.push([ 'delay', _config.delay ]);
+		args.push('delay');
+		args.push(_config.delay);
 	}
 
 	spawn('play', [file].concat('pitch', '-q', PITCH).concat(args), opt)

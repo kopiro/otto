@@ -1,7 +1,7 @@
 const TAG = 'IO.Kid';
 
 const _config = _.defaults(config.io.kid || {}, {
-	waitForActivator: true
+	waitForActivator: false
 });
 
 const EventEmitter = require('events').EventEmitter;
