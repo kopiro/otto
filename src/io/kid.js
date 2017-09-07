@@ -1,6 +1,6 @@
 const TAG = 'IO.Kid';
 
-const _config = _.defaults(config.io.kid, {
+const _config = _.defaults(config.io.kid || {}, {
 	waitForActivator: true
 });
 
