@@ -2,13 +2,20 @@ const TAG = 'Play';
 
 const spawn = require('child_process').spawn;
 const PITCH = 700;
+const _config = config.speaker || {};
 
 exports.fileToSpeaker = function(file, callback) {
 	callback = callback || (() => {});
 
 	console.debug(TAG, 'fileToSpeaker', file);
 
-	spawn('play', [file].concat('pitch', '-q', PITCH))
+	const opt = {};
+
+	if (_config.device) {
+		opt.env = Object.assign({}, process.env, { AUDIODEV: _config.device });
+	}
+
+	spawn('play', [file].concat('pitch', '-q', PITCH), opt)
 	.on('close', (err) => {
 		callback(err != 0);
 	});
