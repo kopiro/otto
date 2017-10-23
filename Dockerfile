@@ -20,10 +20,12 @@ ffmpeg
 WORKDIR /app
 EXPOSE 8880 8881 8882
 
-COPY package.json /app/package.json
-RUN yarn
+COPY package.json /node_modules/package.json
+RUN cd /node_modules && yarn
 
 COPY . /app
+
+RUN ln -svf /node_modules /app/node_modules
 
 RUN npm run build
 

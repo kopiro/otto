@@ -1,5 +1,5 @@
 #!/bin/sh
 
+ln -svf /node_modules /app/node_modules
 yarn --production=false
-/app/tunnel.sh
 npm run dev

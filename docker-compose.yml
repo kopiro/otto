@@ -1,14 +1,14 @@
 version: '3'
 
 services:
-  otto:
+  app:
     image: kopiro/otto
     restart: always
     volumes:
-    - otto-cache:/app/cache
-    - otto-storage:/app/storage
-    - otto-tmp:/app/tmp
-    - otto-log:/app/log
+    - cache:/app/cache
+    - storage:/app/storage
+    - tmp:/app/tmp
+    - log:/app/log
     - ./keys:/app/keys
     - ./config.json:/app/config.json 
     ports:
@@ -16,8 +16,15 @@ services:
     - 8881:8881
     - 8882:8882
 
+  db:
+    image: mongo
+    restart: always
+    volumes:
+    - db:/data/db
+
 volumes:
-  otto-cache:
-  otto-storage:
-  otto-tmp:
-  otto-log:
+  cache:
+  storage:
+  tmp:
+  log:
+  db:

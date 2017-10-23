@@ -16,5 +16,4 @@ Server.routerAdmin.get('/', (req, res) => {
 // API //
 /////////
 
-
 console.info(TAG, 'started');
