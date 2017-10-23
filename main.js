@@ -4,7 +4,7 @@ IOManager.loadDrivers();
 IOManager.startPolling();
 
 if (config.scheduler) {
-	require(__basedir + '/src/schedulermanager');
+	SchedulerManager.run();
 }
 
 if (config.server) {

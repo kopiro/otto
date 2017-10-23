@@ -11,6 +11,12 @@ global.__publicdir = __dirname + '/public';
 global.config = require('./config.json');
 global.public_config = require('./public_config.json');
 
+// Current Session ID
+global.clientId = (function() {
+	try { return config.clientId; } 
+	catch (err) { return require('os').hostname(); }
+})();
+
 // Const
 global.AI_NAME = "Otto";
 global.AI_NAME_ACTIVATOR = /(^(otto|8)\b)|(\b(otto|8)\b)/mgi;
@@ -42,5 +48,6 @@ global.Data = require(__basedir + '/src/data');
 global.Util = require(__basedir + '/src/util');
 global.IOManager = require(__basedir + '/src/iomanager');
 global.Actions = require(__basedir + '/src/actions');
+global.SchedulerManager = require(__basedir + '/src/schedulermanager');
 
 console.info('Boot complete');
