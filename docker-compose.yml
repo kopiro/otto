@@ -22,15 +22,8 @@ services:
     - 8881:8881
     - 8882:8882
 
-  db:
-    image: mongo
-    restart: always
-    volumes:
-    - db:/data/db
-
 volumes:
   cache:
   storage:
   tmp:
   log:
-  db:

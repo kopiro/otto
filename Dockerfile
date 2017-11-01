@@ -1,23 +1,20 @@
-FROM ubuntu
+FROM node:8-alpine
 WORKDIR /app
 
-RUN set -ex && apt-get -y update && apt-get -y install \
+RUN set -ex && apk update && apk add --no-cache \
 curl \
 git \
 sox \
-libsox-fmt-mp3 \
-dadadodo \
-libav-tools \
-ffmpeg && \
-curl -sL https://deb.nodesource.com/setup_6.x | bash - && \
-apt-get -y install nodejs && \
-npm install -g yarn
+# libsox-fmt-mp3 \
+# dadadodo \
+#libav-tools \
+ffmpeg
 
-COPY package.json /node_modules/package.json
-RUN yarn
+COPY package.json /package.json
+RUN cd / && npm install --unsafe-perm
 
 COPY . /app
-RUN ln -s /node_modules /app/node_modules
+RUN ln -svf /node_modules /app/node_modules
 
 RUN npm run build
 

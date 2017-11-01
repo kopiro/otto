@@ -1,6 +1,6 @@
 {
   "name": "otto-ai",
-  "version": "1.0.0",
+  "ver<s></s>ion": "1.0.0",
   "description": "Simple AI for Otto",
   "main": "index.js",
   "scripts": {
@@ -25,10 +25,10 @@
     ]
   },
   "dependencies": {
-    "@google-cloud/speech": "^0.6.0",
+    "@google-cloud/speech": "^0.10.3",
     "@google-cloud/storage": "^1.1.0",
-    "@google-cloud/translate": "^0.7.0",
-    "@google-cloud/vision": "^0.8.0",
+    "@google-cloud/translate": "^1.0.0",
+    "@google-cloud/vision": "^0.12.0",
     "apiai": "^4.0.0",
     "async": "^2.1.5",
     "aws-sdk": "^2.93.0",
