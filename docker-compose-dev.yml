@@ -1,9 +1,0 @@
-version: '3'
-
-services:
-  app:
-    command: /app/docker/dev.sh
-    stdin_open: true
-    tty: true
-    volumes:
-    - .:/app

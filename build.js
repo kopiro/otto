@@ -1,3 +1,8 @@
+/*
+Recursively search for webpack.config.js in subdirectories
+and call webpack on that directory to build all modules
+ */
+
 const path = require('path');
 const glob = require('glob');
 const exec = require('child_process').execSync;
