@@ -1,21 +1,45 @@
 const URL = "http://tntvillage.scambioetico.org/src/releaselist.php";
 
 const request = require('request');
+const striptags = require('striptags');
+const entities = new require('html-entities').AllHtmlEntities;
 
-exports.search = function(q) {
-	request({
-		url: URL,
-		method: 'POST',
-		form: {
-			cat: 0,
-			page: 1,
-			srcrel: q
-		}
-	}, function(err, resp, body) {
-		let lines = body.split('<tr>').slice(2);
-		lines.forEach((line) => {
-			var cols = line.split('<td>');
-			console.log(cols);
-		})
+exports.query = function(q) {
+	return new Promise((resolve, reject) => {
+		request({
+			url: URL,
+			method: 'POST',
+			form: {
+				cat: 0,
+				page: 1,
+				srcrel: q
+			}
+		}, function(err, resp, body) {
+			if (err) return reject(err);
+			
+			let results = [];
+
+			body = body.replace(/\t/g, '');
+			body = body.replace(/\n/g, '');
+
+			// Imlement a strange way to parse this table
+			// with zero dependencies
+			body.split('<tr>').slice(2).forEach((line) => {
+				var obj = {};
+				line.split(/<td[^>]*>/).forEach((col, index) => {
+					col = col.split('</td>')[0];
+					if (index === 1) {
+						obj.torrent = /<a href\='([^']+)'/.exec(col)[1];
+					} else if (index === 2) {
+						obj.magnet = /<a href\='([^']+)'/.exec(col)[1];
+					} else if (index === 7) {
+						obj.title = entities.decode(striptags(col));
+					}
+				});
+				results.push(obj);
+			})
+
+			resolve(results);
+		});
 	});
 };

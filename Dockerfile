@@ -10,9 +10,7 @@ openssl \
 curl \
 git \
 libc6-compat \
-# libsox-fmt-mp3 \
 # dadadodo \
-#libav-tools \
 openssh-client
 
 RUN apk add --no-cache \

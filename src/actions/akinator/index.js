@@ -29,7 +29,7 @@ module.exports = function({ sessionId, result }) {
 						replies: akiClient.replies,
 						pending: {
 							action: exports.id,
-							result: _.extend(result, { isAnswer: true })
+							data: _.extend(result, { isAnswer: true })
 						}
 					}
 				});

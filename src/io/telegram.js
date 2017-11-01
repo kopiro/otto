@@ -283,7 +283,9 @@ bot.on('message', (e) => {
 					return;
 				}
 
+				// User sent a voice note, respond with a voice note :)
 				session_model.saveInPipe({ nextOutputWithVoice: true });
+				
 				exports.emitter.emit('input', {
 					session_model: session_model,
 					params: {

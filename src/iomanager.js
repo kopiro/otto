@@ -1,5 +1,10 @@
 const TAG = 'IOManager';
 
+function cleanText(t) {
+	const diacriticsRemove = require('diacritics').remove;
+	return diacriticsRemove(t).toLowerCase();
+}
+
 exports.drivers = {};
 
 exports.driversCapabilities = {
@@ -175,4 +180,11 @@ exports.processQueue = function() {
 
 exports.startPolling = function() {
 	exports.processQueue();
+};
+
+exports.processResponseToPendingAnswer = function(dataset, q, attr) {
+	attr = attr || 'title';
+	return _.find(dataset, (e, index) => {
+		return (cleanText(e[attr]) === cleanText(q)) || ((index+1) === q);
+	});
 };
