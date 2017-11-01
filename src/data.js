@@ -50,8 +50,6 @@ const Alarm = new Schema({
 });
 exports.Alarm = mongoose.model('alarms', Alarm);
 
-// Memory
-
 const Contact = new Schema({
 	id: String,
 	first_name: String,
@@ -100,7 +98,4 @@ const Knowledge = new Schema({
 	session: { type: String, ref: 'session' },
 	score: Number
 });
-/*
-db.knowledges.createIndex({"input":"text"}, {"default_language":"it","language_override": "it" }))
-*/
 exports.Knowledge = mongoose.model('knowledge', Knowledge);

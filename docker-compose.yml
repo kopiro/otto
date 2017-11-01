@@ -15,6 +15,7 @@ services:
     - log:/app/log
     - ./keys:/app/keys
     - ./config.json:/app/config.json 
+    # Used for instant volume change
     - .:/app
     ports:
     - 8880:8880

@@ -12,6 +12,10 @@ exports.search = function(q) {
 			srcrel: q
 		}
 	}, function(err, resp, body) {
-		console.log(body);
+		let lines = body.split('<tr>').slice(2);
+		lines.forEach((line) => {
+			var cols = line.split('<td>');
+			console.log(cols);
+		})
 	});
 };

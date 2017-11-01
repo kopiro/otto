@@ -1,22 +1,25 @@
-FROM node:8-alpine
+FROM ubuntu
 WORKDIR /app
 
-RUN set -ex && apk update && apk add --no-cache \
+RUN set -ex && apt-get -y update && apt-get -y install \
+curl \
+git \
 sox \
 libsox-fmt-mp3 \
 dadadodo \
 libav-tools \
-ffmpeg
+ffmpeg && \
+curl -sL https://deb.nodesource.com/setup_6.x | bash - && \
+apt-get -y install nodejs && \
+npm install -g yarn
 
 COPY package.json /node_modules/package.json
-RUN cd /node_modules && yarn
+RUN yarn
 
 COPY . /app
-
-RUN ln -svf /node_modules /app/node_modules
+RUN ln -s /node_modules /app/node_modules
 
 RUN npm run build
 
-EXPOSE 8880 8881 8882
-
 CMD /app/docker/prod.sh
+EXPOSE 8880 8881 8882
