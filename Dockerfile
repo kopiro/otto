@@ -1,14 +1,25 @@
 FROM node:8-alpine
 WORKDIR /app
 
-RUN set -ex && apk update && apk add --no-cache \
+RUN set -ex && \
+apk update && \
+apk add ca-certificates && \
+update-ca-certificates && \
+apk add --no-cache \
+openssl \
 curl \
 git \
-sox \
+libc6-compat \
 # libsox-fmt-mp3 \
 # dadadodo \
 #libav-tools \
-ffmpeg
+openssh-client
+
+RUN apk add --no-cache \
+sox \
+opus-tools # Used to decode Telegram Audio notes
+
+RUN rm -rf /var/cache/apk/*
 
 COPY package.json /package.json
 RUN cd / && npm install --unsafe-perm

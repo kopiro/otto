@@ -54,7 +54,6 @@ exports.startInput = function(opt) {
 		}, config.recorder));
 
 		SpeechRecognizer.recognizeAudioStream(rec_stream, {
-			must_convert: false,
 			language: session_model.translate_from
 		})
 		.then((text) => {

@@ -7,6 +7,9 @@ global.__tmpdir = __dirname + '/tmp';
 global.__cachedir = __dirname + '/cache';
 global.__publicdir = __dirname + '/public';
 
+global.ERRMSG_SR_GENERIC = "Scusami, ma in questo momento sono confuso...";
+global.ERRMSG_SR_UNRECOGNIZED = "Scusami, ma non ho capito quello che hai detto!";
+
 // Read the config and expose as global
 global.config = require('./config.json');
 global.public_config = require('./public_config.json');

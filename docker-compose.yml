@@ -9,21 +9,15 @@ services:
     stdin_open: true
     tty: true
     volumes:
-    - cache:/app/cache
-    - storage:/app/storage
-    - tmp:/app/tmp
-    - log:/app/log
+    - ./cache:/app/cache
+    - ./storage:/app/storage
+    - ./tmp:/app/tmp
+    - ./log:/app/log
     - ./keys:/app/keys
     - ./config.json:/app/config.json 
     # Used for instant volume change
-    - .:/app
+    - ./src:/app/src
     ports:
     - 8880:8880
     - 8881:8881
     - 8882:8882
-
-volumes:
-  cache:
-  storage:
-  tmp:
-  log:

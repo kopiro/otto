@@ -104,9 +104,7 @@ exports.output = function(f, session_model) {
 
 		if (f.speech) {
 
-			
 			if (session_model.getPipe().nextOutputWithVoice) {
-
 				session_model.saveInPipe({ nextOutputWithVoice: false });
 
 				console.debug(TAG, 'using voice output');
@@ -198,6 +196,51 @@ exports.output = function(f, session_model) {
 	});
 };
 
+function handleVoice(session_model, e) {
+	return new Promise((resolve, reject) => {
+		console.debug(TAG, 'user sent a voice message, downloading file');
+		
+		bot.getFileLink(e.voice.file_id)
+		.then((file_link) => {
+
+			var voice_file = __tmpdir + '/' + require('uuid').v4() + '.ogg';
+			console.debug(TAG, 'downloading voice message file <' + file_link + '> to <' + voice_file + '>');
+
+			request(file_link).on('response',  (res) => {
+				const r2 = fs.createWriteStream(voice_file);
+				r2.on('finish', () => {
+					
+					console.debug(TAG, 'converting OGG file to FLAC');
+
+					spawn('opusdec', [ 
+					voice_file, voice_file + '.wav',
+					'--rate', 16000
+					])
+					.on('close', (err) => {
+						if (err) {
+							console.error(TAG, 'error during conversion');
+							return reject(err);
+						}
+
+						console.debug(TAG, 'file converted, sending to SR');
+
+						SpeechRecognizer.recognizeAudioStream(fs.createReadStream(voice_file + '.wav'), {
+							language: (session_model.translate_from || config.language)
+						})
+						.then(resolve)
+						.catch(reject);
+					});
+				});
+				res.pipe(r2)
+			})
+		})
+		.catch((err) => {
+			console.debug(TAG, 'error in getFileLink', err);
+			reject(err);
+		});
+	});
+}
+
 /////////////////
 // Init events //
 /////////////////
@@ -232,37 +275,39 @@ bot.on('message', (e) => {
 		}
 
 		if (e.voice) {
-			return bot.getFileLink(e.voice.file_id).then((file_link) => {
-				SpeechRecognizer.recognizeAudioStream(request(file_link), {
-					must_convert: true,
-					language: (session_model.translate_from || config.language)
-				})
-				.then((text) => {
+			return handleVoice(session_model, e)
+			.then((text) => {
+				// If we are in a group, only listen for activators
+				if (chat_is_group && false === AI_NAME_ACTIVATOR.test(e.text)) {
+					console.debug(TAG, 'skipping input for missing activator', e.text);
+					return;
+				}
 
-					// If we are in a group, only listen for activators
-					if (chat_is_group && false === AI_NAME_ACTIVATOR.test(e.text)) {
-						console.debug(TAG, 'skipping input for missing activator', e.text);
-						return;
+				session_model.saveInPipe({ nextOutputWithVoice: true });
+				exports.emitter.emit('input', {
+					session_model: session_model,
+					params: {
+						text: text
 					}
+				});
+			})
+			.catch((err) => {
+				if (chat_is_group) return;
 
-					session_model.saveInPipe({ nextOutputWithVoice: true });
-
-					return exports.emitter.emit('input', {
-						session_model: session_model,
-						params: {
-							text: text
-						}
-					});
-				
-				})
-				.catch((err) => {
-					if (chat_is_group) return;
+				if (err.unrecognized) {
 					return exports.emitter.emit('input', {
 						session_model: session_model,
 						error: {
-							speech: "Scusami, ma non ho capito quello che hai detto!"
+							speech: ERRMSG_SR_UNRECOGNIZED
 						}
 					});
+				}
+
+				exports.emitter.emit('input', {
+					session_model: session_model,
+					error: {
+						speech: ERRMSG_SR_GENERIC
+					}
 				});
 			});
 		}
@@ -270,7 +315,7 @@ bot.on('message', (e) => {
 		if (e.photo) {
 			return bot.getFileLink( _.last(e.photo).file_id ).then((file_link) => {
 				if (chat_is_group) return;
-				return exports.emitter.emit('input', {
+				exports.emitter.emit('input', {
 					session_model: session_model,
 					params: {
 						image: {
