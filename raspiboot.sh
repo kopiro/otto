@@ -3,8 +3,9 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd $DIR
 
-BLUE_ID="FC:58:FA:35:48:95"
-BLUEZ_CARD="FC_58_FA_35_48_95"
+BLUE_ID="00:00:00:00:01:07"
+BLUEZ_CARD=$(sed 's|:|_|g' <<< $BLUE_ID)
+
 PID=""
 TUNNELED=0
 
@@ -42,6 +43,9 @@ while true; do
 
 		# Check if PID is still running
 		if [ $PID="" || ! ps -p $PID ]; then
+
+			# Pull latest edits
+			git fetch --all && git reset --hard origin/master
 
 			# Start real app
 			npm run start &
