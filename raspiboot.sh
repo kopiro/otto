@@ -3,7 +3,6 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd $DIR
 
-BLUE_ID="00:00:00:00:01:07"
 BLUEZ_CARD=$(sed 's|:|_|g' <<< $BLUE_ID)
 
 PID=""
@@ -42,7 +41,7 @@ while true; do
 		fi
 
 		# Check if PID is still running
-		if [ ! -e /proc/$PID || -z $PID ]; then
+		if [ -z $PID ]; then
 
 			# Pull latest edits
 			git fetch --all && git reset --hard origin/master
@@ -55,7 +54,13 @@ while true; do
 
 			# Play startup sound
 			play "$DIR/audio/startup.wav" vol 0.4
-		
+
+		elif [ ! -e /proc/$PID ]; then
+
+			# Restart real app
+			npm run start &
+			PID=$!
+
 		fi
 
 	else

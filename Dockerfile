@@ -21,7 +21,7 @@ RUN rm -rf /var/cache/apk/*
 
 ENV NODE_ENV development
 COPY package.json /package.json
-RUN cd / && npm install --no-package-lock --unsafe-perm && npm cache clean
+RUN cd / && npm install --no-package-lock --unsafe-perm && rm -rf ~/.npm
 
 COPY . /app
 RUN ln -svf /node_modules /app/node_modules
