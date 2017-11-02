@@ -42,7 +42,7 @@ while true; do
 		fi
 
 		# Check if PID is still running
-		if [ $PID="" || ! ps -p $PID ]; then
+		if [ ! -e /proc/$PID || -z $PID ]; then
 
 			# Pull latest edits
 			git fetch --all && git reset --hard origin/master
