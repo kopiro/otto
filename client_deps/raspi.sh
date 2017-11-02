@@ -7,4 +7,4 @@ ln -svf /opt/nodejs/yarn /usr/bin/yarn
 apt-get -y install sox libsox-fmt-mp3 opus-tools 
 
 # Install deps
-npm install
+npm install --only=prod

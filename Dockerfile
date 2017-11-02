@@ -19,8 +19,9 @@ opus-tools # Used to decode Telegram Audio notes
 
 RUN rm -rf /var/cache/apk/*
 
+ENV NODE_ENV development
 COPY package.json /package.json
-RUN cd / && npm install --unsafe-perm
+RUN cd / && npm install --no-package-lock --unsafe-perm && npm cache clean
 
 COPY . /app
 RUN ln -svf /node_modules /app/node_modules
