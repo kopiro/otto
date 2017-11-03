@@ -4,40 +4,27 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd $DIR
 
 BLUEZ_CARD=$(sed 's|:|_|g' <<< $BLUE_ID)
-
 PID=""
-TUNNELED=0
+TUNNELED="no"
 
 echo "Starting PulseAudio..."
-pulseaudio --k
 pulseaudio --start
-sleep 2
-
-echo "Powering on bluetooth..."
-echo -e "power on" | bluetoothctl
-sleep 1
-echo -e "trust $BLUE_ID" | bluetoothctl
-sleep 1
 
 while true; do
 
 	while [[ "$(pacmd list-sinks | grep bluez_card.$BLUEZ_CARD)" == "" ]]; do
-		echo "Connecting to bluetooth speaker..."
-		echo -e "connect $BLUE_ID" | bluetoothctl
-		sleep 8
+		echo "Waiting for Bluetooth Audio Speaker..."
+		sleep 2
 	done
-
-	# Set sink in pulseaudio
-	pacmd set-default-sink "bluez_sink.$BLUEZ_CARD"
 
 	# If internet is reachable
 	if ping -c 1 google.com >> /dev/null 2>&1; then
 
 		# Connect to the server
-		if [ "$TUNNELED" == "0" ]; then
+		if [ "$TUNNELED" == "no" ]; then
 			echo "Tunneling SSH..."
 			./tunnel.sh
-			TUNNELED=1
+			TUNNELED="yes"
 		fi
 
 		# Check if PID is still running
