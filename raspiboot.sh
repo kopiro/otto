@@ -13,7 +13,7 @@ pulseaudio --start
 while true; do
 
 	while [[ "$(pacmd list-sinks | grep bluez_card.$BLUEZ_CARD)" == "" ]]; do
-		echo "Waiting for Bluetooth Audio Speaker..."
+		echo -e "connect $BLUE_ID" | bluetoothctl
 		sleep 2
 	done
 
