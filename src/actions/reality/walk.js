@@ -10,7 +10,7 @@ module.exports = function({ sessionId, result }, session_model) {
 		rpio.open(_config.walk, rpio.OUTPUT, rpio.LOW);
 		rpio.write(_config.walk, rpio.HIGH);
 		rpio.sleep(1);
-		rpio.write(12, rpio.LOW);
+		rpio.write(_config.walk, rpio.LOW);
 
 		resolve();
 	});
