@@ -1,15 +1,11 @@
 # Otto AI
 
-## Installation
-
-```
-install.sh
-```
+[![Build Status](https://travis-ci.org/kopiro/otto-ai.svg?branch=master)](https://travis-ci.org/kopiro/otto-ai)
 
 ## Develop locally
 
 ```
-npm run start
+docker-compose up
 ```
 
 ## Build for prod
