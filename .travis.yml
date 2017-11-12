@@ -10,3 +10,6 @@ jobs:
       - docker build . -t $DOCKER_USERNAME/otto:$TRAVIS_COMMIT --cache-from $DOCKER_USERNAME/otto:latest
       - docker tag $DOCKER_USERNAME/otto:$TRAVIS_COMMIT $DOCKER_USERNAME/otto:latest
       - docker push $DOCKER_USERNAME/otto:latest
+    - stage: deploy
+      script:
+      - wget http://deploy.kopiro.it/?p=otto
