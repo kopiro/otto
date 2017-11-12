@@ -1,7 +1,11 @@
-sudo: required
-
 services:
   - docker
 
-script:
-- docker build -t kopiro/otto .
+jobs:
+  include:
+    - stage: build docker image
+      script:
+      - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
+      - docker pull $DOCKER_USERNAME/otto:latest
+      - docker build . -t $DOCKER_USERNAME/otto:latest --cache-from $DOCKER_USERNAME/otto:latest
+      - docker push $DOCKER_USERNAME/otto:latest
