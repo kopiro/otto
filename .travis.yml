@@ -7,5 +7,6 @@ jobs:
       script:
       - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
       - docker pull $DOCKER_USERNAME/otto:latest
-      - docker build . -t $DOCKER_USERNAME/otto:latest --cache-from $DOCKER_USERNAME/otto:latest
+      - docker build . -t $DOCKER_USERNAME/otto:$TRAVIS_COMMIT --cache-from $DOCKER_USERNAME/otto:latest
+      - docker tag $DOCKER_USERNAME/otto:$TRAVIS_COMMIT $DOCKER_USERNAME/otto:latest
       - docker push $DOCKER_USERNAME/otto:latest
