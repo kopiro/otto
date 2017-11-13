@@ -1,21 +1,11 @@
 #!/bin/bash
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-cd $DIR
+DIR="/root/otto-ai"
 
-BLUEZ_CARD=$(sed 's|:|_|g' <<< $BLUE_ID)
 PID=""
 TUNNELED="no"
 
-echo "Starting PulseAudio..."
-pulseaudio --start
-
 while true; do
-
-	while [[ "$(pacmd list-sinks | grep bluez_card.$BLUEZ_CARD)" == "" ]]; do
-		echo -e "connect $BLUE_ID" | bluetoothctl
-		sleep 2
-	done
 
 	# If internet is reachable
 	if ping -c 1 google.com >> /dev/null 2>&1; then
@@ -23,7 +13,7 @@ while true; do
 		# Connect to the server
 		if [ "$TUNNELED" == "no" ]; then
 			echo "Tunneling SSH..."
-			./tunnel.sh
+			$DIR/tunnel.sh
 			TUNNELED="yes"
 		fi
 
@@ -48,6 +38,8 @@ while true; do
 			npm run start &
 			PID=$!
 
+			echo "Restarted Node with pid $PID"
+
 		fi
 
 	else
@@ -56,10 +48,7 @@ while true; do
 		aplay "$DIR/audio/nointernet.wav"
 
 	fi
-	
-	# If speaker is gone, this loop exits, so this is a method to retrigger startup
-	while [[ "$(pacmd list-sinks | grep bluez_card.$BLUEZ_CARD)" != "" ]]; do
-		sleep 10
-	done
+
+	sleep 1
 
 done
