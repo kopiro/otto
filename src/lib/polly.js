@@ -1,14 +1,10 @@
 const TAG = 'Polly';
 
-const aws = require('aws-sdk');
-aws.config.loadFromPath(__basedir + '/keys/aws.json');
-
 const md5 = require('md5');
-
 const Play = apprequire('play');
 
 // Create an Polly client
-const Polly = new aws.Polly({
+const Polly = (new apprequire('aws')).Polly({
 	signatureVersion: 'v4',
 	region: 'eu-west-1'
 });
