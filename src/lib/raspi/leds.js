@@ -1,5 +1,6 @@
-const TAG = 'Rasp/Leds';
+const TAG = 'Raspi/Leds';
 
+const _ = require('underscore');
 const BRIGHTNESS_MAX = 30;
 const LEDS_COUNT = 3;
 
@@ -39,21 +40,42 @@ exports.doFullGradient = function() {
 	})();
 };
 
-exports.setTimeState = function(r, g, b) {
+function interpolateColor(color1, color2, factor) {
+	var result = color1.slice();
+	for (var i = 0; i < 3; i++) {
+		result[i] = Math.round(result[i] + factor * (color2[i] - color1[i]));
+	}
+	return result;
+}
+
+exports.setViaTimeline = function(timeline, method = 'setFullColor') {
+	_.each(timeline, (values, time) => {
+		setTimeout(() => {
+			exports[method](...values);
+		}, +time);
+	});
+}
+
+exports.animate = function(...colors) {
+	let color1, color2;
+	color1 = colors.shift();
+	color2 = colors.shift();
+	for (let factor = 0; factor <= 1; factor += 0.01) {
+		setTimeout((factor) => {
+			let c = interpolateColor(color1, color2, factor);
+			exports.setFullColor(c);
+		}, factor * 5000, factor);
+	}
+};
+
+exports.setFullColor = function(color, x = BRIGHTNESS_MAX) {
 	for (let i = 0; i < LEDS_COUNT; i++) {
-		LedManager.setLedColor(i, BRIGHTNESS_MAX, r, g, b);
+		LedManager.setLedColor(i, Math.min(x, BRIGHTNESS_MAX), color[0], color[1], color[2]);
 	}
 	LedManager.sendLeds();
 };
 
-exports.setFullColor = function(r, g, b) {
-	for (let i = 0; i < LEDS_COUNT; i++) {
-		LedManager.setLedColor(i, BRIGHTNESS_MAX, r, g, b);
-	}
-	LedManager.sendLeds();
-};
-
-exports.off = function(r, g, b) {
+exports.off = function() {
 	for (let i = 0; i < LEDS_COUNT; i++) {
 		LedManager.setLedColor(i, 0, 0, 0, 0);
 	}
@@ -63,3 +85,5 @@ exports.off = function(r, g, b) {
 // setLedColor(n, brightness 0-31, red 0-255, green 0-255, blue 0-255)
 exports._setLedColor = LedManager.setLedColor;
 exports._sendLeds = LedManager.sendLeds;
+
+exports.animate([255,0,0],[0,255,0]);
