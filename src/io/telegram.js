@@ -8,7 +8,6 @@ exports.id = 'telegram';
 
 const TelegramBot = require('node-telegram-bot-api');
 const SpeechRecognizer = apprequire('speechrecognizer');
-
 const Polly = apprequire('polly');
 const Play = apprequire('play');
 
@@ -231,8 +230,8 @@ function handleVoice(session_model, e) {
 						.catch(reject);
 					});
 				});
-				res.pipe(r2)
-			})
+				res.pipe(r2);
+			});
 		})
 		.catch((err) => {
 			console.debug(TAG, 'error in getFileLink', err);

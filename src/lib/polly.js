@@ -1,10 +1,11 @@
 const TAG = 'Polly';
 
 const md5 = require('md5');
+const aws = apprequire('aws');
+
 const Play = apprequire('play');
 
-// Create an Polly client
-const Polly = (new apprequire('aws')).Polly({
+const Polly = new aws.Polly({
 	signatureVersion: 'v4',
 	region: 'eu-west-1'
 });
@@ -29,7 +30,7 @@ function getCache(text, voice) {
 function getVoice(opt) {
 	return new Promise((resolve, reject) => {
 
-		opt = opt || {}
+		opt = opt || {};
 
 		const locale = Util.getLocaleFromLanguageCode(opt.language);
 

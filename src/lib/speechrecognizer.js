@@ -5,7 +5,6 @@ const speech = require('@google-cloud/speech')({
 });
 const spawn = require('child_process').spawn;
 
-
 function createRecognizeStream(opt, callback) {
 	let text = null;
 	let timeout = null;

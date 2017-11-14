@@ -5,7 +5,7 @@ const _config = _.defaults(config.io.kid || {}, {
 });
 
 const EventEmitter = require('events').EventEmitter;
-exports.emitter = new EventEmitter();
+const emitter = new EventEmitter();
 
 exports.id = 'kid';
 exports.capabilities = { 
@@ -16,6 +16,9 @@ const Rec = apprequire('rec');
 const SpeechRecognizer = apprequire('speechrecognizer');
 const Polly = apprequire('polly');
 const Play = apprequire('play');
+const RaspiLeds = apprequire('raspi/leds');
+const URLManager = apprequire('urlmanager');
+const Mopidy = apprequire('mopidy');
 
 function sendMessage(text, opt) {
 	return new Promise((resolve, reject) => {
@@ -32,19 +35,15 @@ function sendMessage(text, opt) {
 	});
 }
 
-exports.startInput = function(opt) {
+exports.startInput = function() {
 	console.debug(TAG, 'startInput');
 
 	IOManager.registerSession(clientId, exports.id, { platform: process.platform })
 	.then((session_model) => {
 
-		opt = _.defaults(opt || {},  {
-			listenSound: true
+		emitter.emit('input.start', {
+			session_model: session_model,
 		});
-
-		if (opt.listenSound == true) {
-			Play.fileToSpeaker(__basedir + '/audio/startlisten.wav');
-		}
 		
 		let rec_stream = Rec.start(_.extend({
 			sampleRate: 16000,
@@ -69,7 +68,7 @@ exports.startInput = function(opt) {
 				}
 			}
 
-			exports.emitter.emit('input', {
+			emitter.emit('input', {
 				session_model: session_model,
 				params: {
 					text: text
@@ -78,17 +77,14 @@ exports.startInput = function(opt) {
 
 		})
 		.catch((err) => {
-
 			console.error(TAG, 'input', err);
-
 			Rec.stop();
-			exports.startInput({ listenSound: false });
-
+			exports.startInput();
 		});
 
 	})
 	.catch((session_model) => {
-		exports.emitter.emit('input', {
+		emitter.emit('input', {
 			session_model: session_model,
 			error: {
 				unauthorized: true
@@ -116,7 +112,7 @@ exports.output = function(f, session_model) {
 		}
 
 		if (f.data.url) {
-			apprequire('urlmanager').open(f.data.url);
+			URLManager.open(f.data.url);
 		}
 
 		if (f.speech) {
@@ -128,16 +124,15 @@ exports.output = function(f, session_model) {
 		} 
 
 		if (f.data.media != null) {
-			const mopidy = apprequire('mopidy');
 
 			if (f.data.media.artist) {
-				mopidy.onReady(() => {
-					mopidy.tracklist.clear()
-					.then(() => { return mopidy.library.lookup(f.data.media.artist.uri); })
-					.then((tracks) => { return mopidy.tracklist.add(tracks); })
+				Mopidy.onReady(() => {
+					Mopidy.tracklist.clear()
+					.then(() => { return Mopidy.library.lookup(f.data.media.artist.uri); })
+					.then((tracks) => { return Mopidy.tracklist.add(tracks); })
 					.then((ttlTracks) => {
-						mopidy.tracklist.shuffle();
-						return mopidy.playback.play(ttlTracks[0]);
+						Mopidy.tracklist.shuffle();
+						return Mopidy.playback.play(ttlTracks[0]);
 					})
 					.catch((err) => {
 						console.error(TAG, err);
@@ -147,12 +142,12 @@ exports.output = function(f, session_model) {
 			}
 
 			if (f.data.media.track) {
-				mopidy.onReady(() => {
-					mopidy.tracklist.clear()
-					.then(() => { return mopidy.library.lookup(f.data.media.track.uri); })
-					.then((tracks) => { return mopidy.tracklist.add(tracks); })
+				Mopidy.onReady(() => {
+					Mopidy.tracklist.clear()
+					.then(() => { return Mopidy.library.lookup(f.data.media.track.uri); })
+					.then((tracks) => { return Mopidy.tracklist.add(tracks); })
 					.then((ttlTracks) => {
-						return mopidy.playback.play(ttlTracks[0]);
+						return Mopidy.playback.play(ttlTracks[0]);
 					})
 					.catch((err) => {
 						console.error(TAG, err);
@@ -162,13 +157,13 @@ exports.output = function(f, session_model) {
 			}
 
 			if (f.data.media.action) {
-				mopidy.playback[f.data.media.action](); 
+				Mopidy.playback[f.data.media.action](); 
 				return resolve();
 			}
 
 			if (f.data.media.what) {
-				mopidy.playback.setVolume(10)
-				.then(() => { return mopidy.playback.getCurrentTrack(); })
+				Mopidy.playback.setVolume(10)
+				.then(() => { return Mopidy.playback.getCurrentTrack(); })
 				.then((track) => {
 					const name = track.name;
 					const artist = track.artists[0].name;
@@ -182,7 +177,7 @@ exports.output = function(f, session_model) {
 				})
 				.catch(reject)
 				.then(() => {
-					mopidy.playback.setVolume(100)
+					Mopidy.playback.setVolume(100)
 					.then(resolve);
 				});
 				return;
@@ -198,3 +193,15 @@ exports.output = function(f, session_model) {
 		return reject({ unkownOutputType: true });
 	});
 };
+
+/////////////////////
+// Setup RaspiLeds //
+/////////////////////
+
+emitter.on('input.start', () => {
+	RaspiLeds.off();
+});
+
+emitter.on('input', () => {
+	RaspiLeds.setColor([ 0,255,0 ]);
+});

@@ -35,7 +35,7 @@ exports.doFullGradient = function() {
 	(function x() {
 		const v = gen.next().value;
 		if (v == null) return;
-		exports.setFullColor(v[0], v[1], v[2]);
+		exports.setColor(v[0], v[1], v[2]);
 		setTimeout(x, 1);
 	})();
 };
@@ -48,27 +48,24 @@ function interpolateColor(color1, color2, factor) {
 	return result;
 }
 
-exports.setViaTimeline = function(timeline, method = 'setFullColor') {
+exports.setViaTimeline = function(timeline, method = 'setColor') {
 	_.each(timeline, (values, time) => {
 		setTimeout(() => {
 			exports[method](...values);
 		}, +time);
 	});
-}
+};
 
-exports.animate = function(...colors) {
-	let color1, color2;
-	color1 = colors.shift();
-	color2 = colors.shift();
+exports.animate = function(colors, time = 2000) {
 	for (let factor = 0; factor <= 1; factor += 0.01) {
 		setTimeout((factor) => {
-			let c = interpolateColor(color1, color2, factor);
-			exports.setFullColor(c);
-		}, factor * 5000, factor);
+			let c = interpolateColor(colors[0], colors[1], factor);
+			exports.setColor(c);
+		}, factor * time, factor);
 	}
 };
 
-exports.setFullColor = function(color, x = BRIGHTNESS_MAX) {
+exports.setColor = function(color, x = BRIGHTNESS_MAX) {
 	for (let i = 0; i < LEDS_COUNT; i++) {
 		LedManager.setLedColor(i, Math.min(x, BRIGHTNESS_MAX), color[0], color[1], color[2]);
 	}

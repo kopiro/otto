@@ -12,7 +12,6 @@ curl \
 git \
 build-base \
 libc6-compat \
-# dadadodo \
 openssh-client
 
 # Install additional app packages
@@ -37,7 +36,8 @@ RUN rm -rf /var/cache/apk/*
 # Install node modules
 ENV NODE_ENV development
 COPY package.json /package.json
-RUN cd / && npm install --no-package-lock --unsafe-perm && rm -rf ~/.npm
+COPY package-lock.json /package-lock.json
+RUN cd / && npm install --unsafe-perm && rm -rf ~/.npm
 
 # Copy my code
 COPY . /app

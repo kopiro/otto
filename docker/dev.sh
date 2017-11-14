@@ -4,6 +4,9 @@ echo "==> Replacing node modules"
 rm -rf node_modules
 ln -s /node_modules /app/node_modules
 
+echo "==> Updating package-lock.json"
+cp /package-lock.json /app/package-lock.json
+
 echo "==> Tunneling"
 /app/tunnel.sh
 
