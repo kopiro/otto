@@ -122,69 +122,7 @@ exports.output = function(f, session_model) {
 			.then(resolve)
 			.catch(reject);
 		} 
-
-		if (f.data.media != null) {
-
-			if (f.data.media.artist) {
-				Mopidy.onReady(() => {
-					Mopidy.tracklist.clear()
-					.then(() => { return Mopidy.library.lookup(f.data.media.artist.uri); })
-					.then((tracks) => { return Mopidy.tracklist.add(tracks); })
-					.then((ttlTracks) => {
-						Mopidy.tracklist.shuffle();
-						return Mopidy.playback.play(ttlTracks[0]);
-					})
-					.catch((err) => {
-						console.error(TAG, err);
-					});
-				});
-				return resolve();
-			}
-
-			if (f.data.media.track) {
-				Mopidy.onReady(() => {
-					Mopidy.tracklist.clear()
-					.then(() => { return Mopidy.library.lookup(f.data.media.track.uri); })
-					.then((tracks) => { return Mopidy.tracklist.add(tracks); })
-					.then((ttlTracks) => {
-						return Mopidy.playback.play(ttlTracks[0]);
-					})
-					.catch((err) => {
-						console.error(TAG, err);
-					});
-				});
-				return resolve();
-			}
-
-			if (f.data.media.action) {
-				Mopidy.playback[f.data.media.action](); 
-				return resolve();
-			}
-
-			if (f.data.media.what) {
-				Mopidy.playback.setVolume(10)
-				.then(() => { return Mopidy.playback.getCurrentTrack(); })
-				.then((track) => {
-					const name = track.name;
-					const artist = track.artists[0].name;
-					return IOManager.output({ 
-						speech: [
-						`Questa canzone si chiama ${name} di ${artist}`,
-						`Bella questa! É ${name} di ${artist}!`,
-						`Come fai a non conoscerla? Si tratta di ${name} di ${artist}`
-						].getRandom()
-					}, session_model);
-				})
-				.catch(reject)
-				.then(() => {
-					Mopidy.playback.setVolume(100)
-					.then(resolve);
-				});
-				return;
-			}
-
-		}
-
+		
 		if (f.data.lyrics) {
 			const speech = f.data.lyrics.lyrics_body.split("\n")[0];
 			return sendMessage(speech).then(resolve);
@@ -199,9 +137,9 @@ exports.output = function(f, session_model) {
 /////////////////////
 
 emitter.on('input.start', () => {
-	RaspiLeds.off();
+	RaspiLeds.setColor([ 0,255,0 ]);
 });
 
 emitter.on('input', () => {
-	RaspiLeds.setColor([ 0,255,0 ]);
+	RaspiLeds.off();
 });

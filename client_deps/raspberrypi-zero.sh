@@ -1,10 +1,19 @@
-#!/bin/sh
+#!/bin/bash
 
 # Install nodeJS
 wget -O - https://raw.githubusercontent.com/sdesalas/node-pi-zero/master/install-node-v7.7.1.sh | bash
 
 # Install base libraries
-apt-get -y install sox libsox-fmt-mp3 opus-tools 
+apt-get -y install sox libsox-fmt-mp3 opus-tools supervisor
+
+mkdir -p /var/log/otto
+echo "[program:otto]
+command = node /root/otto-ai/main.js
+autostart = true
+autorestrart = true
+tderr_logfile = /var/log/otto/out.log
+stdout_logfile = /var/log/otto/err.log
+" >/etc/supervisor/conf.d/otto.conf
 
 # Install deps
 npm install --only=prod
