@@ -4,8 +4,7 @@ const _config = _.defaults(config.io.kid || {}, {
 	waitForActivator: false
 });
 
-const EventEmitter = require('events').EventEmitter;
-const emitter = new EventEmitter();
+const emitter = exports.emitter = new (require('events').EventEmitter)();
 
 exports.id = 'kid';
 exports.capabilities = { 
@@ -18,7 +17,6 @@ const Polly = apprequire('polly');
 const Play = apprequire('play');
 const RaspiLeds = apprequire('raspi/leds');
 const URLManager = apprequire('urlmanager');
-const Mopidy = apprequire('mopidy');
 
 function sendMessage(text, opt) {
 	return new Promise((resolve, reject) => {
@@ -122,7 +120,7 @@ exports.output = function(f, session_model) {
 			.then(resolve)
 			.catch(reject);
 		} 
-		
+
 		if (f.data.lyrics) {
 			const speech = f.data.lyrics.lyrics_body.split("\n")[0];
 			return sendMessage(speech).then(resolve);

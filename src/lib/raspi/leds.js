@@ -82,5 +82,3 @@ exports.off = function() {
 // setLedColor(n, brightness 0-31, red 0-255, green 0-255, blue 0-255)
 exports._setLedColor = LedManager.setLedColor;
 exports._sendLeds = LedManager.sendLeds;
-
-exports.animate([255,0,0],[0,255,0]);
