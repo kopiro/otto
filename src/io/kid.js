@@ -67,10 +67,13 @@ function recognizeMicStream() {
 	exports.isConversating = true;
 	console.log(TAG, 'recognizing mic stream');
 
+	emitter.emit('user-speaking');
+
 	const recognizeStream = SpeechRecognizer.createRecognizeStream({
 		language: exports.sessionModel.translate_from
 	}, (err, text) => {
 		Rec.stop();
+		emitter.emit('user-spoken');
 
 		if (err) {
 			return emitter.emit('input', {
@@ -92,7 +95,6 @@ function recognizeMicStream() {
 	});
 
 	recognizeStream.on('data', (data) => {
-		emitter.emit('user-speaking');
 		if (data.results.length > 0) {
 			eocTimeout = _config.eocMax;
 		}
@@ -116,7 +118,7 @@ function registerGlobalSession(callback) {
 function listenForHotWord() {
 	console.warn(TAG, 'waiting for hotword');
 
-	emitter.emit('listening');
+	emitter.emit('ai-hotword-listening');
 
 	const detector = new Detector({
 		resource: __etcdir + '/common.res',
@@ -126,7 +128,7 @@ function listenForHotWord() {
 
 	detector.on('hotword', function (index, hotword, buffer) {
 		console.log(TAG, 'hotword', hotword);
-		emitter.emit('hotword');
+		emitter.emit('ai-hotword-recognized');
 
 		// Stop streaming to detector
 		Rec.stop();
@@ -149,6 +151,7 @@ function listenForHotWord() {
 		console.error(TAG, err);
 	});
 
+	Rec.stop();
 	Rec.start().pipe(detector);
 }
 
@@ -220,12 +223,11 @@ exports.output = function(f) {
 // Setup RaspiLeds //
 /////////////////////
 
-emitter.on('listening', () => {
+emitter.on('ai-hotword-listening', () => {
 	RaspiLeds.off();
 });
 
-emitter.on('hotword', () => {
-	RaspiLeds.setColor([ 0, 0, 255 ]);
+emitter.on('ai-hotword-recognized', () => {
 });
 
 emitter.on('ai-speaking', () => {
@@ -237,5 +239,9 @@ emitter.on('ai-spoken', () => {
 });
 
 emitter.on('user-speaking', () => {
-	RaspiLeds.setColor([ 255, 0, 255 ]);
+	RaspiLeds.setColor([ 255, 0, 0 ]);
+});
+
+emitter.on('user-spoken', () => {
+	RaspiLeds.off();
 });

@@ -15,16 +15,15 @@ stderr_logfile = /var/log/otto/out.log
 stdout_logfile = /var/log/otto/err.log
 " >/etc/supervisor/conf.d/otto.conf
 
+# Install Snowboy
+apt-get -y install libmagic-dev libatlas-base-dev
+npm -g install nan --unsafe-perm
+
 # Install deps
 npm install --only=prod
 
 # Install RPIO
 npm -g install rpio --unsafe-perm && npm link rpio
-
-# Install Snowboy
-apt-get -y install libmagic-dev libatlas-base-dev
-npm -g install nan --unsafe-perm
-npm -g install snowboy --unsafe-perm && npm link snowboy
 
 # Install apa102-spi and link with global RPIO
 npm -g install apa102-spi --unsafe-perm && npm link apa102-spi
