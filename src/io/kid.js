@@ -72,7 +72,7 @@ function recognizeMicStream() {
 		language: exports.sessionModel.translate_from
 	}, (err, text) => {
 		Rec.stop();
-		emitter.emit('user-spoken')
+		emitter.emit('user-spoken');
 
 		if (err) {
 			return emitter.emit('input', {
@@ -164,7 +164,6 @@ exports.startInput = function() {
 		eocInterval = setInterval(() => {
 			if (eocTimeout == 0) {
 				console.warn(TAG, 'timeout exceeded for conversation');
-				Rec.stop();
 				exports.isConversating = false;
 				eocTimeout = -1;
 				exports.startInput();
@@ -230,7 +229,7 @@ emitter.on('ai-hotword-listening', () => {
 
 emitter.on('ai-hotword-recognized', () => {
 	if (ledAnimation) ledAnimation.stop();
-	RaspiLeds.setColor([ 255, 0, 0 ]);
+	RaspiLeds.setColor([ 0, 0, 255 ]);
 });
 
 emitter.on('ai-speaking', () => {

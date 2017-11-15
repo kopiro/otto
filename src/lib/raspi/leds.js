@@ -57,9 +57,9 @@ exports.setViaTimeline = function(timeline, method = 'setColor') {
 	});
 };
 
-var LedAnimator = function(ticker) {
+var LedAnimator = function(ticker, freq) {
 	var self = this;
-	
+
 	self.run = true;
 	self.tick = 0;
 
@@ -71,7 +71,7 @@ var LedAnimator = function(ticker) {
 			return; 
 		}
 		ticker(self.tick++);
-	}, 10);
+	}, freq);
 };
 
 exports.animateRandom = function() {
@@ -84,7 +84,7 @@ exports.animateRandom = function() {
 			Math.floor(Math.random() * 255)
 		);
 		LedManager.sendLeds();
-	});
+	}, 100);
 };
 
 exports.setColor = function(color, x = BRIGHTNESS_MAX) {
