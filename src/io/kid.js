@@ -166,7 +166,13 @@ exports.startInput = function() {
 				console.warn(TAG, 'timeout exceeded for conversation');
 				exports.isConversating = false;
 				eocTimeout = -1;
-				exports.startInput();
+				Rec.stop();
+				emitter.emit('input', {
+					session_model: exports.sessionModel,
+					error: {
+						eoc: true
+					}
+				});
 			} else if (eocTimeout > 0) {
 				console.log(TAG, eocTimeout + ' seconds remaining');
 				eocTimeout--;
