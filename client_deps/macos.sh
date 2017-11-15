@@ -1,5 +1,7 @@
 #!/bin/sh
 
 brew install nodejs
-brew install opus-tools sox
+brew install sox opus-tools 
+
+npm -g install snowboy && npm link snowboy
 npm install

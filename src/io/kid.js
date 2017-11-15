@@ -29,7 +29,7 @@ let eocTimeout = -1;
 const models = new Models();
 models.add({
 	file: __etcdir + '/hotword.pmdl',
-	sensitivity: '0.5',
+	sensitivity: '0.6',
 	hotwords: _config.hotword
 });
 
