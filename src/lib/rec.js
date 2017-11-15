@@ -5,6 +5,8 @@ let rec;
 
 // returns a Readable stream
 exports.start = function(opt) {
+	if (rec) rec.kill();
+
 	opt = _.defaults(opt || {}, config.rec, {
 		sampleRate: 16000,
 		threshold: 0.5,
@@ -61,5 +63,7 @@ exports.getStream = function() {
 
 exports.stop = function () {
 	if (null == rec) return;
+	
+	console.log(TAG, 'stop');
 	rec.kill();
 };

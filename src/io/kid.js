@@ -151,7 +151,6 @@ function listenForHotWord() {
 		console.error(TAG, err);
 	});
 
-	Rec.stop();
 	Rec.start().pipe(detector);
 }
 
