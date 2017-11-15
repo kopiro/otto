@@ -35,8 +35,6 @@ models.add({
 
 function sendMessage(text, language) {
 	return new Promise((resolve, reject) => {
-		emitter.emit('ai-speaking');
-
 		eocTimeout = -1; // Inibit timer while AI is talking
 		language = language || exports.sessionModel.translate_to || config.language;
 
@@ -45,6 +43,7 @@ function sendMessage(text, language) {
 				language: language
 			})
 			.then((polly_file) => {
+				emitter.emit('ai-speaking');
 				Play.fileToSpeaker(polly_file, (err) => {
 					if (err) return reject(err);
 					next();
@@ -67,13 +66,13 @@ function recognizeMicStream() {
 	exports.isConversating = true;
 	console.log(TAG, 'recognizing mic stream');
 
-	emitter.emit('user-speaking');
+	emitter.emit('user-can-speak');
 
 	const recognizeStream = SpeechRecognizer.createRecognizeStream({
 		language: exports.sessionModel.translate_from
 	}, (err, text) => {
 		Rec.stop();
-		emitter.emit('user-spoken');
+		emitter.emit('user-spoken')
 
 		if (err) {
 			return emitter.emit('input', {
@@ -222,25 +221,29 @@ exports.output = function(f) {
 // Setup RaspiLeds //
 /////////////////////
 
+let ledAnimation;
+
 emitter.on('ai-hotword-listening', () => {
+	if (ledAnimation) ledAnimation.stop();
 	RaspiLeds.off();
 });
 
 emitter.on('ai-hotword-recognized', () => {
-});
-
-emitter.on('ai-speaking', () => {
-	RaspiLeds.setColor([ 255, 255, 0 ]);
-});
-
-emitter.on('ai-spoken', () => {
-	RaspiLeds.off();
-});
-
-emitter.on('user-speaking', () => {
+	if (ledAnimation) ledAnimation.stop();
 	RaspiLeds.setColor([ 255, 0, 0 ]);
 });
 
+emitter.on('ai-speaking', () => {
+	if (ledAnimation) ledAnimation.stop();
+	RaspiLeds.setColor([ 255, 255, 0 ]);
+});
+
+emitter.on('user-can-speak', () => {
+	if (ledAnimation) ledAnimation.stop();
+	RaspiLeds.setColor([ 0, 255, 0 ]);
+});
+
 emitter.on('user-spoken', () => {
-	RaspiLeds.off();
+	if (ledAnimation) ledAnimation.stop();
+	ledAnimation = RaspiLeds.animateRandom();
 });

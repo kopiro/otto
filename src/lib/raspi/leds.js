@@ -13,7 +13,7 @@ try {
 	LedManager = new Apa102spi(3, 100);
 } catch (err) {
 	console.error(TAG, 'Platform not supported');
-	const noop = () => {}
+	const noop = () => {};
 	LedManager = {
 		setLedColor: noop,
 		sendLeds: noop
@@ -57,13 +57,34 @@ exports.setViaTimeline = function(timeline, method = 'setColor') {
 	});
 };
 
-exports.animate = function(colors, time = 2000) {
-	for (let factor = 0; factor <= 1; factor += 0.01) {
-		setTimeout((factor) => {
-			let c = interpolateColor(colors[0], colors[1], factor);
-			exports.setColor(c);
-		}, factor * time, factor);
-	}
+var LedAnimator = function(ticker) {
+	var self = this;
+	
+	self.run = true;
+	self.tick = 0;
+
+	self.stop = () => { self.run = false; };
+
+	const intv = setInterval(() => {
+		if (self.run === false) { 
+			clearInterval(intv); 
+			return; 
+		}
+		ticker(self.tick++);
+	}, 10);
+};
+
+exports.animateRandom = function() {
+	return new LedAnimator(() => {
+		LedManager.setLedColor(
+			Math.floor(Math.random() * LEDS_COUNT), 
+			BRIGHTNESS_MAX, 
+			Math.floor(Math.random() * 255), 
+			Math.floor(Math.random() * 255), 
+			Math.floor(Math.random() * 255)
+		);
+		LedManager.sendLeds();
+	});
 };
 
 exports.setColor = function(color, x = BRIGHTNESS_MAX) {
