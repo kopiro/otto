@@ -8,11 +8,12 @@ apt-get -y install sox libsox-fmt-all opus-tools supervisor
 
 mkdir -p /var/log/otto
 echo "[program:otto]
-command = /root/otto-ai/boot.sh
-autostart = true
-autorestrart = true
-stderr_logfile = /var/log/otto/out.log
-stdout_logfile = /var/log/otto/err.log
+directory=/root/otto-ai
+command=npm run start
+autostart=true
+autorestrart=true
+stdout_logfile=/var/log/otto/out.log
+stderr_logfile=/var/log/otto/err.log
 " >/etc/supervisor/conf.d/otto.conf
 
 # Install Snowboy
