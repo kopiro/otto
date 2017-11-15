@@ -54,9 +54,6 @@ function sendVoiceMessage(chat_id, text, polly_opt, telegram_opt) {
 
 
 exports.startInput = function() {
-	if (exports.startInput.started) return;
-	exports.startInput.started = true;
-
 	if (_config.webhook) {
 		bot.setWebHook(_config.webhook.url + _config.token, _config.webhook.options);
 		bot.getWebHookInfo().then((e) => {
@@ -223,11 +220,14 @@ function handleVoice(session_model, e) {
 
 						console.debug(TAG, 'file converted, sending to SR');
 
-						SpeechRecognizer.recognizeAudioStream(fs.createReadStream(voice_file + '.wav'), {
-							language: (session_model.translate_from || config.language)
-						})
-						.then(resolve)
-						.catch(reject);
+						fs.createReadStream(voice_file + '.wav').pipe(
+							SpeechRecognizer.createRecognizeStream({
+								language: (session_model.translate_from || config.language)
+							}, (err, text) => {
+								if (err) return reject(err);
+								resolve(text);
+							})
+						);
 					});
 				});
 				res.pipe(r2);
@@ -294,20 +294,10 @@ bot.on('message', (e) => {
 			})
 			.catch((err) => {
 				if (chat_is_group) return;
-
-				if (err.unrecognized) {
-					return exports.emitter.emit('input', {
-						session_model: session_model,
-						error: {
-							speech: ERRMSG_SR_UNRECOGNIZED
-						}
-					});
-				}
-
-				exports.emitter.emit('input', {
+				return exports.emitter.emit('input', {
 					session_model: session_model,
 					error: {
-						speech: ERRMSG_SR_GENERIC
+						speech: err.unrecognized ? ERRMSG_SR_UNRECOGNIZED : ERRMSG_SR_GENERIC
 					}
 				});
 			});
@@ -337,14 +327,12 @@ bot.on('message', (e) => {
 		}
 	})
 	.catch((session_model) => {
-		if (!chat_is_group)  {
-			exports.emitter.emit('input', {
-				session_model: session_model,
-				error: {
-					unauthorized: true
-				}
-			});
-		}
+		emitter.emit('input', {
+			session_model: session_model,
+			error: {
+				unauthorized: true
+			}
+		});
 	});
 });
 

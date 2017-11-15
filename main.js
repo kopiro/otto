@@ -22,10 +22,7 @@ function successResponse(f, session_model) {
 	
 	io.output(f, session_model)
 	.then(io.startInput)
-	.catch((err) => {
-		console.error('Error in success', err);
-		io.startInput();
-	});
+	.catch(io.startInput);
 }
 
 function errorResponse(f, session_model) {
@@ -36,11 +33,7 @@ function errorResponse(f, session_model) {
 	AI.fulfillmentTransformer(f, session_model, (f) => {
 		io.output(f, session_model)
 		.then(io.startInput)
-		.catch((err) => {
-			console.error('Error in error', err);
-			io.startInput();
-		});
-		
+		.catch(io.startInput);
 	});
 }
 

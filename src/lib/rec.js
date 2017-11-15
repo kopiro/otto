@@ -5,7 +5,7 @@ let rec;
 
 // returns a Readable stream
 exports.start = function(opt) {
-	_.defaults(opt, config.rec, {
+	opt = _.defaults(opt || {}, config.rec, {
 		sampleRate: 16000,
 		threshold: 0.5,
 		silence: false,
@@ -52,6 +52,10 @@ exports.start = function(opt) {
 		console.debug(TAG, 'end');
 	});
 
+	return rec.stdout;
+};
+
+exports.getStream = function() {
 	return rec.stdout;
 };
 

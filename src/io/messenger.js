@@ -12,9 +12,6 @@ const bot = new messengerbot(_config);
 const SpeechRecognizer = apprequire('speechrecognizer');
 
 exports.startInput = function() {
-	if (exports.startInput.started) return;
-	exports.startInput.started = true;
-
 	require('http').createServer( bot.middleware() ).listen(_config.port);
 	console.info(TAG, 'started on port ' + _config.port);
 };

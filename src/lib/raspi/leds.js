@@ -12,7 +12,8 @@ try {
 	const Apa102spi = require('apa102-spi');
 	LedManager = new Apa102spi(3, 100);
 } catch (err) {
-	const noop = function() { console.error(TAG, 'Platform not supported'); }
+	console.error(TAG, 'Platform not supported');
+	const noop = () => {}
 	LedManager = {
 		setLedColor: noop,
 		sendLeds: noop

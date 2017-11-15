@@ -5,32 +5,28 @@ const speech = require('@google-cloud/speech')({
 });
 const spawn = require('child_process').spawn;
 
-function createRecognizeStream(opt, callback) {
-	let text = null;
-	let timeout = null;
+exports.createRecognizeStream = function(opt, callback) {
+	let finished = false;
 
 	const stream = speech.streamingRecognize({
 		// If false or omitted, the recognizer will perform continuous recognition
 		singleUtterance: true,
 		// If true, interim results (tentative hypotheses) may be returned as they become available 
-		interimResults: false,
+		interimResults: true,
 		config: {
 			encoding: opt.encoding || 'LINEAR16',
 			sampleRateHertz: opt.sampleRate || 16000,
-			languageCode: opt.locale
+			languageCode: Util.getLocaleFromLanguageCode(opt.language)
 		}
 	});
 
-	stream.on('end', () => {
-		console.debug(TAG, 'end');
-		if (text == null) {
-			callback({ unrecognized: true });
-		}          
-	});     
-
-	stream.on('close', () => {
-		console.debug(TAG, 'closed');
-	});
+	// stream.on('end', () => {
+	// 	console.debug(TAG, 'end');
+	// 	if (false === finished) {
+	// 		finished = true;
+	// 		callback({ unrecognized: true });
+	// 	}      
+	// });     
 
 	stream.on('error', (err) => {
 		console.error(TAG, err);
@@ -42,7 +38,7 @@ function createRecognizeStream(opt, callback) {
 		if (data.results.length > 0) {
 			var r = data.results[0];
 			if (r.isFinal) {
-				text = r.alternatives[0].transcript;
+				const text = r.alternatives[0].transcript;
 				console.info(TAG, 'recognized', text);
 				callback(null, text);
 			}
@@ -50,22 +46,4 @@ function createRecognizeStream(opt, callback) {
 	});
 
 	return stream;
-}
-
-exports.recognizeAudioStream = function(stream, opt) {
-	console.debug(TAG, 'recognizing an audio stream', opt);
-
-	return new Promise((resolve, reject) => {
-		opt = _.defaults(opt || {}, {
-		});
-
-		const locale = Util.getLocaleFromLanguageCode(opt.language);
-
-		stream.pipe(createRecognizeStream({
-			locale: locale
-		}, (err, text) => {
-			if (err) return reject(err);
-			resolve(text);
-		}));
-	});
 };

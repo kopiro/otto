@@ -1,7 +1,8 @@
 const TAG = 'IO.Kid';
 
 const _config = _.defaults(config.io.kid || {}, {
-	waitForActivator: false
+	waitForActivator: false,
+	eocMax: 10
 });
 
 const emitter = exports.emitter = new (require('events').EventEmitter)();
@@ -17,11 +18,30 @@ const Polly = apprequire('polly');
 const Play = apprequire('play');
 const RaspiLeds = apprequire('raspi/leds');
 const URLManager = apprequire('urlmanager');
+const {Detector, Models} = require('snowboy');
 
-function sendMessage(text, opt) {
+exports.isConversating = false;
+exports.sessionModel = null;
+
+let eocInterval = null;
+let eocTimeout = -1;
+
+const models = new Models();
+models.add({
+	file: __etcdir + '/hotword.pmdl',
+	sensitivity: '0.5',
+	hotwords: _config.hotword
+});
+
+function sendMessage(text, language) {
 	return new Promise((resolve, reject) => {
+		eocTimeout = -1; // Inibit timer while AI is talking
+		language = language || exports.sessionModel.translate_to || config.language;
+
 		async.eachSeries(Util.mimicHumanMessage(text), (t, next) => {
-			Polly.getAudioFile(t, opt)
+			Polly.getAudioFile(t, {
+				language: language
+			})
 			.then((polly_file) => {
 				Play.fileToSpeaker(polly_file, (err) => {
 					if (err) return reject(err);
@@ -29,79 +49,146 @@ function sendMessage(text, opt) {
 				});
 			})
 			.catch(reject);
-		}, resolve);
+		}, () => {
+			eocTimeout = _config.eocMax;
+			resolve();
+		});
 	});
+}
+
+function sendFirstHint() {
+	return sendMessage("Dimmi");
+}
+
+function recognizeMicStream() {
+	exports.isConversating = true;
+	console.log(TAG, 'recognizing mic stream');
+
+	const recognizeStream = SpeechRecognizer.createRecognizeStream({
+		language: exports.sessionModel.translate_from
+	}, (err, text) => {
+		Rec.stop();
+
+		if (err) {
+			return emitter.emit('input', {
+				session_model: exports.sessionModel,
+				error: {
+					speech: err.unrecognized ? ERRMSG_SR_UNRECOGNIZED : ERRMSG_SR_GENERIC
+				}
+			});
+		}
+
+		IOManager.writeLogForSession(exports.sessionModel.id, text);
+
+		emitter.emit('input', {
+			session_model: exports.sessionModel,
+			params: {
+				text: text
+			}
+		});
+	});
+
+	recognizeStream.on('data', (data) => {
+		if (data.results.length > 0) {
+			eocTimeout = _config.eocMax;
+		}
+	});
+
+	Rec.start().pipe(recognizeStream);
+}
+
+function registerGlobalSession(callback) {
+	IOManager.registerSession(clientId, exports.id, { platform: process.platform })
+	.then((sm) => {
+		exports.sessionModel = sm;
+		console.log(TAG, 'session registered', exports.sessionModel);
+		callback();
+	})
+	.catch((sm) => {
+		console.log(TAG, 'session rejected', sm);
+	});
+}
+
+function listenForHotWord() {
+	console.warn(TAG, 'waiting for hotword');
+	exports.isWaitingForHotWord = true;
+
+	const detector = new Detector({
+		resource: __etcdir + '/common.res',
+		models: models,
+		audioGain: 1.0
+	});
+
+	detector.on('hotword', function (index, hotword, buffer) {
+		console.log(TAG, 'hotword', hotword);
+		emitter.emit('hotword');
+
+		exports.isWaitingForHotWord = false;
+
+		// Stop streaming to detector
+		Rec.stop();
+	
+		// Send the first hit and listen
+		sendFirstHint().then(() => {
+			recognizeMicStream();
+		});
+	});
+
+	detector.on('silence', () => {
+		process.stdout.write('〰️');
+	});
+
+	detector.on('sound', (buffer) => {
+		process.stdout.write('🔉 ');
+	});
+
+	detector.on('error', (err) => {
+		console.error(TAG, err);
+	});
+
+	Rec.start().pipe(detector);
 }
 
 exports.startInput = function() {
 	console.debug(TAG, 'startInput');
 
-	IOManager.registerSession(clientId, exports.id, { platform: process.platform })
-	.then((session_model) => {
+	if (exports.sessionModel == null) {
+		return registerGlobalSession(exports.startInput);
+	}
 
-		emitter.emit('input.start', {
-			session_model: session_model,
-		});
-		
-		let rec_stream = Rec.start(_.extend({
-			sampleRate: 16000,
-			verbose: false,
-			silence: true,
-			time: 10
-		}, config.recorder));
-
-		SpeechRecognizer.recognizeAudioStream(rec_stream, {
-			language: session_model.translate_from
-		})
-		.then((text) => {
-
-			Rec.stop();
-			IOManager.writeLogForSession(session_model.id, text);
-
-			if (_config.waitForActivator) {
-				if (false === AI_NAME_ACTIVATOR.test(text)) {
-					console.info(TAG, 'skipping input for missing activator', text);
-					exports.startInput({ listenSound: false });
-					return;
-				}
+	if (eocInterval == null) {
+		eocInterval = setInterval(() => {
+			if (eocTimeout == 0) {
+				console.warn(TAG, 'timeout exceeded for conversation');
+				Rec.stop();
+				exports.isConversating = false;
+				eocTimeout = -1;
+				exports.startInput();
+			} else if (eocTimeout > 0) {
+				console.log(TAG, eocTimeout + ' seconds remaining');
+				eocTimeout--;
 			}
+		}, 1000);
+	}
 
-			emitter.emit('input', {
-				session_model: session_model,
-				params: {
-					text: text
-				}
-			});
+	if (exports.isConversating) {
+		recognizeMicStream();
+		return;
+	}
 
-		})
-		.catch((err) => {
-			console.error(TAG, 'input', err);
-			Rec.stop();
-			exports.startInput();
-		});
-
-	})
-	.catch((session_model) => {
-		emitter.emit('input', {
-			session_model: session_model,
-			error: {
-				unauthorized: true
-			}
-		});
-	});
+	if (!exports.isWaitingForHotWord) {
+		listenForHotWord();
+	}
 };
 
-exports.output = function(f, session_model) {
-	console.info(TAG, 'output', session_model.id, f);
+exports.output = function(f) {
+	console.info(TAG, 'output', exports.sessionModel.id, f);
 
 	return new Promise((resolve, reject) => {
-		const language = f.data.language || session_model.translate_to || config.language;
 
 		if (f.data.error) {
 			if (f.data.error.speech) {	
-				sendMessage(f.data.error.speech, {
-					language: language
-				})
+				sendMessage(f.data.error.speech, f.data.language)
 				.then(resolve)
 				.catch(reject);
 			} else {
@@ -114,9 +201,7 @@ exports.output = function(f, session_model) {
 		}
 
 		if (f.speech) {
-			return sendMessage(f.speech, {
-				language: language
-			})
+			return sendMessage(f.speech, f.data.language)
 			.then(resolve)
 			.catch(reject);
 		} 
@@ -134,10 +219,14 @@ exports.output = function(f, session_model) {
 // Setup RaspiLeds //
 /////////////////////
 
-emitter.on('input.start', () => {
-	RaspiLeds.setColor([ 0,255,0 ]);
+emitter.on('hotword', () => {
+	RaspiLeds.setColor([ 0, 0, 255 ]);
 });
 
-emitter.on('input', () => {
-	RaspiLeds.off();
+emitter.on('input', ({ error }) => {
+	if (error) {
+		RaspiLeds.setColor([ 255, 0, 0 ]);
+	} else {
+		RaspiLeds.setColor([ 0, 255, 0 ]);
+	}
 });

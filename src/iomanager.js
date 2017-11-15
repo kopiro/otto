@@ -111,7 +111,6 @@ exports.registerSession = function(sessionId, io_id, data, text) {
 		.findOne({ _id: sessionIdComposite })
 		.populate('contact')
 		.then((session_model) => {
-
 			if (session_model == null) {
 				new Data.Session({ 
 					_id: sessionIdComposite,
@@ -120,26 +119,20 @@ exports.registerSession = function(sessionId, io_id, data, text) {
 				})
 				.save()
 				.then((session_model) => {
-
 					exports.writeLogForSession(sessionIdComposite, text);
 					resolve(session_model);
-
 				})
 				.catch((err) => {
 					console.error(TAG, 'Unable to register session', err);
 				});
 			} else {
-
 				exports.writeLogForSession(sessionIdComposite, text);
 				resolve(session_model);
-
 			}
-
 		})
 		.catch((err) => {
 			console.error(TAG, 'Register session', err);
 		});
-
 	});
 };
 
