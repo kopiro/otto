@@ -7,8 +7,5 @@ ln -s /node_modules /app/node_modules
 echo "==> Updating package-lock.json"
 cp /package-lock.json /app/package-lock.json
 
-echo "==> Tunneling"
-/app/tunnel.sh
-
 echo "==> Running supervisor"
 npm run dev

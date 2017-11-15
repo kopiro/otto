@@ -1,11 +1,13 @@
 const TAG = 'Polly';
 
+const _ = require('underscore');
 const md5 = require('md5');
 const aws = apprequire('aws');
+const fs = require('fs');
 
 const Play = apprequire('play');
 
-const Polly = new aws.Polly({
+const pollyClient = new aws.Polly({
 	signatureVersion: 'v4',
 	region: 'eu-west-1'
 });
@@ -37,7 +39,7 @@ function getVoice(opt) {
 		if (locale_to_voice[locale]) {
 			resolve(locale_to_voice[locale]);
 		} else {
-			Polly.describeVoices({
+			pollyClient.describeVoices({
 				LanguageCode: locale
 			}, (err, data) => {
 				if (err && err.code === 'ValidationException') {
@@ -90,7 +92,7 @@ exports.getAudioFile = function(text, opt) {
 		
 		getVoice(opt)
 		.then((voice) => {
-			Polly.synthesizeSpeech({
+			pollyClient.synthesizeSpeech({
 				VoiceId: voice.Id,
 				Text: text,
 				OutputFormat: 'mp3',
@@ -117,4 +119,4 @@ exports.getAudioFile = function(text, opt) {
 		.catch(reject);
 
 	});
-}
+};

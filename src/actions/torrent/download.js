@@ -1,8 +1,8 @@
 exports.id = 'torrent.download';
 
+const _ = require('underscore');
+
 const se = apprequire('torrent/se');
-
-
 
 module.exports = function({ sessionId, result }, session_model) {
 	return new Promise((resolve, reject) => {
@@ -47,7 +47,7 @@ module.exports = function({ sessionId, result }, session_model) {
 			const torrents_speech = torrents.map((e,i) => (i+1) + '. ' + e.title + '.').join("\n");
 			if (torrents.length > 5) {
 				speech = 'Ci sono troppe cose con il nome ' + p.q + 
-				'. Ne ho trovate ben ' + torrents.length + '; quale vuoi scaricare?' + "\n\n" + torrents_speech 
+				'. Ne ho trovate ben ' + torrents.length + '; quale vuoi scaricare?' + "\n\n" + torrents_speech;
 			} else {
 				speech = 'Scusami ma non riesco a decidere tra questi ' + torrents.length + '; quale vuoi scaricare?' + "\n\n" + torrents_speech;
 			}

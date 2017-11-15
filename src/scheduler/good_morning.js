@@ -1,5 +1,7 @@
 const TAG = 'Scheduler/GoodMorning';
 
+const moment = apprequire('moment');
+
 exports.run = function({ session }) {
 	const now = moment();
 

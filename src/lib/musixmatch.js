@@ -1,5 +1,9 @@
-const _config = config.ai.musixmatch;
 const TAG = 'MusixMatch';
+
+const _ = require('underscore');
+const request = require('fs');
+
+const _config = config.ai.musixmatch;
 
 const endpoint = "https://musixmatchcom-musixmatch.p.mashape.com/wsr/1.1/";
 

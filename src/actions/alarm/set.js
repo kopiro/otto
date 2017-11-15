@@ -1,5 +1,8 @@
 exports.id = 'alarm.set';
 
+const _ = require('underscore');
+const moment = apprequire('moment');
+
 module.exports = function({ sessionId, result }, session_model) {
 	return new Promise((resolve, reject) => {
 		let { parameters: p, fulfillment } = result;

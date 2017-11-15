@@ -1,9 +1,7 @@
-/*
-Role: Get Facebook stories from the page and put into DB
-*/
-
 const TAG = 'Scheduler/FacebookStories';
 const Facebook = apprequire('facebook');
+const moment = apprequire('moment');
+
 const _config = config.facebook;
 
 exports.run = function() {

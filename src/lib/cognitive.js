@@ -1,5 +1,9 @@
-const _config = config.ai.cognitive;
 const TAG = 'Cognitive';
+
+const _ = require('underscore');
+const request = require('fs');
+
+const _config = config.ai.cognitive;
 
 const BASE_URL = 'https://westus.api.cognitive.microsoft.com';
 

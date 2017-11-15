@@ -1,16 +1,16 @@
 const TAG = 'IO.Kid';
+exports.id = 'kid';
+
+const _ = require('underscore');
+const async = require('async');
 
 const _config = _.defaults(config.io.kid || {}, {
 	waitForActivator: false,
-	eocMax: 7
+	eocMax: 7,
+	firstHint: 'Dimmi'
 });
 
 const emitter = exports.emitter = new (require('events').EventEmitter)();
-
-exports.id = 'kid';
-exports.capabilities = { 
-	userCanViewUrls: false
-};
 
 const Rec = apprequire('rec');
 const SpeechRecognizer = apprequire('speechrecognizer');
@@ -20,9 +20,8 @@ const RaspiLeds = apprequire('raspi/leds');
 const URLManager = apprequire('urlmanager');
 const {Detector, Models} = require('snowboy');
 
-exports.isConversating = false;
-exports.sessionModel = null;
-
+let isConversation = false;
+let sessionModel = null;
 let eocInterval = null;
 let eocTimeout = -1;
 
@@ -36,9 +35,10 @@ models.add({
 function sendMessage(text, language) {
 	return new Promise((resolve, reject) => {
 		eocTimeout = -1; // Inibit timer while AI is talking
-		language = language || exports.sessionModel.translate_to || config.language;
+		language = language || sessionModel.translate_to || config.language;
 
-		async.eachSeries(Util.mimicHumanMessage(text), (t, next) => {
+		const sentences = Util.mimicHumanMessage(text);
+		async.eachSeries(sentences, (t, next) => {
 			Polly.getAudioFile(t, {
 				language: language
 			})
@@ -59,34 +59,34 @@ function sendMessage(text, language) {
 }
 
 function sendFirstHint() {
-	return sendMessage("Dimmi");
+	return sendMessage(_config.firstHint);
 }
 
 function recognizeMicStream() {
-	exports.isConversating = true;
+	isConversation = true;
 	console.log(TAG, 'recognizing mic stream');
 
 	emitter.emit('user-can-speak');
 
 	const recognizeStream = SpeechRecognizer.createRecognizeStream({
-		language: exports.sessionModel.translate_from
+		language: sessionModel.translate_from
 	}, (err, text) => {
 		Rec.stop();
 		emitter.emit('user-spoken');
 
 		if (err) {
 			return emitter.emit('input', {
-				session_model: exports.sessionModel,
+				session_model: sessionModel,
 				error: {
 					speech: err.unrecognized ? ERRMSG_SR_UNRECOGNIZED : ERRMSG_SR_GENERIC
 				}
 			});
 		}
 
-		IOManager.writeLogForSession(exports.sessionModel.id, text);
+		IOManager.writeLogForSession(sessionModel.id, text);
 
 		emitter.emit('input', {
-			session_model: exports.sessionModel,
+			session_model: sessionModel,
 			params: {
 				text: text
 			}
@@ -103,20 +103,19 @@ function recognizeMicStream() {
 }
 
 function registerGlobalSession(callback) {
-	IOManager.registerSession(clientId, exports.id, { platform: process.platform })
+	IOManager.registerSession(CLIENT_ID, exports.id, { platform: process.platform })
 	.then((sm) => {
-		exports.sessionModel = sm;
-		console.log(TAG, 'session registered', exports.sessionModel);
+		sessionModel = sm;
+		console.log(TAG, 'global session registered', sessionModel);
 		callback();
 	})
 	.catch((sm) => {
-		console.log(TAG, 'session rejected', sm);
+		console.error(TAG, 'global session rejected', sm);
 	});
 }
 
 function listenForHotWord() {
 	console.warn(TAG, 'waiting for hotword');
-
 	emitter.emit('ai-hotword-listening');
 
 	const detector = new Detector({
@@ -126,16 +125,15 @@ function listenForHotWord() {
 	});
 
 	detector.on('hotword', function (index, hotword, buffer) {
-		console.log(TAG, 'hotword', hotword);
+		console.log(TAG, 'hotword');
 		emitter.emit('ai-hotword-recognized');
 
 		// Stop streaming to detector
 		Rec.stop();
 	
 		// Send the first hit and listen
-		sendFirstHint().then(() => {
-			recognizeMicStream();
-		});
+		sendFirstHint()
+		.then(recognizeMicStream);
 	});
 
 	detector.on('silence', () => {
@@ -156,7 +154,7 @@ function listenForHotWord() {
 exports.startInput = function() {
 	console.debug(TAG, 'startInput');
 
-	if (exports.sessionModel == null) {
+	if (sessionModel == null) {
 		return registerGlobalSession(exports.startInput);
 	}
 
@@ -165,13 +163,13 @@ exports.startInput = function() {
 			if (eocTimeout == 0) {
 				console.warn(TAG, 'timeout exceeded for conversation');
 				
-				exports.isConversating = false;
+				isConversation = false;
 				eocTimeout = -1;
 				Rec.stop();
 				
 				setTimeout(() => {
 					emitter.emit('input', {
-						session_model: exports.sessionModel,
+						session_model: sessionModel,
 						error: {
 							eoc: true
 						}
@@ -185,7 +183,7 @@ exports.startInput = function() {
 		}, 1000);
 	}
 
-	if (exports.isConversating) {
+	if (isConversation) {
 		recognizeMicStream();
 		return;
 	}
@@ -194,10 +192,9 @@ exports.startInput = function() {
 };
 
 exports.output = function(f) {
-	console.info(TAG, 'output', exports.sessionModel.id, f);
+	console.info(TAG, 'output', sessionModel.id, f);
 
 	return new Promise((resolve, reject) => {
-
 		if (f.data.error) {
 			if (f.data.error.speech) {	
 				sendMessage(f.data.error.speech, f.data.language)

@@ -1,18 +1,19 @@
 const TAG = 'IO.Messenger';
-const _config = config.io.messenger;
-
-const EventEmitter = require('events').EventEmitter;
-exports.emitter = new EventEmitter();
-
 exports.id = 'messenger';
 
-const messengerbot = require('messenger-bot');
-const bot = new messengerbot(_config);
+const http = require('http');
+
+const emitter = exports.emitter = new (require('events').EventEmitter)();
+
+const _config = config.io.messenger;
 
 const SpeechRecognizer = apprequire('speechrecognizer');
 
+const MessengerBot = require('messenger-bot');
+const bot = new MessengerBot(_config);
+
 exports.startInput = function() {
-	require('http').createServer( bot.middleware() ).listen(_config.port);
+	http.createServer( bot.middleware() ).listen(_config.port);
 	console.info(TAG, 'started on port ' + _config.port);
 };
 
@@ -114,7 +115,7 @@ bot.on('message', (e) => {
 		}, e.message.text)
 		.then((session_model) => {
 			if (e.message.text) {
-				return exports.emitter.emit('input', {
+				return emitter.emit('input', {
 					session_model: session_model,
 					params: {
 						text: e.message.text
@@ -125,7 +126,7 @@ bot.on('message', (e) => {
 			if (e.message.attachments) {
 				const attach = _.first(e.message.attachments);
 				if (attach.type === 'image') {
-					return exports.emitter.emit('input', {
+					return emitter.emit('input', {
 						session_model: session_model,
 						params: {
 							image: {
@@ -136,7 +137,7 @@ bot.on('message', (e) => {
 				}
 			}
 
-			return exports.emitter.emit('input', {
+			return emitter.emit('input', {
 				session_model: session_model,
 				error: {
 					unkownInputType: true
@@ -144,7 +145,7 @@ bot.on('message', (e) => {
 			});
 		})
 		.catch((session_model) => {
-			exports.emitter.emit('input', {
+			emitter.emit('input', {
 				session_model: session_model,
 				error: {
 					unauthorized: true

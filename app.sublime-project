@@ -5,6 +5,12 @@
 			"folder_exclude_patterns":
 			[
 				"node_modules",
+				"cache",
+				"audio",
+				"tmp",
+				"storage",
+				"log",
+				"keys",
 				"package-lock.json",
 				"yarn.lock",
 				"public",

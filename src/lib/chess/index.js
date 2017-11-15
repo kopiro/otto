@@ -1,5 +1,7 @@
 const TAG = 'Chess';
 
+const _ = require('underscore');
+
 const Chess = require('chess.js').Chess;
 const Server = apprequire('server');
 

@@ -4,6 +4,8 @@ require('../boot');
 
 const TAG = 'Say';
 
+const async = require('async');
+
 const Polly = apprequire('polly');
 const Play = apprequire('play');
 

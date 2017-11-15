@@ -1,5 +1,7 @@
 const TAG = 'Play';
 
+const _ = require('underscore');
+
 const spawn = require('child_process').spawn;
 const PITCH = 700;
 const _config = _.defaults(config.speaker || {}, {

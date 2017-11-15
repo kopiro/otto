@@ -1,4 +1,11 @@
+const _ = require('underscore');
 const Schema = mongoose.Schema;
+
+const Settings = new Schema({
+	key: String,
+	value: Schema.Types.Mixed
+});
+exports.Settings = mongoose.model('setting', Settings);
 
 const Session = new Schema({
 	_id: String,

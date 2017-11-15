@@ -1,5 +1,7 @@
 const TAG = 'Rec';
 
+const _ = require('underscore');
+
 const spawn = require('child_process').spawn;
 let rec;
 

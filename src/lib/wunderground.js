@@ -1,5 +1,7 @@
+const TAG = 'wunderground';
+
 const _config = config.ai.wunderground;
-const TAG = path.basename(__filename, '.js');
+const request = require('fs');
 
 exports.api = function(opt, callback) {
 	let url = [

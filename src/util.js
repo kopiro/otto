@@ -1,7 +1,14 @@
 const uuid = require('uuid');
+const async = require('async');
+const _ = require('underscore');
+const diacriticsRemove = require('diacritics').remove;
 
 global.uuid = function() {
 	return uuid.v4();
+};
+
+global.cleanText = function(t) {
+	return diacriticsRemove(t).toLowerCase();
 };
 
 Array.prototype.getRandom = function() {

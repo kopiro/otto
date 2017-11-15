@@ -1,5 +1,8 @@
 exports.id = 'weather.search';
 
+const _ = require('underscore');
+const moment = apprequire('moment');
+
 const Wunderground = apprequire('wunderground');
 
 const wg_qualifiers = ['chance','mostly','partly'];

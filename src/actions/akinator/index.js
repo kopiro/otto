@@ -1,4 +1,7 @@
 exports.id = 'akinator';
+
+const _ = require('underscore');
+
 const Akinator = apprequire('akinator');
 
 function cleanText(t) {

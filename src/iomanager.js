@@ -1,9 +1,7 @@
 const TAG = 'IOManager';
 
-function cleanText(t) {
-	const diacriticsRemove = require('diacritics').remove;
-	return diacriticsRemove(t).toLowerCase();
-}
+const _ = require('underscore');
+const async = require('async');
 
 exports.drivers = {};
 

@@ -1,5 +1,7 @@
 exports.id = 'translate.text';
 
+const _ = require('underscore');
+
 const Translator = apprequire('translator');
 
 module.exports = function({ sessionId, result }) {

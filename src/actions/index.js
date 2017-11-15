@@ -1,3 +1,5 @@
+const fs = require('fs');
+
 exports.list = {};
 
 (function iterate(dir) {

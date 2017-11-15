@@ -1,5 +1,7 @@
 const TAG = 'AWH';
 
+const _ = require('underscore');
+
 const Router = apprequire('server').routerAwh;
  
 Router.post('/', (req, res) => {

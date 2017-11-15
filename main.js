@@ -1,19 +1,6 @@
 require('./boot');
 
-IOManager.loadDrivers();
-IOManager.startPolling();
-
-if (config.scheduler) {
-	SchedulerManager.run();
-}
-
-if (config.server) {
-	require(__basedir + '/src/server');
-}
-
-if (config.awh) {
-	require(__basedir + '/src/awh');
-}
+const _ = require('underscore');
 
 function successResponse(f, session_model) {
 	console.debug('Success', session_model._id, f);
@@ -112,7 +99,26 @@ function onIoResponse({ session_model, error, params }) {
 	});
 }
 
-_.each(IOManager.drivers, (io) => {
-	io.emitter.on('input', onIoResponse.bind(io));
-	io.startInput();
+IOManager.loadDrivers();
+
+if (config.server) {
+	require(__basedir + '/src/server');
+}
+
+if (config.awh) {
+	require(__basedir + '/src/awh');
+}
+
+mongoose.connection.on('error', (err) => {
+	console.error('Database connection error', err);
+});
+
+mongoose.connection.once('open', () => {
+	if (config.scheduler) Scheduler.startPolling();
+	IOManager.startPolling();
+
+	_.each(IOManager.drivers, (io) => {
+		io.emitter.on('input', onIoResponse.bind(io));
+		io.startInput();
+	});
 });

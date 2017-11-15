@@ -1,5 +1,9 @@
 exports.id = 'gocrazy';
 
+const _ = require('underscore');
+const fs = require('fs');
+const spawn = require('child_process').spawn;
+
 const Translator = apprequire('translator');
 const ImagesClient = require('google-images');
 const client = new ImagesClient(config.ai.gcloud.cseId, config.ai.gcloud.apiKey);

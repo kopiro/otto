@@ -1,5 +1,8 @@
 const TAG = 'Scheduler/Alarm';
 
+const _ = require('underscore');
+const moment = apprequire('moment');
+
 const ALARM_STRINGS = [
 "Hey {name}, sveglia!"
 ];

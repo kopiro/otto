@@ -1,7 +1,7 @@
 const TAG = 'Akinator';
-var request = require('request');
+const request = require('request');
 
-var Akinator = function(language) {
+let Akinator = function(language) {
 	this.url = `http://api-${language}2.akinator.com/ws/`;
 	this.session = null;
 	this.signature = null;

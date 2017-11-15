@@ -1,5 +1,7 @@
 exports.id = 'messaging.sendto';
 
+const _ = require('underscore');
+
 const ELIGIBLE_MIN_MUL = 2;
 
 module.exports = function({ sessionId, result }, session_model) {

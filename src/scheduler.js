@@ -1,10 +1,13 @@
-const TAG = 'SchedulerManager';
+const TAG = 'Scheduler';
+
+const _ = require('underscore');
+const moment = apprequire('moment');
 
 function getScheduler(time) {
 	return new Promise((resolve, reject) => {
 		Data.Scheduler
 		.find({
-			client: clientId,
+			client: CLIENT_ID,
 			$or: [
 			{ daily: (time.hours() + ':' + time.minutes()) },
 			{ hourly: (time.minutes()) }
@@ -38,12 +41,7 @@ function tick() {
 	});
 }
 
-let started = false;
-
-exports.run = function() {
-	if (started) return;
-	started = true;
-
-	console.info(TAG, 'started');
+exports.startPolling = function() {
+	console.log(TAG, 'started');
 	tick();
 };

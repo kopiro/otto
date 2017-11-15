@@ -1,5 +1,7 @@
 exports.id = 'settings.switchlang';
 
+const _ = require('underscore');
+
 module.exports = function({ sessionId, result }, session_model) {
 	return new Promise((resolve, reject) => {
 		let { parameters: p, fulfillment } = result;

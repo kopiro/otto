@@ -1,7 +1,10 @@
 const TAG = 'AI';
+
+const _ = require('underscore');
+
 const _config = config.apiai;
 
-const client = require('apiai')(_config.token);
+const apiaiClient = require('apiai')(_config.token);
 
 const Translator = apprequire('translator');
 
@@ -107,7 +110,7 @@ exports.textRequest = function(text, session_model) {
 
 		exports.textRequestTransformer(text, session_model, (text) => {
 
-			let request = client.textRequest(text, {
+			let request = apiaiClient.textRequest(text, {
 				sessionId: session_model._id
 			});
 

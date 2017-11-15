@@ -1,10 +1,14 @@
 const TAG = 'IO.Telegram';
+exports.id = 'telegram';
+
+const _ = require('underscore');
+const fs = require('fs');
+const request = require('request');
+const async = require('async');
+
 const _config = config.io.telegram;
 
-const EventEmitter = require('events').EventEmitter;
-exports.emitter = new EventEmitter();
-
-exports.id = 'telegram';
+const emitter = exports.emitter = new (require('events').EventEmitter)();
 
 const TelegramBot = require('node-telegram-bot-api');
 const SpeechRecognizer = apprequire('speechrecognizer');
@@ -265,7 +269,7 @@ bot.on('message', (e) => {
 				return;
 			}
 
-			return exports.emitter.emit('input', {
+			return emitter.emit('input', {
 				session_model: session_model,
 				params: {
 					text: e.text
@@ -285,7 +289,7 @@ bot.on('message', (e) => {
 				// User sent a voice note, respond with a voice note :)
 				session_model.saveInPipe({ nextOutputWithVoice: true });
 				
-				exports.emitter.emit('input', {
+				emitter.emit('input', {
 					session_model: session_model,
 					params: {
 						text: text
@@ -294,7 +298,7 @@ bot.on('message', (e) => {
 			})
 			.catch((err) => {
 				if (chat_is_group) return;
-				return exports.emitter.emit('input', {
+				return emitter.emit('input', {
 					session_model: session_model,
 					error: {
 						speech: err.unrecognized ? ERRMSG_SR_UNRECOGNIZED : ERRMSG_SR_GENERIC
@@ -306,7 +310,7 @@ bot.on('message', (e) => {
 		if (e.photo) {
 			return bot.getFileLink( _.last(e.photo).file_id ).then((file_link) => {
 				if (chat_is_group) return;
-				exports.emitter.emit('input', {
+				emitter.emit('input', {
 					session_model: session_model,
 					params: {
 						image: {
@@ -318,7 +322,7 @@ bot.on('message', (e) => {
 		}
 
 		if (!chat_is_group) {
-			return exports.emitter.emit('input', {
+			return emitter.emit('input', {
 				session_model: session_model,
 				error: {
 					unknowInputType: true

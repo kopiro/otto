@@ -1,3 +1,5 @@
+const spawn = require('child_process').spawn;
+
 exports.open = function(url) {
-	require('child_process').spawn('open', [ url ]);
+	spawn('open', [ url ]);
 };

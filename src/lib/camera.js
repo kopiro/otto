@@ -1,8 +1,12 @@
 const TAG = 'Camera';
+
+const _ = require('underscore');
+const fs = require('fs');
+const spawn = require('child_process').spawn;
+
 const _config = _.defaults(config.camera || {}, {
 });
 
-const spawn = require('child_process').spawn;
 const IS_RPI = (() => {
 	try {
 		require('child_process').execSync('which raspistill');

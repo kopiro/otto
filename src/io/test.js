@@ -1,5 +1,8 @@
 const TAG = 'IO.Test';
 
+const _ = require('underscore');
+const fs = require('fs');
+
 const EventEmitter = require('events').EventEmitter;
 exports.emitter = new EventEmitter();
 
@@ -16,7 +19,7 @@ let strings = fs.readFileSync(__basedir + '/in.txt').toString().split("\n");
 exports.startInput = function() {
 	console.info(TAG, 'start');
 
-	IOManager.registerSession(clientId, exports.id, { platform: process.platform })
+	IOManager.registerSession(CLIENT_ID, exports.id, { platform: process.platform })
 	.then((session_model) => {
 		let msg = strings.shift();
 

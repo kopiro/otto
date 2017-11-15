@@ -1,5 +1,7 @@
 const TAG = 'CronVision';
 
+const fs = require('fs');
+
 const Vision = apprequire('vision');
 const Camera = apprequire('camera');
 const GCS = apprequire('gcs');
