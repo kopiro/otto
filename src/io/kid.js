@@ -2,7 +2,7 @@ const TAG = 'IO.Kid';
 
 const _config = _.defaults(config.io.kid || {}, {
 	waitForActivator: false,
-	eocMax: 10
+	eocMax: 7
 });
 
 const emitter = exports.emitter = new (require('events').EventEmitter)();
@@ -35,6 +35,8 @@ models.add({
 
 function sendMessage(text, language) {
 	return new Promise((resolve, reject) => {
+		emitter.emit('ai-speaking');
+
 		eocTimeout = -1; // Inibit timer while AI is talking
 		language = language || exports.sessionModel.translate_to || config.language;
 
@@ -51,6 +53,7 @@ function sendMessage(text, language) {
 			.catch(reject);
 		}, () => {
 			eocTimeout = _config.eocMax;
+			emitter.emit('ai-spoken');
 			resolve();
 		});
 	});
@@ -89,6 +92,7 @@ function recognizeMicStream() {
 	});
 
 	recognizeStream.on('data', (data) => {
+		emitter.emit('user-speaking');
 		if (data.results.length > 0) {
 			eocTimeout = _config.eocMax;
 		}
@@ -111,7 +115,8 @@ function registerGlobalSession(callback) {
 
 function listenForHotWord() {
 	console.warn(TAG, 'waiting for hotword');
-	exports.isWaitingForHotWord = true;
+
+	emitter.emit('listening');
 
 	const detector = new Detector({
 		resource: __etcdir + '/common.res',
@@ -122,8 +127,6 @@ function listenForHotWord() {
 	detector.on('hotword', function (index, hotword, buffer) {
 		console.log(TAG, 'hotword', hotword);
 		emitter.emit('hotword');
-
-		exports.isWaitingForHotWord = false;
 
 		// Stop streaming to detector
 		Rec.stop();
@@ -176,9 +179,7 @@ exports.startInput = function() {
 		return;
 	}
 
-	if (!exports.isWaitingForHotWord) {
-		listenForHotWord();
-	}
+	listenForHotWord();
 };
 
 exports.output = function(f) {
@@ -219,14 +220,22 @@ exports.output = function(f) {
 // Setup RaspiLeds //
 /////////////////////
 
+emitter.on('listening', () => {
+	RaspiLeds.off();
+});
+
 emitter.on('hotword', () => {
 	RaspiLeds.setColor([ 0, 0, 255 ]);
 });
 
-emitter.on('input', ({ error }) => {
-	if (error) {
-		RaspiLeds.setColor([ 255, 0, 0 ]);
-	} else {
-		RaspiLeds.setColor([ 0, 255, 0 ]);
-	}
+emitter.on('ai-speaking', () => {
+	RaspiLeds.setColor([ 255, 255, 0 ]);
+});
+
+emitter.on('ai-spoken', () => {
+	RaspiLeds.off();
+});
+
+emitter.on('user-speaking', () => {
+	RaspiLeds.setColor([ 255, 0, 255 ]);
 });
