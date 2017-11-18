@@ -3,19 +3,24 @@ const TAG = 'SpeechRecognizer';
 const speech = require('@google-cloud/speech')({
 	keyFilename: __basedir + '/keys/gcloud.json'
 });
-const spawn = require('child_process').spawn;
+const _ = require('underscore');
 
 exports.createRecognizeStream = function(opt, callback) {
-	let finished = false;
+	opt = _.defaults(opt || {}, {
+		interimResults: true,
+		encoding: 'LINEAR16',
+		sampleRate: 16000,
+		language: config.language
+	});
 
 	const stream = speech.streamingRecognize({
 		// If false or omitted, the recognizer will perform continuous recognition
 		singleUtterance: true,
 		// If true, interim results (tentative hypotheses) may be returned as they become available 
-		interimResults: true,
+		interimResults: opt.interimResults,
 		config: {
-			encoding: opt.encoding || 'LINEAR16',
-			sampleRateHertz: opt.sampleRate || 16000,
+			encoding: opt.encoding,
+			sampleRateHertz: opt.sampleRate,
 			languageCode: Util.getLocaleFromLanguageCode(opt.language)
 		}
 	});

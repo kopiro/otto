@@ -5,18 +5,13 @@ const _ = require('underscore');
 const ELIGIBLE_MIN_MUL = 2;
 
 module.exports = function({ sessionId, result }, session_model) {
-	return new Promise((resolve, reject) => {
+	return new Promise(async(resolve, reject) => {
 		let { parameters: p, fulfillment } = result;
 
-		if (result.eligibileMultiple) {
-			_.extend(p, { to: result.resolvedQuery });
-		}
-
-		Data.Contact
-		.find({ $text: { $search: p.to }}, { score: { $meta: "textScore" }})
-		.sort({ score: { $meta:"textScore" } })
-		.populate('session')
-		.then((contacts) => {
+		Data.Session
+		.find({ $text: { $search: p.to }}, { score: { $meta: 'textScore' }})
+		.sort({ score: { $meta: 'textScore' } })
+		.then(async(contacts) => {
 
 			// If no contact is found, inform the user
 			if (contacts.length === 0) {
@@ -38,32 +33,39 @@ module.exports = function({ sessionId, result }, session_model) {
 
 			// Ask which of these is the contact to send the message
 			if (eligible_contact == null) {
+				session_model.saveInPipe({
+					messaging_sendto_multiplecontacts: {
+						text: p.text
+					}
+				});
 				return resolve({
-					speech: `A quale di questi ${p.to} vuoi inviare il messaggio?`,
+					speech: `A quale di questi "${p.to}" vuoi inviare il messaggio?`,
+					contextOut: [
+						{ name: "messaging_sendto_multiplecontacts", lifespan: 1 }
+					],
 					data: {
-						pending: {
-							action: exports.id,
-							data: _.extend(result, { eligibileMultiple: true })
-						},
-						replies: contacts.map((contact) => {
-							return contact.name;
-						})
+						replies: contacts.map((contact) => contact.alias)
 					}
 				});
 			}
 
-			// Finally send the message
-			const eligible_contact_session = eligible_contact.sessions[0];
+			let text;
+			if (session_model.getPipe().messaging_sendto_multiplecontacts) {
+				text = session_model.getPipe().messaging_sendto_multiplecontacts.text;
+			} else {
+				text = p.text;
+			}
 
-			IOManager.output({
-				speech: `Hey! ${session_model.contact.name} mi ha detto di riferirti questo: ${p.text}`
-			}, eligible_contact_session)
-			.then(() => {
+			try {
+				await IOManager.output({
+					speech: `Hey! ${session_model.alias} mi ha detto di riferirti questo: ${text}`
+				}, eligible_contact);
 				resolve({
-					speech: fulfillment.speech
+					speech: 'Perfetto, inviato!'
 				});
-			})
-			.catch(reject);
+			} catch (err) {
+				reject(err);
+			}
 
 		})
 		.catch(reject);

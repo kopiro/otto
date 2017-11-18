@@ -5,7 +5,7 @@ const request = require('fs');
 
 const _config = config.ai.musixmatch;
 
-const endpoint = "https://musixmatchcom-musixmatch.p.mashape.com/wsr/1.1/";
+const endpoint = 'https://musixmatchcom-musixmatch.p.mashape.com/wsr/1.1/';
 
 function req(opt, callback) {
 	console.debug(TAG, 'input', opt);
@@ -27,17 +27,17 @@ function req(opt, callback) {
 }
 
 exports.searchTrack = function(opt, callback) {
-	let call = "track.search";
+	let call = 'track.search';
 	opt = _.defaults(opt, {
 		f_has_lyrics: 1,
 		page: 1,
 		page_size: 5,
-		q: "",
-		q_artist: "",
-		q_lyrics: "",
-		q_track: "",
-		q_track_artist: "",
-		s_track_rating: "desc"
+		q: ',
+		q_artist: ',
+		q_lyrics: ',
+		q_track: ',
+		q_track_artist: ',
+		s_track_rating: 'desc'
 	});
 
 	req({
@@ -51,7 +51,7 @@ exports.searchTrack = function(opt, callback) {
 };
 
 exports.trackLyrics = function(opt, callback) {
-	let call = "track.lyrics.get";
+	let call = 'track.lyrics.get';
 	opt = _.defaults(opt, {
 		track_id: ''
 	});
@@ -65,7 +65,7 @@ exports.trackLyrics = function(opt, callback) {
 };
 
 exports.music = function(opt, callback) {
-	let call = "track.get";
+	let call = 'track.get';
 	opt = _.defaults(opt, {
 		track_id: 0,
 	});
@@ -80,7 +80,7 @@ exports.music = function(opt, callback) {
 
 
 exports.artist = function(opt, callback) {
-	let call = "artist.get";
+	let call = 'artist.get';
 	opt = _.defaults(opt, {
 		artist_id: 0,
 	});

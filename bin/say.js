@@ -9,18 +9,25 @@ const async = require('async');
 const Polly = apprequire('polly');
 const Play = apprequire('play');
 
+function sendMessage(text, language) {
+	return new Promise((resolve, reject) => {
+		language = language || sessionModel.getTranslateTo();
+		
+		const sentences = Util.mimicHumanMessage(text);
+		sentences.forEach(async(sentence) => {
+			let polly_file = await Polly.getAudioFile(sentence, { language: language });
+			await Play.fileToSpeaker(polly_file);
+		});
+
+		emitter.emit('ai-spoken');
+
+		resolve();
+	});
+}
+
 if (process.argv[2] == null) {
 	console.log('Usage: ./say.js "[TEXT]"');
 	process.exit(1);
 }
 
-let text = process.argv[2]; 
-async.eachSeries(Util.mimicHumanMessage(text), (t, next) => { 
-	Polly.getAudioFile(t).then((polly_file) => { 
-		Play.fileToSpeaker(polly_file, (err) => { if 
-			(err) return console.error(err); next();
-		});
-	});
-}, () => {
-	process.exit(0);
-});
+sendMessage(process.argv[2]);

@@ -1,39 +1,23 @@
 exports.id = 'knowledge.get';
 
-module.exports = function({ sessionId, result }, session_model) {
-	return new Promise((resolve, reject) => {
-		let { parameters: p, fulfillment } = result;
+const Wolfram = apprequire('wolfram');
+const WAIT_SPEECH = [
+'Ok dammi un attimo...',
+'Aspetta che te lo cerco...',
+'Lo vuoi sapere proprio ora? Ok, un secondo...',
+'Uffa ma non puoi cercàrtelo da solo? Aspetta che controllo...',
+'Un secondo e basta e te lo dico...'
+];
 
-		Data.Knowledge
-		.findOne({ $text: { $search: p.q }}, { score: { $meta: 'textScore' }})
-		.sort({ score: { $meta: 'textScore' } })
-		.then((knowledge) => {
+module.exports = function({ result }, session_model) {
+	return new Promise(async(resolve) => {
+		resolve({
+			speech: WAIT_SPEECH.getRandom()
+		});
 
-			/*
-			If knowledge doesn't exists, ask the user to add
-			*/
-
-			if (knowledge == null) {
-
-				session_model.saveInPipe({
-					knowledgeGet: p.q
-				});
-
-				resolve({
-					speech: fulfillment.speech,
-					contextOut: [
-					{ name: 'knowledge_add', lifespan: 1 }
-					]
-				});
-
-			} else {
-				resolve({
-					speech: knowledge.output
-				});
-			}
-
-		})
-		.catch(reject);
-
+		const speech = await Wolfram.complexQuery(result.resolvedQuery, session_model.getTranslateTo());
+		IOManager.output({
+			speech: speech
+		}, session_model);
 	});
 };

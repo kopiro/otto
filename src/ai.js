@@ -8,56 +8,29 @@ const apiaiClient = require('apiai')(_config.token);
 
 const Translator = apprequire('translator');
 
-exports.fulfillmentTransformer = function(f, session_model, callback) {
- 	// Ensure always data object exists
+exports.fulfillmentTransformer = async function(f, session_model, callback) {
+	// Ensure always data object exists
 	f = f || {};
 	f.data = f.data || {};
 
-	if (f.data.pending) {
-		console.info(TAG, 'Saving pending action', session_model._id, f.data.pending);
-		new Data.IOPending({
-			session: session_model._id,
-			action: f.data.pending.action,
-			data: f.data.pending.data
-		}).save();
-	}
-
 	if (session_model.translate_to && session_model.translate_to != config.language) {
 		const language = session_model.translate_to;
-		console.info(TAG, 'Translating output', { language });
 
 		if (!_.isEmpty(f.speech)) {
-			Translator.translate(f.speech, language, (err, new_speech) => {
-				if (err) {
-					console.warn(TAG, 'fallback to original text');
-					return callback(f);
-				}
-
-				f.speech = new_speech;	
-				callback(f);
-			});
-
+			try {
+				f.speech = await Translator.translate(f.speech, language);
+			} catch (err) {}
 		} else if (f.data.error && !_.isEmpty(f.data.error.speech)) {
-			Translator.translate(f.data.error.speech, language, (err, new_speech) => {
-				if (err) {
-					console.warn(TAG, 'fallback to original text');
-					return callback(f);
-				}
-
-				f.data.error.speech = new_speech;	
-				callback(f);
-			});
-
-		} else {
-			callback(f);
+			try {
+				f.data.error.speech = Translator.translate(f.data.error.speech, language);
+			} catch (err) {}
 		}
-
-	} else {
-		callback(f);
 	}
+
+	callback(f);
 };
 
-exports.fulfillmentPromiseTransformer = function(fn, data, session_model, callback) {
+exports.fulfillmentPromiseTransformer = async function(fn, data, session_model, callback) {
 	if (!_.isFunction(fn)) {
 		return exports.fulfillmentTransformer({
 			data: { error: "Not a function" }
@@ -66,43 +39,33 @@ exports.fulfillmentPromiseTransformer = function(fn, data, session_model, callba
 
 	// Start a timeout to ensure that the promise
 	// will be anyway triggered, also with an error
-	let timeout = setTimeout(() => {
+	let promise_timeout = setTimeout(() => {
 		exports.fulfillmentTransformer({
-			data: { 
-				error: { timeout: true } 
-			}
+			data: { error: { timeout: true } }
 		}, session_model, callback);
 	}, 1000 * (_config.promiseTimeout || 10));
 
-	fn(data, session_model)
-	.then((fulfillment) => {
-		clearTimeout(timeout);
-		fulfillment = fulfillment || {};
-		exports.fulfillmentTransformer(fulfillment, session_model, callback);
-	})
-	.catch((err) => {
+	try {
+		const fulfillment = await fn(data, session_model);
+		clearTimeout(promise_timeout);
+		exports.fulfillmentTransformer(fulfillment || {}, session_model, callback);
+	} catch (err) {
 		exports.fulfillmentTransformer({
 			data: { error: err }
 		}, session_model, callback);
-	});
+	}
 };
 
-exports.textRequestTransformer = function(text, session_model, callback) {
+exports.textRequestTransformer = async function(text, session_model, callback) {
 	text = text.replace(AI_NAME_ACTIVATOR, ''); // Remove the AI name in the text
 
 	if (session_model.translate_from && session_model.translate_from != config.language) {
-		console.info(TAG, 'Translating input');
-		Translator.translate(text, 'it', (err, new_text) => {
-			if (err) {
-				console.warn(TAG, 'fallback to original text');
-				return callback(text);
-			}
-			
-			callback(new_text);
-		});
-	} else {
-		callback(text);
+		try {
+			text = await Translator.translate(text, 'it');
+		} catch (err) {}
 	}
+
+	callback(text);
 };
 
 exports.textRequest = function(text, session_model) {
@@ -155,14 +118,16 @@ exports.textRequest = function(text, session_model) {
 
 				// If this action has not solved using webhook, reparse
 				if (body.result.actionIncomplete !== true && !_.isEmpty(action)) {
-					console.debug(TAG, 'calling local action', action);
+					console.warn(TAG, 'calling local action', action);
 					const action_fn = Actions.list[ action ];
 					if (action_fn == null) {
 						return reject();
 					}
+			
 					AI.fulfillmentPromiseTransformer(action_fn(), body, session_model, resolve);
+			
 				} else {
-					console.debug(TAG, 'local resolution');
+					console.warn(TAG, 'local resolution');
 					AI.fulfillmentTransformer(body.result.fulfillment, session_model, resolve);
 				}
 			});

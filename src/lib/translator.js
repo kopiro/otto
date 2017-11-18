@@ -1,30 +1,42 @@
 const TAG = 'Translator';
 
 const translate = require('@google-cloud/translate');
-const client = translate({
+const translateClient = translate({
 	keyFilename: __basedir + '/keys/gcloud.json'
 });
 
-exports.translate = function(text, lang, callback) {
-	console.debug(TAG, { text, lang });
-	client.translate(text, lang, (err, translation) => {
-		if (err) {
-			console.error(TAG, err);
-			return callback(err);
+exports.translate = function(text, to_language = config.language, from_language = null) {
+	return new Promise((resolve, reject) => {
+		
+		if (from_language != null && to_language === from_language) {
+			console.debug(TAG, 'do not translate');
+			return resolve(text);
 		}
-		console.debug(TAG, translation);
-		callback(null, translation);
+
+		console.debug(TAG, { text, to_language });
+		translateClient.translate(text, to_language, (err, translation) => {
+			if (err) {
+				console.error(TAG, err);
+				return reject(err);
+			}
+
+			console.debug(TAG, { translation });
+			resolve(translation);
+		});
 	});
 };
 
-exports.getLanguages = function(target, callback) {
-	console.debug(TAG, { target });
-	client.getLanguages(target, (err, languages) => {
-		if (err) {
-			console.error(TAG, err);
-			return callback(err);
-		}
-		console.debug(TAG, languages);
-		callback(null, languages);
+exports.getLanguages = function(target = config.language) {
+	return new Promise((resolve, reject) => {
+		console.debug(TAG, { target });
+		translateClient.getLanguages(target, (err, languages) => {
+			if (err) {
+				console.error(TAG, err);
+				return reject(err);
+			}
+			
+			console.debug(TAG, { languages });
+			resolve(languages);
+		});
 	});
 };

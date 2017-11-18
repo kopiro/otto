@@ -3,8 +3,8 @@ const TAG = 'IO.Test';
 const _ = require('underscore');
 const fs = require('fs');
 
-const EventEmitter = require('events').EventEmitter;
-exports.emitter = new EventEmitter();
+const EventEmitter = ;
+const emitter = exports.emitter = new (require('events').EventEmitter)();
 
 exports.id = 'test';
 

@@ -1,0 +1,53 @@
+{
+    "env": {
+        "commonjs": true,
+        "es6": true,
+        "node": true,
+        "browser": true
+    },
+    "extends": "eslint:recommended",
+    "parserOptions": {
+        "ecmaVersion": 2017,
+        "ecmaFeatures": {
+            "experimentalObjectRestSpread": true,
+            "jsx": true
+        },
+        "sourceType": "module"
+    },
+    "plugins": [
+    ],
+    "rules": {
+        "indent": "off",
+        "linebreak-style": [
+            "error",
+            "unix"
+        ],
+        "semi": [
+            "error",
+            "always"
+        ],
+        "no-console": "off"
+    },
+    "globals": {
+        "__basedir": true,
+        "__tmpdir": true,
+        "__cachedir": true,
+        "__publicdir": true,
+        "__etcdir": true,
+        "ERRMSG_SR_GENERIC": true,
+        "ERRMSG_SR_UNRECOGNIZED": true,
+        "config": true,
+        "public_config": true,
+        "CLIENT_ID": true,
+        "AI_NAME_ACTIVATOR": true,
+        "apprequire": true,
+        "mongoose": true,
+        "Data": true,
+        "AI": true,
+        "Util": true,
+        "IOManager": true,
+        "Scheduler": true,
+        "Actions": true,
+        "$": true
+    }
+}

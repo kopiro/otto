@@ -1,21 +1,15 @@
 const _ = require('underscore');
 const Schema = mongoose.Schema;
 
-const Settings = new Schema({
-	key: String,
-	value: Schema.Types.Mixed
-});
-exports.Settings = mongoose.model('setting', Settings);
-
 const Session = new Schema({
 	_id: String,
 	io_id: String,
 	io_data: Schema.Types.Mixed,
-	contact: { type: Schema.Types.ObjectId, ref: 'contact' },
 	debug: Boolean,
 	approved: Boolean,
 	translate_from: String,
 	translate_to: String,
+	alias: String,
 	pipe: Schema.Types.Mixed
 });
 
@@ -27,6 +21,14 @@ Session.methods.saveInPipe = function(data) {
 
 Session.methods.getPipe = function() {
 	return this.pipe || {};
+};
+
+Session.methods.getTranslateFrom = function() {
+	return this.translate_from || config.language;
+};
+
+Session.methods.getTranslateTo = function() {
+	return this.translate_to || config.language;
 };
 
 exports.Session = mongoose.model('session', Session);
@@ -43,32 +45,12 @@ const IOQueue = new Schema({
 });
 exports.IOQueue = mongoose.model('io_queue', IOQueue);
 
-const IOPending = new Schema({
-	session: { type: String, ref: 'session' },
-	action: String,
-	data: Schema.Types.Mixed,
-});
-exports.IOPending = mongoose.model('io_pending', IOPending);
-
 const Alarm = new Schema({
 	session: { type: String, ref: 'session' },
 	when: Date,
 	what: String
 });
 exports.Alarm = mongoose.model('alarms', Alarm);
-
-const Contact = new Schema({
-	id: String,
-	first_name: String,
-	last_name: String,
-	alias: String,
-	tags: String,
-	session: [{ type: String, ref: 'session' }]
-});
-Contact.virtual('name').get(function() {
-	return this.first_name + ' ' + this.last_name;
-});
-exports.Contact = mongoose.model('contact', Contact);
 
 const Story = new Schema({
 	title: String,

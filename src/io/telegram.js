@@ -5,6 +5,7 @@ const _ = require('underscore');
 const fs = require('fs');
 const request = require('request');
 const async = require('async');
+const spawn = require('child_process').spawn;
 
 const _config = config.io.telegram;
 
@@ -17,12 +18,64 @@ const Play = apprequire('play');
 
 const bot = new TelegramBot(_config.token, _config.options);
 
+let started = false;
+
 const STICKERS = {
 	me: 'CAADBAADRQMAAokSaQP3vsj1u7oQ9wI',
 	logo: 'CAADBAADRAMAAokSaQMXx8V8QvEybAI'
 };
 
 const WRITE_KEY_SPEED = (_config.writeKeySpeed ? _config.writeKeySpeed : 1);
+
+
+function handleVoice(session_model, e) {
+	return new Promise((resolve, reject) => {
+		console.debug(TAG, 'user sent a voice message, downloading file');
+		
+		bot.getFileLink(e.voice.file_id)
+		.then((file_link) => {
+
+			var voice_file = __tmpdir + '/' + require('uuid').v4() + '.ogg';
+			console.debug(TAG, 'downloading voice message file <' + file_link + '> to <' + voice_file + '>');
+
+			request(file_link).on('response',  (res) => {
+				const r2 = fs.createWriteStream(voice_file);
+				r2.on('finish', () => {
+					
+					console.debug(TAG, 'converting OGG file to FLAC');
+
+					spawn('opusdec', [ 
+					voice_file, voice_file + '.wav',
+					'--rate', 16000
+					])
+					.on('close', (err) => {
+						if (err) {
+							console.error(TAG, 'error during conversion');
+							return reject(err);
+						}
+
+						console.debug(TAG, 'file converted, sending to SR');
+
+						fs.createReadStream(voice_file + '.wav').pipe(
+							SpeechRecognizer.createRecognizeStream({
+								interimResults: false,
+								language: (session_model.translate_from || config.language)
+							}, (err, text) => {
+								if (err) return reject(err);
+								resolve(text);
+							})
+						);
+					});
+				});
+				res.pipe(r2);
+			});
+		})
+		.catch((err) => {
+			console.debug(TAG, 'error in getFileLink', err);
+			reject(err);
+		});
+	});
+}
 
 function sendMessage(chat_id, text, telegram_opt) {
 	return new Promise((resolve, reject) => {
@@ -56,15 +109,17 @@ function sendVoiceMessage(chat_id, text, polly_opt, telegram_opt) {
 	});
 }
 
-
 exports.startInput = function() {
+	if (started) return;
+	started = true;
+
 	if (_config.webhook) {
 		bot.setWebHook(_config.webhook.url + _config.token, _config.webhook.options);
 		bot.getWebHookInfo().then((e) => {
-			console.info(TAG, 'started');
+			console.info(TAG, 'started via webhook');
 		});
 	} else {
-		console.info(TAG, 'started');
+		console.info(TAG, 'started via polling');
 	}
 };
 
@@ -196,54 +251,6 @@ exports.output = function(f, session_model) {
 	});
 };
 
-function handleVoice(session_model, e) {
-	return new Promise((resolve, reject) => {
-		console.debug(TAG, 'user sent a voice message, downloading file');
-		
-		bot.getFileLink(e.voice.file_id)
-		.then((file_link) => {
-
-			var voice_file = __tmpdir + '/' + require('uuid').v4() + '.ogg';
-			console.debug(TAG, 'downloading voice message file <' + file_link + '> to <' + voice_file + '>');
-
-			request(file_link).on('response',  (res) => {
-				const r2 = fs.createWriteStream(voice_file);
-				r2.on('finish', () => {
-					
-					console.debug(TAG, 'converting OGG file to FLAC');
-
-					spawn('opusdec', [ 
-					voice_file, voice_file + '.wav',
-					'--rate', 16000
-					])
-					.on('close', (err) => {
-						if (err) {
-							console.error(TAG, 'error during conversion');
-							return reject(err);
-						}
-
-						console.debug(TAG, 'file converted, sending to SR');
-
-						fs.createReadStream(voice_file + '.wav').pipe(
-							SpeechRecognizer.createRecognizeStream({
-								language: (session_model.translate_from || config.language)
-							}, (err, text) => {
-								if (err) return reject(err);
-								resolve(text);
-							})
-						);
-					});
-				});
-				res.pipe(r2);
-			});
-		})
-		.catch((err) => {
-			console.debug(TAG, 'error in getFileLink', err);
-			reject(err);
-		});
-	});
-}
-
 /////////////////
 // Init events //
 /////////////////
@@ -256,11 +263,22 @@ bot.on('message', (e) => {
 	console.info(TAG, 'input', e);
 
 	let sessionId = e.chat.id;
+	let alias;
+	switch (e.chat.type) {
+		case 'private': alias = (e.chat.first_name + ' ' + e.chat.last_name); break;
+		default: alias = e.chat.title; break;
+	}
 
-	IOManager.registerSession(sessionId, exports.id, e.chat, e.text)
+	const chat_is_group = (e.chat.type == 'group');
+
+	IOManager.registerSession({
+		sessionId: sessionId,
+		io_id: exports.id, 
+		io_data: e.chat,
+		alias: alias,
+		text: e.text
+	})
 	.then((session_model) => {
-
-		const chat_is_group = (session_model.io_data.type != 'private');
 
 		if (e.text) {
 			// If we are in a group, only listen for activators

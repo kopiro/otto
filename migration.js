@@ -2,7 +2,6 @@ db.createCollection('sessions');
 db.createCollection('session_inputs');
 
 db.createCollection('io_queues');
-db.createCollection('io_pendings');
 
 db.createCollection('alarms');
 db.createCollection('contacts');
@@ -17,9 +16,8 @@ db.knowledges.createIndex({
 	'input':'text'
 }, { 'default_language':'it','language_override': 'it' });
 
-db.contacts.createIndex({ 
-	'first_name':'text',
-	'last_name':'text'
+db.sessions.createIndex({ 
+	'alias':'text',
 }, { 'default_language':'it','language_override': 'it' });
 
 db.stories.createIndex({ 

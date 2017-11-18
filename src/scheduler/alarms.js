@@ -16,8 +16,7 @@ exports.run = function() {
 		alarms.forEach((alarm) => {
 
 			const session_model = alarm.related('session');
-			const contact = session_model.related('contact');
-			let text = ALARM_STRINGS.getRandom().replace('{name}', contact.id ? contact.name : session_model.name);
+			let text = ALARM_STRINGS.getRandom().replace('{name}', session_model.alias);
 
 			IOManager.output({ speech: text }, session_model)
 			.then(() => {

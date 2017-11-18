@@ -12,7 +12,12 @@ const SpeechRecognizer = apprequire('speechrecognizer');
 const MessengerBot = require('messenger-bot');
 const bot = new MessengerBot(_config);
 
+let started = false;
+
 exports.startInput = function() {
+	if (started) return;
+	started = true;
+	
 	http.createServer( bot.middleware() ).listen(_config.port);
 	console.info(TAG, 'started on port ' + _config.port);
 };
@@ -109,10 +114,16 @@ bot.on('message', (e) => {
 
 	bot.getProfile(sessionId, (err, profile) => {
 
-		IOManager.registerSession(sessionId, exports.id, {
-			profile: profile,
-			sender: e.sender
-		}, e.message.text)
+		IOManager.registerSession({
+			sessionId: sessionId,
+			io_id: exports.id, 
+			io_data: {
+				profile: profile,
+				sender: e.sender
+			},
+			alias: profile.first_name + ' ' + profile.last_name,
+			text: e.message.text
+		})
 		.then((session_model) => {
 			if (e.message.text) {
 				return emitter.emit('input', {

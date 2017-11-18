@@ -10,25 +10,26 @@ const _config = _.defaults(config.speaker || {}, {
 });
 
 exports.fileToSpeaker = function(file, callback) {
-	callback = callback || (() => {});
+	return new Promise((resolve, reject) => {
+		console.debug(TAG, 'fileToSpeaker', file);
 
-	console.debug(TAG, 'fileToSpeaker', file);
+		const opt = {};
+		let args = [];
 
-	const opt = {};
-	let args = [];
+		if (_config.device) {
+			opt.env = Object.assign({}, process.env, { AUDIODEV: _config.device });
+		}
 
-	if (_config.device) {
-		opt.env = Object.assign({}, process.env, { AUDIODEV: _config.device });
-	}
+		if (_config.delay) {
+			args.push('delay');
+			args.push(_config.delay);
+		}
 
-	if (_config.delay) {
-		args.push('delay');
-		args.push(_config.delay);
-	}
-
-	spawn('play', [file].concat('pitch', '-q', PITCH).concat(args), opt)
-	.on('close', (err) => {
-		callback(err != 0);
+		spawn('play', [file].concat('pitch', '-q', PITCH).concat(args), opt)
+		.on('close', (err) => {
+			if (err) return reject(err);
+			resolve();
+		});
 	});
 };
 

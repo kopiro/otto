@@ -34,7 +34,7 @@ exports.isDriverEnabled = function(io_id) {
 
 exports.getDriver = function(io_id, force_load) {
 	if (force_load) return require(__basedir + '/src/io/' + io_id);
-	return exports.drivers[io_id];
+	return exports.drivers[ io_id ] = exports.drivers[ io_id ] || require(__basedir + '/src/io/' + io_id);
 };
 
 exports.loadDrivers = function() {
@@ -49,18 +49,13 @@ exports.loadDrivers = function() {
 exports.output = function(f, session_model) {
 	return new Promise((resolve, reject) => {
 
-		if (session_model == null) {
-			return reject('Invalid session model');
-		}
-
 		if (exports.isDriverEnabled(session_model.io_id)) {	
 
 			// If driver is enabled, instantly resolve
-			AI.fulfillmentTransformer(f, session_model, (f) => {
-				exports.getDriver( session_model.io_id )
-				.output(f, session_model)
-				.then(resolve)
-				.catch(reject);
+			AI.fulfillmentTransformer(f, session_model, async(f) => {
+				let driver = exports.getDriver( session_model.io_id );
+				let result = await driver.output(f, session_model);
+				resolve(result);
 			});
 
 		} else {
@@ -101,30 +96,30 @@ exports.writeLogForSession = function(sessionId, text) {
 	}).save();
 };
 
-exports.registerSession = function(sessionId, io_id, data, text) {
+exports.registerSession = function({ sessionId, io_id, io_data, alias, text }) {
 	return new Promise((resolve, reject) => {
 		let sessionIdComposite = io_id + '/' + sessionId;
 
 		Data.Session
 		.findOne({ _id: sessionIdComposite })
-		.populate('contact')
 		.then((session_model) => {
 			if (session_model == null) {
 				new Data.Session({ 
 					_id: sessionIdComposite,
 					io_id: io_id,
-					io_data: data
+					io_data: io_data,
+					alias: alias
 				})
 				.save()
 				.then((session_model) => {
-					exports.writeLogForSession(sessionIdComposite, text);
+					if (text) exports.writeLogForSession(sessionIdComposite, text);
 					resolve(session_model);
 				})
 				.catch((err) => {
 					console.error(TAG, 'Unable to register session', err);
 				});
 			} else {
-				exports.writeLogForSession(sessionIdComposite, text);
+				if (text) exports.writeLogForSession(sessionIdComposite, text);
 				resolve(session_model);
 			}
 		})

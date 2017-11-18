@@ -1,39 +1,56 @@
 const TAG = 'Wolfram';
 
-const Wolfram = require('node-wolfram');
 const _config = config.ai.wolfram;
 
-const $ = new Wolfram(_config.appId);
+const _ = require('underscore');
 
-$.complexQuery = function(q) {
-	return new Promise((resolve, reject) => {
-		$.query(q, (err, result) => {
+const Wolfram = require('node-wolfram');
+const Translator = apprequire('translator');
+
+const wolframClient = new Wolfram(_config.appId);
+
+wolframClient.complexQuery = function(q, language) {
+	return new Promise(async(resolve, reject) => {
+		
+		const q_translated = await Translator.translate(q, 'en');
+		
+		wolframClient.query(q_translated, async(err, result) => {
 			if (err) {
-				console.error(TAG, err);
+				console.error(TAG, q_translated, err);
 				return reject(err);
 			}
 
-			console.debug(TAG, q, result);
+			let pod = _.find(result.queryresult.pod, (p) => {
+				console.info(TAG, p.$, p.subpod[0].plaintext[0]);
+				return p.$.primary;
+			});
 
-			if (result.queryresult.pod) {
-				for (let i = 0; i < result.queryresult.pod.length; i++) {
-					let pod = result.queryresult.pod[i];
-					if (pod.$.title === 'Result') {
-						return resolve(pod.subpod[0].plaintext[0]);
-					}
+			if (pod == null) {
+				pod = _.find(result.queryresult.pod, (p) => {
+					return p.$.id === 'NotableFacts:PeopleData';
+				});
+			}
+
+			if (pod == null) {
+				const dym = result.queryresult.didyoumeans;
+				if (dym && dym[0].didyoumean[0]._) {
+					console.debug(TAG, 're-quering with didyoumean');
+					let result = await wolframClient.complexQuery(dym[0].didyoumean[0]._);
+					return resolve(result);
 				}
 			}
 
-			const dym = result.queryresult.didyoumeans;
-			if (dym && dym[0].didyoumean[0]._) {
-				console.debug(TAG, 're-quering with didyoumean');
-
-				return $.complexQuery(dym[0].didyoumean[0]._)
-				.then(resolve)
-				.catch(reject);
+			if (pod == null) {
+				return reject({
+					notFound: true
+				});
 			}
+
+			let final_result = pod.subpod[0].plaintext[0];
+			final_result = await Translator.translate(final_result, language);
+			resolve(final_result);
 		});
 	});
 };
 
-module.exports = $;
+module.exports = wolframClient;

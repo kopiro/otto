@@ -1,19 +1,17 @@
 exports.id = 'settings.availablelangs';
 
 const _ = require('underscore');
+const Translator = apprequire('translator');
 
 module.exports = function({ sessionId, result }, session_model) {
 	return new Promise((resolve, reject) => {
 		let { parameters: p, fulfillment } = result;
 
-		apprequire('translator').getLanguages(config.language, (err, avail_langs) => {
-			if (err) return reject();
+		const languages = await Translator.getLanguages(config.language);
+		const languages = _.pluck(avail_langs, 'name').join(', ');
 
-			const languages = _.pluck(avail_langs, 'name').join(', ');
-
-			resolve({
-				speech: `Io parlo ${languages}`
-			});
+		resolve({
+			speech: `Io parlo ${languages}`
 		});
 	});
 };
