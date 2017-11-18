@@ -8,12 +8,13 @@ const translateClient = translate({
 exports.translate = function(text, to_language = config.language, from_language = null) {
 	return new Promise((resolve, reject) => {
 		
+		console.debug(TAG, { text, to_language, from_language });
+
 		if (from_language != null && to_language === from_language) {
-			console.debug(TAG, 'do not translate');
+			console.debug(TAG, 'not-necessary translation');
 			return resolve(text);
 		}
 
-		console.debug(TAG, { text, to_language });
 		translateClient.translate(text, to_language, (err, translation) => {
 			if (err) {
 				console.error(TAG, err);

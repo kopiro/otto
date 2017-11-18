@@ -6,7 +6,7 @@ const async = require('async');
 
 const _config = _.defaults(config.io.kid || {}, {
 	waitForActivator: false,
-	eocMax: 7,
+	eocMax: 10,
 	firstHint: 'Dimmi'
 });
 
@@ -21,8 +21,9 @@ const URLManager = apprequire('urlmanager');
 const {Detector, Models} = require('snowboy');
 const Translator = apprequire('translator');
 
-let havingConversation = false;
-let isHotwordListening = false;
+const md5 = require('md5');
+
+let isHavingConversation = false;
 
 let queueOutput = [];
 let queueInterval = null;
@@ -38,33 +39,46 @@ models.add({
 	hotwords: _config.hotword
 });
 
-function sendMessage(text, language = IOManager.sessionModel.getTranslateTo()) {
+let currentOutputKey = null;
+
+function sendOutput(text, language = IOManager.sessionModel.getTranslateTo()) {
 	return new Promise(async(resolve, reject) => {
-		
+		const key = md5(text);
+		currentOutputKey = key;
+
 		const sentences = Util.mimicHumanMessage(text);
 		for (let sentence of sentences) {
-			let polly_file = await Polly.getAudioFile(sentence, { language: language });
-			await Play.fileToSpeaker(polly_file);
+			if (currentOutputKey === key) {
+				let polly_file = await Polly.getAudioFile(sentence, { language: language });
+				await Play.fileToSpeaker(polly_file);
+			}
 		}
-
-		emitter.emit('ai-spoken');
 
 		resolve();
 	});
 }
 
-async function sendFirstHint(language = IOManager.sessionModel.getTranslateTo()) {
-	let hint = await Translator.translate(_config.firstHint, language, 'it');
-	return sendMessage(hint);
+function stopOutput() {
+	if (Play.speakerProc != null) {
+		console.warn(TAG, 'stop output');
+		currentOutputKey = null;
+		Play.speakerProc.kill();
+	}
 }
 
-function recognizeMicStream() {
+async function sendFirstHint(language = IOManager.sessionModel.getTranslateTo()) {
+	let hint = await Translator.translate(_config.firstHint, language, 'it');
+	return sendOutput(hint);
+}
+
+let recognizeStream;
+
+function createRecognizeStream() {
 	console.log(TAG, 'recognizing mic stream');
 
-	const recognizeStream = SpeechRecognizer.createRecognizeStream({
+	recognizeStream = SpeechRecognizer.createRecognizeStream({
 		language: IOManager.sessionModel.translate_from
 	}, (err, text) => {
-		Rec.stop();
 		emitter.emit('user-spoken');
 
 		if (err) {
@@ -93,9 +107,17 @@ function recognizeMicStream() {
 		}
 	});
 
-	Rec.start().pipe(recognizeStream);
 	eocTimeout = _config.eocMax;
 	emitter.emit('user-can-speak');
+
+	return recognizeStream;
+}
+
+function stopRecognizingStream() {
+	console.debug(TAG, 'stop recognizing stream');
+	if (recognizeStream != null) {
+		recognizeStream.destroy();
+	}
 }
 
 function registerGlobalSession(callback) {
@@ -105,11 +127,6 @@ function registerGlobalSession(callback) {
 		io_data: { platform: process.platform }
 	}, true)
 	.then(() => {
-		queueInterval = setInterval(processOutputQueue, 100);
-		if (eocInterval == null) {
-			registerEOCInterval();
-		}
-
 		console.log(TAG, 'global session registered', IOManager.sessionModel);
 		callback();
 	})
@@ -124,25 +141,18 @@ function registerEOCInterval() {
 		if (eocTimeout == 0) {
 			console.warn(TAG, 'timeout exceeded for conversation');
 
-			havingConversation = false;
-			isHotwordListening = false;
+			isHavingConversation = false;
 			eocTimeout = -1;
-
-			Rec.stop();
 			exports.startInput();
 
 		} else if (eocTimeout > 0) {
-			console.log(TAG, eocTimeout + ' seconds remaining');
+			// console.log(TAG, eocTimeout + ' seconds remaining');
 			eocTimeout--;
 		}
 	}, 1000);
 }
 
-function listenForHotWord() {
-	if (isHotwordListening) return;
-	isHotwordListening = true;
-
-	console.debug(TAG, 'waiting for hotword');
+function getDetectorStream() {
 	emitter.emit('ai-hotword-listening');
 
 	eocTimeout = -1;
@@ -153,20 +163,15 @@ function listenForHotWord() {
 		audioGain: 1.0
 	});
 
-	detector.on('hotword', async(index, hotword, buffer) => {
+	detector.on('hotword', async() => {
 		console.log(TAG, 'hotword');
 		emitter.emit('ai-hotword-recognized');
 		
-		// Set flags
-		havingConversation = true;
-		isHotwordListening = false;
+		isHavingConversation = true;
+		stopOutput();
 
-		// Stop streaming to detectors
-		Rec.stop();
-
-		// Send the first hit and listen
 		await sendFirstHint();
-		recognizeMicStream();
+		exports.startInput();
 	});
 
 	detector.on('silence', () => {
@@ -181,7 +186,7 @@ function listenForHotWord() {
 		console.error(TAG, err);
 	});
 
-	Rec.start().pipe(detector);
+	return detector;
 }
 
 function shiftQueue() {
@@ -196,7 +201,8 @@ function processOutputQueue() {
 	if (queueRunning === true) return;
 
 	queueRunning = true;
-	exports.stopInput();
+	eocTimeout = -1;
+	stopRecognizingStream();
 
 	let f = queueOutput[0];
 	console.debug(TAG, 'process output queue', f);
@@ -204,7 +210,7 @@ function processOutputQueue() {
 
 	if (f.data.error) {
 		if (f.data.error.speech) {	
-			promise = sendMessage(f.data.error.speech, f.data.language);
+			promise = sendOutput(f.data.error.speech, f.data.language);
 		} else {
 			promise = Promise.resolve();
 		}
@@ -215,10 +221,10 @@ function processOutputQueue() {
 		}
 
 		if (f.speech) {
-			promise = sendMessage(f.speech, f.data.language);
+			promise = sendOutput(f.speech, f.data.language);
 		} else if (f.data.lyrics) {
 			const speech = f.data.lyrics.lyrics_body.split("\n")[0];
-			promise = sendMessage(speech);
+			promise = sendOutput(speech);
 		}
 
 	}
@@ -227,7 +233,7 @@ function processOutputQueue() {
 		promise = Promise.reject({ unkownOutputType: true });
 	}
 
-	// Attach to the sendMessage (or equivalent) promise to restart
+	// Attach to the sendOutput (or equivalent) promise to restart
 	// the AI listening
 	promise
 	.then(shiftQueue)
@@ -244,20 +250,20 @@ exports.startInput = function() {
 		return registerGlobalSession(exports.startInput);
 	}
 
-	eocTimeout = _config.eocMax;
-
-	if (havingConversation) {
-		recognizeMicStream();
-		return;
+	if (queueInterval == null) {
+		queueInterval = setInterval(processOutputQueue, 100);
 	}
 
-	listenForHotWord();
-};
+	if (eocInterval == null) {
+		registerEOCInterval();
+	}
 
-exports.stopInput = function() {
-	console.debug(TAG, 'stop input');
-	eocTimeout = -1;
-	Rec.stop();
+	Rec.start();
+	Rec.getStream().pipe(getDetectorStream());
+
+	if (isHavingConversation) {
+		Rec.getStream().pipe(createRecognizeStream());
+	}
 };
 
 exports.output = function(f) {

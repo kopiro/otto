@@ -9,6 +9,8 @@ const _config = _.defaults(config.speaker || {}, {
 	delay: 0 // on RasPI, set this value to 1
 });
 
+exports.speakerProc = null;
+
 exports.fileToSpeaker = function(file, callback) {
 	return new Promise((resolve, reject) => {
 		console.debug(TAG, 'fileToSpeaker', file);
@@ -25,8 +27,9 @@ exports.fileToSpeaker = function(file, callback) {
 			args.push(_config.delay);
 		}
 
-		spawn('play', [file].concat('pitch', '-q', PITCH).concat(args), opt)
+		exports.speakerProc = spawn('play', [file].concat('pitch', '-q', PITCH).concat(args), opt)
 		.on('close', (err) => {
+			exports.speakerProc = null;
 			if (err) return reject(err);
 			resolve();
 		});
