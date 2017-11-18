@@ -38,7 +38,8 @@ module.exports = function({ sessionId, result }, session_model) {
 		session_model
 		.save()
 		.then(() => {
-
+			IOManager.updateGlobalSessionModel(session_model);
+			
 			const from = _.findWhere(languages, { code: session_model.translate_from || config.language }).name;
 			const to = _.findWhere(languages, { code: session_model.translate_to || config.language }).name;
 

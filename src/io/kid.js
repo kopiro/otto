@@ -28,7 +28,6 @@ let queueOutput = [];
 let queueInterval = null;
 let queueRunning = false;
 
-let sessionModel = null;
 let eocInterval = null;
 let eocTimeout = -1;
 
@@ -39,7 +38,7 @@ models.add({
 	hotwords: _config.hotword
 });
 
-function sendMessage(text, language = sessionModel.getTranslateTo()) {
+function sendMessage(text, language = IOManager.sessionModel.getTranslateTo()) {
 	return new Promise(async(resolve, reject) => {
 		
 		const sentences = Util.mimicHumanMessage(text);
@@ -54,7 +53,7 @@ function sendMessage(text, language = sessionModel.getTranslateTo()) {
 	});
 }
 
-async function sendFirstHint(language = sessionModel.getTranslateTo()) {
+async function sendFirstHint(language = IOManager.sessionModel.getTranslateTo()) {
 	let hint = await Translator.translate(_config.firstHint, language, 'it');
 	return sendMessage(hint);
 }
@@ -63,14 +62,14 @@ function recognizeMicStream() {
 	console.log(TAG, 'recognizing mic stream');
 
 	const recognizeStream = SpeechRecognizer.createRecognizeStream({
-		language: sessionModel.translate_from
+		language: IOManager.sessionModel.translate_from
 	}, (err, text) => {
 		Rec.stop();
 		emitter.emit('user-spoken');
 
 		if (err) {
 			return emitter.emit('input', {
-				session_model: sessionModel,
+				session_model: IOManager.sessionModel,
 				error: {
 					speech: err.unrecognized ? ERRMSG_SR_UNRECOGNIZED : ERRMSG_SR_GENERIC
 				}
@@ -78,13 +77,13 @@ function recognizeMicStream() {
 		}
 
 		emitter.emit('input', {
-			session_model: sessionModel,
+			session_model: IOManager.sessionModel,
 			params: {
 				text: text
 			}
 		});
 
-		IOManager.writeLogForSession(sessionModel.id, text);
+		IOManager.writeLogForSession(IOManager.sessionModel.id, text);
 	});
 
 	// When user speaks, reset the timer to the max
@@ -104,16 +103,14 @@ function registerGlobalSession(callback) {
 		sessionId: CLIENT_ID,
 		io_id: exports.id, 
 		io_data: { platform: process.platform }
-	})
-	.then((sm) => {
-		sessionModel = sm;
-
+	}, true)
+	.then(() => {
 		queueInterval = setInterval(processOutputQueue, 100);
 		if (eocInterval == null) {
 			registerEOCInterval();
 		}
 
-		console.log(TAG, 'global session registered', sessionModel);
+		console.log(TAG, 'global session registered', IOManager.sessionModel);
 		callback();
 	})
 	.catch((sm) => {
@@ -243,7 +240,7 @@ exports.startInput = function() {
 	if (queueOutput.length > 0) return;
 	console.debug(TAG, 'start input');
 
-	if (sessionModel == null) {
+	if (IOManager.sessionModel == null) {
 		return registerGlobalSession(exports.startInput);
 	}
 

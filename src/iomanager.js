@@ -4,6 +4,7 @@ const _ = require('underscore');
 const async = require('async');
 
 exports.drivers = {};
+exports.sessionModel = null;
 
 exports.driversCapabilities = {
 	telegram: {
@@ -96,7 +97,7 @@ exports.writeLogForSession = function(sessionId, text) {
 	}).save();
 };
 
-exports.registerSession = function({ sessionId, io_id, io_data, alias, text }) {
+exports.registerSession = function({ sessionId, io_id, io_data, alias, text }, global) {
 	return new Promise((resolve, reject) => {
 		let sessionIdComposite = io_id + '/' + sessionId;
 
@@ -113,6 +114,7 @@ exports.registerSession = function({ sessionId, io_id, io_data, alias, text }) {
 				.save()
 				.then((session_model) => {
 					if (text) exports.writeLogForSession(sessionIdComposite, text);
+					if (global === true) exports.sessionModel = session_model;
 					resolve(session_model);
 				})
 				.catch((err) => {
@@ -120,6 +122,7 @@ exports.registerSession = function({ sessionId, io_id, io_data, alias, text }) {
 				});
 			} else {
 				if (text) exports.writeLogForSession(sessionIdComposite, text);
+				if (global === true) exports.sessionModel = session_model;
 				resolve(session_model);
 			}
 		})
@@ -129,6 +132,14 @@ exports.registerSession = function({ sessionId, io_id, io_data, alias, text }) {
 	});
 };
 
+exports.updateGlobalSessionModel = function(new_session_model) {
+	if (exports.sessionModel == null) return;
+
+	console.info(TAG, 'updating global session model');
+	exports.sessionModel = new_session_model;
+};
+
+// TO refactor
 exports.processQueue = function() {
 	Data.IOQueue
 	.find()
