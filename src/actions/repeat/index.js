@@ -1,4 +1,4 @@
-exports.id = 'repeat.index';
+exports.id = 'repeat';
 
 module.exports = function({ sessionId, result }) {
 	return new Promise((resolve, reject) => {

@@ -125,7 +125,7 @@ exports.output = async function(f, session_model) {
 			await sendMessage(chat_id, f.data.error.speech);
 		} else {
 			if (session_model.is_admin === true) {
-				await sendMessage(chat_id, "ERROR\n```\n" + JSON.stringify(f.data.error) + "\n```");
+				await sendMessage(chat_id, "ERROR: `" + JSON.stringify(f.data.error) + "`");
 			}
 		}
 	}

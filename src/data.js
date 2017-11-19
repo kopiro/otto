@@ -11,6 +11,7 @@ const Session = new Schema({
 	translate_to: String,
 	alias: String,
 	is_admin: Boolean,
+	uid: String,
 	pipe: Schema.Types.Mixed
 });
 

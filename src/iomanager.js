@@ -47,40 +47,22 @@ exports.loadDrivers = function() {
 	});
 };
 
-exports.output = function(f, session_model) {
-	return new Promise((resolve, reject) => {
+exports.output = async function(fulfillment, session_model) {
+	if (exports.isDriverEnabled(session_model.io_id)) {	
+		// If driver is enabled, instantly resolve
+		let driver = exports.getDriver( session_model.io_id );
+		fulfillment = await AI.fulfillmentTransformer(fulfillment, session_model);
+		return driver.output(fulfillment, session_model);
+	}
 
-		if (exports.isDriverEnabled(session_model.io_id)) {	
+	// Otherwise, put in the queue and make resolve to other clients
+	console.info(TAG, 'putting in IO queue', { fulfillment, session_model });
 
-			// If driver is enabled, instantly resolve
-			AI.fulfillmentTransformer(f, session_model, async(f) => {
-				let driver = exports.getDriver( session_model.io_id );
-				let result = await driver.output(f, session_model);
-				resolve(result);
-			});
-
-		} else {
-
-			// Otherwise, put in the queue and make resolve to other clients
-			console.info(TAG, 'putting in IO queue', session_model._id, f);
-
-			new Data.IOQueue({
-				session: session_model._id,
-				data: f
-			})
-			.save()
-			.then(() => {
-				resolve({
-					inQueue: true
-				});
-			})
-			.catch((err) => {
-				console.error(TAG, 'in queue', err);
-				reject(err);
-			});
-
-		}
-	});
+	await new Data.IOQueue({
+		session: session_model._id,
+		data: fulfillment
+	}).save();
+	return { inQueue: true };
 };
 
 exports.getAlarmsAt = function(when) {
@@ -89,47 +71,31 @@ exports.getAlarmsAt = function(when) {
 	});
 };
 
-exports.writeLogForSession = function(sessionId, text) {
-	if (_.isEmpty(text)) return;
-	new Data.SessionInput({ 
+exports.writeLogForSession = async function(sessionId, text) {
+	return new Data.SessionInput({ 
 		session: sessionId,
 		text: text
 	}).save();
 };
 
-exports.registerSession = function({ sessionId, io_id, io_data, alias, text }, global) {
-	return new Promise((resolve, reject) => {
-		let sessionIdComposite = io_id + '/' + sessionId;
+exports.registerSession = async function({ sessionId, io_id, io_data, alias, text }, as_global) {
+	const session_id_composite = io_id + '/' + sessionId;
+	let session_model = await Data.Session.findOne({ _id: session_id_composite });
 
-		Data.Session
-		.findOne({ _id: sessionIdComposite })
-		.then((session_model) => {
-			if (session_model == null) {
-				new Data.Session({ 
-					_id: sessionIdComposite,
-					io_id: io_id,
-					io_data: io_data,
-					alias: alias
-				})
-				.save()
-				.then((session_model) => {
-					if (text) exports.writeLogForSession(sessionIdComposite, text);
-					if (global === true) exports.sessionModel = session_model;
-					resolve(session_model);
-				})
-				.catch((err) => {
-					console.error(TAG, 'Unable to register session', err);
-				});
-			} else {
-				if (text) exports.writeLogForSession(sessionIdComposite, text);
-				if (global === true) exports.sessionModel = session_model;
-				resolve(session_model);
-			}
-		})
-		.catch((err) => {
-			console.error(TAG, 'Register session', err);
-		});
-	});
+	if (session_model == null) {
+		session_model = await new Data.Session({ 
+			_id: session_id_composite,
+			io_id: io_id,
+			io_data: io_data,
+			alias: alias
+		}).save();
+	}
+
+	console.info(TAG, 'session model registered', session_model);
+
+	if (text != null) exports.writeLogForSession(session_id_composite, text);
+	if (as_global === true) exports.sessionModel = session_model;
+	return session_model;
 };
 
 exports.updateGlobalSessionModel = function(new_session_model) {
@@ -139,44 +105,30 @@ exports.updateGlobalSessionModel = function(new_session_model) {
 	exports.sessionModel = new_session_model;
 };
 
-// TO refactor
-exports.processQueue = function() {
-	Data.IOQueue
-	.find()
-	.populate('session')
-	.then((qitems) => {
-		if (qitems == null || qitems.length === 0) {
-			setTimeout(exports.processQueue, 1000);
-			return;
-		}
+exports.processQueue = async function() {
+	let qitem = await Data.IOQueue.findOne().populate('session');
+	if (qitem == null) return;
 
-		async.eachOfSeries(qitems, (qitem, key, callback) => {
-			const session_model = qitem.session;
+	console.info(TAG, 'processing queue item');
+	console.dir(qitem);
 
-			if (exports.isDriverEnabled( session_model.io_id ) === false) {
-				return callback();
-			}
+	const session_model = qitem.session;
+	if ( ! exports.isDriverEnabled(session_model.io_id)) {
+		console.warn(TAG, 'unable to process queue item on this client, re-stacking');
+		await qitem.remove();
+		// delete qitem._id;
+		// await (new Data.IOQueue(qitem)).save();
+		return false;
+	}
 
-			console.info(TAG, 'processing queue item', session_model._id, qitem.data);
-
-			exports.output(qitem.data, session_model)
-			.then(() => {
-			})
-			.catch(() => {
-			})
-			.then(() => {
-				qitem.remove();
-				callback();
-			});
-
-		}, () => {
-			setTimeout(exports.processQueue, 1000);
-		});
-	});
+	await exports.output(qitem.data, session_model);
+	await qitem.remove();
+	return true;
 };
 
-exports.startPolling = function() {
-	exports.processQueue();
+exports.startPolling = async function() {
+	await exports.processQueue();
+	exports.startPolling();
 };
 
 exports.processResponseToPendingAnswer = function(dataset, q, attr) {
