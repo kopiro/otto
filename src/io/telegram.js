@@ -97,20 +97,11 @@ exports.startInput = function() {
 };
 
 exports.output = async function(f, session_model) {
-	console.info(TAG, 'output', { f, session_model });
+	console.info(TAG, 'output');
+	console.dir({ f, session_model });
 	
 	const language = f.data.language || session_model.getTranslateTo();
 	const chat_id = session_model.io_data.id;
-
-	if (f.data.error) {
-		if (f.data.error.speech) {		
-			await sendMessage(chat_id, f.data.error.speech);
-		} else {
-			if (session_model.is_admin === true) {
-				await sendMessage(chat_id, "ERROR\n```\n" + JSON.stringify(f.data.error) + "\n```");
-			}
-		}
-	}
 
 	// Process replies
 	let message_opt = {};
@@ -127,6 +118,16 @@ exports.output = async function(f, session_model) {
 				]
 			}
 		};
+	}
+
+	if (f.data.error) {
+		if (f.data.error.speech) {		
+			await sendMessage(chat_id, f.data.error.speech);
+		} else {
+			if (session_model.is_admin === true) {
+				await sendMessage(chat_id, "ERROR\n```\n" + JSON.stringify(f.data.error) + "\n```");
+			}
+		}
 	}
 
 	if (f.speech) {
@@ -194,7 +195,8 @@ bot.on('webhook_error', (err) => {
 });
 
 bot.on('message', async(e) => {
-	console.info(TAG, 'input', e);
+	console.info(TAG, 'input');
+	console.dir(e);
 
 	const sessionId = e.chat.id;
 	const chat_is_group = (e.chat.type == 'group');
@@ -218,60 +220,68 @@ bot.on('message', async(e) => {
 		// If we are in a group, only listen for activators
 		if (chat_is_group === true && !AI_NAME_ACTIVATOR.test(e.text)) {
 			console.debug(TAG, 'skipping input for missing activator', e.text);
-		} else {
-			return emitter.emit('input', {
-				session_model: session_model,
-				params: {
-					text: e.text
-				}
-			});
+			return false;
 		}
+		emitter.emit('input', {
+			session_model: session_model,
+			params: {
+				text: e.text
+			}
+		});
+		return true;
 	}
 
 	if (e.voice) {
 		try {
 			const text = await handleInputVoice(session_model, e);
-			
+		
 			// If we are in a group, only listen for activators
-			if (chat_is_group === false || AI_NAME_ACTIVATOR.test(e.text)) {
-
-				// User sent a voice note, respond with a voice note :)
-				session_model.saveInPipe({ next_with_voice: true });
-
-				emitter.emit('input', {
-					session_model: session_model,
-					params: {
-						text: text
-					}
-				});
-			} else {
+			if (chat_is_group === true || !AI_NAME_ACTIVATOR.test(e.text)) {
 				console.debug(TAG, 'skipping input for missing activator', e.text);
+				return false;
 			}
+
+			// User sent a voice note, respond with a voice note :)
+			session_model.saveInPipe({ next_with_voice: true });
+			emitter.emit('input', {
+				session_model: session_model,
+				params: {
+					text: text
+				}
+			});
 		} catch (err) {
-			if (chat_is_group === false) {
-				return emitter.emit('input', {
-					session_model: session_model,
-					error: {
-						speech: err.unrecognized ? ERRMSG_SR_UNRECOGNIZED : ERRMSG_SR_GENERIC
-					}
-				});
-			}
+			if (chat_is_group === true) return false;
+			emitter.emit('input', {
+				session_model: session_model,
+				error: {
+					speech: err.unrecognized ? ERRMSG_SR_UNRECOGNIZED : ERRMSG_SR_GENERIC
+				}
+			});
 		}
+		return true;
 	}
 
 	if (e.photo) {
 		const photo_link = bot.getFileLink( _.last(e.photo).file_id );
-		if (chat_is_group === false) {
-			emitter.emit('input', {
-				session_model: session_model,
-				params: {
-					image: {
-						remoteFile: photo_link,
-					}
+		if (chat_is_group === true) return false;
+
+		emitter.emit('input', {
+			session_model: session_model,
+			params: {
+				image: {
+					remoteFile: photo_link,
 				}
-			});
-		}
+			}
+		});
+		return true;
 	}
+
+	emitter.emit('input', {
+		session_model: session_model,
+		error: {
+			unkownInputType: true
+		}
+	});
 });
 
 const callback_queries = {};

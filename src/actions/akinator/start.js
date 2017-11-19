@@ -86,9 +86,6 @@ module.exports = function({ sessionId, result }) {
 
 			return aki_client.resolver({
 				speech: `Stiamo parlando di ${char.name} - ${char.description}`,
-				contextOut: [
-				{ name: "akinator_response", lifespan: 0 }
-				],
 				data: {
 					url: char.absolute_picture_path
 				}

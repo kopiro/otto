@@ -50,6 +50,8 @@
         "Actions": true,
         "$": true,
         "timeout": true,
-        "uuid": true
+        "uuid": true,
+        "consoleultimate": true,
+        "prettyjson": true
     }
 }

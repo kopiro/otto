@@ -1,12 +1,11 @@
 const TAG = 'AI';
 
 const _ = require('underscore');
+const Translator = apprequire('translator');
 
 const _config = config.apiai;
 
 const apiaiClient = require('apiai')(_config.token);
-
-const Translator = apprequire('translator');
 
 exports.fulfillmentTransformer = async function(fulfillment, session_model) {
 	// Ensure always data object exists
@@ -15,8 +14,6 @@ exports.fulfillmentTransformer = async function(fulfillment, session_model) {
 	}
 
 	fulfillment.data = fulfillment.data || {};
-
-	console.debug(TAG, 'fulfillment transformer', { fulfillment });
 
 	if (!_.isEmpty(fulfillment.speech)) {
 		try {
@@ -82,7 +79,7 @@ function apiaiInterfaceConverter(body) {
 			body.result.fulfillment.data = msg.payload;
 			break;
 			default:
-			console.error(TAG, 'Type not recognized');
+			console.error(TAG, 'type not recognized');
 			break;
 		}
 		delete body.result.fulfillment.messages;
@@ -94,7 +91,7 @@ function apiaiInterfaceConverter(body) {
 
 exports.textRequest = function(text, session_model) {
 	return new Promise(async(resolve, reject) => {
-		console.debug(TAG, 'request', { text });
+		console.debug(TAG, 'request', text);
 
 		text = await exports.textRequestTransformer(text, session_model);
 		let request = apiaiClient.textRequest(text, {
@@ -103,7 +100,8 @@ exports.textRequest = function(text, session_model) {
 
 		request.on('response', async(body) => {
 			body = apiaiInterfaceConverter(body);
-			console.info(TAG, 'response', JSON.stringify(body, null, 2));
+			console.info(TAG, 'response');
+			console.dir(body);
 
 			const action = body.result.action;
 

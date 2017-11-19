@@ -35,21 +35,20 @@ module.exports = function({ sessionId, result }, session_model) {
 			session_model['translate_' + x] = language_to_set;
 		}
 
-		session_model
-		.save()
-		.then(() => {
-			IOManager.updateGlobalSessionModel(session_model);
-			
-			const from = _.findWhere(languages, { code: session_model.translate_from || config.language }).name;
-			const to = _.findWhere(languages, { code: session_model.translate_to || config.language }).name;
+		await session_model.save();
+		IOManager.updateGlobalSessionModel(session_model);
 
+		const from = _.findWhere(languages, { code: session_model.getTranslateFrom() }).name;
+		const to = _.findWhere(languages, { code: session_model.getTranslateTo() }).name;
+
+		if (session_model.getTranslateFrom() === session_model.getTranslateTo()) {
 			resolve({
-				speech: `Ok, da ora in poi io ti parlo in ${to}, mentre tu mi parli in ${from}`,
-				data: {
-					language: session_model.translate_to
-				}
+				speech: `Ok, parliamo in ${to}!`
 			});
-
-		});
+		} else {
+			resolve({
+				speech: `Ok, da ora in poi io ti parlo in ${to}, mentre tu mi parli in ${from}`
+			});
+		}
 	});
 };

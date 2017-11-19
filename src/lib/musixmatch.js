@@ -1,11 +1,11 @@
 const TAG = 'MusixMatch';
 
 const _ = require('underscore');
-const request = require('fs');
+const request = require('request');
 
 const _config = config.ai.musixmatch;
 
-const endpoint = 'https://musixmatchcom-musixmatch.p.mashape.com/wsr/1.1/';
+const ENDPOINT = 'https://musixmatchcom-musixmatch.p.mashape.com/wsr/1.1/';
 
 function req(opt, callback) {
 	console.debug(TAG, 'input', opt);
@@ -32,16 +32,16 @@ exports.searchTrack = function(opt, callback) {
 		f_has_lyrics: 1,
 		page: 1,
 		page_size: 5,
-		q: ',
-		q_artist: ',
-		q_lyrics: ',
-		q_track: ',
-		q_track_artist: ',
+		q: '',
+		q_artist: '',
+		q_lyrics: '',
+		q_track: '',
+		q_track_artist: '',
 		s_track_rating: 'desc'
 	});
 
 	req({
-		url: endpoint + call,		
+		url: ENDPOINT + call,		
 		qs: opt
 	}, function(error, body) {
 		if (callback) {
@@ -57,7 +57,7 @@ exports.trackLyrics = function(opt, callback) {
 	});
 
 	req({
-		url: endpoint + call,
+		url: ENDPOINT + call,
 		qs: opt
 	}, function(error, body) {
 		if (callback) callback(error, body);
@@ -71,7 +71,7 @@ exports.music = function(opt, callback) {
 	});
 
 	req({
-		url: endpoint + call,
+		url: ENDPOINT + call,
 		qs: opt
 	}, function(error, body) {
 		if (callback) callback(error, body);
@@ -86,7 +86,7 @@ exports.artist = function(opt, callback) {
 	});
 
 	req({
-		url: endpoint + call,
+		url: ENDPOINT + call,
 		qs: opt
 	}, function(error, body) {
 		if (callback) callback(error, body);

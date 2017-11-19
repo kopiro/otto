@@ -48,7 +48,9 @@ async function __init__() {
 					if (e.error) throw e.error;
 					await onIoResponse(io, e);
 				} catch (ex) {
-					await errorResponse(io, { data: { error: ex } }, e.session_model);
+					let err = ex;
+					if (_.isFunction(err.toString)) err = err.toString();
+					await errorResponse(io, { data: { error: err } }, e.session_model);
 				}
 			});
 			io.startInput();

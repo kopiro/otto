@@ -1,8 +1,11 @@
 const TAG = 'Play';
 
 const _ = require('underscore');
-
+const fs = require('fs');
 const spawn = require('child_process').spawn;
+const md5 = require('md5');
+const request = require('request');
+
 const PITCH = 700;
 
 const _config = _.defaults(config.speaker || {}, {
@@ -17,6 +20,7 @@ exports.fileToSpeaker = function(file) {
 		console.debug(TAG, 'fileToSpeaker', file);
 
 		const opt = {};
+		let bargs = [];
 		let args = [];
 
 		if (_config.device) {
@@ -28,10 +32,30 @@ exports.fileToSpeaker = function(file) {
 			args.push(_config.delay);
 		}
 
-		exports.speakerProc = spawn('play', [file].concat('pitch', '-q', PITCH).concat(args), opt)
+		exports.speakerProc = spawn('play', bargs.concat(file).concat('pitch', '-q', PITCH).concat(args), opt)
 		.on('close', (err) => {
 			exports.speakerProc = null;
 			if (err) return reject(err);
+			resolve(true);
+		});
+	});
+};
+
+exports.urlToSpeaker = function(url) {
+	return new Promise(async(resolve) => {
+		console.debug(TAG, 'urlToSpeaker', { url });
+	
+		const audio_file = __cachedir + '/' + md5(url) + '.mp3';
+		if (fs.existsSync(audio_file)) {
+			return exports.fileToSpeaker(audio_file);
+		}
+
+		const audio_file_stream = fs.createWriteStream(audio_file);
+
+		request(url)
+		.pipe(audio_file_stream)
+		.on('close', async() => {
+			await exports.fileToSpeaker(audio_file);
 			resolve(true);
 		});
 	});

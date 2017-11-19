@@ -49,6 +49,7 @@
     "mongoose": "^4.11.5",
     "node-telegram-bot-api": "^0.27.0",
     "node-wolfram": "0.0.1",
+    "prettyjson": "^1.2.1",
     "request": "^2.79.0",
     "socket.io": "^1.7.3",
     "spotify-web-api-node": "^2.3.6",

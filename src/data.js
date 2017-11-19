@@ -89,3 +89,10 @@ const Knowledge = new Schema({
 	score: Number
 });
 exports.Knowledge = mongoose.model('knowledge', Knowledge);
+
+const Music = new Schema({
+	name: String,
+	artist: String,
+	url: String
+});
+exports.Music = mongoose.model('musics', Music);

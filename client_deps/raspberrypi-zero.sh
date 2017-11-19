@@ -4,8 +4,12 @@
 wget -O - https://raw.githubusercontent.com/sdesalas/node-pi-zero/master/install-node-v7.7.1.sh | bash
 
 # Install base libraries
-apt-get -y install sox libsox-fmt-all opus-tools supervisor
+apt-get -y install sox
+apt-get -y install libsox-fmt-all
+apt-get -y install opus-tools
+apt-get -y install mopidy
 
+apt-get -y install supervisor
 mkdir -p /var/log/otto
 echo "[program:otto]
 directory=/root/otto-ai

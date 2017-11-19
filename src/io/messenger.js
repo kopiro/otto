@@ -1,106 +1,164 @@
 const TAG = 'IO.Messenger';
 exports.id = 'messenger';
 
+const _ = require('underscore');
 const http = require('http');
+
+const _config = _.defaults(config.io.messenger, {
+	writeKeySpeed: 1
+});
 
 const emitter = exports.emitter = new (require('events').EventEmitter)();
 
-const _config = config.io.messenger;
-
-const SpeechRecognizer = apprequire('speechrecognizer');
-
 const MessengerBot = require('messenger-bot');
+const SpeechRecognizer = apprequire('speechrecognizer');
+const Polly = apprequire('polly');
+const Play = apprequire('play');
+
 const bot = new MessengerBot(_config);
 
 let started = false;
 
+function handleInputVoice(session_model, e) {
+	return new Promise(async(resolve, reject) => {		
+		const file_link = await bot.getFileLink(e.voice.file_id);
+		const voice_file = __tmpdir + '/' + uuid() + '.ogg';
+		const voice_file_stream = fs.createWriteStream(voice_file);
+
+		request(file_link)
+		.pipe(voice_file_stream)
+		.on('close', () => {
+			
+			let proc = spawn('opusdec', [ voice_file, voice_file + '.wav', '--rate', 16000 ]);
+			let stderr = '';
+			proc.stderr.on('data', (buf) => { stderr += buf; });
+			proc.on('close', async(err) => {
+				if (err) return reject(stderr);
+				
+				const recognize_stream = SpeechRecognizer.createRecognizeStream({
+					interimResults: false,
+					language: session_model.getTranslateFrom()
+				}, (err, text) => {
+					if (err) return reject(err);
+					resolve(text);
+				});
+				fs.createReadStream(voice_file + '.wav').pipe(recognize_stream);
+			});
+
+		});
+	});
+}
+
+async function sendMessage(chat_id, text, messenger_opt = {}) {
+	const sentences = Util.mimicHumanMessage(text);
+	await bot.sendChatAction(chat_id, 'typing');
+
+	for (let sentence of sentences) {
+		messenger_opt = _.extend(messenger_opt, { text: sentence });
+		await bot.sendMessage(chat_id, messenger_opt);
+		await timeout(Math.max(2000, _config.writeKeySpeed * sentence.length));
+	}
+
+	return true;
+}
+
+async function sendVoiceMessage(chat_id, text, language, telegram_opt) {
+	const sentences = Util.mimicHumanMessage(text);
+	await bot.sendChatAction(chat_id, 'record_audio');
+
+	for (let sentence of sentences) {
+		const polly_file = await Polly.getAudioFile(sentence, { language: language });
+		const voice_file = await Play.fileToTmpFile(polly_file);
+		await bot.sendVoice(chat_id, voice_file, telegram_opt);
+	}
+
+	return true;
+}
+
+
 exports.startInput = function() {
-	if (started) return;
+	if (started === true) return;
 	started = true;
 	
 	http.createServer( bot.middleware() ).listen(_config.port);
 	console.info(TAG, 'started on port ' + _config.port);
 };
 
-exports.output = function(f, session_model) {
-	console.info(TAG, 'output', session_model._id, f);
+exports.output = async function(f, session_model) {
+	console.info(TAG, 'output');
+	console.dir({ f, session_model });
 
-	return new Promise((resolve, reject) => {
-		if (f.data.error) {
-			if (f.data.error.speech) {		
-				bot.sendChatAction(session_model.io_data.sender.id, 'typing');
-				bot.sendMessage(session_model.io_data.sender.id, f.data.error.speech);	
-				return resolve();
-			} else {
-				return resolve();
+	const language = f.data.language || session_model.getTranslateTo();
+	const chat_id = session_model.io_data.sender.id;
+
+	let message_opt = {};
+
+	if (f.data.replies) {
+		message_opt = {
+			quick_replies: f.data.replies.map((r) => {
+				if (_.isString(r)) r = { id: r, text: r };
+				return {
+					title: r.text,
+					payload: r.id,
+					content_type: 'text',
+				};
+			})
+		};
+	}
+
+	if (f.data.error) {
+		if (f.data.error.speech) {	
+			await sendMessage(chat_id, f.data.error.speech);
+		} else {
+			if (session_model.is_admin === true) {
+				await sendMessage(chat_id, "ERROR\n```\n" + JSON.stringify(f.data.error) + "\n```");
 			}
 		}
+	}
 
-		let message_opt = {};
+	if (f.speech) {
+		await sendMessage(chat_id, f.speech, message_opt);
+	}
 
-		if (f.data.replies) {
-			message_opt = {
-				quick_replies: f.data.replies.map((r) => {
-					if (_.isString(r)) r = { id: r, text: r };
-					return {
-						title: r.text,
-						payload: r.id,
-						content_type: 'text',
-					};
-				})
-			};
+	if (f.data.url) {
+		await sendMessage(chat_id, f.data.url);
+	}
+
+	if (f.data.media) {
+		if (f.data.media.artist) {
+			await sendMessage(chat_id, f.data.media.artist.external_urls.spotify, message_opt);
 		}
-
-		if (f.speech) {
-			if (f.data.url) {
-				f.speech += "\n" + f.data.url;
-			}
-			bot.sendMessage(session_model.io_data.sender.id, _.extend(message_opt, {
-				text: f.speech
-			}), (err, info) => {
-				if (err) console.error(TAG, err);
-			});
-			return resolve();
+		if (f.data.media.track) {
+			await sendMessage(chat_id, f.data.media.track.external_urls.spotify, message_opt);
 		}
-
-		if (f.data.media) {
-			if (f.data.media.track) {
-				bot.sendMessage(session_model.io_data.sender.id, _.extend(message_opt, { 
-					text: f.data.media.song.external_urls.spotify 
-				}), (err, info) => {
-					if (err) console.error(TAG, err);
-				});
-				return resolve();
-			}
-			return reject();
+		if (f.data.media.playlist) {
+			await sendMessage(chat_id, f.data.media.playlist.external_urls.spotify, message_opt);
 		}
+	}
 
-		if (f.data.image) {
-			bot.sendMessage(session_model.io_data.sender.id, _.extend(message_opt, { 
-				attachment: {
-					type: 'image',
-					payload: {
-						url: image.remoteFile,
-						is_reusable: true
-					}
-				}
-			}), (err, info) => {
-				if (err) console.error(TAG, err);
-			});
-			return resolve();
+	if (f.data.video) {
+		if (f.data.video.remoteFile) {
+			await bot.sendChatAction(chat_id, 'upload_video');
+			await bot.sendVideo(chat_id, f.data.video.remoteFile, message_opt);
+		} else if (f.data.video.localFile) {
+			await bot.sendChatAction(chat_id, 'upload_video');
+			await bot.sendVideo(chat_id, f.data.video.localFile, message_opt);
 		}
+	}
 
-		if (f.data.lyrics) {
-			bot.sendMessage(data.recipientId, _.extend(message_opt, { 
-				text: params.lyrics.lyrics_body
-			}), (err, info) => {
-				if (err) console.error(TAG, err);
-			});
-			return resolve();
+	if (f.data.image) {
+		if (f.data.image.remoteFile) {
+			await bot.sendChatAction(chat_id, 'upload_photo');
+			await bot.sendPhoto(chat_id, f.data.image.remoteFile, message_opt);
+		} else if (f.data.image.localFile) {
+			await bot.sendChatAction(chat_id, 'upload_photo');
+			await bot.sendPhoto(chat_id, f.data.image.localFile, message_opt);
 		}
+	}
 
-		return reject();
-	});
+	if (f.lyrics) {
+		await sendMessage(chat_id, f.lyrics.lyrics_body, message_opt);
+	}
 };
 
 bot.on('error', (err) => {
@@ -108,13 +166,18 @@ bot.on('error', (err) => {
 });
 
 bot.on('message', (e) => {
-	console.info(TAG, 'input', e);
+	console.info(TAG, 'input');
+	console.dir(e);
 
 	let sessionId = e.sender.id;
 
-	bot.getProfile(sessionId, (err, profile) => {
+	bot.getProfile(sessionId, async(err, profile) => {
+		if (err) {
+			console.error(TAG, 'unable to get profile', err);
+			return;
+		}
 
-		IOManager.registerSession({
+		const session_model = await IOManager.registerSession({
 			sessionId: sessionId,
 			io_id: exports.id, 
 			io_data: {
@@ -123,47 +186,39 @@ bot.on('message', (e) => {
 			},
 			alias: profile.first_name + ' ' + profile.last_name,
 			text: e.message.text
-		})
-		.then((session_model) => {
-			if (e.message.text) {
-				return emitter.emit('input', {
+		});
+
+		if (e.message.text) {
+			emitter.emit('input', {
+				session_model: session_model,
+				params: {
+					text: e.message.text
+				}
+			});
+			return;
+		}
+
+		if (e.message.attachments) {
+			const attach = _.first(e.message.attachments);
+			if (attach.type === 'image') {
+				emitter.emit('input', {
 					session_model: session_model,
 					params: {
-						text: e.message.text
+						image: {
+							remoteFile: attach.payload.url,
+						}
 					}
 				});
 			}
+			return;
+		}
 
-			if (e.message.attachments) {
-				const attach = _.first(e.message.attachments);
-				if (attach.type === 'image') {
-					return emitter.emit('input', {
-						session_model: session_model,
-						params: {
-							image: {
-								remoteFile: attach.payload.url,
-							}
-						}
-					});
-				}
+		emitter.emit('input', {
+			session_model: session_model,
+			error: {
+				unkownInputType: true
 			}
-
-			return emitter.emit('input', {
-				session_model: session_model,
-				error: {
-					unkownInputType: true
-				}
-			});
-		})
-		.catch((session_model) => {
-			emitter.emit('input', {
-				session_model: session_model,
-				error: {
-					unauthorized: true
-				}
-			});
 		});
-
 	});
 
 });

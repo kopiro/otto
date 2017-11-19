@@ -18,21 +18,10 @@ Array.prototype.getRandom = function() {
 	return this[ _.random(0, this.length - 1) ];
 };
 
-exports.mimicHumanMessage = function(text) {
+exports.mimicHumanMessage = function mimicHumanMessage(text) {
 	text = text.replace(/\.[a-z]/gi, '. ');
 	const splitted = text.split(/\.(?=\s+|[A-Z])|\n/);
-	let buffer = [];
-	let el = '';
-	for (var i = 0; i < splitted.length; i++) {
-		const t = splitted[i];
-		const last = (i == splitted.length - 1);
-		el += t + (last ? '' : '.');
-		if (el.length > 200 || last) {
-			buffer.push(el);
-			el = '';
-		}
-	}
-	return buffer;
+	return _.compact(splitted);
 };
 
 exports.getLocaleFromLanguageCode = function(language) {

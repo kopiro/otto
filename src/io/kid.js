@@ -3,6 +3,8 @@ exports.id = 'kid';
 
 const _ = require('underscore');
 const async = require('async');
+const md5 = require('md5');
+const request = require('request');
 
 const _config = _.defaults(config.io.kid || {}, {
 	waitForActivator: false,
@@ -21,8 +23,6 @@ const URLManager = apprequire('urlmanager');
 const {Detector, Models} = require('snowboy');
 const Translator = apprequire('translator');
 
-const md5 = require('md5');
-
 let isHavingConversation = false;
 
 let queueOutput = [];
@@ -35,13 +35,13 @@ let eocTimeout = -1;
 const models = new Models();
 models.add({
 	file: __etcdir + '/hotword.pmdl',
-	sensitivity: '0.6',
+	sensitivity: '0.5',
 	hotwords: _config.hotword
 });
 
 let currentOutputKey = null;
 
-async function sendOutput(text, language = IOManager.sessionModel.getTranslateTo()) {
+async function sendMessage(text, language = IOManager.sessionModel.getTranslateTo()) {
 	const key = md5(text);
 	currentOutputKey = key;
 
@@ -56,6 +56,14 @@ async function sendOutput(text, language = IOManager.sessionModel.getTranslateTo
 	return true;
 }
 
+async function sendVoice(e) {
+	if (e.remoteFile) {
+		await Play.urlToSpeaker(e.remoteFile);
+	} else if (e.localFile) {
+		await Play.fileToSpeaker(e.localFile);
+	}
+}
+
 function stopOutput() {
 	if (Play.speakerProc != null) {
 		console.warn(TAG, 'stop output');
@@ -66,7 +74,7 @@ function stopOutput() {
 
 async function sendFirstHint(language = IOManager.sessionModel.getTranslateTo()) {
 	let hint = await Translator.translate(_config.firstHint, language, 'it');
-	return sendOutput(hint);
+	return sendMessage(hint);
 }
 
 let recognizeStream;
@@ -204,14 +212,15 @@ async function processOutputQueue() {
 
 	let f = queueOutput[0];
 	
-	console.debug(TAG, 'process output queue', f);
+	console.debug(TAG, 'process output queue');
+	console.dir(f);
 
 	if (f.data.error) {
 		if (f.data.error.speech) {	
-			await sendOutput(f.data.error.speech, f.data.language);
+			await sendMessage(f.data.error.speech, f.data.language);
 		} else {
 			if (IOManager.sessionModel.is_admin === true) {
-				await sendOutput(f.data.error, 'en');
+				await sendMessage(f.data.error, 'en');
 			}
 		}
 	}
@@ -221,12 +230,15 @@ async function processOutputQueue() {
 	}
 
 	if (f.speech) {
-		await sendOutput(f.speech, f.data.language);
+		await sendMessage(f.speech, f.data.language);
+	}
+
+	if (f.data.voice) {
+		await sendVoice(f.data.voice);
 	}
 
 	if (f.data.lyrics) {
-		const speech = f.data.lyrics.lyrics_body.split("\n")[0];
-		await sendOutput(speech);
+		await sendMessage(f.data.lyrics.lyrics_body);
 	}
 
 	shiftQueue();
@@ -260,7 +272,7 @@ exports.startInput = function() {
 };
 
 exports.output = async function(f) {
-	console.info(TAG, 'output added to queue', f);
+	console.info(TAG, 'output added to queue');
 	queueOutput.push(f);
 };
 
