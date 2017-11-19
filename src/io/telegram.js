@@ -236,7 +236,7 @@ bot.on('message', async(e) => {
 			const text = await handleInputVoice(session_model, e);
 		
 			// If we are in a group, only listen for activators
-			if (chat_is_group === true || !AI_NAME_ACTIVATOR.test(e.text)) {
+			if (chat_is_group === true && !AI_NAME_ACTIVATOR.test(e.text)) {
 				console.debug(TAG, 'skipping input for missing activator', e.text);
 				return false;
 			}
