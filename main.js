@@ -2,37 +2,26 @@ require('./boot');
 
 const _ = require('underscore');
 
-async function errorResponse(io, f, session_model) {
-	console.error('ERROR', f);
-	AI.fulfillmentTransformer(f, session_model, (f) => {
-		io.output(f, session_model);
-	});
+async function errorResponse(io, fulfillment, session_model) {
+	console.error('ERROR', fulfillment);
+	fulfillment = await AI.fulfillmentTransformer(fulfillment, session_model);
+	await io.output(fulfillment, session_model);
 }
 
-async function onIoResponse({ session_model, error, params }) {
-	const io = this;
+async function onIoResponse(io, { session_model, error, params }) {
 	console.debug('onIoResponse', 'SID = ' + session_model._id, { error, params });
-	
-	// Instant error fullfillment
-	if (error) {
-		return errorResponse(io, { data: { error: error } }, session_model);
-	}
 
-	// Instant fullfillment
+	// Instant fulfillment
 	if (params.fulfillment) {
-		return io.output(params.fulfillment, session_model);
+		await io.output(params.fulfillment, session_model);
 	}
 		
-	// Interrogate AI to get fullfillment
+	// Interrogate AI to get fulfillment
 	// This invokes API.ai to detect the action and
 	// invoke the action to perform fulfillment
 	if (params.text) {
-		try {
-			const f = await AI.textRequest(params.text, session_model);
-			return io.output(f, session_model);
-		} catch (err) {
-			return errorResponse(io, err, session_model);
-		}
+		const fulfillment = await AI.textRequest(params.text, session_model);
+		await io.output(fulfillment, session_model);
 	}
 }
 
@@ -54,7 +43,14 @@ async function __init__() {
 		IOManager.startPolling();
 		
 		_.each(IOManager.drivers, (io) => {
-			io.emitter.on('input', onIoResponse.bind(io));
+			io.emitter.on('input', async(e) => {
+				try {
+					if (e.error) throw e.error;
+					await onIoResponse(io, e);
+				} catch (ex) {
+					await errorResponse(io, { data: { error: ex } }, e.session_model);
+				}
+			});
 			io.startInput();
 		});
 	});

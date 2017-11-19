@@ -10,6 +10,7 @@ const Session = new Schema({
 	translate_from: String,
 	translate_to: String,
 	alias: String,
+	is_admin: Boolean,
 	pipe: Schema.Types.Mixed
 });
 

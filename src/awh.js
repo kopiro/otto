@@ -3,57 +3,54 @@ const TAG = 'AWH';
 const _ = require('underscore');
 
 const Router = apprequire('server').routerAwh;
+
+Router.get('/', (req, res) => {
+	res.json({ error: { message: 'You should call in POST' } });
+});
  
 Router.post('/', (req, res) => {
 	if (req.body == null) {
-		console.error(TAG, 'Empty body', req.body);
-		return res.json({
-			error: {
-				message: 'Empty body'
-			}
-		});
+		console.error(TAG, 'empty body');
+		return res.json({ error: { message: 'Empty body' } });
 	}
+
+	console.info(TAG, 'request', JSON.stringify(req.body, null, 2));
 
 	const body = req.body;
 	const result = req.body.result;
 	const action = result.action;
-
-	const resolve = (data) => {
-		console.info(TAG, 'output', data);
-		res.json(data);
-	};
-
-	const reject = (err) => {
-		console.info(TAG, 'error', err);
-		res.json({
-			data: {
-				error: err
-			}
-		});
-	};
-
-	console.debug(TAG, body);
-
 	const sessionId = body.sessionId;
 
 	Data.Session
 	.findOne({ _id: sessionId })
-	.then((session_model) => {
+	.then(async(session_model) => {
 
 		if (session_model == null) {
-			console.error(TAG, `Creating a missing session ID with ${sessionId}`);
+			console.error(TAG, `creating a missing session ID with ${sessionId}`);
 			session_model = new Data.Session({ _id: sessionId });
 			session_model.save();
 		}
 
-		if (result.actionIncomplete !== true && !_.isEmpty(action)) {
-			console.info(TAG, 'calling action', action);
-			const action_fn = Actions.list[ action ];
-			return AI.fulfillmentPromiseTransformer(action_fn(), body, session_model, resolve);
+		try {
+
+			let fulfillment;
+
+			if (result.actionIncomplete !== true && !_.isEmpty(action)) {
+				const action_fn = Actions.list[ action ];
+				console.info(TAG, 'calling awh action', action);
+				fulfillment = await AI.fulfillmentPromiseTransformer(action_fn(), body, session_model);
+			} else {
+				fulfillment = await AI.fulfillmentTransformer(result.fulfillment, session_model);
+			}
+
+			console.info(TAG, 'response', fulfillment);
+
+			res.json(fulfillment);
+
+		} catch (ex) {
+			console.info(TAG, 'error', ex);
+			res.json({ data: { error: ex } });
 		}
-
-		AI.fulfillmentTransformer(result.fulfillment, session_model, resolve);
-
 	});
 });
 

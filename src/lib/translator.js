@@ -5,15 +5,14 @@ const translateClient = translate({
 	keyFilename: __basedir + '/keys/gcloud.json'
 });
 
-exports.translate = function(text, to_language = config.language, from_language = null) {
+exports.translate = function(text, to_language = config.language, from_language = config.language) {
 	return new Promise((resolve, reject) => {
 		
-		console.debug(TAG, { text, to_language, from_language });
-
-		if (from_language != null && to_language === from_language) {
-			console.debug(TAG, 'not-necessary translation');
+		if (to_language === from_language) {
 			return resolve(text);
 		}
+
+		console.debug(TAG, { text, to_language, from_language });
 
 		translateClient.translate(text, to_language, (err, translation) => {
 			if (err) {

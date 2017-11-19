@@ -4,14 +4,15 @@ const _ = require('underscore');
 
 const spawn = require('child_process').spawn;
 const PITCH = 700;
+
 const _config = _.defaults(config.speaker || {}, {
 	device: null,
-	delay: 0 // on RasPI, set this value to 1
+	delay: 0 // on RasPI, set this value to 1 if audio is trimmed
 });
 
 exports.speakerProc = null;
 
-exports.fileToSpeaker = function(file, callback) {
+exports.fileToSpeaker = function(file) {
 	return new Promise((resolve, reject) => {
 		console.debug(TAG, 'fileToSpeaker', file);
 
@@ -31,30 +32,22 @@ exports.fileToSpeaker = function(file, callback) {
 		.on('close', (err) => {
 			exports.speakerProc = null;
 			if (err) return reject(err);
-			resolve();
+			resolve(true);
 		});
 	});
 };
 
-exports.fileToFile = function(from_file, to_file, callback) {
-	callback = callback || (() => {});
+exports.fileToTmpFile = function(file) {
+	return new Promise((resolve, reject) => {
+		const tmp_file = __tmpdir + '/' + uuid() + '.mp3';
+		console.debug(TAG, 'fileToTmpFile', { file, tmp_file });
 
-	console.debug(TAG, 'fileToTmpFile', from_file, to_file);
-
-	spawn('sox', [from_file].concat(to_file).concat('pitch', '-q', PITCH))
-	.on('close', (err) => {
-		callback(err != 0, to_file);
-	});
-};
-
-exports.fileToTmpFile = function(file, callback) {
-	callback = callback || (() => {});
-
-	const tmp_audio = __tmpdir + '/' + require('uuid').v4() + '.mp3';
-	console.debug(TAG, 'fileToTmpFile', file, tmp_audio);
-
-	spawn('sox', [file].concat(tmp_audio).concat('pitch', '-q', PITCH))
-	.on('close', (err) => {
-		callback(err != 0, tmp_audio);
+		let proc = spawn('sox', [file].concat(tmp_file).concat('pitch', '-q', PITCH));
+		let stderr = '';
+		proc.stderr.on('data', (buf) => { stderr += buf; });
+		proc.on('close', (err) => {
+			if (err) return reject(stderr);
+			resolve(tmp_file);
+		});
 	});
 };

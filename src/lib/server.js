@@ -20,6 +20,11 @@ app.engine('hbs', exphbs({
 }));
 app.set('view engine', 'hbs');
 
+app.get('/', (req, res) => {
+	const p = require(__basedir + '/package.json');
+	res.send('<h1>' + p.name + ' web server</h1>');
+});
+
 ////////////
 // Router //
 ////////////
@@ -31,10 +36,10 @@ router_api.use(require('body-parser').urlencoded({
 }));
 
 router_api.get('/', (req, res) => {
-	const package = require(__basedir + '/package.json');
+	const p = require(__basedir + '/package.json');
 	res.json({
-		name: package.name,
-		version: package.version
+		name: p.name,
+		version: p.version
 	});
 });
 
@@ -84,7 +89,7 @@ app.use('/actions', router_actions);
 app.use('/client', router_client);
 
 // Start
-server.listen(port, () => {
+server.listen({ port: port, server: '0.0.0.0' }, (e) => {
 	console.info(`HTTP Server has started on port ${port}`);
 });
 

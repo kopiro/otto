@@ -41,21 +41,19 @@ models.add({
 
 let currentOutputKey = null;
 
-function sendOutput(text, language = IOManager.sessionModel.getTranslateTo()) {
-	return new Promise(async(resolve, reject) => {
-		const key = md5(text);
-		currentOutputKey = key;
+async function sendOutput(text, language = IOManager.sessionModel.getTranslateTo()) {
+	const key = md5(text);
+	currentOutputKey = key;
 
-		const sentences = Util.mimicHumanMessage(text);
-		for (let sentence of sentences) {
-			if (currentOutputKey === key) {
-				let polly_file = await Polly.getAudioFile(sentence, { language: language });
-				await Play.fileToSpeaker(polly_file);
-			}
+	const sentences = Util.mimicHumanMessage(text);
+	for (let sentence of sentences) {
+		if (currentOutputKey === key) {
+			let polly_file = await Polly.getAudioFile(sentence, { language: language });
+			await Play.fileToSpeaker(polly_file);
 		}
+	}
 
-		resolve();
-	});
+	return true;
 }
 
 function stopOutput() {
@@ -108,7 +106,6 @@ function createRecognizeStream() {
 	});
 
 	eocTimeout = _config.eocMax;
-	emitter.emit('user-can-speak');
 
 	return recognizeStream;
 }
@@ -146,15 +143,13 @@ function registerEOCInterval() {
 			exports.startInput();
 
 		} else if (eocTimeout > 0) {
-			// console.log(TAG, eocTimeout + ' seconds remaining');
+			// console.debug(TAG, eocTimeout + ' seconds remaining');
 			eocTimeout--;
 		}
 	}, 1000);
 }
 
 function getDetectorStream() {
-	emitter.emit('ai-hotword-listening');
-
 	eocTimeout = -1;
 
 	const detector = new Detector({
@@ -193,53 +188,48 @@ function shiftQueue() {
 	console.debug(TAG, 'shifting queue');
 	queueOutput.shift();
 	queueRunning = false;
+	emitter.emit('ai-spoken');
 	exports.startInput(); 
 }
 
-function processOutputQueue() {
+async function processOutputQueue() {
 	if (queueOutput.length === 0) return;
 	if (queueRunning === true) return;
+
+	emitter.emit('ai-speaking');
 
 	queueRunning = true;
 	eocTimeout = -1;
 	stopRecognizingStream();
 
 	let f = queueOutput[0];
+	
 	console.debug(TAG, 'process output queue', f);
-	let promise;
 
 	if (f.data.error) {
 		if (f.data.error.speech) {	
-			promise = sendOutput(f.data.error.speech, f.data.language);
+			await sendOutput(f.data.error.speech, f.data.language);
 		} else {
-			promise = Promise.resolve();
+			if (IOManager.sessionModel.is_admin === true) {
+				await sendOutput(f.data.error, 'en');
+			}
 		}
-	} else {
-
-		if (f.data.url) {
-			URLManager.open(f.data.url);
-		}
-
-		if (f.speech) {
-			promise = sendOutput(f.speech, f.data.language);
-		} else if (f.data.lyrics) {
-			const speech = f.data.lyrics.lyrics_body.split("\n")[0];
-			promise = sendOutput(speech);
-		}
-
 	}
 
-	if (promise == null) {
-		promise = Promise.reject({ unkownOutputType: true });
+	if (f.data.url) {
+		await URLManager.open(f.data.url);
 	}
 
-	// Attach to the sendOutput (or equivalent) promise to restart
-	// the AI listening
-	promise
-	.then(shiftQueue)
-	.catch(shiftQueue);
+	if (f.speech) {
+		await sendOutput(f.speech, f.data.language);
+	}
 
-	return promise;
+	if (f.data.lyrics) {
+		const speech = f.data.lyrics.lyrics_body.split("\n")[0];
+		await sendOutput(speech);
+	}
+
+	shiftQueue();
 }
 
 exports.startInput = function() {
@@ -262,11 +252,14 @@ exports.startInput = function() {
 	Rec.getStream().pipe(getDetectorStream());
 
 	if (isHavingConversation) {
+		emitter.emit('user-can-speak');
 		Rec.getStream().pipe(createRecognizeStream());
+	} else {
+		emitter.emit('ai-hotword-listening');
 	}
 };
 
-exports.output = function(f) {
+exports.output = async function(f) {
 	console.info(TAG, 'output added to queue', f);
 	queueOutput.push(f);
 };
@@ -290,6 +283,11 @@ emitter.on('ai-hotword-recognized', () => {
 emitter.on('ai-speaking', () => {
 	if (ledAnimation) ledAnimation.stop();
 	RaspiLeds.setColor([ 255, 255, 0 ]);
+});
+
+emitter.on('ai-spoken', () => {
+	if (ledAnimation) ledAnimation.stop();
+	RaspiLeds.off();
 });
 
 emitter.on('user-can-speak', () => {

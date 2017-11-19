@@ -41,7 +41,7 @@ module.exports = function({ sessionId, result }, session_model) {
 			}
 
 
-			session_model.saveInPipe({ nextOutputWithVoice: false });
+			session_model.saveInPipe({ next_with_voice: false });
 
 			let speech;
 			const torrents_speech = torrents.map((e,i) => (i+1) + '. ' + e.title + '.').join("\n");

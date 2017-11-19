@@ -19,11 +19,11 @@
     "rules": {
         "indent": "off",
         "linebreak-style": [
-            "error",
+            "warn",
             "unix"
         ],
         "semi": [
-            "error",
+            "warn",
             "always"
         ],
         "no-console": "off"
@@ -48,6 +48,8 @@
         "IOManager": true,
         "Scheduler": true,
         "Actions": true,
-        "$": true
+        "$": true,
+        "timeout": true,
+        "uuid": true
     }
 }
