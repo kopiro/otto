@@ -51,7 +51,7 @@ function handleInputVoice(session_model, e) {
 
 async function sendMessage(chat_id, text, messenger_opt = {}) {
 	const sentences = Util.mimicHumanMessage(text);
-	await bot.sendChatAction(chat_id, 'typing');
+	await bot.sendSenderAction(chat_id, 'typing');
 
 	for (let sentence of sentences) {
 		messenger_opt = _.extend(messenger_opt, { text: sentence });
@@ -64,7 +64,7 @@ async function sendMessage(chat_id, text, messenger_opt = {}) {
 
 async function sendVoiceMessage(chat_id, text, language, telegram_opt) {
 	const sentences = Util.mimicHumanMessage(text);
-	await bot.sendChatAction(chat_id, 'record_audio');
+	await bot.sendSenderAction(chat_id, 'record_audio');
 
 	for (let sentence of sentences) {
 		const polly_file = await Polly.getAudioFile(sentence, { language: language });
@@ -138,20 +138,20 @@ exports.output = async function(f, session_model) {
 
 	if (f.data.video) {
 		if (f.data.video.remoteFile) {
-			await bot.sendChatAction(chat_id, 'upload_video');
+			await bot.sendSenderAction(chat_id, 'upload_video');
 			await bot.sendVideo(chat_id, f.data.video.remoteFile, message_opt);
 		} else if (f.data.video.localFile) {
-			await bot.sendChatAction(chat_id, 'upload_video');
+			await bot.sendSenderAction(chat_id, 'upload_video');
 			await bot.sendVideo(chat_id, f.data.video.localFile, message_opt);
 		}
 	}
 
 	if (f.data.image) {
 		if (f.data.image.remoteFile) {
-			await bot.sendChatAction(chat_id, 'upload_photo');
+			await bot.sendSenderAction(chat_id, 'upload_photo');
 			await bot.sendPhoto(chat_id, f.data.image.remoteFile, message_opt);
 		} else if (f.data.image.localFile) {
-			await bot.sendChatAction(chat_id, 'upload_photo');
+			await bot.sendSenderAction(chat_id, 'upload_photo');
 			await bot.sendPhoto(chat_id, f.data.image.localFile, message_opt);
 		}
 	}
@@ -187,6 +187,9 @@ bot.on('message', (e) => {
 			alias: profile.first_name + ' ' + profile.last_name,
 			text: e.message.text
 		});
+
+		const chat_id = session_model.io_data.sender.id;
+		bot.sendSenderAction(chat_id, 'mark_seen');
 
 		if (e.message.text) {
 			emitter.emit('input', {
