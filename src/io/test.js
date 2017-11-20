@@ -17,7 +17,8 @@ let initial_strings = fs.readFileSync(__basedir + '/in.txt').toString().split("\
 
 async function registerGlobalSession() {
 	return IOManager.registerSession({
-		sessionId: CLIENT_ID,
+		sessionId: require('os').hostname(),
+		uid: config.uid || uuid(),
 		io_id: exports.id, 
 		io_data: { platform: process.platform }
 	}, true);

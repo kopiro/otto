@@ -7,7 +7,7 @@ function getScheduler(time) {
 	return new Promise((resolve, reject) => {
 		Data.Scheduler
 		.find({
-			client: CLIENT_ID,
+			client: require('os').hostname(),
 			$or: [
 			{ daily: (time.hours() + ':' + time.minutes()) },
 			{ hourly: (time.minutes()) }

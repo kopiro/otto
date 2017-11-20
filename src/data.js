@@ -43,7 +43,8 @@ exports.SessionInput = mongoose.model('session_input', SessionInput);
 
 const IOQueue = new Schema({
 	session: { type: String, ref: 'session' },
-	data: Schema.Types.Mixed,
+	driver: String,
+	fulfillment: Schema.Types.Mixed,
 });
 exports.IOQueue = mongoose.model('io_queue', IOQueue);
 

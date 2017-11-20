@@ -38,7 +38,6 @@
         "ERRMSG_SR_UNRECOGNIZED": true,
         "config": true,
         "public_config": true,
-        "CLIENT_ID": true,
         "AI_NAME_ACTIVATOR": true,
         "apprequire": true,
         "mongoose": true,

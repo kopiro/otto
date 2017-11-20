@@ -71,6 +71,6 @@ The output payload of an action could have these attributes:
 Attribute | Description
 --- | ---
 `speech` | String that is spoken or written
-`data.url` | URL to send
-`data.media` | A 
+`data.url` | URL
+`data.media` | Media `{ artist: "", track: "", album: "" }`
 

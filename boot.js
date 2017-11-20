@@ -15,12 +15,6 @@ global.ERRMSG_SR_UNRECOGNIZED = 'Scusami, ma non ho capito quello che hai detto!
 global.config = require('./config.json');
 global.public_config = require('./public_config.json');
 
-// Current Session ID
-global.CLIENT_ID = (function() {
-	try { return config.clientId; } 
-	catch (err) { return require('os').hostname(); }
-})();
-
 // Const
 global.AI_NAME_ACTIVATOR = /(^(otto|8)\b)|(\b(otto|8)\b)/mgi;
 
