@@ -62,7 +62,7 @@ exports.output = async function(fulfillment, session_model) {
 	await (new Data.IOQueue({
 		session: session_model._id,
 		driver: session_model.io_id,
-		data: fulfillment
+		fulfillment: fulfillment
 	})).save();
 	return { inQueue: true };
 };

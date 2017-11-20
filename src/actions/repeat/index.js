@@ -9,6 +9,6 @@ module.exports = function({ sessionId, result }) {
 		// });
 		IOManager.output({
 			speech: p.q
-		}, { io_id: 'kid', _id: 'kid/darwin' });
+		}, { io_id: 'test', _id: 'test/Elerium.local' });
 	});
 };

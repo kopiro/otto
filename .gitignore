@@ -2,3 +2,4 @@ config.json
 node_modules/
 *.sublime-workspace
 npm-debug.log
+.DS_Store
