@@ -1,11 +1,11 @@
-exports.id = 'repeat';
+exports.id = 'coinflip';
 
 module.exports = function({ sessionId, result }) {
 	return new Promise((resolve, reject) => {
 		let { parameters: p, fulfillment } = result;
-
-		return resolve({
-			speech: p.q
+		
+		resolve({
+			speech: [ 'Testa', 'Croce' ].getRandom()
 		});
 	});
 };

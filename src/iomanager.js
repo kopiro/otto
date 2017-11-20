@@ -106,27 +106,33 @@ exports.updateGlobalSessionModel = function(new_session_model) {
 	exports.sessionModel = new_session_model;
 };
 
+let queues_processing = {};
+
 exports.processQueue = async function() {
 	let qitem = await Data.IOQueue.findOne({ 
 		driver: { $in: _.keys(exports.drivers) } 
 	}).populate('session');
 	if (qitem == null) return;
+	if (queues_processing[qitem._id]) return;
+
+	queues_processing[qitem._id] = true;
 
 	console.info(TAG, 'processing queue item');
 	console.dir(qitem);
 
-	try {
-		await exports.output(qitem.fulfillment, qitem.session);
-	} catch (err) {
-		console.error(TAG, { qitem }, err);
-	}
+	qitem.remove();
+	exports.output(qitem.fulfillment, qitem.session);
 
-	await qitem.remove();
 	return true;
 };
 
 exports.startPolling = async function() {
-	await exports.processQueue();
+	try {
+		exports.processQueue();
+	} catch (ex) {
+		console.error(TAG, 'queue processing error', ex);
+	}
+	await timeout(1000);
 	exports.startPolling();
 };
 
