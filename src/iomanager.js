@@ -94,13 +94,11 @@ exports.registerSession = async function({ sessionId, io_id, io_data, alias, tex
 	console.info(TAG, 'session model registered', session_model);
 
 	if (text != null) exports.writeLogForSession(session_id_composite, text);
-	if (as_global === true) exports.sessionModel = session_model;
+	if (as_global === true) exports.updateGlobalSessionModel(session_model);
 	return session_model;
 };
 
 exports.updateGlobalSessionModel = function(new_session_model) {
-	if (exports.sessionModel == null) return;
-
 	console.info(TAG, 'updating global session model');
 	exports.sessionModel = new_session_model;
 };

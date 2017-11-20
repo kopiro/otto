@@ -47,7 +47,7 @@ wolframClient.complexQuery = function(q, language) {
 			}
 
 			let final_result = pod.subpod[0].plaintext[0];
-			final_result = await Translator.translate(final_result, language);
+			final_result = await Translator.translate(final_result, language, 'en');
 			resolve(final_result);
 		});
 	});

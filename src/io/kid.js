@@ -7,7 +7,6 @@ const md5 = require('md5');
 const request = require('request');
 
 const _config = _.defaults(config.io.kid || {}, {
-	waitForActivator: false,
 	eocMax: 10,
 	firstHint: 'Dimmi'
 });
@@ -65,9 +64,9 @@ async function sendVoice(e) {
 }
 
 function stopOutput() {
+	console.warn(TAG, 'stop output');
+	currentOutputKey = null;
 	if (Play.speakerProc != null) {
-		console.warn(TAG, 'stop output');
-		currentOutputKey = null;
 		Play.speakerProc.kill();
 	}
 }
@@ -125,19 +124,12 @@ function stopRecognizingStream() {
 	}
 }
 
-function registerGlobalSession(callback) {
-	IOManager.registerSession({
+async function registerGlobalSession() {
+	return IOManager.registerSession({
 		sessionId: CLIENT_ID,
 		io_id: exports.id, 
 		io_data: { platform: process.platform }
-	}, true)
-	.then(() => {
-		console.log(TAG, 'global session registered', IOManager.sessionModel);
-		callback();
-	})
-	.catch((sm) => {
-		console.error(TAG, 'global session rejected', sm);
-	});
+	}, true);
 }
 
 function registerEOCInterval() {
@@ -244,12 +236,12 @@ async function processOutputQueue() {
 	shiftQueue();
 }
 
-exports.startInput = function() {
+exports.startInput = async function() {
 	if (queueOutput.length > 0) return;
 	console.debug(TAG, 'start input');
 
 	if (IOManager.sessionModel == null) {
-		return registerGlobalSession(exports.startInput);
+		await registerGlobalSession();
 	}
 
 	if (queueInterval == null) {

@@ -24,14 +24,16 @@ npm run start
 
 ### How to write an action
 
-An action is a responder for an intent that has logic inside. Every action file must export a `Promise`.
+An action is a responder for an intent that has logic inside. 
 
-The actions must be places in the `usr/actions` directory. If an action name is `alarm.set.now`, the final file is `usr/actions/alarm/set/now.js`.
+Every action file must export a `Promise`.
+
+The actions must be places in the `./src/actions` directory. If an action name is `hello.name`, the final file is `./src/actions/hello/name.js`.
 
 For example, to write a simple action that respond hello.
 
 ```js
-exports.id = 'hello';
+exports.id = 'hello.name';
 
 module.exports = function({ sessionId, result }, session_model) {
     return new Promise((resolve, reject) => {
@@ -61,3 +63,14 @@ module.exports = function({ sessionId, result }, session_model) {
     });
 };
 ```
+
+### Action output payload
+
+The output payload of an action could have these attributes:
+
+Attribute | Description
+--- | ---
+`speech` | String that is spoken or written
+`data.url` | URL to send
+`data.media` | A 
+

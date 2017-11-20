@@ -4,7 +4,6 @@ exports.id = 'telegram';
 const _ = require('underscore');
 const fs = require('fs');
 const request = require('request');
-const async = require('async');
 const spawn = require('child_process').spawn;
 
 const _config = _.defaults(config.io.telegram, {

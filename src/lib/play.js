@@ -32,8 +32,8 @@ exports.fileToSpeaker = function(file) {
 			args.push(_config.delay);
 		}
 
-		exports.speakerProc = spawn('play', bargs.concat(file).concat('pitch', '-q', PITCH).concat(args), opt)
-		.on('close', (err) => {
+		exports.speakerProc = spawn('play', bargs.concat(file).concat('pitch', '-q', PITCH).concat(args), opt);
+		exports.speakerProc.on('close', (err) => {
 			exports.speakerProc = null;
 			if (err) return reject(err);
 			resolve(true);

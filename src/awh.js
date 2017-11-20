@@ -22,7 +22,7 @@ Router.post('/', async(req, res) => {
 	const action = result.action;
 	const sessionId = body.sessionId;
 
-	const session_model = await Data.Session.findOne({ _id: sessionId });
+	let session_model = await Data.Session.findOne({ _id: sessionId });
 
 	if (session_model == null) {
 		console.error(TAG, `creating a missing session ID with ${sessionId}`);

@@ -1,63 +1,66 @@
 const TAG = 'IO.Test';
+exports.id = 'test';
 
 const _ = require('underscore');
 const fs = require('fs');
+const readline = require('readline');
 
-const EventEmitter = ;
 const emitter = exports.emitter = new (require('events').EventEmitter)();
 
-exports.id = 'test';
-
-const readline = require('readline');
+let started = false;
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout
 });
 
-let strings = fs.readFileSync(__basedir + '/in.txt').toString().split("\n");
+let initial_strings = fs.readFileSync(__basedir + '/in.txt').toString().split("\n");
 
-exports.startInput = function() {
-	console.info(TAG, 'start');
+async function registerGlobalSession() {
+	return IOManager.registerSession({
+		sessionId: CLIENT_ID,
+		io_id: exports.id, 
+		io_data: { platform: process.platform }
+	}, true);
+}
 
-	IOManager.registerSession(CLIENT_ID, exports.id, { platform: process.platform })
-	.then((session_model) => {
-		let msg = strings.shift();
+exports.startInput = async function() {
+	if (IOManager.sessionModel == null) {
+		await registerGlobalSession();
+	}
 
-		if (_.isEmpty(msg)) {
-			rl.question('> ', (answer) => {
-				console.info(TAG, 'input', answer);
-				exports.emitter.emit('input', {
-					session_model: session_model,
-					params: {
-						text: answer
-					}
-				});
-			});
-		} else {
-			console.info(TAG, 'input', msg);
-			exports.emitter.emit('input', {
-				session_model: session_model,
-				params: {
-					text: msg
-				}
-			});
-		}
-	})
-	.catch((session_model) => {
+	let msg = initial_strings.shift();
+
+	if (!_.isEmpty(msg)) {
+		console.info(TAG, 'input', msg);
 		exports.emitter.emit('input', {
-			session_model: session_model,
-			error: {
-				unauthorized: true
+			session_model: IOManager.sessionModel,
+			params: {
+				text: msg
+			}
+		});
+		return;
+	}
+	
+	rl.question('> ', (answer) => {
+		console.info(TAG, 'input', answer);
+		exports.emitter.emit('input', {
+			session_model: IOManager.sessionModel,
+			params: {
+				text: answer
 			}
 		});
 	});
 };
 
-exports.output = function(f, session_model) {
+exports.output = async function(f) {
 	if (null == config.testDriver) {
-		console.info(TAG, 'output', session_model._id, f);
-		return Promise.resolve();
+		console.info(TAG, 'output');
+		for (let i = 0; i < 50; i++) process.stdout.write("="); process.stdout.write("\n");
+		console.dir(f);
+		for (let i = 0; i < 50; i++) process.stdout.write("="); process.stdout.write("\n");
+	} else {
+		await IOManager.getDriver(config.testDriver, true).output(f, IOManager.sessionModel);
 	}
 
-	return IOManager.getDriver(config.testDriver, true).output(f, session_model);
+	exports.startInput();
 };
