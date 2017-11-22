@@ -42,7 +42,7 @@ Router.post('/', async(req, res) => {
 		}
 
 		console.info(TAG, 'response');
-		console.dir(fulfillment);
+		console.dir(fulfillment, { depth: 10 });
 
 		res.json(fulfillment);
 	} catch (ex) {

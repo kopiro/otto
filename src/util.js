@@ -19,8 +19,7 @@ Array.prototype.getRandom = function() {
 };
 
 exports.mimicHumanMessage = function mimicHumanMessage(text) {
-	text = text.replace(/\.[a-z]/gi, '. ');
-	const splitted = text.split(/\.(?=\s+|[A-Z])|\n/);
+	const splitted = text.split(/\.(?=\s+|[A-Z])/);
 	return _.compact(splitted);
 };
 
