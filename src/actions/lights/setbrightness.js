@@ -1,4 +1,4 @@
-exports.id = 'lights.poweron';
+exports.id = 'lights.setbrightness';
 
 const MIIO = apprequire('miio');
 
@@ -9,6 +9,6 @@ module.exports = function({ sessionId, result }, session_model) {
 			speech: 'Ok, dammi un attimo...'
 		});
 		const device = await MIIO.retrieveDefaultDevice();
-		await device.setPower(true);
+		await device.setBrightness(parseInt(p.value, 10));
 	});
 };

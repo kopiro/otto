@@ -9,6 +9,6 @@ module.exports = function({ sessionId, result }, session_model) {
 			speech: 'Ok, dammi un attimo...'
 		});
 		const device = await MIIO.retrieveDefaultDevice();
-		await device.setPower(true);
+		await device.setBrightness(Math.max(0, device.brightness - 30));
 	});
 };
