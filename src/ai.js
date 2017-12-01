@@ -101,7 +101,7 @@ exports.textRequest = function(text, session_model) {
 		request.on('response', async(body) => {
 			body = apiaiInterfaceConverter(body);
 			console.info(TAG, 'response');
-			console.dir(body);
+			console.dir(body, { depth: 10 });
 
 			const action = body.result.action;
 
