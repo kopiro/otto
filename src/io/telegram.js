@@ -82,7 +82,7 @@ async function sendVoiceMessage(chat_id, text, language, telegram_opt) {
 }
 
 exports.startInput = function() {
-	if (started === true) return;
+	if (started) return;
 	started = true;
 
 	if (_config.webhook) {
@@ -123,7 +123,7 @@ exports.output = async function(f, session_model) {
 		if (f.data.error.speech) {		
 			await sendMessage(chat_id, f.data.error.speech);
 		} else {
-			if (session_model.is_admin === true) {
+			if (session_model.is_admin) {
 				await sendMessage(chat_id, "ERROR: `" + JSON.stringify(f.data.error) + "`");
 			}
 		}
@@ -198,7 +198,7 @@ bot.on('message', async(e) => {
 	console.dir(e);
 
 	const sessionId = e.chat.id;
-	const chat_is_group = (e.chat.type == 'group');
+	const chat_is_group = (e.chat.type === 'group');
 
 	let alias;
 	switch (e.chat.type) {
@@ -217,7 +217,7 @@ bot.on('message', async(e) => {
 
 	if (e.text) {
 		// If we are in a group, only listen for activators
-		if (chat_is_group === true && !AI_NAME_ACTIVATOR.test(e.text)) {
+		if (chat_is_group && !AI_NAME_ACTIVATOR.test(e.text)) {
 			console.debug(TAG, 'skipping input for missing activator', e.text);
 			return false;
 		}
@@ -235,7 +235,7 @@ bot.on('message', async(e) => {
 			const text = await handleInputVoice(session_model, e);
 		
 			// If we are in a group, only listen for activators
-			if (chat_is_group === true && !AI_NAME_ACTIVATOR.test(e.text)) {
+			if (chat_is_group && !AI_NAME_ACTIVATOR.test(e.text)) {
 				console.debug(TAG, 'skipping input for missing activator', e.text);
 				return false;
 			}
@@ -249,7 +249,7 @@ bot.on('message', async(e) => {
 				}
 			});
 		} catch (err) {
-			if (chat_is_group === true) return false;
+			if (chat_is_group) return false;
 			emitter.emit('input', {
 				session_model: session_model,
 				error: {
@@ -262,7 +262,7 @@ bot.on('message', async(e) => {
 
 	if (e.photo) {
 		const photo_link = bot.getFileLink( _.last(e.photo).file_id );
-		if (chat_is_group === true) return false;
+		if (chat_is_group) return false;
 
 		emitter.emit('input', {
 			session_model: session_model,

@@ -29,6 +29,15 @@ global.ERRMSG_CANTHANDLE = [
 	'Uffa, non capisco...',
 	'Cosa vorresti dire?'
 ];
+global.MSG_FIRST_HINT = [
+	'Dimmi',
+	'Ehi',
+	'Weilà',
+	'Dica',
+	'Spara',
+	'Dimmi tutto',
+	'Vai'
+];
 
 // Const
 global.AI_NAME_ACTIVATOR = /(^(otto|8)\b)|(\b(otto|8)\b)/mgi;

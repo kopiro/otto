@@ -7,8 +7,7 @@ const md5 = require('md5');
 const request = require('request');
 
 const _config = _.defaults(config.io.kid || {}, {
-	eocMax: 10,
-	firstHint: 'Dimmi'
+	eocMax: 10
 });
 
 const emitter = exports.emitter = new (require('events').EventEmitter)();
@@ -72,7 +71,7 @@ function stopOutput() {
 }
 
 async function sendFirstHint(language = IOManager.sessionModel.getTranslateTo()) {
-	let hint = await Translator.translate(_config.firstHint, language, 'it');
+	let hint = await Translator.translate(MSG_FIRST_HINT.getRandom(), language, 'it');
 	return sendMessage(hint);
 }
 
