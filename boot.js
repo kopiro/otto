@@ -15,6 +15,11 @@ global.ERRMSG_SR_UNRECOGNIZED = 'Scusami, ma non ho capito quello che hai detto!
 global.config = require('./config.json');
 global.public_config = require('./public_config.json');
 
+if (config.uid == null) {
+	console.error("Please define config.uid with your Universal ID (username)");
+	process.exit();
+}
+
 // Const
 global.AI_NAME_ACTIVATOR = /(^(otto|8)\b)|(\b(otto|8)\b)/mgi;
 

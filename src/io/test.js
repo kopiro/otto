@@ -43,13 +43,23 @@ exports.startInput = async function() {
 	}
 	
 	rl.question('> ', (answer) => {
-		console.info(TAG, 'input', answer);
-		exports.emitter.emit('input', {
-			session_model: IOManager.sessionModel,
-			params: {
-				text: answer
+		if (/^EVAL /.test(answer)) {
+			answer = answer.replace(/^EVAL /, '');
+			console.debug(answer);
+			try {
+				eval(answer);
+			} catch (err) {
+				console.error(err);
 			}
-		});
+			exports.startInput();
+		} else {
+			exports.emitter.emit('input', {
+				session_model: IOManager.sessionModel,
+				params: {
+					text: answer
+				}
+			});
+		}
 	});
 };
 
