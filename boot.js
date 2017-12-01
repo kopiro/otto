@@ -8,17 +8,27 @@ global.__cachedir = __dirname + '/cache';
 global.__publicdir = __dirname + '/public';
 global.__etcdir = __dirname + '/etc';
 
-global.ERRMSG_SR_GENERIC = 'Scusami, ma in questo momento sono confuso...';
-global.ERRMSG_SR_UNRECOGNIZED = 'Scusami, ma non ho capito quello che hai detto!';
-
 // Read the config and expose as global
 global.config = require('./config.json');
 global.public_config = require('./public_config.json');
 
 if (config.uid == null) {
 	console.error("Please define config.uid with your Universal ID (username)");
-	process.exit();
+	process.exit(1);
 }
+
+global.ERRMSG_SR_GENERIC = [ 
+	'In questo momento sono confuso...'
+];
+global.ERRMSG_SR_UNRECOGNIZED = [ 
+	'Scusa, ma non ho capito quello che hai detto!'
+];
+global.ERRMSG_CANTHANDLE = [ 
+	'Cosa vuol dire?',
+	'Cosa significa scusa?',
+	'Uffa, non capisco...',
+	'Cosa vorresti dire?'
+];
 
 // Const
 global.AI_NAME_ACTIVATOR = /(^(otto|8)\b)|(\b(otto|8)\b)/mgi;

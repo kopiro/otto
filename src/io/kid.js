@@ -82,7 +82,7 @@ function createRecognizeStream() {
 	console.log(TAG, 'recognizing mic stream');
 
 	recognizeStream = SpeechRecognizer.createRecognizeStream({
-		language: IOManager.sessionModel.translate_from
+		language: IOManager.sessionModel.getTranslateFrom()
 	}, (err, text) => {
 		emitter.emit('user-spoken');
 
@@ -90,7 +90,7 @@ function createRecognizeStream() {
 			return emitter.emit('input', {
 				session_model: IOManager.sessionModel,
 				error: {
-					speech: err.unrecognized ? ERRMSG_SR_UNRECOGNIZED : ERRMSG_SR_GENERIC
+					speech: (err.unrecognized ? ERRMSG_SR_UNRECOGNIZED : ERRMSG_SR_GENERIC).getRandom()
 				}
 			});
 		}

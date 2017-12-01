@@ -7,7 +7,6 @@ const readline = require('readline');
 
 const emitter = exports.emitter = new (require('events').EventEmitter)();
 
-let started = false;
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout
@@ -33,13 +32,12 @@ exports.startInput = async function() {
 
 	if (!_.isEmpty(msg)) {
 		console.info(TAG, 'input', msg);
-		exports.emitter.emit('input', {
+		return emitter.emit('input', {
 			session_model: IOManager.sessionModel,
 			params: {
 				text: msg
 			}
 		});
-		return;
 	}
 	
 	rl.question('> ', (answer) => {
@@ -53,7 +51,7 @@ exports.startInput = async function() {
 			}
 			exports.startInput();
 		} else {
-			exports.emitter.emit('input', {
+			emitter.emit('input', {
 				session_model: IOManager.sessionModel,
 				params: {
 					text: answer

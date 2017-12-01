@@ -36,6 +36,7 @@
         "__etcdir": true,
         "ERRMSG_SR_GENERIC": true,
         "ERRMSG_SR_UNRECOGNIZED": true,
+        "ERRMSG_CANTHANDLE": true,
         "config": true,
         "public_config": true,
         "AI_NAME_ACTIVATOR": true,

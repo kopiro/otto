@@ -2,8 +2,8 @@ require('./boot');
 
 const _ = require('underscore');
 
-async function errorResponse(io, fulfillment, session_model) {
-	console.error('ERROR', fulfillment);
+async function onIoErrorResponse(io, { session_model, fulfillment = {} }) {
+	console.error('onIoErrorResponse', 'SID = ' + session_model._id, { fulfillment });
 	fulfillment = await AI.fulfillmentTransformer(fulfillment, session_model);
 	return io.output(fulfillment, session_model);
 }
@@ -46,9 +46,8 @@ mongoose.connection.once('open', () => {
 				if (e.error) throw e.error;
 				onIoResponse(io, e);
 			} catch (ex) {
-				let err = ex;
-				if (_.isFunction(err.toString)) err = err.toString();
-				errorResponse(io, { data: { error: err } }, e.session_model);
+				e.data = { error: ex };
+				onIoErrorResponse(io, e);
 			}
 		});
 		io.startInput();

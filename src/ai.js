@@ -3,51 +3,58 @@ const TAG = 'AI';
 const _ = require('underscore');
 const Translator = apprequire('translator');
 
-const _config = config.apiai;
+const _config = _.defaults(config.apiai, {
+	promiseTimeout: 10
+});
 
-const apiaiClient = require('apiai')(_config.token);
+const apiai = require('apiai');
+const client = apiai(_config.token);
 
-exports.fulfillmentTransformer = async function(fulfillment, session_model) {
+async function fulfillmentTransformer(fulfillment, session_model) {
 	// Ensure always data object exists
 	if (!_.isObject(fulfillment)) {
-		throw 'Fulfillment is not an object';
+		throw new Error('Fulfillment is not an object');
 	}
 
-	fulfillment.data = fulfillment.data || {};
+	fulfillment = _.defaults(fulfillment, {
+		data: {}
+	});
 
-	if (!_.isEmpty(fulfillment.speech)) {
-		try {
-			fulfillment.speech = await Translator.translate(fulfillment.speech, session_model.getTranslateTo());
-		} catch (ex) {}
-	}
-
-	if (fulfillment.data.error != null && !_.isEmpty(fulfillment.data.error.speech)) {
-		try {
+	if (fulfillment.data.error != null) {
+		if (!_.isEmpty(fulfillment.data.error.speech)) {
 			fulfillment.data.error.speech = Translator.translate(fulfillment.data.error.speech, session_model.getTranslateTo());
-		} catch (ex) {}
+		}
+	} else {
+		if (!_.isEmpty(fulfillment.speech)) {
+			fulfillment.speech = await Translator.translate(fulfillment.speech, session_model.getTranslateTo());
+		} else {
+			fulfillment.speech = await Translator.translate(ERRMSG_CANTHANDLE.getRandom(), session_model.getTranslateTo());
+		}
 	}
 
 	return fulfillment;
-};
+}
 
-exports.fulfillmentPromiseTransformer = async function(fn, data, session_model) {
+exports.fulfillmentTransformer = fulfillmentTransformer;
+
+async function fulfillmentPromiseTransformer(execute_fn, data, session_model) {
 	return new Promise(async(resolve) => {
-		let fulfillment;
+		let fulfillment = null;
 		
 		// Start a timeout to ensure that the promise
 		// will be anyway triggered, also with an error
 		let action_timeout = setTimeout(() => {
-			fulfillment = exports.fulfillmentTransformer({
+			fulfillment = fulfillmentTransformer({
 				data: { error: { timeout: true } }
 			}, session_model);
 			resolve(fulfillment);
-		}, 1000 * (_config.promiseTimeout || 10));
+		}, 1000 * _config.promiseTimeout);
 
 		try {
-			fulfillment = await fn(data, session_model);
-			fulfillment = await exports.fulfillmentTransformer(fulfillment, session_model);
+			fulfillment = await execute_fn(data, session_model);
+			fulfillment = await fulfillmentTransformer(fulfillment, session_model);
 		} catch (err) {
-			fulfillment = await exports.fulfillmentTransformer({
+			fulfillment = await fulfillmentTransformer({
 				data: { error: err }
 			}, session_model);
 		}
@@ -55,11 +62,13 @@ exports.fulfillmentPromiseTransformer = async function(fn, data, session_model) 
 		clearTimeout(action_timeout);
 		resolve(fulfillment);
 	});
-};
+}
+
+exports.fulfillmentPromiseTransformer = fulfillmentPromiseTransformer;
 
 exports.textRequestTransformer = async function(text, session_model) {
 	text = text.replace(AI_NAME_ACTIVATOR, ''); // Remove the AI name in the text
-	text = await Translator.translate(text, 'it', session_model.getTranslateTo());
+	text = await Translator.translate(text, config.language, session_model.getTranslateTo());
 	return text;
 };
 
@@ -94,7 +103,7 @@ exports.textRequest = function(text, session_model) {
 		console.debug(TAG, 'request', text);
 
 		text = await exports.textRequestTransformer(text, session_model);
-		let request = apiaiClient.textRequest(text, {
+		let request = client.textRequest(text, {
 			sessionId: session_model._id
 		});
 
@@ -103,21 +112,21 @@ exports.textRequest = function(text, session_model) {
 			console.info(TAG, 'response');
 			console.dir(body, { depth: 10 });
 
-			const action = body.result.action;
+			const res = body.result;
 
-			if (body.result.metadata.webhookUsed === 'true' && body.status.errorType !== 'partial_content') {
-				return resolve(body.result.fulfillment);
+			if (res.metadata.webhookUsed === 'true' && body.status.errorType !== 'partial_content') {
+				return resolve(res.fulfillment);
 			}
 	
-			console.warn(TAG, 'webhook not used or failed, solving locally');
+			console.info(TAG, 'webhook not used or failed, solving locally');
 	
 			let fulfillment = null;
-			if (body.result.actionIncomplete !== true && !_.isEmpty(action)) {
-				const action_fn = Actions.list[ action ];
-				console.warn(TAG, 'calling action', action);
-				fulfillment = await AI.fulfillmentPromiseTransformer(action_fn(), body, session_model);
+			if (_.isEmpty(res.action) === false && res.actionIncomplete !== true) {
+				const action_fn = Actions.list[ res.action ];
+				console.info(TAG, 'calling action', res.action);
+				fulfillment = await fulfillmentPromiseTransformer(action_fn(), body, session_model);
 			} else {
-				fulfillment = await AI.fulfillmentTransformer(body.result.fulfillment, session_model);
+				fulfillment = await fulfillmentTransformer(res.fulfillment, session_model);
 			}
 
 			resolve(fulfillment);
