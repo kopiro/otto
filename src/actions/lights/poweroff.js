@@ -6,8 +6,9 @@ module.exports = function({ sessionId, result }, session_model) {
 	return new Promise(async(resolve, reject) => {
 		let { parameters: p, fulfillment } = result;
 		resolve({
-			speech: 'Ok, dammi un attimo...'
+			speech: fulfillment.speech
 		});
+		
 		const device = await MIIO.retrieveDefaultDevice();
 		await device.setPower(false);
 	});

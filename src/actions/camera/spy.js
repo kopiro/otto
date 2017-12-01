@@ -12,7 +12,6 @@ module.exports = function({ sessionId, result }, session_model) {
 			time: 3
 		})
 		.then((video_file) => {
-
 			IOManager.output({
 				data: {
 					video: {
