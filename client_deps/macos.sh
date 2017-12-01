@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -ex
+
 brew install lame
 brew install sox --with-lame
 brew install opus-tools 
