@@ -48,24 +48,27 @@ exports.loadDrivers = function() {
 
 exports.output = async function(fulfillment, session_model) {
 	session_model = session_model || IOManager.sessionModel;
+	fulfillment = await AI.fulfillmentTransformer(fulfillment, session_model);
 	
 	if (exports.isDriverEnabled(session_model.io_id)) {	
 		console.debug(TAG, 'output', { fulfillment, session_model });
 		// If driver is enabled, instantly resolve
 		let driver = exports.getDriver( session_model.io_id );
-		fulfillment = await AI.fulfillmentTransformer(fulfillment, session_model);
 		return driver.output(fulfillment, session_model);
 	}
 
 	// Otherwise, put in the queue and make resolve to other clients
 	console.info(TAG, 'putting in IO queue', { fulfillment, session_model });
-
-	await (new Data.IOQueue({
+	
+	new Data.IOQueue({
 		session: session_model._id,
 		driver: session_model.io_id,
 		fulfillment: fulfillment
-	})).save();
-	return { inQueue: true };
+	}).save();
+
+	return { 
+		inQueue: true 
+	};
 };
 
 exports.writeLogForSession = async function(sessionId, text) {
