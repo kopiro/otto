@@ -57,7 +57,7 @@ function handleInputVoice(session_model, e) {
 }
 
 async function sendMessage(chat_id, text, telegram_opt) {
-	const sentences = Util.mimicHumanMessage(text);
+	const sentences = mimicHumanMessage(text);
 	await bot.sendChatAction(chat_id, 'typing');
 
 	for (let sentence of sentences) {
@@ -69,7 +69,7 @@ async function sendMessage(chat_id, text, telegram_opt) {
 }
 
 async function sendVoiceMessage(chat_id, text, language, telegram_opt) {
-	const sentences = Util.mimicHumanMessage(text);
+	const sentences = mimicHumanMessage(text);
 	await bot.sendChatAction(chat_id, 'record_audio');
 
 	for (let sentence of sentences) {
@@ -122,10 +122,9 @@ exports.output = async function(f, session_model) {
 	if (f.data.error) {
 		if (f.data.error.speech) {		
 			await sendMessage(chat_id, f.data.error.speech);
-		} else {
-			if (session_model.is_admin) {
-				await sendMessage(chat_id, "ERROR: `" + JSON.stringify(f.data.error) + "`");
-			}
+		}
+		if (session_model.is_admin) {
+			await sendMessage(chat_id, "ERROR: `" + JSON.stringify(f.data.error) + "`");
 		}
 	}
 
@@ -250,11 +249,17 @@ bot.on('message', async(e) => {
 			});
 		} catch (err) {
 			if (chat_is_group) return false;
-			emitter.emit('input', {
-				session_model: session_model,
-				error: {
-					speech: err.unrecognized ? ERRMSG_SR_UNRECOGNIZED : ERRMSG_SR_GENERIC
-				}
+			if (err.unrecognized) {
+				return emitter.emit('input', {
+					session_model: IOManager.sessionModel,
+					error: {
+						speech: Messages.get('io_speechrecognizer_unrecognized')
+					}
+				});
+			}
+			return emitter.emit('input', {
+				session_model: IOManager.sessionModel,
+				error: err
 			});
 		}
 		return true;

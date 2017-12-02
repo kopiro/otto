@@ -13,7 +13,7 @@ function sendMessage(text, language) {
 	return new Promise((resolve, reject) => {
 		language = language || sessionModel.getTranslateTo();
 		
-		const sentences = Util.mimicHumanMessage(text);
+		const sentences = mimicHumanMessage(text);
 		sentences.forEach(async(sentence) => {
 			let polly_file = await Polly.getAudioFile(sentence, { language: language });
 			await Play.fileToSpeaker(polly_file);

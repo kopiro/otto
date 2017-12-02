@@ -21,7 +21,7 @@ exports.createRecognizeStream = function(opt, callback) {
 		config: {
 			encoding: opt.encoding,
 			sampleRateHertz: opt.sampleRate,
-			languageCode: Util.getLocaleFromLanguageCode(opt.language)
+			languageCode: getLocaleFromLanguageCode(opt.language)
 		}
 	});
 

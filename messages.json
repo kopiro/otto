@@ -1,17 +1,17 @@
 {
-	"ERRMSG_SR_GENERIC": [ 
-		"In questo momento sono confuso..."
+	"ai_exception": [ 
+		"Errore di sistema"
 	],
-	"ERRMSG_SR_UNRECOGNIZED": [
+	"io_speechrecognizer_unrecognized": [
 		"Scusa, ma non ho capito quello che hai detto!"
 	],
-	"ERRMSG_CANTHANDLE": [ 
+	"ai_unhandled": [ 
 		"Cosa vuol dire?",
 		"Cosa significa scusa?",
 		"Uffa, non capisco...",
 		"Cosa vorresti dire?"
 	],
-	"MSG_FIRST_HINT": [
+	"io_first_hint": [
 		"Dimmi",
 		"Ehi",
 		"Weilà",

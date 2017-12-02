@@ -20,6 +20,7 @@ const RaspiLeds = apprequire('raspi/leds');
 const URLManager = apprequire('urlmanager');
 const {Detector, Models} = require('snowboy');
 const Translator = apprequire('translator');
+const Messages = apprequire('messages');
 
 let isHavingConversation = false;
 
@@ -43,7 +44,7 @@ async function sendMessage(text, language = IOManager.sessionModel.getTranslateT
 	const key = md5(text);
 	currentOutputKey = key;
 
-	const sentences = Util.mimicHumanMessage(text);
+	const sentences = mimicHumanMessage(text);
 	for (let sentence of sentences) {
 		if (currentOutputKey === key) {
 			let polly_file = await Polly.getAudioFile(sentence, { language: language });
@@ -71,7 +72,7 @@ function stopOutput() {
 }
 
 async function sendFirstHint(language = IOManager.sessionModel.getTranslateTo()) {
-	let hint = await Translator.translate(messages.MSG_FIRST_HINT.getRandom(), language, 'it');
+	let hint = await Translator.translate(Messages.get('io_first_hint'), language, 'it');
 	return sendMessage(hint);
 }
 
@@ -86,11 +87,17 @@ function createRecognizeStream() {
 		emitter.emit('user-spoken');
 
 		if (err) {
+			if (err.unrecognized) {
+				return emitter.emit('input', {
+					session_model: IOManager.sessionModel,
+					error: {
+						speech: Messages.get('io_speechrecognizer_unrecognized')
+					}
+				});
+			}
 			return emitter.emit('input', {
 				session_model: IOManager.sessionModel,
-				error: {
-					speech: (err.unrecognized ? messages.ERRMSG_SR_UNRECOGNIZED : messages.ERRMSG_SR_GENERIC).getRandom()
-				}
+				error: err
 			});
 		}
 
@@ -210,10 +217,9 @@ async function processOutputQueue() {
 	if (f.data.error) {
 		if (f.data.error.speech) {	
 			await sendMessage(f.data.error.speech, f.data.language);
-		} else {
-			if (IOManager.sessionModel.is_admin === true) {
-				await sendMessage(f.data.error, 'en');
-			}
+		}
+		if (IOManager.sessionModel.is_admin === true) {
+			await sendMessage(String(f.data.error), 'en');
 		}
 	}
 

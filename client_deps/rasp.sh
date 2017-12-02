@@ -5,7 +5,11 @@ set -ex
 apt-get -y install sox
 apt-get -y install libsox-fmt-all
 apt-get -y install opus-tools
-apt-get -y install mopidy
+
+wget -q -O - https://apt.mopidy.com/mopidy.gpg | sudo apt-key add -
+wget -q -O /etc/apt/sources.list.d/mopidy.list https://apt.mopidy.com/jessie.list
+apt-get update
+apt-get -y install mopidy mopidy-spotify
 
 apt-get -y install supervisor
 mkdir -p /var/log/otto

@@ -10,11 +10,6 @@ global.__cachedir = __dirname + '/cache';
 global.__publicdir = __dirname + '/public';
 global.__etcdir = __dirname + '/etc';
 
-function requireOrNull(e) {
-	try { return require(e); } 
-	catch (ex) { return null; }
-}
-
 // Read the config and expose as global
 global.config = _.defaults(require('./config.json'), {
 	
@@ -35,6 +30,11 @@ global.config = _.defaults(require('./config.json'), {
 
 	// The source locale of the AI
 	"locale": "en-US",
+
+	"play": {
+		// Additional args to send to SOX
+		"addArgs": [], 
+	},
 
 	// A Boolean value indicating if the AWH (API.AI Web Hook) should be spawn
 	"awh": false,
@@ -143,8 +143,6 @@ global.config = _.defaults(require('./config.json'), {
 
 });
 
-global.messages = _.extend({}, requireOrNull('./messages.json'), requireOrNull('./messages-custom.json'));
-
 if (config.uid == null) {
 	console.error("Please define config.uid with your Universal ID (username)");
 	process.exit(1);
@@ -157,14 +155,11 @@ if (config.aiNameRegex == null) {
 
 global.AI_NAME_REGEX = new RegExp(config.aiNameRegex, 'mgi');
 
-// Define a new require to require files from our path
-global.apprequire = ((k) => require(__basedir + '/src/lib/' + k));
-
 // Global (App) packages
+require(__basedir + '/src/helpers');
 global.mongoose = require(__basedir + '/src/mongoose');
 global.Data = require(__basedir + '/src/data');
 global.AI = require(__basedir + '/src/ai');
-global.Util = require(__basedir + '/src/util');
 global.IOManager = require(__basedir + '/src/iomanager');
-global.Scheduler = require(__basedir + '/src/iomanager');
+global.Scheduler = require(__basedir + '/src/scheduler');
 global.Actions = require(__basedir + '/src/actions');

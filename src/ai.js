@@ -2,6 +2,7 @@ const TAG = 'AI';
 
 const _ = require('underscore');
 const Translator = apprequire('translator');
+const Messages = apprequire('messages');
 
 const _config = _.defaults(config.apiai, {
 	promiseTimeout: 10
@@ -28,7 +29,7 @@ async function fulfillmentTransformer(fulfillment, session_model) {
 		if (!_.isEmpty(fulfillment.speech)) {
 			fulfillment.speech = await Translator.translate(fulfillment.speech, session_model.getTranslateTo());
 		} else {
-			fulfillment.speech = await Translator.translate(messages.ERRMSG_CANTHANDLE.getRandom(), session_model.getTranslateTo());
+			fulfillment.speech = await Translator.translate(Messages.get('ai_unhandled'), session_model.getTranslateTo());
 		}
 	}
 

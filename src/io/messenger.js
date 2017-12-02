@@ -50,7 +50,7 @@ function handleInputVoice(session_model, e) {
 }
 
 async function sendMessage(chat_id, text, messenger_opt = {}) {
-	const sentences = Util.mimicHumanMessage(text);
+	const sentences = mimicHumanMessage(text);
 	await bot.sendSenderAction(chat_id, 'typing');
 
 	for (let sentence of sentences) {
@@ -63,7 +63,7 @@ async function sendMessage(chat_id, text, messenger_opt = {}) {
 }
 
 async function sendVoiceMessage(chat_id, text, language, telegram_opt) {
-	const sentences = Util.mimicHumanMessage(text);
+	const sentences = mimicHumanMessage(text);
 	await bot.sendSenderAction(chat_id, 'record_audio');
 
 	for (let sentence of sentences) {
@@ -109,10 +109,9 @@ exports.output = async function(f, session_model) {
 	if (f.data.error) {
 		if (f.data.error.speech) {	
 			await sendMessage(chat_id, f.data.error.speech);
-		} else {
-			if (session_model.is_admin === true) {
-				await sendMessage(chat_id, "ERROR: `" + JSON.stringify(f.data.error) + "`");
-			}
+		}
+		if (session_model.is_admin === true) {
+			await sendMessage(chat_id, "ERROR: `" + JSON.stringify(f.data.error) + "`");
 		}
 	}
 

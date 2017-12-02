@@ -50,7 +50,7 @@ function getVoice(opt) {
 	return new Promise((resolve, reject) => {
 		opt = opt || {};
 
-		const locale = Util.getLocaleFromLanguageCode(opt.language);
+		const locale = getLocaleFromLanguageCode(opt.language);
 		let voice = getCacheForVoice(locale);
 		if (voice) {
 			return resolve(voice);
@@ -96,7 +96,7 @@ exports.getAudioFile = function(text, opt) {
 			gender: 'Female'
 		}, opt);
 
-		const locale = Util.getLocaleFromLanguageCode(opt.language);
+		const locale = getLocaleFromLanguageCode(opt.language);
 
 		let cached_file = getCacheForAudio(text, locale);
 		if (cached_file) {

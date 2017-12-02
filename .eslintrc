@@ -34,10 +34,9 @@
         "__cachedir": true,
         "__publicdir": true,
         "__etcdir": true,
-        "messages": true,
+        "requireOrNull": true,
         "config": true,
-        "public_config": true,
-        "AI_NAME_ACTIVATOR": true,
+        "AI_NAME_REGEX": true,
         "apprequire": true,
         "mongoose": true,
         "Data": true,
@@ -50,6 +49,8 @@
         "timeout": true,
         "uuid": true,
         "consoleultimate": true,
-        "prettyjson": true
+        "prettyjson": true,
+        "getLocaleFromLanguageCode": true,
+        "mimicHumanMessage": true
     }
 }

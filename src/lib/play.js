@@ -6,12 +6,7 @@ const spawn = require('child_process').spawn;
 const md5 = require('md5');
 const request = require('request');
 
-const PITCH = 700;
-
-const _config = _.defaults(config.speaker || {}, {
-	device: null,
-	delay: 0 // on RasPI, set this value to 1 if audio is trimmed
-});
+const _config = config.play;
 
 exports.speakerProc = null;
 
@@ -23,16 +18,7 @@ exports.fileToSpeaker = function(file) {
 		let bargs = [];
 		let args = [];
 
-		if (_config.device) {
-			opt.env = Object.assign({}, process.env, { AUDIODEV: _config.device });
-		}
-
-		if (_config.delay) {
-			args.push('delay');
-			args.push(_config.delay);
-		}
-
-		exports.speakerProc = spawn('play', bargs.concat(file).concat('pitch', '-q', PITCH).concat(args), opt);
+		exports.speakerProc = spawn('play', bargs.concat(file).concat(_config.addArgs).concat(args), opt);
 		exports.speakerProc.on('close', (err) => {
 			exports.speakerProc = null;
 			if (err) return reject(err);
@@ -66,7 +52,7 @@ exports.fileToTmpFile = function(file) {
 		const tmp_file = __tmpdir + '/' + uuid() + '.mp3';
 		console.debug(TAG, 'fileToTmpFile', { file, tmp_file });
 
-		let proc = spawn('sox', [file].concat(tmp_file).concat('pitch', '-q', PITCH));
+		let proc = spawn('sox', [file].concat(tmp_file).concat(_config.addArgs));
 		let stderr = '';
 		proc.stderr.on('data', (buf) => { stderr += buf; });
 		proc.on('close', (err) => {
