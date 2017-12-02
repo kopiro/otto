@@ -61,7 +61,10 @@ async function scanForHotWords(forceTraining = false) {
 			}
 
 			// Train first time
-			await HotwordTrainer.start();			
+			try {
+				await HotwordTrainer.start();
+			} catch (err) {}		
+
 			return scanForHotWords();
 		});
 	});
