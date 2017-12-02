@@ -6,7 +6,7 @@ const moment = apprequire('moment');
 async function getScheduler(time) {
 	return Data.Scheduler
 	.find({
-		uid: config.uid,
+		manager_uid: config.uid,
 		$or: [
 		{ daily: (time.hours() + ':' + time.minutes()) },
 		{ hourly: (time.minutes()) },

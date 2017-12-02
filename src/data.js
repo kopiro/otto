@@ -74,13 +74,14 @@ exports.Vision = mongoose.model('vision', Vision);
 
 const Scheduler = new Schema({
 	session: { type: String, ref: 'session' },
-	uid: String,
+	manager_uid: String,
 	program: String,
 	yearly: String, // set dayofyear, hour and minute
 	monthly: String, // set dayofmonth, hour and minute
 	weekly: String, // set dayofweek, hour and minute
 	daily: String, // set hour and minute
 	hourly: String, // set minute
+	on_tick: Boolean
 });
 exports.Scheduler = mongoose.model('scheduler', Scheduler);
 
