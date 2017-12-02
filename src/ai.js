@@ -21,15 +21,13 @@ async function fulfillmentTransformer(fulfillment, session_model) {
 		data: {}
 	});
 
+	if (!_.isEmpty(fulfillment.speech)) {
+		fulfillment.speech = await Translator.translate(fulfillment.speech, session_model.getTranslateTo());
+	}
+
 	if (fulfillment.data.error != null) {
 		if (!_.isEmpty(fulfillment.data.error.speech)) {
-			fulfillment.data.error.speech = Translator.translate(fulfillment.data.error.speech, session_model.getTranslateTo());
-		}
-	} else {
-		if (!_.isEmpty(fulfillment.speech)) {
-			fulfillment.speech = await Translator.translate(fulfillment.speech, session_model.getTranslateTo());
-		} else {
-			fulfillment.speech = await Translator.translate(Messages.get('ai_unhandled'), session_model.getTranslateTo());
+			fulfillment.data.error.speech = await Translator.translate(fulfillment.data.error.speech, session_model.getTranslateTo());
 		}
 	}
 
@@ -99,6 +97,29 @@ function apiaiInterfaceConverter(body) {
 	return body;
 }
 
+exports.apiaiResultParser = async function(body, session_model) {
+	const res = body.result;
+
+	let fulfillment = null;
+	if (res.metadata.intentId != null) {
+		if (_.isEmpty(res.action) === false && res.actionIncomplete !== true) {
+			const action_fn = Actions.list[ res.action ];
+			console.info(TAG, 'calling action', res.action);
+			fulfillment = await fulfillmentPromiseTransformer(action_fn(), body, session_model);
+		} else {
+			fulfillment = await fulfillmentTransformer(res.fulfillment, session_model);
+		}
+	} else {
+		fulfillment = await fulfillmentTransformer({
+			error: {
+				speech: Messages.get('ai_unhandled')
+			}
+		}, session_model);
+	}
+
+	return fulfillment;
+};
+
 exports.textRequest = function(text, session_model) {
 	return new Promise(async(resolve, reject) => {
 		console.debug(TAG, 'request', text);
@@ -113,23 +134,12 @@ exports.textRequest = function(text, session_model) {
 			console.info(TAG, 'response');
 			console.dir(body, { depth: 10 });
 
-			const res = body.result;
-
-			if (res.metadata.webhookUsed === 'true' && body.status.errorType !== 'partial_content') {
-				return resolve(res.fulfillment);
+			if (body.result.metadata.webhookUsed === 'true' && body.status.errorType !== 'partial_content') {
+				return resolve(body.result.fulfillment);
 			}
 	
 			console.info(TAG, 'webhook not used or failed, solving locally');
-	
-			let fulfillment = null;
-			if (_.isEmpty(res.action) === false && res.actionIncomplete !== true) {
-				const action_fn = Actions.list[ res.action ];
-				console.info(TAG, 'calling action', res.action);
-				fulfillment = await fulfillmentPromiseTransformer(action_fn(), body, session_model);
-			} else {
-				fulfillment = await fulfillmentTransformer(res.fulfillment, session_model);
-			}
-
+			let fulfillment = exports.apiaiResultParser(body, session_model);
 			resolve(fulfillment);
 		});
 

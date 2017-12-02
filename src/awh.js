@@ -18,8 +18,6 @@ Router.post('/', async(req, res) => {
 	console.dir(req.body);
 
 	const body = req.body;
-	const result = req.body.result;
-	const action = result.action;
 	const sessionId = body.sessionId;
 
 	let session_model = await Data.Session.findOne({ _id: sessionId });
@@ -31,19 +29,9 @@ Router.post('/', async(req, res) => {
 	}
 
 	try {
-		let fulfillment;
-
-		if (result.actionIncomplete !== true && !_.isEmpty(action)) {
-			const action_fn = Actions.list[ action ];
-			console.info(TAG, 'calling awh action', action);
-			fulfillment = await AI.fulfillmentPromiseTransformer(action_fn(), body, session_model);
-		} else {
-			fulfillment = await AI.fulfillmentTransformer(result.fulfillment, session_model);
-		}
-
-		console.info(TAG, 'response');
+		let fulfillment = AI.apiaiResultParser(body, session_model);
+		console.info(TAG, 'fulfillment');
 		console.dir(fulfillment, { depth: 10 });
-
 		res.json(fulfillment);
 	} catch (ex) {
 		console.info(TAG, 'error', ex);

@@ -13,9 +13,12 @@
 				"package-lock.json",
 				"yarn.lock",
 				"public",
-				"npm-debug.log",
+				"npm-debug.log"
 			],
 			"path": "."
+		},
+		{
+			"path": "/Users/kopiro/Downloads/Small-Talk/intents"
 		}
 	]
 }
