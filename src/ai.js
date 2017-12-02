@@ -111,9 +111,7 @@ exports.apiaiResultParser = async function(body, session_model) {
 		}
 	} else {
 		fulfillment = await fulfillmentTransformer({
-			error: {
-				speech: Messages.get('ai_unhandled')
-			}
+			data: { error: { speech: Messages.get('ai_unhandled') } }
 		}, session_model);
 	}
 

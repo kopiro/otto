@@ -1,7 +1,5 @@
 const TAG = 'AWH';
 
-const _ = require('underscore');
-
 const Router = apprequire('server').routerAwh;
 
 Router.get('/', (req, res) => {
@@ -20,8 +18,8 @@ Router.post('/', async(req, res) => {
 	const body = req.body;
 	const sessionId = body.sessionId;
 
+	// From AWH can came any session ID, so ensure it exists on our DB
 	let session_model = await Data.Session.findOne({ _id: sessionId });
-
 	if (session_model == null) {
 		console.error(TAG, `creating a missing session ID with ${sessionId}`);
 		session_model = new Data.Session({ _id: sessionId });
