@@ -5,6 +5,8 @@ const md5 = require('md5');
 const aws = apprequire('aws');
 const fs = require('fs');
 
+const _config = config.polly;
+
 const pollyClient = new aws.Polly({
 	signatureVersion: 'v4',
 	region: 'eu-west-1'
@@ -32,23 +34,25 @@ function getCacheForVoice(locale) {
 	return cache.voices[locale];
 }
 
-function setCacheForAudio(text, locale, file) {
-	let key = md5(text + locale);
+function setCacheForAudio(text, language, file) {
+	let key = md5(text + language);
 	cache.audio[key] = file;
 	fs.writeFileSync(CACHE_REGISTRY_FILE, JSON.stringify(cache), () => {});
 }
 
-function getCacheForAudio(text, locale) {
-	let key = md5(text + locale);
+function getCacheForAudio(text, language) {
+	let key = md5(text + language);
 	const file = cache.audio[key];
 	if (file != null && fs.existsSync(file)) {
 		return file;
 	}
 }
 
-function getVoice(opt) {
+function getVoice(opt = {}) {
 	return new Promise((resolve, reject) => {
-		opt = opt || {};
+		_.defaults(opt, {
+			language: config.language
+		});
 
 		const locale = Util.getLocaleFromLanguageCode(opt.language);
 		let voice = getCacheForVoice(locale);
@@ -59,16 +63,11 @@ function getVoice(opt) {
 		pollyClient.describeVoices({
 			LanguageCode: locale
 		}, async(err, data) => {
-			if (err && err.code === 'ValidationException') {
-				console.debug(TAG, `falling back to locale ${config.locale} instead of ${locale}`, err);
-				return getVoice(_.extend(config, { language: config.language }))
-				.then(resolve)
-				.catch(reject);
-			}
-
-			if (err) {
-				console.error(TAG, err);
-				return reject(err);
+			if (err != null) {
+				if (err.code !== 'ValidationException') {
+					console.error(TAG, err);
+					return reject(err);
+				}
 			}
 
 			voice = data.Voices.find((v) => { 
@@ -76,29 +75,25 @@ function getVoice(opt) {
 			});
 
 			if (voice == null) {
-				console.debug(TAG, `falling back to locale ${config.locale} instead of ${locale}`);
-				voice = await getVoice(_.extend(config, { language: config.language }));
+				console.debug(TAG, `falling back to language ${config.language} instead of ${opt.language}`);
+				voice = await getVoice(_.extend({}, opt, { language: config.language }));
 				return resolve(voice);
 			}
 
 			setCacheForVoice(locale, voice);
-			resolve(voice);
+			return resolve(voice);
 		});
 	});
 }
 
-exports.getAudioFile = function(text, opt) {
+exports.getAudioFile = function(text, opt = {}) {
 	return new Promise(async(resolve, reject) => {
-		opt = opt || {};
+		_.defaults(opt, {
+			gender: _config.gender,
+			language: config.language
+		});
 
-		opt = _.extend(config.polly || {}, {
-			language: config.language,
-			gender: 'Female'
-		}, opt);
-
-		const locale = Util.getLocaleFromLanguageCode(opt.language);
-
-		let cached_file = getCacheForAudio(text, locale);
+		let cached_file = getCacheForAudio(text, opt.language);
 		if (cached_file) {
 			console.debug(TAG, cached_file, '(cached)');
 			return resolve(cached_file);
@@ -124,7 +119,7 @@ exports.getAudioFile = function(text, opt) {
 					return reject(err);
 				}
 
-				setCacheForAudio(text, locale, cached_file);
+				setCacheForAudio(text, opt.language, cached_file);
 				resolve(cached_file);
 			});
 		});

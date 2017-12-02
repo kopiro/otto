@@ -6,9 +6,7 @@ const async = require('async');
 const md5 = require('md5');
 const request = require('request');
 
-const _config = _.defaults(config.kid || {}, {
-	eocMax: 10
-});
+const _config = config.kid;
 
 const emitter = exports.emitter = new (require('events').EventEmitter)();
 
@@ -39,9 +37,11 @@ models.add({
 
 let currentOutputKey = null;
 
-async function sendMessage(text, language = IOManager.sessionModel.getTranslateTo()) {
+async function sendMessage(text, language) {
 	const key = md5(text);
 	currentOutputKey = key;
+
+	language = language || IOManager.sessionModel.getTranslateTo();
 
 	const sentences = Util.mimicHumanMessage(text);
 	for (let sentence of sentences) {
@@ -71,8 +71,8 @@ function stopOutput() {
 }
 
 async function sendFirstHint(language = IOManager.sessionModel.getTranslateTo()) {
-	let hint = await Translator.translate(messages.MSG_FIRST_HINT.getRandom(), language, 'it');
-	return sendMessage(hint);
+	let hint = await Translator.translate(messages.MSG_FIRST_HINT.getRandom(), language, config.language);
+	return sendMessage(hint, language);
 }
 
 let recognizeStream;

@@ -1,7 +1,6 @@
 const TAG = 'IOManager';
 
 const _ = require('underscore');
-const async = require('async');
 
 exports.drivers = {};
 exports.sessionModel = null;

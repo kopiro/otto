@@ -141,6 +141,10 @@ global.config = _.defaults(require('./config.json'), {
 		]
 	},
 
+	"polly": {
+		"gender": "Female"
+	}
+
 });
 
 global.messages = _.extend({}, requireOrNull('./messages.json'), requireOrNull('./messages-custom.json'));
