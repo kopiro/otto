@@ -11,7 +11,7 @@ exports.start = function(opt) {
 
 	opt = _.defaults(opt || {}, config.rec, {
 		sampleRate: 16000,
-		threshold: '3',
+		threshold: '10',
 		stopOnSilence: false,
 		verbose: false,
 		time: false

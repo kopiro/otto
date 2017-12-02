@@ -65,7 +65,7 @@ async function scanForHotWords(forceTraining = false) {
 				await HotwordTrainer.start();
 			} catch (err) {}		
 
-			return scanForHotWords();
+			resolve(scanForHotWords());
 		});
 	});
 }
@@ -295,8 +295,7 @@ exports.startInput = async function() {
 		registerEOCInterval();
 	}
 
-	Rec.start();
-	Rec.getStream().pipe(getDetectorStream());
+	Rec.start().pipe(getDetectorStream());
 
 	if (isHavingConversation) {
 		emitter.emit('user-can-speak');
