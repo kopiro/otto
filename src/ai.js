@@ -63,8 +63,6 @@ async function fulfillmentPromiseTransformer(execute_fn, data, session_model) {
 	});
 }
 
-exports.fulfillmentPromiseTransformer = fulfillmentPromiseTransformer;
-
 exports.textRequestTransformer = async function(text, session_model) {
 	text = text.replace(config.aiNameRegex, ''); // Remove the AI name in the text
 	text = await Translator.translate(text, config.language, session_model.getTranslateTo());
@@ -101,7 +99,10 @@ exports.apiaiResultParser = async function(body, session_model) {
 	const res = body.result;
 
 	let fulfillment = null;
+
+	
 	if (res.metadata.intentId != null) {
+		// If an intentId is returned, could auto resolve or call a promise
 		if (_.isEmpty(res.action) === false && res.actionIncomplete !== true) {
 			const action_fn = Actions.list[ res.action ];
 			console.info(TAG, 'calling action', res.action);
@@ -110,6 +111,8 @@ exports.apiaiResultParser = async function(body, session_model) {
 			fulfillment = await fulfillmentTransformer(res.fulfillment, session_model);
 		}
 	} else {
+		// If not intentId is returned, this is a unhandled DialogFlow intent
+		// So return an error with this speech (ai_unhandled)
 		fulfillment = await fulfillmentTransformer({
 			data: { error: { speech: Messages.get('ai_unhandled') } }
 		}, session_model);
