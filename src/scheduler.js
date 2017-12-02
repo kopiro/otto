@@ -28,9 +28,8 @@ async function tick() {
 	console.log(data);
 
 	data.forEach((sch) => {
-		console.debug(TAG, 'processing => ' + sch.name);
-		
-		const program = require(__basedir + '/src/scheduler/' + sch.name);
+		console.debug(TAG, 'processing => ' + sch.program);
+		const program = require(__basedir + '/src/scheduler/' + sch.program);
 		program.run({
 			session: sch.session
 		});

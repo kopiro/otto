@@ -75,6 +75,7 @@ exports.Vision = mongoose.model('vision', Vision);
 const Scheduler = new Schema({
 	session: { type: String, ref: 'session' },
 	uid: String,
+	program: String,
 	yearly: String, // set dayofyear, hour and minute
 	monthly: String, // set dayofmonth, hour and minute
 	weekly: String, // set dayofweek, hour and minute
