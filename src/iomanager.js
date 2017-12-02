@@ -68,12 +68,6 @@ exports.output = async function(fulfillment, session_model) {
 	return { inQueue: true };
 };
 
-exports.getAlarmsAt = function(when) {
-	return new Promise((resolve, reject) => {
-		resolve([]);
-	});
-};
-
 exports.writeLogForSession = async function(sessionId, text) {
 	return new Data.SessionInput({ 
 		session: sessionId,
@@ -110,7 +104,10 @@ exports.updateGlobalSessionModel = function(new_session_model) {
 let queues_processing = {};
 
 exports.processQueue = async function() {
-	let qitem = await Data.IOQueue.findOne({ 
+	if (exports.sessionModel == null) return;
+
+	let qitem = await Data.IOQueue.findOne({
+		session: exports.sessionModel._id,
 		driver: { $in: _.keys(exports.drivers) } 
 	}).populate('session');
 	if (qitem == null) return;
@@ -135,11 +132,4 @@ exports.startPolling = async function() {
 	}
 	await timeout(1000);
 	exports.startPolling();
-};
-
-exports.processResponseToPendingAnswer = function(dataset, q, attr) {
-	attr = attr || 'title';
-	return _.find(dataset, (e, index) => {
-		return (cleanText(e[attr]) === cleanText(q)) || ((index+1) === q);
-	});
 };
