@@ -141,6 +141,10 @@ global.config = _.defaults(require('./config.json'), {
 		]
 	},
 
+	"polly": {
+		"gender": "Female"
+	}
+
 });
 
 if (config.uid == null) {
