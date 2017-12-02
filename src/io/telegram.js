@@ -6,7 +6,7 @@ const fs = require('fs');
 const request = require('request');
 const spawn = require('child_process').spawn;
 
-const _config = _.defaults(config.io.telegram, {
+const _config = _.defaults(config.telegram, {
 	writeKeySpeed: 1
 });
 
@@ -217,7 +217,7 @@ bot.on('message', async(e) => {
 
 	if (e.text) {
 		// If we are in a group, only listen for activators
-		if (chat_is_group && !AI_NAME_ACTIVATOR.test(e.text)) {
+		if (chat_is_group && !AI_NAME_REGEX.test(e.text)) {
 			console.debug(TAG, 'skipping input for missing activator', e.text);
 			return false;
 		}
@@ -235,7 +235,7 @@ bot.on('message', async(e) => {
 			const text = await handleInputVoice(session_model, e);
 		
 			// If we are in a group, only listen for activators
-			if (chat_is_group && !AI_NAME_ACTIVATOR.test(e.text)) {
+			if (chat_is_group && !AI_NAME_REGEX.test(e.text)) {
 				console.debug(TAG, 'skipping input for missing activator', e.text);
 				return false;
 			}

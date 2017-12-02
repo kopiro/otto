@@ -1,3 +1,5 @@
+const _ = require('underscore');
+
 // Replace the console with a better console with colors
 require('console-ultimate/global').replace();
 
@@ -8,39 +10,152 @@ global.__cachedir = __dirname + '/cache';
 global.__publicdir = __dirname + '/public';
 global.__etcdir = __dirname + '/etc';
 
+function requireOrNull(e) {
+	try { return require(e); } 
+	catch (ex) { return null; }
+}
+
 // Read the config and expose as global
-global.config = require('./config.json');
-global.public_config = require('./public_config.json');
+global.config = _.defaults(require('./config.json'), {
+	
+	// The UID used for your current AI instance to link other sessions with the same UID
+	"uid": null,
+
+	// A regex activator used to wakeup the AI in group messages
+	"aiNameRegex": null,
+
+	// A list of IO drivers to activate on boot for this instance
+	"ioDrivers": [],
+
+	// A list of Schedulers to run every tick
+	"scheduler": [],
+
+	// The source language of the AI
+	"language": "en",
+
+	// The source locale of the AI
+	"locale": "en-US",
+
+	// A Boolean value indicating if the AWH (API.AI Web Hook) should be spawn
+	"awh": false,
+
+	// An object indicating the port and the domain where the eventual server should be spawn, false otherwise
+	"server": {
+		"port": 8080,
+		// The domain used for absolute URIs
+		"domainWithPort": null
+	},
+
+	// A list of credentials for the Mongo connection
+	"mongo": {
+		"host": "db",
+		"port": 27017,
+		"database": "admin",
+		"user": "admin",
+		"password": null
+	},
+
+	// API.AI configuration
+	"apiai": {
+		"token": null
+	},
+
+	// IO/Telegram configuration
+	"telegram": {
+		"writeKeySpeed": 1,
+		"token": null,
+		"options": {
+			"polling": true
+		}
+	},
+
+	// IO/Kid configuration
+	"kid": {
+		// Timeout after the conversation should expire
+		"eocMax": 10
+	},
+
+	// IO/Messenger configuration
+	"messenger": {
+		"token": null,
+		"verify": null,
+		"appId": null,
+		"appSecret": null,
+		// Port where webhook should listen
+		"port": null
+	},
+
+	// Facebook app configuration
+	"facebook": {
+		"appId": null,
+		"secret": null,
+		"pageId": null,
+		// The page token used concatenating access-token + secret
+		"accessToken": null
+	},
+
+	// Google Cloud configuration
+	"gcloud": {
+		"cseId": null,
+		"apiKey": null,
+	},
+
+	// Spotify configuration
+	"spotify": {
+		"clientId" : null,
+		"clientSecret" : null
+	},
+
+	// Wolfram configuration
+	"wolfram": {
+		"appId": null
+	},
+
+	// MusixMatch configuration
+	"musixmatch": {
+		"apiKey": null
+	},
+
+	// Wunderground configuration
+	"wunderground": {
+		"apiKey": null
+	},
+
+	// Transmission configuration
+	"transmission": {
+		"host": null,
+		"port": null,
+		"username": null,
+		"password": null,
+		"ssl": false
+	},
+
+	// MIIO configuration
+	"miio": {
+		"devices": [
+			{
+				"name": null,
+				"id": null,
+				"token": null
+			}
+		]
+	},
+
+});
+
+global.messages = _.extend({}, requireOrNull('./messages.json'), requireOrNull('./messages-custom.json'));
 
 if (config.uid == null) {
 	console.error("Please define config.uid with your Universal ID (username)");
 	process.exit(1);
 }
 
-global.ERRMSG_SR_GENERIC = [ 
-	'In questo momento sono confuso...'
-];
-global.ERRMSG_SR_UNRECOGNIZED = [ 
-	'Scusa, ma non ho capito quello che hai detto!'
-];
-global.ERRMSG_CANTHANDLE = [ 
-	'Cosa vuol dire?',
-	'Cosa significa scusa?',
-	'Uffa, non capisco...',
-	'Cosa vorresti dire?'
-];
-global.MSG_FIRST_HINT = [
-	'Dimmi',
-	'Ehi',
-	'Weilà',
-	'Dica',
-	'Spara',
-	'Dimmi tutto',
-	'Vai'
-];
+if (config.aiNameRegex == null) {
+	console.error("Please define config.aiNameRegex with the Regex used to activate via text your AI");
+	process.exit(1);
+}
 
-// Const
-global.AI_NAME_ACTIVATOR = /(^(otto|8)\b)|(\b(otto|8)\b)/mgi;
+global.AI_NAME_REGEX = new RegExp(config.aiNameRegex, 'mgi');
 
 // Define a new require to require files from our path
 global.apprequire = ((k) => require(__basedir + '/src/lib/' + k));

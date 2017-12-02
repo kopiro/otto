@@ -4,7 +4,7 @@ exports.id = 'messenger';
 const _ = require('underscore');
 const http = require('http');
 
-const _config = _.defaults(config.io.messenger, {
+const _config = _.defaults(config.messenger, {
 	writeKeySpeed: 1
 });
 

@@ -3,11 +3,12 @@ const _config = config.server;
 const port = _config.port;
 
 const http = require('http');
+const socketio = require('socket.io');
 const express = require('express');
 const app = express();
 
-const server = require('http').createServer(app);
-const io = require('socket.io')(server);
+const server = http.createServer(app);
+const io = socketio(server);
 
 const exphbs  = require('express-handlebars');
 app.set('title', require(__basedir + '/package.json').name);

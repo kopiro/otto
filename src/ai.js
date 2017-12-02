@@ -28,7 +28,7 @@ async function fulfillmentTransformer(fulfillment, session_model) {
 		if (!_.isEmpty(fulfillment.speech)) {
 			fulfillment.speech = await Translator.translate(fulfillment.speech, session_model.getTranslateTo());
 		} else {
-			fulfillment.speech = await Translator.translate(ERRMSG_CANTHANDLE.getRandom(), session_model.getTranslateTo());
+			fulfillment.speech = await Translator.translate(messages.ERRMSG_CANTHANDLE.getRandom(), session_model.getTranslateTo());
 		}
 	}
 
@@ -67,7 +67,7 @@ async function fulfillmentPromiseTransformer(execute_fn, data, session_model) {
 exports.fulfillmentPromiseTransformer = fulfillmentPromiseTransformer;
 
 exports.textRequestTransformer = async function(text, session_model) {
-	text = text.replace(AI_NAME_ACTIVATOR, ''); // Remove the AI name in the text
+	text = text.replace(config.aiNameRegex, ''); // Remove the AI name in the text
 	text = await Translator.translate(text, config.language, session_model.getTranslateTo());
 	return text;
 };

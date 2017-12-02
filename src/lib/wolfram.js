@@ -1,6 +1,6 @@
 const TAG = 'Wolfram';
 
-const _config = config.ai.wolfram;
+const _config = config.wolfram;
 
 const _ = require('underscore');
 

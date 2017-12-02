@@ -1,7 +1,7 @@
 exports.id = 'draw';
 
 const ImagesClient = require('google-images');
-const client = new ImagesClient(config.ai.gcloud.cseId, config.ai.gcloud.apiKey);
+const client = new ImagesClient(config.gcloud.cseId, config.gcloud.apiKey);
 
 module.exports = function({ sessionId, result }) {
 	return new Promise((resolve, reject) => {

@@ -74,3 +74,9 @@ Attribute | Description
 `data.url` | URL
 `data.media` | Media `{ artist: "", track: "", album: "" }`
 
+### Customize messages
+
+The file `messages.json` specify the messages used for certain actions.
+
+To override some messages, place a `messages-custom.json` in the root directory.
+

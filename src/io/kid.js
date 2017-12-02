@@ -6,7 +6,7 @@ const async = require('async');
 const md5 = require('md5');
 const request = require('request');
 
-const _config = _.defaults(config.io.kid || {}, {
+const _config = _.defaults(config.kid || {}, {
 	eocMax: 10
 });
 
@@ -71,7 +71,7 @@ function stopOutput() {
 }
 
 async function sendFirstHint(language = IOManager.sessionModel.getTranslateTo()) {
-	let hint = await Translator.translate(MSG_FIRST_HINT.getRandom(), language, 'it');
+	let hint = await Translator.translate(messages.MSG_FIRST_HINT.getRandom(), language, 'it');
 	return sendMessage(hint);
 }
 
@@ -89,7 +89,7 @@ function createRecognizeStream() {
 			return emitter.emit('input', {
 				session_model: IOManager.sessionModel,
 				error: {
-					speech: (err.unrecognized ? ERRMSG_SR_UNRECOGNIZED : ERRMSG_SR_GENERIC).getRandom()
+					speech: (err.unrecognized ? messages.ERRMSG_SR_UNRECOGNIZED : messages.ERRMSG_SR_GENERIC).getRandom()
 				}
 			});
 		}

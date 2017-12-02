@@ -1,6 +1,6 @@
-const TAG = 'wunderground';
+const TAG = 'Wunderground';
 
-const _config = config.ai.wunderground;
+const _config = config.wunderground;
 const request = require('fs');
 
 exports.api = function(opt, callback) {

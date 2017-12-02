@@ -3,7 +3,7 @@ const TAG = 'MusixMatch';
 const _ = require('underscore');
 const request = require('request');
 
-const _config = config.ai.musixmatch;
+const _config = config.musixmatch;
 
 const ENDPOINT = 'https://musixmatchcom-musixmatch.p.mashape.com/wsr/1.1/';
 

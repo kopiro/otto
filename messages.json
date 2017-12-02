@@ -1,0 +1,23 @@
+{
+	"ERRMSG_SR_GENERIC": [ 
+		"In questo momento sono confuso..."
+	],
+	"ERRMSG_SR_UNRECOGNIZED": [
+		"Scusa, ma non ho capito quello che hai detto!"
+	],
+	"ERRMSG_CANTHANDLE": [ 
+		"Cosa vuol dire?",
+		"Cosa significa scusa?",
+		"Uffa, non capisco...",
+		"Cosa vorresti dire?"
+	],
+	"MSG_FIRST_HINT": [
+		"Dimmi",
+		"Ehi",
+		"Weilà",
+		"Dica",
+		"Spara",
+		"Dimmi tutto",
+		"Vai"
+	]
+}

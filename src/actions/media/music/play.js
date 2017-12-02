@@ -1,6 +1,6 @@
 exports.id = 'media.music.play';
 
-const _config = config.ai.spotify;
+const _config = config.spotify;
 
 var SpotifyWebApi = require('spotify-web-api-node');
 var spotifyApi = new SpotifyWebApi(_config.options);

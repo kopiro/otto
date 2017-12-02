@@ -6,7 +6,7 @@ const spawn = require('child_process').spawn;
 
 const Translator = apprequire('translator');
 const ImagesClient = require('google-images');
-const client = new ImagesClient(config.ai.gcloud.cseId, config.ai.gcloud.apiKey);
+const client = new ImagesClient(config.gcloud.cseId, config.gcloud.apiKey);
 
 module.exports = function({ sessionId, result }, session) {
 	return new Promise((resolve, reject) => {
