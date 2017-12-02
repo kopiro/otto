@@ -35,7 +35,6 @@ exports.getLanguages = function(target = config.language) {
 				return reject(err);
 			}
 			
-			console.debug(TAG, { languages });
 			resolve(languages);
 		});
 	});

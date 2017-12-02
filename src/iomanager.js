@@ -47,6 +47,8 @@ exports.loadDrivers = function() {
 };
 
 exports.output = async function(fulfillment, session_model) {
+	session_model = session_model || IOManager.sessionModel;
+	
 	if (exports.isDriverEnabled(session_model.io_id)) {	
 		console.debug(TAG, 'output', { fulfillment, session_model });
 		// If driver is enabled, instantly resolve

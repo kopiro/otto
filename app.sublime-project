@@ -10,7 +10,6 @@
 				"tmp",
 				"storage",
 				"log",
-				"keys",
 				"package-lock.json",
 				"yarn.lock",
 				"public",

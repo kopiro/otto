@@ -25,23 +25,23 @@ try {
 	};
 }
 
-function setCacheForVoice(locale, voice) {
-	cache.voices[locale] = voice;
+function setCacheForVoice(opt, voice) {
+	cache.voices[JSON.stringify(opt)] = voice;
 	fs.writeFileSync(CACHE_REGISTRY_FILE, JSON.stringify(cache), () => {});
 }
 
-function getCacheForVoice(locale) {
-	return cache.voices[locale];
+function getCacheForVoice(opt) {
+	return cache.voices[JSON.stringify(opt)];
 }
 
-function setCacheForAudio(text, language, file) {
-	let key = md5(text + language);
+function setCacheForAudio(text, opt = {}, file) {
+	let key = md5(text + JSON.stringify(opt));
 	cache.audio[key] = file;
 	fs.writeFileSync(CACHE_REGISTRY_FILE, JSON.stringify(cache), () => {});
 }
 
-function getCacheForAudio(text, language) {
-	let key = md5(text + language);
+function getCacheForAudio(text, opt = {}) {
+	let key = md5(text + JSON.stringify(opt));
 	const file = cache.audio[key];
 	if (file != null && fs.existsSync(file)) {
 		return file;
@@ -55,7 +55,7 @@ function getVoice(opt = {}) {
 		});
 
 		const locale = getLocaleFromLanguageCode(opt.language);
-		let voice = getCacheForVoice(locale);
+		let voice = getCacheForVoice(opt);
 		if (voice) {
 			return resolve(voice);
 		}
@@ -80,7 +80,7 @@ function getVoice(opt = {}) {
 				return resolve(voice);
 			}
 
-			setCacheForVoice(locale, voice);
+			setCacheForVoice(opt, voice);
 			return resolve(voice);
 		});
 	});
@@ -93,7 +93,7 @@ exports.getAudioFile = function(text, opt = {}) {
 			language: config.language
 		});
 
-		let cached_file = getCacheForAudio(text, opt.language);
+		let cached_file = getCacheForAudio(text, opt);
 		if (cached_file) {
 			console.debug(TAG, cached_file, '(cached)');
 			return resolve(cached_file);
@@ -119,7 +119,7 @@ exports.getAudioFile = function(text, opt = {}) {
 					return reject(err);
 				}
 
-				setCacheForAudio(text, opt.language, cached_file);
+				setCacheForAudio(text, opt, cached_file);
 				resolve(cached_file);
 			});
 		});

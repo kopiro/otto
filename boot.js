@@ -36,6 +36,12 @@ global.config = _.defaults(require('./config.json'), {
 		"addArgs": [], 
 	},
 
+	// Snowboy configuration
+	"snowboy": {
+		"apiKey": null,
+		"hotword": null
+	},
+
 	// A Boolean value indicating if the AWH (API.AI Web Hook) should be spawn
 	"awh": false,
 

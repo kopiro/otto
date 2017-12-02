@@ -19,5 +19,27 @@
 		"Spara",
 		"Dimmi tutto",
 		"Vai"
+	],
+	"io_hotword_training_tutorial": [
+		"Configurami"
+	],
+	"io_hotword_training_ask_name": [
+		"Come ti chiami?"
+	],
+	"io_hotword_training_ask_gender": [
+		"Sei uomo o donna?"
+	],
+	"io_hotword_training_genders": {
+		"uomo": "M",
+		"donna": "W"
+	},
+	"io_hotword_training_start": [
+		"VIA"
+	],
+	"io_hotword_training_failed": [
+		"Configurazione fallita"
+	],
+	"io_hotword_training_success": [
+		"Perfetto, ora puoi parlarmi!"
 	]
 }

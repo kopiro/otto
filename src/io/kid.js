@@ -5,6 +5,7 @@ const _ = require('underscore');
 const async = require('async');
 const md5 = require('md5');
 const request = require('request');
+const fs = require('fs');
 
 const _config = config.kid;
 
@@ -17,6 +18,7 @@ const Play = apprequire('play');
 const RaspiLeds = apprequire('raspi/leds');
 const URLManager = apprequire('urlmanager');
 const {Detector, Models} = require('snowboy');
+const HotwordTrainer = apprequire('hotword_trainer');
 const Translator = apprequire('translator');
 const Messages = apprequire('messages');
 
@@ -29,14 +31,40 @@ let queueRunning = false;
 let eocInterval = null;
 let eocTimeout = -1;
 
-const models = new Models();
-models.add({
-	file: __etcdir + '/hotword.pmdl',
-	sensitivity: '0.5',
-	hotwords: _config.hotword
-});
+let hotwordScanned = false;
+let hotwordModels = null;
 
 let currentOutputKey = null;
+
+function scanForHotWords(forceTraining = false) {	
+	return new Promise(async(resolve, reject) => {
+		if (forceTraining) await HotwordTrainer.start();
+
+		fs.readdir(__etcdir + '/hotwords-pmdl/', {}, async(err, files) => {
+			if (err) return reject(err);
+			files = files.filter((file) => /\.pmdl$/.test(file));
+			if (files.length > 0) {
+				console.debug(TAG, 'scanned ' + files.length + ' pdml files');
+
+				hotwordModels = new Models();
+				files.forEach((file) => {
+					hotwordModels.add({
+						file: __etcdir + '/hotwords-pmdl/' + file,
+						sensitivity: '0.5',
+						hotwords: config.snowboy.hotword
+					});
+				});
+
+				hotwordScanned = true;
+				return resolve();
+			}
+
+			// Train first time
+			await HotwordTrainer.start();			
+			return scanForHotWords();
+		});
+	});
+}
 
 async function sendMessage(text, language) {
 	const key = md5(text);
@@ -162,7 +190,7 @@ function getDetectorStream() {
 
 	const detector = new Detector({
 		resource: __etcdir + '/common.res',
-		models: models,
+		models: hotwordModels,
 		audioGain: 1.0
 	});
 
@@ -249,6 +277,10 @@ exports.startInput = async function() {
 
 	if (IOManager.sessionModel == null) {
 		await registerGlobalSession();
+	}
+
+	if (hotwordScanned === false) {
+		await scanForHotWords(false);
 	}
 
 	if (queueInterval == null) {

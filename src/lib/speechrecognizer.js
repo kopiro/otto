@@ -5,8 +5,17 @@ const speech = require('@google-cloud/speech')({
 });
 const _ = require('underscore');
 
-exports.createRecognizeStream = function(opt, callback) {
-	opt = _.defaults(opt || {}, {
+exports.recognize = function(stream, opt = {}) {
+	return new Promise(async(resolve, reject) => {
+		stream.pipe(exports.createRecognizeStream(opt, (err, text) => {
+			if (err) return reject(err);
+			resolve(text);
+		}));
+	});
+};
+
+exports.createRecognizeStream = function(opt = {}, callback) {
+	_.defaults(opt, {
 		interimResults: true,
 		encoding: 'LINEAR16',
 		sampleRate: 16000,
@@ -39,9 +48,12 @@ exports.createRecognizeStream = function(opt, callback) {
 	});
 
 	stream.on('data', (data) => {
-		console.debug(TAG, 'data', JSON.stringify(data));
+		// console.debug(TAG, 'data', JSON.stringify(data));
 		if (data.results.length > 0) {
 			var r = data.results[0];
+			if (!_.isEmpty(r.alternatives)) {
+				console.debug(TAG, r.alternatives[0].transcript);
+			}
 			if (r.isFinal) {
 				const text = r.alternatives[0].transcript;
 				console.info(TAG, 'recognized', text);

@@ -36,6 +36,7 @@
         "__etcdir": true,
         "requireOrNull": true,
         "config": true,
+        "cleanText": true,
         "AI_NAME_REGEX": true,
         "apprequire": true,
         "mongoose": true,
