@@ -22,8 +22,8 @@ global.config = _.defaults(require('./config.json'), {
 	// A list of IO drivers to activate on boot for this instance
 	"ioDrivers": [],
 
-	// A list of Schedulers to run every tick
-	"scheduler": [],
+	// Let the schedulers run
+	"scheduler": true,
 
 	// The source language of the AI
 	"language": "en",

@@ -4,8 +4,7 @@ const moment = apprequire('moment');
 
 exports.run = function({ session }) {
 	const now = moment();
-
 	IOManager.output({ 
-		speech: 'Sono le ' + now.hours() 
+		speech: 'Sono le ' + now.hours() + ' e ' + now.minutes()
 	}, session);
 };
