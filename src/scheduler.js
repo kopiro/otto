@@ -6,10 +6,11 @@ const moment = apprequire('moment');
 async function getScheduler(time) {
 	return Data.Scheduler
 	.find({
-		client: require('os').hostname(),
+		uid: config.uid,
 		$or: [
 		{ daily: (time.hours() + ':' + time.minutes()) },
-		{ hourly: (time.minutes()) }
+		{ hourly: (time.minutes()) },
+		{ on_tick: true }
 		]
 	}) 
 	.populate('session');
