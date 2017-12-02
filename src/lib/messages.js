@@ -6,8 +6,6 @@ const util = require('util');
 console.log(__basedir + '/messages.json');
 const library = _.extend({}, requireOrNull(__basedir + '/messages.json') || {}, requireOrNull(__basedir + '/messages-custom.json') || {});
 
-console.dir(library);
-
 exports.getRaw = function(key) {
 	let str = library[key];
 	if (str == null) {
