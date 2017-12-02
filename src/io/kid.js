@@ -71,14 +71,10 @@ function stopOutput() {
 	}
 }
 
-async function sendFirstHint(language = IOManager.sessionModel.getTranslateTo()) {
-<<<<<<< HEAD
-	let hint = await Translator.translate(Messages.get('io_first_hint'), language, 'it');
-	return sendMessage(hint);
-=======
-	let hint = await Translator.translate(messages.MSG_FIRST_HINT.getRandom(), language, config.language);
+async function sendFirstHint(language) {
+	language = language || IOManager.sessionModel.getTranslateTo();
+	let hint = await Translator.translate(Messages.get('io_first_hint'), language, config.language);
 	return sendMessage(hint, language);
->>>>>>> 6230fe5d3b7679b3aa7a25e20083ee331530ca28
 }
 
 let recognizeStream;
