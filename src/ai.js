@@ -139,7 +139,7 @@ exports.textRequest = function(text, session_model) {
 			}
 	
 			console.info(TAG, 'webhook not used or failed, solving locally');
-			let fulfillment = exports.apiaiResultParser(body, session_model);
+			let fulfillment = await exports.apiaiResultParser(body, session_model);
 			resolve(fulfillment);
 		});
 

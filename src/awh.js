@@ -29,7 +29,7 @@ Router.post('/', async(req, res) => {
 	}
 
 	try {
-		let fulfillment = AI.apiaiResultParser(body, session_model);
+		let fulfillment = await AI.apiaiResultParser(body, session_model);
 		console.info(TAG, 'fulfillment');
 		console.dir(fulfillment, { depth: 10 });
 		res.json(fulfillment);
