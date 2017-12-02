@@ -36,13 +36,14 @@ let hotwordModels = null;
 
 let currentOutputKey = null;
 
-function scanForHotWords(forceTraining = false) {	
+async function scanForHotWords(forceTraining = false) {	
 	return new Promise(async(resolve, reject) => {
 		if (forceTraining) await HotwordTrainer.start();
 
 		fs.readdir(__etcdir + '/hotwords-pmdl/', {}, async(err, files) => {
 			if (err) return reject(err);
 			files = files.filter((file) => /\.pmdl$/.test(file));
+			
 			if (files.length > 0) {
 				console.debug(TAG, 'scanned ' + files.length + ' pdml files');
 
