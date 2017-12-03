@@ -48,7 +48,6 @@ exports.createRecognizeStream = function(opt = {}, callback) {
 	});
 
 	stream.on('data', (data) => {
-		// console.debug(TAG, 'data', JSON.stringify(data));
 		if (data.results.length > 0) {
 			var r = data.results[0];
 			if (!_.isEmpty(r.alternatives)) {

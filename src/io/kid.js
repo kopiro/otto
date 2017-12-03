@@ -23,10 +23,11 @@ const Translator = apprequire('translator');
 const Messages = apprequire('messages');
 
 let isHavingConversation = false;
+let inputStarted = false;
 
 let queueOutput = [];
-let queueInterval = null;
-let queueRunning = false;
+let queueIntv = false;
+let queueBusy = false;
 
 let eocInterval = null;
 let eocTimeout = -1;
@@ -97,7 +98,12 @@ async function sendVoice(e) {
 
 function stopOutput() {
 	console.warn(TAG, 'stop output');
+	
 	currentOutputKey = null;
+
+	queueBusy = null;
+	queueOutput = [];
+
 	if (Play.speakerProc != null) {
 		Play.speakerProc.kill();
 	}
@@ -157,7 +163,6 @@ function createRecognizeStream() {
 }
 
 function stopRecognizingStream() {
-	console.debug(TAG, 'stop recognizing stream');
 	if (recognizeStream != null) {
 		recognizeStream.destroy();
 	}
@@ -224,60 +229,66 @@ function getDetectorStream() {
 	return detector;
 }
 
-function shiftQueue() {
-	console.debug(TAG, 'shifting queue');
-	queueOutput.shift();
-	queueRunning = false;
-	emitter.emit('ai-spoken');
-	exports.startInput(); 
-}
-
 async function processOutputQueue() {
-	if (queueOutput.length === 0) return;
-	if (queueRunning === true) return;
-
-	emitter.emit('ai-speaking');
-
-	queueRunning = true;
-	eocTimeout = -1;
-	stopRecognizingStream();
-
-	let f = queueOutput[0];
-	
-	console.debug(TAG, 'process output queue');
-	console.dir(f);
-
-	if (f.data.error) {
-		if (f.data.error.speech) {	
-			await sendMessage(f.data.error.speech, f.data.language);
-		}
-		if (IOManager.sessionModel.is_admin === true) {
-			await sendMessage(String(f.data.error), 'en');
+	if (queueOutput.length === 0) {
+		if (inputStarted === false) {
+			emitter.emit('ai-spoken');
+			inputStarted = true;	
+			exports.startInput(); 
 		}
 		return;
 	}
 
-	if (f.data.url) {
-		await URLManager.open(f.data.url);
+	if (queueBusy) {
+		console.debug(TAG, 'queue is occupied by another element');
+		return;
 	}
 
-	if (f.speech) {
-		await sendMessage(f.speech, f.data.language);
+	let f = queueOutput[0];
+	console.info(TAG, 'processing output queue', f);
+	console.info(TAG, 'current queue length =', queueOutput.length);
+
+	emitter.emit('ai-speaking');
+
+	inputStarted = false;
+	queueBusy = f;
+	eocTimeout = -1;
+	stopRecognizingStream();
+
+	try {
+		if (f.data.error) {
+			if (f.data.error.speech) {	
+				await sendMessage(f.data.error.speech, f.data.language);
+			}
+			if (IOManager.sessionModel.is_admin === true) {
+				await sendMessage(String(f.data.error), 'en');
+			}
+		}
+
+		if (f.data.url) {
+			await URLManager.open(f.data.url);
+		}
+
+		if (f.speech) {
+			await sendMessage(f.speech, f.data.language);
+		}
+
+		if (f.data.voice) {
+			await sendVoice(f.data.voice);
+		}
+
+		if (f.data.lyrics) {
+			await sendMessage(f.data.lyrics.text, f.data.lyrics.language);
+		}
+	} catch (err) {
+		console.error(TAG, err);
 	}
 
-	if (f.data.voice) {
-		await sendVoice(f.data.voice);
-	}
-
-	if (f.data.lyrics) {
-		await sendMessage(f.data.lyrics.text, f.data.lyrics.language);
-	}
-
-	shiftQueue();
+	queueBusy = null;
+	queueOutput.shift();
 }
 
 exports.startInput = async function() {
-	if (queueOutput.length > 0) return;
 	console.debug(TAG, 'start input');
 
 	if (IOManager.sessionModel == null) {
@@ -288,15 +299,19 @@ exports.startInput = async function() {
 		await scanForHotWords(false);
 	}
 
-	if (queueInterval == null) {
-		queueInterval = setInterval(processOutputQueue, 100);
+	if (!queueIntv) {
+		queueIntv = setInterval(processOutputQueue, 1000);
 	}
 
 	if (eocInterval == null) {
 		registerEOCInterval();
 	}
 
-	Rec.start().pipe(getDetectorStream());
+	inputStarted = true;
+
+	Rec.start();
+
+	Rec.getStream().pipe(getDetectorStream());
 
 	if (isHavingConversation) {
 		emitter.emit('user-can-speak');
@@ -307,8 +322,8 @@ exports.startInput = async function() {
 };
 
 exports.output = async function(f) {
-	console.info(TAG, 'output added to queue');
 	queueOutput.push(f);
+	console.info(TAG, 'output added to queue', f);
 };
 
 /////////////////////
