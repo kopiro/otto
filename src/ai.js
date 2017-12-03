@@ -17,6 +17,10 @@ async function fulfillmentTransformer(fulfillment, session_model) {
 		throw new Error('Fulfillment is not an object');
 	}
 
+	_.defaults(fulfillment, {
+		data: {}
+	});
+	
 	fulfillment.localTransform = true;
 
 	if (!_.isEmpty(fulfillment.speech)) {
