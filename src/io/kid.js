@@ -210,11 +210,11 @@ function getDetectorStream() {
 	});
 
 	detector.on('silence', () => {
-		process.stdout.write('〰️');
+		// process.stdout.write('〰️');
 	});
 
 	detector.on('sound', () => {
-		process.stdout.write('🔉 ');
+		// process.stdout.write('🔉 ');
 	});
 
 	detector.on('error', (err) => {
@@ -254,6 +254,7 @@ async function processOutputQueue() {
 		if (IOManager.sessionModel.is_admin === true) {
 			await sendMessage(String(f.data.error), 'en');
 		}
+		return;
 	}
 
 	if (f.data.url) {

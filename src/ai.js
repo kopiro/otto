@@ -17,9 +17,7 @@ async function fulfillmentTransformer(fulfillment, session_model) {
 		throw new Error('Fulfillment is not an object');
 	}
 
-	fulfillment = _.defaults(fulfillment, {
-		data: {}
-	});
+	fulfillment.localTransform = true;
 
 	if (!_.isEmpty(fulfillment.speech)) {
 		fulfillment.speech = await Translator.translate(fulfillment.speech, session_model.getTranslateTo());
@@ -36,7 +34,7 @@ async function fulfillmentTransformer(fulfillment, session_model) {
 
 exports.fulfillmentTransformer = fulfillmentTransformer;
 
-async function fulfillmentPromiseTransformer(execute_fn, data, session_model) {
+async function fulfillmentPromiseTransformer(execute_fn, body, session_model) {
 	return new Promise(async(resolve) => {
 		let fulfillment = null;
 		
@@ -50,7 +48,7 @@ async function fulfillmentPromiseTransformer(execute_fn, data, session_model) {
 		}, 1000 * _config.promiseTimeout);
 
 		try {
-			fulfillment = await execute_fn(data, session_model);
+			fulfillment = await execute_fn(body, session_model);
 			fulfillment = await fulfillmentTransformer(fulfillment, session_model);
 		} catch (err) {
 			fulfillment = await fulfillmentTransformer({
@@ -69,56 +67,39 @@ exports.textRequestTransformer = async function(text, session_model) {
 	return text;
 };
 
-function apiaiInterfaceConverter(body) {
-	if (!_.isEmpty(body.result.fulfillment.messages)) {
-		let msg = body.result.fulfillment.messages.getRandom();
-		switch (msg.type) {
-			case 0:
-			break;
-			case 2:
-			body.result.fulfillment.data.replies = msg.replies;
-			break;
-			case 3:
-			body.result.fulfillment.data = { image: { remoteFile: msg.imageUrl } };
-			break;
-			case 4:
-			body.result.fulfillment.data = msg.payload;
-			break;
-			default:
-			console.error(TAG, 'type not recognized');
-			break;
-		}
-		delete body.result.fulfillment.messages;
-	}
-
-	body.result.fulfillment.data = body.result.fulfillment.data || {};
-	return body;
-}
 
 exports.apiaiResultParser = async function(body, session_model) {
-	const res = body.result;
+	// Parse messages
+	let f = { 
+		speech: '',
+		data: {},
+		payload: {}
+	};
+	(body.result.fulfillment.messages || []).forEach((m) => {
+		delete m.type;
+		f = _.extend(f, m);
+	});
+	body.result.fulfillment = f;
 
-	let fulfillment = null;
-
-	
-	if (res.metadata.intentId != null) {
+	if (body.result.metadata.intentId != null) {
 		// If an intentId is returned, could auto resolve or call a promise
-		if (_.isEmpty(res.action) === false && res.actionIncomplete !== true) {
-			const action_fn = Actions.list[ res.action ];
-			console.info(TAG, 'calling action', res.action);
-			fulfillment = await fulfillmentPromiseTransformer(action_fn(), body, session_model);
+		if (_.isEmpty(body.result.action) === false && body.result.actionIncomplete !== true) {
+			const action_fn = Actions.list[ body.result.action ];
+			console.info(TAG, `calling action ${body.result.action} with data...`);
+			console.dir(body, { depth: 10 });
+			body.result.fulfillment = await fulfillmentPromiseTransformer(action_fn(), body, session_model);
 		} else {
-			fulfillment = await fulfillmentTransformer(res.fulfillment, session_model);
+			body.result.fulfillment = await fulfillmentTransformer(body.result.fulfillment, session_model);
 		}
 	} else {
 		// If not intentId is returned, this is a unhandled DialogFlow intent
 		// So return an error with this speech (ai_unhandled)
-		fulfillment = await fulfillmentTransformer({
+		body.result.fulfillment = await fulfillmentTransformer({
 			data: { error: { speech: Messages.get('ai_unhandled') } }
 		}, session_model);
 	}
 
-	return fulfillment;
+	return body.result.fulfillment;
 };
 
 exports.textRequest = function(text, session_model) {
@@ -131,11 +112,11 @@ exports.textRequest = function(text, session_model) {
 		});
 
 		request.on('response', async(body) => {
-			body = apiaiInterfaceConverter(body);
 			console.info(TAG, 'response');
 			console.dir(body, { depth: 10 });
 
 			if (body.result.metadata.webhookUsed === 'true' && body.status.errorType !== 'partial_content') {
+				delete body.result.fulfillment.messages;
 				return resolve(body.result.fulfillment);
 			}
 	

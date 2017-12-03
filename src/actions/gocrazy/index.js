@@ -46,7 +46,11 @@ module.exports = function({ sessionId, result }, session) {
 							client.search(`disegno "${w}"`)
 							.then((images) => {
 								IOManager.output({
-									data: { image: { remoteFile: images.getRandom().url } }
+									data: { 
+										image: { 
+											remoteFile: images.getRandom().url 
+										} 
+									}
 								}, session)
 								.then().catch().then(_next);
 							});

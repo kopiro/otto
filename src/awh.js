@@ -9,11 +9,11 @@ Router.get('/', (req, res) => {
 Router.post('/', async(req, res) => {
 	if (req.body == null) {
 		console.error(TAG, 'empty body');
-		return res.json({ error: { message: 'Empty body' } });
+		return res.json({ data: { error: 'Empty body' } });
 	}
 
 	console.info(TAG, 'request');
-	console.dir(req.body);
+	console.dir(req.body, { depth: 10 });
 
 	const body = req.body;
 	const sessionId = body.sessionId;
@@ -28,7 +28,7 @@ Router.post('/', async(req, res) => {
 
 	try {
 		let fulfillment = await AI.apiaiResultParser(body, session_model);
-		console.info(TAG, 'fulfillment');
+		console.info(TAG, 'output fulfillment');
 		console.dir(fulfillment, { depth: 10 });
 		res.json(fulfillment);
 	} catch (ex) {

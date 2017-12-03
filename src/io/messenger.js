@@ -91,6 +91,17 @@ exports.output = async function(f, session_model) {
 	const language = f.data.language || session_model.getTranslateTo();
 	const chat_id = session_model.io_data.sender.id;
 
+	if (f.data.error) {
+		if (f.data.error.speech) {	
+			await sendMessage(chat_id, f.data.error.speech);
+		}
+		if (session_model.is_admin === true) {
+			await sendMessage(chat_id, "ERROR: `" + JSON.stringify(f.data.error) + "`");
+		}
+
+		return;
+	}
+
 	let message_opt = {};
 
 	if (f.data.replies) {
@@ -99,21 +110,13 @@ exports.output = async function(f, session_model) {
 				if (_.isString(r)) r = { id: r, text: r };
 				return {
 					title: r.text,
-					payload: r.id,
+					data: r.id,
 					content_type: 'text',
 				};
 			})
 		};
 	}
 
-	if (f.data.error) {
-		if (f.data.error.speech) {	
-			await sendMessage(chat_id, f.data.error.speech);
-		}
-		if (session_model.is_admin === true) {
-			await sendMessage(chat_id, "ERROR: `" + JSON.stringify(f.data.error) + "`");
-		}
-	}
 
 	if (f.speech) {
 		await sendMessage(chat_id, f.speech, message_opt);

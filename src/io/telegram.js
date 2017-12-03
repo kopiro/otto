@@ -102,6 +102,16 @@ exports.output = async function(f, session_model) {
 	const language = f.data.language || session_model.getTranslateTo();
 	const chat_id = session_model.io_data.id;
 
+	if (f.data.error) {
+		if (f.data.error.speech) {		
+			await sendMessage(chat_id, f.data.error.speech);
+		}
+		if (session_model.is_admin) {
+			await sendMessage(chat_id, "ERROR: `" + JSON.stringify(f.data.error) + "`");
+		}
+		return;
+	}
+
 	// Process replies
 	let message_opt = {};
 	if (f.data.replies != null) {
@@ -117,15 +127,6 @@ exports.output = async function(f, session_model) {
 				]
 			}
 		};
-	}
-
-	if (f.data.error) {
-		if (f.data.error.speech) {		
-			await sendMessage(chat_id, f.data.error.speech);
-		}
-		if (session_model.is_admin) {
-			await sendMessage(chat_id, "ERROR: `" + JSON.stringify(f.data.error) + "`");
-		}
 	}
 
 	if (f.speech) {
@@ -179,8 +180,8 @@ exports.output = async function(f, session_model) {
 		}
 	}
 
-	if (f.lyrics) {
-		await sendMessage(chat_id, f.lyrics.lyrics_body, message_opt);
+	if (f.data.lyrics) {
+		await sendMessage(chat_id, f.data.lyrics.lyrics_body, message_opt);
 	}
 };
 

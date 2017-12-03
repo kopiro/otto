@@ -8,7 +8,7 @@ const _config = config.musixmatch;
 const ENDPOINT = 'https://musixmatchcom-musixmatch.p.mashape.com/wsr/1.1/';
 
 function req(opt, callback) {
-	console.debug(TAG, 'input', opt);
+	console.debug(TAG, 'input', opt.url);
 
 	request(_.extend({
 		json: true,
@@ -21,7 +21,6 @@ function req(opt, callback) {
 			return callback(err);
 		}
 
-		console.debug(TAG, 'result', body);
 		callback(null, body);
 	});
 }
