@@ -18,13 +18,22 @@ module.exports = function({ sessionId, result }) {
 			MusixMatch.trackLyrics({
 				track_id: body[0].track_id
 			}, (err, body) => {
+				console.log(body);
 				if (err) {
 					return reject(fulfillment.payload.error);
 				}
 
+
+				let text = body.lyrics_body.split("\n");
+				text = text.join(". ");
+				text = text.replace(/\*\*\*.*/, ''); // remove copyright
+
 				resolve({
 					data: {
-						lyrics: body
+						lyrics: {
+							language: body.lyrics_language,
+							text: text
+						}
 					}
 				});
 			});

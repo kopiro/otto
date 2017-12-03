@@ -27,10 +27,15 @@ Router.post('/', async(req, res) => {
 	}
 
 	try {
+		
 		let fulfillment = await AI.apiaiResultParser(body, session_model);
+		fulfillment.data.remoteTransform = true;
+		
 		console.info(TAG, 'output fulfillment');
 		console.dir(fulfillment, { depth: 10 });
+
 		res.json(fulfillment);
+	
 	} catch (ex) {
 		console.info(TAG, 'error', ex);
 		res.json({ data: { error: ex } });

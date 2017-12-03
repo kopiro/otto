@@ -181,7 +181,7 @@ exports.output = async function(f, session_model) {
 	}
 
 	if (f.data.lyrics) {
-		await sendMessage(chat_id, f.data.lyrics.lyrics_body, message_opt);
+		await sendMessage(chat_id, f.data.lyrics.text, message_opt);
 	}
 };
 

@@ -270,7 +270,7 @@ async function processOutputQueue() {
 	}
 
 	if (f.data.lyrics) {
-		await sendMessage(f.data.lyrics.lyrics_body);
+		await sendMessage(f.data.lyrics.text, f.data.lyrics.language);
 	}
 
 	shiftQueue();
