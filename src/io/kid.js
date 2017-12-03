@@ -52,7 +52,7 @@ async function scanForHotWords(forceTraining = false) {
 				files.forEach((file) => {
 					hotwordModels.add({
 						file: __etcdir + '/hotwords-pmdl/' + file,
-						sensitivity: '0.6',
+						sensitivity: '0.3',
 						hotwords: config.snowboy.hotword
 					});
 				});
