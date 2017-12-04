@@ -8,8 +8,11 @@
 	"ai_unhandled": [ 
 		"Cosa vuol dire?",
 		"Cosa significa scusa?",
-		"Uffa, non capisco...",
-		"Cosa vorresti dire?"
+		"Uffa, sei lontano e non capisco...",
+		"Cosa vorresti dire?",
+		"Ero distratto. Potresti ripetere per favore?",
+		"Oh no!Non ti ho sentito. Cosa dicevi?",
+		"Stavo leggendo, e non ti ascoltavo. Dicevi?"
 	],
 	"io_first_hint": [
 		"Dimmi",
@@ -18,7 +21,13 @@
 		"Dica",
 		"Spara",
 		"Dimmi tutto",
-		"Vai"
+		"Vai",
+		"Sono pronto",
+		"Eccomi",
+		"Ti ascolto",
+		"Ci sono",
+		"Sì",
+		"Ti stavo aspettando"
 	],
 	"io_hotword_training_tutorial": [
 		"Configurami"
