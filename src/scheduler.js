@@ -2,14 +2,15 @@ const TAG = 'Scheduler';
 
 const _ = require('underscore');
 const moment = apprequire('moment');
+let started = false;
 
 async function getScheduler(time) {
 	return Data.Scheduler
 	.find({
 		manager_uid: config.uid,
 		$or: [
-		{ daily: (time.hours() + ':' + time.minutes()) },
-		{ hourly: (time.minutes()) },
+		{ daily: time.format('HH:mm', { trim: false }) },
+		{ hourly: time.format('mm', { trim: false }) },
 		{ on_tick: true }
 		]
 	}) 
@@ -17,10 +18,8 @@ async function getScheduler(time) {
 }
 
 async function tick() {
-	setTimeout(tick, 60 * 1000);
-
 	const now = moment();
-	console.debug(TAG, 'tick', now.hours() + ':' + now.minutes());
+	console.debug(TAG, 'tick', now.format('YYYY-MM-DD HH:mm:ss', {trim:false}));
 
 	const data = await getScheduler(now);
 	if (_.isEmpty(data)) return;
@@ -37,6 +36,10 @@ async function tick() {
 }
 
 exports.startPolling = function() {
-	console.log(TAG, 'started');
+	if (started) return;
+	started = true;
+
+	console.info(TAG, 'polling started');
 	tick();
+	setInterval(tick, 60 * 1000);
 };

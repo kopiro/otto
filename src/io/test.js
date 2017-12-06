@@ -59,17 +59,26 @@ exports.startInput = async function() {
 			});
 		}
 	});
+
+	exports.startInput();
 };
 
 exports.output = async function(f) {
+	const session_model = IOManager.sessionModel;
+
 	if (null == config.testDriver) {
+
 		console.info(TAG, 'output');
+		emitter.emit('output', {
+			sessionModel: session_model,
+			fulfillment: f
+		});
+
 		for (let i = 0; i < 50; i++) process.stdout.write("="); process.stdout.write("\n");
 		console.dir(f);
 		for (let i = 0; i < 50; i++) process.stdout.write("="); process.stdout.write("\n");
+
 	} else {
 		await IOManager.getDriver(config.testDriver, true).output(f, IOManager.sessionModel);
 	}
-
-	exports.startInput();
 };

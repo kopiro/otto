@@ -22,6 +22,9 @@ global.config = _.defaults(require('./config.json'), {
 	// A list of IO drivers to activate on boot for this instance
 	"ioDrivers": [],
 
+	// A map with driver => [accessories]
+	"ioAccessoriesMap": {},
+
 	// Let the schedulers run
 	"scheduler": true,
 
@@ -77,8 +80,6 @@ global.config = _.defaults(require('./config.json'), {
 
 	// IO/Kid configuration
 	"kid": {
-		// Timeout after the conversation should expire
-		"eocMax": 10
 	},
 
 	// IO/Messenger configuration

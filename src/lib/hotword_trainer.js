@@ -17,9 +17,13 @@ function listenForHotwordTraining() {
 	return new Promise((resolve) => {
 		const wav_file = __etcdir + '/hotwords-wavs/' + uuid() + '.wav';
 		const wav_stream = fs.createWriteStream(wav_file);
-		const rec_stream = Rec.start({ stopOnSilence: true });
-		rec_stream.pipe(wav_stream);
-		rec_stream.on('end', () => {
+		
+		Rec.start({ 
+			time: 3,
+			verbose: true
+		});
+		Rec.getStream().pipe(wav_stream);
+		Rec.getStream().on('end', () => {
 			resolve(wav_file);
 		});
 	});
@@ -33,7 +37,9 @@ async function recognizeFromMic() {
 
 async function sendWavFiles(opt) {
 	return new Promise((resolve, reject) => {
-		const pmdl_file = __etcdir + '/hotwords-pmdl/' + uuid() + '.pmdl';
+		const pmdl_file = __etcdir + '/hotwords-pmdl/' + opt.hotword + '/' + uuid() + '.pmdl';
+
+		console.info(TAG, 'sendWav', opt);
 
 		request.post({
 			url: 'https://snowboy.kitt.ai/api/v1/train/',
@@ -43,18 +49,22 @@ async function sendWavFiles(opt) {
 			},
 			body: JSON.stringify({
 				token: config.snowboy.apiKey,
-				name: config.snowboy.hotword,
+				name: opt.hotwordSpeech,
 				language: config.language,
 				gender: opt.gender_id,
+				microphone: "mic",
 				voice_samples: opt.wav_files.map((wav_file) => {
 					return { wave: fs.readFileSync(wav_file).toString('base64') };
 				})
 			})
+		}, (err, response, body) => {
+			if (response.statusCode >= 400) {
+				console.error(TAG, body);
+			}
 		})
 		.on('response', async(response) => {
 			if (response.statusCode >= 400) {
 				await sendMessage(Messages.get('io_hotword_training_failed'));
-				console.error(TAG, response.toJSON());
 				return reject();
 			}
 
@@ -66,15 +76,19 @@ async function sendWavFiles(opt) {
 	});
 }
 
-async function start() {
-	await sendMessage(Messages.get('io_hotword_training_tutorial'));
+let gender_id = null;
 
-	const genders_map = Messages.getRaw('io_hotword_training_genders');
-	let gender_id = null;
-	while (gender_id == null) {
-		await sendMessage(Messages.get('io_hotword_training_ask_gender'));
-		const gender = cleanText(await recognizeFromMic());
-		gender_id = genders_map[gender];
+async function start(hotword) {
+	let hotwordSpeech = Messages.getRaw('io_hotword_list')[hotword];
+	await sendMessage(Messages.get('io_hotword_training_tutorial', hotwordSpeech));
+
+	if (gender_id == null) {
+		const genders_map = Messages.getRaw('io_hotword_training_genders');
+		while (gender_id == null) {
+			await sendMessage(Messages.get('io_hotword_training_ask_gender'));
+			const gender = cleanText(await recognizeFromMic());
+			gender_id = genders_map[gender];
+		}
 	}
 
 	const wav_files = [];
@@ -88,14 +102,14 @@ async function start() {
 		}
 	}
 
-	const pmdl_file = await sendWavFiles({
+	await sendWavFiles({
+		hotwordSpeech: hotwordSpeech,
+		hotword: hotword,
 		gender: gender_id,
 		wav_files: wav_files
 	});
 
 	await sendMessage(Messages.get('io_hotword_training_success'));
-
-	return pmdl_file;
 }
 
 exports.start = start;

@@ -21,8 +21,12 @@
 		"Vai"
 	],
 	"io_hotword_training_tutorial": [
-		"Configurami"
+		"Configura per la hotword %s"
 	],
+	"io_hotword_list": {
+		"wake": "Hey otto",
+		"stop": "Stop"
+	},
 	"io_hotword_training_ask_name": [
 		"Come ti chiami?"
 	],

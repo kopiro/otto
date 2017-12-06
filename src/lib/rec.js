@@ -11,7 +11,7 @@ exports.start = function(opt) {
 
 	opt = _.defaults(opt || {}, config.rec, {
 		sampleRate: 16000,
-		threshold: '10',
+		threshold: '3',
 		stopOnSilence: false,
 		verbose: false,
 		time: false
@@ -32,7 +32,8 @@ exports.start = function(opt) {
 	];
 
 	if (opt.stopOnSilence) {
-		rec_args = rec_args.concat('silence', '1', '0.1', opt.threshold + '%', '1', '1.0', opt.threshold + '%');
+		// silence 1 0.1 3% 1 3.0 3%
+		rec_args = rec_args.concat('silence', '1', '0.1', opt.threshold + '%', '1', '3.0', opt.threshold + '%');
 	}
 
 	if (opt.time) {
@@ -45,12 +46,6 @@ exports.start = function(opt) {
 
 	console.debug(TAG, 'recording...');
 	rec = spawn('rec', rec_args, rec_opt);
-
-	if (opt.verbose) {
-		rec.stdout.on('data', function () {
-			console.debug(TAG, 'recording');
-		});
-	}
 
 	rec.stdout.on('end', function () {
 		console.debug(TAG, 'end');

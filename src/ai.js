@@ -108,7 +108,7 @@ exports.apiaiResultParser = async function(body, session_model) {
 
 exports.textRequest = function(text, session_model) {
 	return new Promise(async(resolve, reject) => {
-		console.debug(TAG, 'request', text);
+		console.debug(TAG, 'text request =======>', text);
 
 		text = await exports.textRequestTransformer(text, session_model);
 		let request = client.textRequest(text, {

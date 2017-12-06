@@ -1,6 +1,5 @@
 const TAG = 'Raspi/Leds';
 
-const _ = require('underscore');
 const BRIGHTNESS_MAX = 30;
 const LEDS_COUNT = 3;
 
@@ -20,26 +19,11 @@ try {
 	};
 }
 
-exports.doFullGradient = function() {
-	function* circularRGBGenerator() {
-		let r = 0, g = 0, b = 0;
-		while (r < 255) yield [ r++, 0, 0 ];
-		while (g < 255) yield [ r--, g++, 0 ];
-		while (b < 255) yield [ 0, g--, b++ ];
-		while (r < 255) yield [ r++, 0, b-- ];
-		while (g < 255) yield [ r, g++, 0 ];
-		while (b < 255) yield [ r, g, b++ ];
-		while (r >= 0) yield [ r--, g--, b-- ];
-		return null;
-	}
-	let gen = circularRGBGenerator();
-	(function x() {
-		const v = gen.next().value;
-		if (v == null) return;
-		exports.setColor(v[0], v[1], v[2]);
-		setTimeout(x, 1);
-	})();
-};
+exports.animation = null;
+
+function setup() {
+	if (exports.animation) exports.animation.stop();
+}
 
 function interpolateColor(color1, color2, factor) {
 	var result = color1.slice();
@@ -48,14 +32,6 @@ function interpolateColor(color1, color2, factor) {
 	}
 	return result;
 }
-
-exports.setViaTimeline = function(timeline, method = 'setColor') {
-	_.each(timeline, (values, time) => {
-		setTimeout(() => {
-			exports[method](...values);
-		}, +time);
-	});
-};
 
 var LedAnimator = function(ticker, freq) {
 	var self = this;
@@ -75,7 +51,8 @@ var LedAnimator = function(ticker, freq) {
 };
 
 exports.animateRandom = function() {
-	return new LedAnimator(() => {
+	setup();
+	exports.animation = new LedAnimator(() => {
 		LedManager.setLedColor(
 			Math.floor(Math.random() * LEDS_COUNT), 
 			BRIGHTNESS_MAX, 
@@ -88,6 +65,7 @@ exports.animateRandom = function() {
 };
 
 exports.setColor = function(color, x = BRIGHTNESS_MAX) {
+	setup();
 	for (let i = 0; i < LEDS_COUNT; i++) {
 		LedManager.setLedColor(i, Math.min(x, BRIGHTNESS_MAX), color[0], color[1], color[2]);
 	}
@@ -95,6 +73,7 @@ exports.setColor = function(color, x = BRIGHTNESS_MAX) {
 };
 
 exports.off = function() {
+	setup();
 	for (let i = 0; i < LEDS_COUNT; i++) {
 		LedManager.setLedColor(i, 0, 0, 0, 0);
 	}

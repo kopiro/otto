@@ -88,6 +88,11 @@ exports.output = async function(f, session_model) {
 	console.info(TAG, 'output');
 	console.dir({ f, session_model });
 
+	emitter.emit('output', {
+		sessionModel: session_model,
+		fulfillment: f
+	});
+
 	const language = f.data.language || session_model.getTranslateTo();
 	const chat_id = session_model.io_data.sender.id;
 
