@@ -16,7 +16,7 @@ module.exports = function({ sessionId, result }) {
 
 			let speech = [];
 			body.forEach((f, i) => {
-				speech.push(f.artist_name + ' - ' + f.track_name);
+				speech.push(f.track_name + ' di ' + f.artist_name + '.');
 			});
 			speech = speech.join("\n");
 
