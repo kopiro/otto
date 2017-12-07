@@ -30,8 +30,10 @@ let queueProcessingItem;
 
 const WAKE_WORD_TICKS = 6;
 const EOR_MAX = 8;
+
+let wakeWordTick = -1;
 let eorInterval = null;
-let endOfRecognizingTick = -1;
+let eorTick = -1;
 
 let hotwordScanned = false;
 let hotwordModels = null;
@@ -62,24 +64,33 @@ async function scanForHotWords(forceTraining = false) {
 				pmdls[dir].push(file);
 				hotwordModels.add({
 					file: PMDL_DIR + dir + '/' + String(file),
-					sensitivity: '0.3',
+					sensitivity: '0.5',
 					hotwords: dir
 				});
 			});
 		});
 
+		let trained = {};
 		for (let dir of Object.keys(pmdls)) {
 			if (pmdls[dir].length === 0) {
-				try {
-					await HotwordTrainer.start(dir);
-				} catch (err) {
-					await scanForHotWords();
-					console.error(TAG, err);
+				trained[dir] = false;
+				while (false === trained[dir]) {
+					try {
+						await HotwordTrainer.start(dir);
+						trained[dir] = true;
+					} catch (err) {
+						console.error(TAG, err);
+					}
 				}
 			}
 		}
 
-		resolve(true);
+		if (Object.keys(trained).length === 0) {
+			return resolve(true);
+		}
+
+		// Recall scanForHotword to rescan pmdls
+		resolve(await scanForHotWords());
 	});
 }
 
@@ -160,7 +171,7 @@ function createRecognizeStream() {
 	// When user speaks, reset the timer to the max
 	recognizeStream.on('data', (data) => {
 		if (data.results.length > 0) {
-			endOfRecognizingTick = EOR_MAX;
+			eorTick = EOR_MAX;
 		}
 	});
 
@@ -190,23 +201,20 @@ async function registerGlobalSession() {
 }
 
 function registerEORInterval() {
-	if (eorInterval != null) return;
 	eorInterval = setInterval(() => {
-		if (endOfRecognizingTick == 0) {
+		if (eorTick == 0) {
 			console.info(TAG, 'timeout exceeded for conversation');
-			endOfRecognizingTick = -1;
+			eorTick = -1;
 			destroyRecognizeStream();
 			emitter.emit('stop');
-		} else if (endOfRecognizingTick > 0) {
-			console.debug(TAG, endOfRecognizingTick + ' seconds remaining');
-			endOfRecognizingTick--;
+		} else if (eorTick > 0) {
+			console.debug(TAG, eorTick + ' seconds remaining');
+			eorTick--;
 		}
 	}, 1000);
 }
 
 function createHotwordDetectorStream() {
-	let wakeWordTick = 0;
-
 	hotwordDetectorStream = new Detector({
 		resource: __etcdir + '/common.res',
 		models: hotwordModels,
@@ -221,14 +229,15 @@ function createHotwordDetectorStream() {
 			emitter.emit('wake');
 			stopOutput();
 			wakeWordTick = 0;
-			endOfRecognizingTick = EOR_MAX;
+			eorTick = EOR_MAX;
 			destroyRecognizeStream();
 			createRecognizeStream();
 			break;
 			case 'stop':
 			emitter.emit('stop');
 			stopOutput();
-			endOfRecognizingTick = -1;
+			wakeWordTick = -1;
+			eorTick = -1;
 			destroyRecognizeStream();
 			break;
 		}
@@ -236,18 +245,20 @@ function createHotwordDetectorStream() {
 
 	hotwordDetectorStream.on('silence', async() => {
 		process.stdout.write('〰️');
-		if (isRecognizing) {
+		if (isRecognizing && wakeWordTick !== -1) {
 			if (++wakeWordTick == WAKE_WORD_TICKS) {
-				console.info(TAG, `detected ${WAKE_WORD_TICKS} ticks of silence, prompt user`);
+				wakeWordTick = -1;
+				console.info(TAG, `detected ${WAKE_WORD_TICKS} ticks of consecutive silence, prompt user`);
 				destroyRecognizeStream();
 				await sendFirstHint();
-				endOfRecognizingTick = EOR_MAX;
+				eorTick = EOR_MAX;
 				createRecognizeStream();
 			}
 		}
 	});
 
 	hotwordDetectorStream.on('sound', (buffer) => {
+		wakeWordTick = -1;
 		process.stdout.write('🔉 ');
 	});
 
@@ -275,7 +286,7 @@ async function processOutputQueue() {
 		fulfillment: f
 	});
 
-	endOfRecognizingTick = -1; // temporary disable timer
+	eorTick = -1; // temporary disable timer
 	queueProcessingItem = f;
 	destroyRecognizeStream();
 
@@ -312,7 +323,7 @@ async function processOutputQueue() {
 	queueOutput.shift();
 
 	if (queueOutput.length === 0) {
-		endOfRecognizingTick = EOR_MAX; // re-enable at max
+		eorTick = EOR_MAX; // re-enable at max
 		createRecognizeStream();
 	}
 }

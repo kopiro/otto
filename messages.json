@@ -41,9 +41,9 @@
 		"VIA"
 	],
 	"io_hotword_training_failed": [
-		"Configurazione fallita"
+		"Configurazione per la hotword %s fallita"
 	],
 	"io_hotword_training_success": [
-		"Perfetto, ora puoi parlarmi!"
+		"Configurazione per la hotword %s riuscita"
 	]
 }

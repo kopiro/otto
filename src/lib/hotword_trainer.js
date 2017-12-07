@@ -9,6 +9,8 @@ const Rec = apprequire('rec');
 const SpeechRecognizer = apprequire('speechrecognizer');
 const Messages = apprequire('messages');
 
+let gender_id = null;
+
 async function sendMessage(text) {
 	return Play.fileToSpeaker(await Polly.getAudioFile(text));
 }
@@ -19,8 +21,7 @@ function listenForHotwordTraining() {
 		const wav_stream = fs.createWriteStream(wav_file);
 		
 		Rec.start({ 
-			time: 3,
-			verbose: true
+			time: 3
 		});
 		Rec.getStream().pipe(wav_stream);
 		Rec.getStream().on('end', () => {
@@ -64,7 +65,7 @@ async function sendWavFiles(opt) {
 		})
 		.on('response', async(response) => {
 			if (response.statusCode >= 400) {
-				await sendMessage(Messages.get('io_hotword_training_failed'));
+				await sendMessage(Messages.get('io_hotword_training_failed', opt.hotwordSpeech));
 				return reject();
 			}
 
@@ -75,8 +76,6 @@ async function sendWavFiles(opt) {
 		});
 	});
 }
-
-let gender_id = null;
 
 async function start(hotword) {
 	let hotwordSpeech = Messages.getRaw('io_hotword_list')[hotword];
@@ -109,7 +108,7 @@ async function start(hotword) {
 		wav_files: wav_files
 	});
 
-	await sendMessage(Messages.get('io_hotword_training_success'));
+	await sendMessage(Messages.get('io_hotword_training_success', hotwordSpeech));
 }
 
 exports.start = start;
