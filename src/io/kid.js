@@ -13,8 +13,8 @@ const SpeechRecognizer = apprequire('speechrecognizer');
 const Polly = apprequire('polly');
 const Play = apprequire('play');
 const URLManager = apprequire('urlmanager');
-const { Detector, Models } = require('snowboy');
-const HotwordTrainer = apprequire('hotword_trainer');
+const { Detector } = require('snowboy');
+const Hotword = apprequire('hotword');
 const Translator = apprequire('translator');
 const Messages = apprequire('messages');
 
@@ -35,64 +35,9 @@ let wakeWordTick = -1;
 let eorInterval = null;
 let eorTick = -1;
 
-let hotwordScanned = false;
 let hotwordModels = null;
 
 let currentSendMessageKey = null;
-
-async function scanForHotWords(forceTraining = false) {	
-	return new Promise(async(resolve, reject) => {
-		if (forceTraining) await HotwordTrainer.start();
-
-		const PMDL_DIR = __etcdir + '/hotwords-pmdl/';
-
-		let directories = fs.readdirSync(PMDL_DIR);
-		directories = directories.filter((e) => fs.statSync(PMDL_DIR + e).isDirectory());
-
-		let pmdls = {};
-		hotwordModels = new Models();
-	
-		directories.forEach((dir) => {
-			dir = String(dir);
-			pmdls[dir] = [];
-
-			let files = fs.readdirSync(PMDL_DIR + dir);
-			files = files.filter((file) => /\.pmdl$/.test(file));
-			
-			console.debug(TAG, 'scanned ' + files.length + ' pdml files in ' + dir);
-			files.forEach((file) => {
-				pmdls[dir].push(file);
-				hotwordModels.add({
-					file: PMDL_DIR + dir + '/' + String(file),
-					sensitivity: _config.hotWordSensitivity,
-					hotwords: dir
-				});
-			});
-		});
-
-		let trained = {};
-		for (let dir of Object.keys(pmdls)) {
-			if (pmdls[dir].length === 0) {
-				trained[dir] = false;
-				while (false === trained[dir]) {
-					try {
-						await HotwordTrainer.start(dir);
-						trained[dir] = true;
-					} catch (err) {
-						console.error(TAG, err);
-					}
-				}
-			}
-		}
-
-		if (Object.keys(trained).length === 0) {
-			return resolve(true);
-		}
-
-		// Recall scanForHotword to rescan pmdls
-		resolve(await scanForHotWords());
-	});
-}
 
 async function sendMessage(text, language) {
 	const key = md5(text);
@@ -201,6 +146,7 @@ async function registerGlobalSession() {
 }
 
 function registerEORInterval() {
+	if (eorInterval) clearInterval(eorInterval);
 	eorInterval = setInterval(() => {
 		if (eorTick == 0) {
 			console.info(TAG, 'timeout exceeded for conversation');
@@ -212,6 +158,11 @@ function registerEORInterval() {
 			eorTick--;
 		}
 	}, 1000);
+}
+
+function registerOutputQueueInterval() {
+	if (queueIntv) clearInterval(queueIntv);
+	queueIntv = setInterval(processOutputQueue, 1000);
 }
 
 function createHotwordDetectorStream() {
@@ -330,27 +281,23 @@ async function processOutputQueue() {
 
 exports.startInput = async function() {
 	console.debug(TAG, 'start input');
+	// Clean before starting input
+	exports.stopInput();
 
-	if (IOManager.sessionModel == null) {
-		await registerGlobalSession();
-	}
+	await registerGlobalSession();
 
-	if (hotwordScanned === false) {
-		await scanForHotWords(false);
-	}
-
-	if (queueIntv == null) {
-		queueIntv = setInterval(processOutputQueue, 1000);
-	}
-
-	if (eorInterval == null) {
-		registerEORInterval();
-	}
+	hotwordModels = await Hotword.getModels();
+	registerOutputQueueInterval();
+	registerEORInterval();
 
 	isInputStarted = true;	
 
 	Rec.start();
 	createHotwordDetectorStream();
+};
+
+exports.stopInput = async function() {
+	Rec.stop();
 };
 
 exports.output = async function(f) {

@@ -1,4 +1,4 @@
-const TAG = 'HotWordTrainer';
+const TAG = 'HotWord';
 
 const request = require('request');
 const fs = require('fs');
@@ -8,8 +8,63 @@ const Play = apprequire('play');
 const Rec = apprequire('rec');
 const SpeechRecognizer = apprequire('speechrecognizer');
 const Messages = apprequire('messages');
+const { Detector, Models } = require('snowboy');
+
+const PMDL_DIR = __etcdir + '/hotwords-pmdl/';
 
 let gender_id = null;
+
+const _config = config.hotword;
+
+async function getModels(forceTraining = false) {	
+	return new Promise(async(resolve, reject) => {
+		let directories = fs.readdirSync(PMDL_DIR);
+		directories = directories.filter((e) => fs.statSync(PMDL_DIR + e).isDirectory());
+
+		let pmdls = {};
+		let hotwordModels = new Models();
+	
+		directories.forEach((dir) => {
+			dir = String(dir);
+			pmdls[dir] = [];
+
+			let files = fs.readdirSync(PMDL_DIR + dir);
+			files = files.filter((file) => /\.pmdl$/.test(file));
+			
+			console.debug(TAG, 'scanned ' + files.length + ' pdml files in ' + dir);
+			files.forEach((file) => {
+				pmdls[dir].push(file);
+				hotwordModels.add({
+					file: PMDL_DIR + dir + '/' + String(file),
+					sensitivity: dir === 'wake' ? _config.sensitivity : 0.4,
+					hotwords: dir
+				});
+			});
+		});
+
+		let trained = {};
+		for (let dir of Object.keys(pmdls)) {
+			if (pmdls[dir].length === 0 || forceTraining === true) {
+				trained[dir] = false;
+				while (false === trained[dir]) {
+					try {
+						await startTraining(dir);
+						trained[dir] = true;
+					} catch (err) {
+						console.error(TAG, err);
+					}
+				}
+			}
+		}
+
+		if (Object.keys(trained).length === 0) {
+			return resolve(hotwordModels);
+		}
+
+		// Recall scanForHotword to rescan pmdls
+		resolve(await getModels());
+	});
+}
 
 async function sendMessage(text) {
 	return Play.fileToSpeaker(await Polly.getAudioFile(text));
@@ -77,7 +132,7 @@ async function sendWavFiles(opt) {
 	});
 }
 
-async function start(hotword) {
+async function startTraining(hotword) {
 	let hotwordSpeech = Messages.getRaw('io_hotword_list')[hotword];
 	await sendMessage(Messages.get('io_hotword_training_tutorial', hotwordSpeech));
 
@@ -111,4 +166,4 @@ async function start(hotword) {
 	await sendMessage(Messages.get('io_hotword_training_success', hotwordSpeech));
 }
 
-exports.start = start;
+exports.getModels = getModels;

@@ -44,6 +44,10 @@ global.config = _.defaults(require('./config.json'), {
 		"apiKey": null
 	},
 
+	"hotword": {
+		"sensitivity": 0.6
+	},
+
 	// A Boolean value indicating if the AWH (API.AI Web Hook) should be spawn
 	"awh": false,
 
@@ -79,7 +83,6 @@ global.config = _.defaults(require('./config.json'), {
 
 	// IO/Kid configuration
 	"kid": {
-		"hotWordSensitivity": 0.6
 	},
 
 	// IO/Messenger configuration
