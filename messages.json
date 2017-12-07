@@ -45,5 +45,8 @@
 	],
 	"io_hotword_training_success": [
 		"Configurazione per la hotword %s riuscita"
+	],
+	"driver_started" : [
+		"Buongiorno"
 	]
 }

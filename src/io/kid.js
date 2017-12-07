@@ -281,14 +281,14 @@ async function processOutputQueue() {
 
 exports.startInput = async function() {
 	console.debug(TAG, 'start input');
-	// Clean before starting input
-	exports.stopInput();
 
 	await registerGlobalSession();
 
 	hotwordModels = await Hotword.getModels();
 	registerOutputQueueInterval();
 	registerEORInterval();
+
+	await sendMessage(Messages.get('driver_started'));
 
 	isInputStarted = true;	
 
