@@ -9,7 +9,7 @@ let rec;
 exports.start = function(opt) {
 	if (rec) rec.kill();
 
-	opt = _.defaults(opt || {}, config.rec, {
+	opt = _.defaults(opt || {}, {
 		sampleRate: 16000,
 		threshold: '3',
 		stopOnSilence: false,
@@ -38,10 +38,6 @@ exports.start = function(opt) {
 
 	if (opt.time) {
 		rec_args = rec_args.concat('trim', '0', opt.time);
-	}
-
-	if (opt.device) {
-		rec_opt.env = Object.assign({}, process.env, { AUDIODEV: opt.device });
 	}
 
 	console.debug(TAG, 'recording...');
