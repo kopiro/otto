@@ -165,6 +165,7 @@ function createRecognizeStream() {
 	});
 
 	isRecognizing = true;
+	emitter.emit('recognizing');
 
 	Rec.getStream().pipe(recognizeStream);
 	return recognizeStream;
@@ -172,6 +173,8 @@ function createRecognizeStream() {
 
 function destroyRecognizeStream() {
 	isRecognizing = false;
+	emitter.emit('notrecognizing');
+
 	if (recognizeStream != null) {
 		recognizeStream.destroy();
 	}

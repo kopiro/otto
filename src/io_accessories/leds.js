@@ -2,7 +2,8 @@ exports.id = 'leds';
 
 const RaspiLeds = apprequire('raspi/leds');
 
-const colorForActive = [ 0, 0, 255 ];
+const colorForHotword = [ 0, 0, 255 ];
+const colorForRecognizing = [ 255, 0, 0 ];
 
 exports.attach = function(io) {
 	io.emitter.on('input', () => {
@@ -13,8 +14,16 @@ exports.attach = function(io) {
 		RaspiLeds.off();
 	});
 
+	io.emitter.on('recognizing', () => {
+		RaspiLeds.setColor(colorForRecognizing);
+	});
+
+	io.emitter.on('notrecognizing', () => {
+		RaspiLeds.off();
+	});
+
 	io.emitter.on('wake', () => {
-		RaspiLeds.setColor(colorForActive);
+		RaspiLeds.setColor(colorForHotword);
 	});
 
 	io.emitter.on('stop', () => {
