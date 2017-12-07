@@ -64,7 +64,7 @@ async function scanForHotWords(forceTraining = false) {
 				pmdls[dir].push(file);
 				hotwordModels.add({
 					file: PMDL_DIR + dir + '/' + String(file),
-					sensitivity: '0.5',
+					sensitivity: '0.6',
 					hotwords: dir
 				});
 			});
