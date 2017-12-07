@@ -279,7 +279,7 @@ async function processOutputQueue() {
 	const session_model = IOManager.sessionModel;
 	const f = queueOutput[0];
 	console.info(TAG, 'processing output queue', f);
-	console.info(TAG, 'current queue length =', queueOutput.length);
+	console.debug(TAG, 'current queue length =', queueOutput.length);
 
 	emitter.emit('output', {
 		sessionModel: session_model,
@@ -354,6 +354,6 @@ exports.startInput = async function() {
 };
 
 exports.output = async function(f) {
-	console.info(TAG, 'queueing output', f);
+	console.debug(TAG, 'queueing output', f);
 	queueOutput.push(f);
 };

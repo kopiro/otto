@@ -10,8 +10,10 @@ exports.attach = function(io) {
 		RaspiLeds.animateRandom();
 	});
 
-	io.emitter.on('output', () => {
-		RaspiLeds.off();
+	io.emitter.on('output', (e) => {
+		if (e.fulfillment.data.feedback == false) {
+			RaspiLeds.off();
+		}
 	});
 
 	io.emitter.on('recognizing', () => {
