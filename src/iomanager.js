@@ -57,7 +57,7 @@ async function processIOResponse(io, { session_model, params = {} }) {
 }
 
 function configureAccessories(io) {
-	for (let accessory of enabledAccesories[io.id]) {
+	for (let accessory of (enabledAccesories[io.id] || [])) {
 		console.info(TAG, `attaching accessory <${accessory.id}> to <${io.id}>`);
 		accessory.attach(io);
 	}
