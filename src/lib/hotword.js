@@ -36,7 +36,7 @@ async function getModels(forceTraining = false) {
 				pmdls[dir].push(file);
 				hotwordModels.add({
 					file: PMDL_DIR + dir + '/' + String(file),
-					sensitivity: dir === 'wake' ? _config.sensitivity : 0.4,
+					sensitivity: _config.sensitivity[dir],
 					hotwords: dir
 				});
 			});
