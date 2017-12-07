@@ -45,7 +45,7 @@ global.config = _.defaults(require('./config.json'), {
 	},
 
 	"hotword": {
-		"sensitivity": 0.6
+		"sensitivity": 0.5
 	},
 
 	// A Boolean value indicating if the AWH (API.AI Web Hook) should be spawn
