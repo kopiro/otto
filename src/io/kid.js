@@ -322,7 +322,7 @@ async function processOutputQueue() {
 	queueProcessingItem = null;
 	queueOutput.shift();
 
-	if (queueOutput.length === 0) {
+	if (queueOutput.length === 0 && f.data.feedback == false) {
 		eorTick = EOR_MAX; // re-enable at max
 		createRecognizeStream();
 	}
