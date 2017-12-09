@@ -1,10 +1,7 @@
 const TAG = 'IO.Kid';
 exports.id = 'kid';
 
-const _ = require('underscore');
-const async = require('async');
 const md5 = require('md5');
-const request = require('request');
 const fs = require('fs');
 
 const _config = config.kid;
@@ -15,71 +12,42 @@ const Rec = apprequire('rec');
 const SpeechRecognizer = apprequire('speechrecognizer');
 const Polly = apprequire('polly');
 const Play = apprequire('play');
-const RaspiLeds = apprequire('raspi/leds');
 const URLManager = apprequire('urlmanager');
-const {Detector, Models} = require('snowboy');
-const HotwordTrainer = apprequire('hotword_trainer');
+const { Detector } = require('snowboy');
+const Hotword = apprequire('hotword');
 const Translator = apprequire('translator');
 const Messages = apprequire('messages');
 
-let isHavingConversation = false;
-let inputStarted = false;
+let isRecognizing = false;
+let isInputStarted = false;
+
+let recognizeStream;
+let hotwordDetectorStream;
 
 let queueOutput = [];
-let queueIntv = false;
-let queueBusy = false;
+let queueIntv;
+let queueProcessingItem;
 
-let eocInterval = null;
-let eocTimeout = -1;
+const WAKE_WORD_TICKS = 6;
+const EOR_MAX = 8;
 
-let hotwordScanned = false;
+let wakeWordTick = -1;
+let eorInterval = null;
+let eorTick = -1;
+
 let hotwordModels = null;
 
-let currentOutputKey = null;
-
-async function scanForHotWords(forceTraining = false) {	
-	return new Promise(async(resolve, reject) => {
-		if (forceTraining) await HotwordTrainer.start();
-
-		fs.readdir(__etcdir + '/hotwords-pmdl/', {}, async(err, files) => {
-			if (err) return reject(err);
-			files = files.filter((file) => /\.pmdl$/.test(file));
-			
-			if (files.length > 0) {
-				console.debug(TAG, 'scanned ' + files.length + ' pdml files');
-
-				hotwordModels = new Models();
-				files.forEach((file) => {
-					hotwordModels.add({
-						file: __etcdir + '/hotwords-pmdl/' + file,
-						sensitivity: '0.3',
-						hotwords: config.snowboy.hotword
-					});
-				});
-
-				hotwordScanned = true;
-				return resolve();
-			}
-
-			// Train first time
-			try {
-				await HotwordTrainer.start();
-			} catch (err) {}		
-
-			resolve(scanForHotWords());
-		});
-	});
-}
+let currentSendMessageKey = null;
 
 async function sendMessage(text, language) {
 	const key = md5(text);
-	currentOutputKey = key;
+	currentSendMessageKey = key;
 	language = language || IOManager.sessionModel.getTranslateTo();
 	
 	const sentences = mimicHumanMessage(text);
 
 	for (let sentence of sentences) {
-		if (currentOutputKey === key) {
+		if (currentSendMessageKey === key) {
 			let polly_file = await Polly.getAudioFile(sentence, { language: language });
 			await Play.fileToSpeaker(polly_file);
 		}
@@ -97,13 +65,10 @@ async function sendVoice(e) {
 }
 
 function stopOutput() {
-	console.warn(TAG, 'stop output');
-	
-	currentOutputKey = null;
-
-	queueBusy = null;
+	console.info(TAG, 'stop output');
+	currentSendMessageKey = null;
+	queueProcessingItem = null;
 	queueOutput = [];
-
 	if (Play.speakerProc != null) {
 		Play.speakerProc.kill();
 	}
@@ -115,15 +80,13 @@ async function sendFirstHint(language) {
 	return sendMessage(hint, language);
 }
 
-let recognizeStream;
-
 function createRecognizeStream() {
-	console.log(TAG, 'recognizing mic stream');
+	console.log(TAG, 'recognizing microphone stream');
 
 	recognizeStream = SpeechRecognizer.createRecognizeStream({
 		language: IOManager.sessionModel.getTranslateFrom()
 	}, (err, text) => {
-		emitter.emit('user-spoken');
+		destroyRecognizeStream();
 
 		if (err) {
 			if (err.unrecognized) {
@@ -153,16 +116,21 @@ function createRecognizeStream() {
 	// When user speaks, reset the timer to the max
 	recognizeStream.on('data', (data) => {
 		if (data.results.length > 0) {
-			eocTimeout = _config.eocMax;
+			eorTick = EOR_MAX;
 		}
 	});
 
-	eocTimeout = _config.eocMax;
+	isRecognizing = true;
+	emitter.emit('recognizing');
 
+	Rec.getStream().pipe(recognizeStream);
 	return recognizeStream;
 }
 
-function stopRecognizingStream() {
+function destroyRecognizeStream() {
+	isRecognizing = false;
+	emitter.emit('notrecognizing');
+
 	if (recognizeStream != null) {
 		recognizeStream.destroy();
 	}
@@ -177,90 +145,108 @@ async function registerGlobalSession() {
 	}, true);
 }
 
-function registerEOCInterval() {
-	if (eocInterval != null) return;
-	eocInterval = setInterval(() => {
-		if (eocTimeout == 0) {
-			console.warn(TAG, 'timeout exceeded for conversation');
-
-			isHavingConversation = false;
-			eocTimeout = -1;
-			exports.startInput();
-
-		} else if (eocTimeout > 0) {
-			// console.debug(TAG, eocTimeout + ' seconds remaining');
-			eocTimeout--;
+function registerEORInterval() {
+	if (eorInterval) clearInterval(eorInterval);
+	eorInterval = setInterval(() => {
+		if (eorTick == 0) {
+			console.info(TAG, 'timeout exceeded for conversation');
+			eorTick = -1;
+			destroyRecognizeStream();
+			emitter.emit('stop');
+		} else if (eorTick > 0) {
+			console.debug(TAG, eorTick + ' seconds remaining');
+			eorTick--;
 		}
 	}, 1000);
 }
 
-function getDetectorStream() {
-	eocTimeout = -1;
+function registerOutputQueueInterval() {
+	if (queueIntv) clearInterval(queueIntv);
+	queueIntv = setInterval(processOutputQueue, 1000);
+}
 
-	const detector = new Detector({
+function createHotwordDetectorStream() {
+	hotwordDetectorStream = new Detector({
 		resource: __etcdir + '/common.res',
 		models: hotwordModels,
 		audioGain: 1.0
 	});
 
-	detector.on('hotword', async() => {
-		console.log(TAG, 'hotword');
-		emitter.emit('ai-hotword-recognized');
-		
-		isHavingConversation = true;
-		stopOutput();
+	hotwordDetectorStream.on('hotword', async(index, hotword, buffer) => {
+		console.info(TAG, 'hotword event', hotword);
 
-		await sendFirstHint();
-		exports.startInput();
+		switch (hotword) {
+			case 'wake':
+			emitter.emit('wake');
+			stopOutput();
+			wakeWordTick = 0;
+			eorTick = EOR_MAX;
+			destroyRecognizeStream();
+			createRecognizeStream();
+			break;
+			case 'stop':
+			emitter.emit('stop');
+			stopOutput();
+			wakeWordTick = -1;
+			eorTick = -1;
+			destroyRecognizeStream();
+			break;
+		}
 	});
 
-	detector.on('silence', () => {
-		// process.stdout.write('〰️');
+	hotwordDetectorStream.on('silence', async() => {
+		process.stdout.write('〰️');
+		if (isRecognizing && wakeWordTick !== -1) {
+			if (++wakeWordTick == WAKE_WORD_TICKS) {
+				wakeWordTick = -1;
+				console.info(TAG, `detected ${WAKE_WORD_TICKS} ticks of consecutive silence, prompt user`);
+				destroyRecognizeStream();
+				await sendFirstHint();
+				eorTick = EOR_MAX;
+				createRecognizeStream();
+			}
+		}
 	});
 
-	detector.on('sound', () => {
-		// process.stdout.write('🔉 ');
+	hotwordDetectorStream.on('sound', (buffer) => {
+		wakeWordTick = -1;
+		process.stdout.write('🔉 ');
 	});
 
-	detector.on('error', (err) => {
+	hotwordDetectorStream.on('error', (err) => {
 		console.error(TAG, err);
 	});
 
-	return detector;
+	Rec.getStream().pipe(hotwordDetectorStream);
+
+	return hotwordDetectorStream;
 }
 
 async function processOutputQueue() {
-	if (queueOutput.length === 0) {
-		if (inputStarted === false) {
-			emitter.emit('ai-spoken');
-			inputStarted = true;	
-			exports.startInput(); 
-		}
+	if (queueOutput.length === 0 || queueProcessingItem) {
 		return;
 	}
 
-	if (queueBusy) {
-		console.debug(TAG, 'queue is occupied by another element');
-		return;
-	}
-
-	let f = queueOutput[0];
+	const session_model = IOManager.sessionModel;
+	const f = queueOutput[0];
 	console.info(TAG, 'processing output queue', f);
-	console.info(TAG, 'current queue length =', queueOutput.length);
+	console.debug(TAG, 'current queue length =', queueOutput.length);
 
-	emitter.emit('ai-speaking');
+	emitter.emit('output', {
+		sessionModel: session_model,
+		fulfillment: f
+	});
 
-	inputStarted = false;
-	queueBusy = f;
-	eocTimeout = -1;
-	stopRecognizingStream();
+	eorTick = -1; // temporary disable timer
+	queueProcessingItem = f;
+	destroyRecognizeStream();
 
 	try {
 		if (f.data.error) {
 			if (f.data.error.speech) {	
 				await sendMessage(f.data.error.speech, f.data.language);
 			}
-			if (IOManager.sessionModel.is_admin === true) {
+			if (session_model.is_admin === true) {
 				await sendMessage(String(f.data.error), 'en');
 			}
 		}
@@ -284,80 +270,37 @@ async function processOutputQueue() {
 		console.error(TAG, err);
 	}
 
-	queueBusy = null;
+	queueProcessingItem = null;
 	queueOutput.shift();
+
+	if (queueOutput.length === 0 && f.data.feedback == false) {
+		eorTick = EOR_MAX; // re-enable at max
+		createRecognizeStream();
+	}
 }
 
 exports.startInput = async function() {
 	console.debug(TAG, 'start input');
 
-	if (IOManager.sessionModel == null) {
-		await registerGlobalSession();
-	}
+	await registerGlobalSession();
 
-	if (hotwordScanned === false) {
-		await scanForHotWords(false);
-	}
+	hotwordModels = await Hotword.getModels();
+	registerOutputQueueInterval();
+	registerEORInterval();
 
-	if (!queueIntv) {
-		queueIntv = setInterval(processOutputQueue, 1000);
-	}
+	await sendMessage(Messages.get('driver_started'));
 
-	if (eocInterval == null) {
-		registerEOCInterval();
-	}
-
-	inputStarted = true;
+	isInputStarted = true;	
 
 	Rec.start();
+	createHotwordDetectorStream();
+};
 
-	Rec.getStream().pipe(getDetectorStream());
-
-	if (isHavingConversation) {
-		emitter.emit('user-can-speak');
-		Rec.getStream().pipe(createRecognizeStream());
-	} else {
-		emitter.emit('ai-hotword-listening');
-	}
+exports.stopInput = async function() {
+	Rec.stop();
 };
 
 exports.output = async function(f) {
+	console.debug(TAG, 'queueing output', f);
 	queueOutput.push(f);
-	console.info(TAG, 'output added to queue', f);
 };
-
-/////////////////////
-// Setup RaspiLeds //
-/////////////////////
-
-let ledAnimation;
-
-emitter.on('ai-hotword-listening', () => {
-	if (ledAnimation) ledAnimation.stop();
-	RaspiLeds.off();
-});
-
-emitter.on('ai-hotword-recognized', () => {
-	if (ledAnimation) ledAnimation.stop();
-	RaspiLeds.setColor([ 0, 0, 255 ]);
-});
-
-emitter.on('ai-speaking', () => {
-	if (ledAnimation) ledAnimation.stop();
-	RaspiLeds.setColor([ 255, 255, 0 ]);
-});
-
-emitter.on('ai-spoken', () => {
-	if (ledAnimation) ledAnimation.stop();
-	RaspiLeds.off();
-});
-
-emitter.on('user-can-speak', () => {
-	if (ledAnimation) ledAnimation.stop();
-	RaspiLeds.setColor([ 0, 255, 0 ]);
-});
-
-emitter.on('user-spoken', () => {
-	if (ledAnimation) ledAnimation.stop();
-	ledAnimation = RaspiLeds.animateRandom();
-});

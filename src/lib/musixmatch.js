@@ -62,32 +62,3 @@ exports.trackLyrics = function(opt, callback) {
 		if (callback) callback(error, body);
 	});
 };
-
-exports.music = function(opt, callback) {
-	let call = 'track.get';
-	opt = _.defaults(opt, {
-		track_id: 0,
-	});
-
-	req({
-		url: ENDPOINT + call,
-		qs: opt
-	}, function(error, body) {
-		if (callback) callback(error, body);
-	});
-};
-
-
-exports.artist = function(opt, callback) {
-	let call = 'artist.get';
-	opt = _.defaults(opt, {
-		artist_id: 0,
-	});
-
-	req({
-		url: ENDPOINT + call,
-		qs: opt
-	}, function(error, body) {
-		if (callback) callback(error, body);
-	});
-};

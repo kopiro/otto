@@ -33,6 +33,10 @@ Session.methods.getTranslateTo = function() {
 	return this.translate_to || config.language;
 };
 
+Session.methods.getRelatedSessions = function() {
+	return exports.Session.find({ uid: this.uid });
+};
+
 exports.Session = mongoose.model('session', Session);
 
 const SessionInput = new Schema({

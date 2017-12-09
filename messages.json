@@ -21,8 +21,12 @@
 		"Vai"
 	],
 	"io_hotword_training_tutorial": [
-		"Configurami"
+		"Configura per la hotword %s"
 	],
+	"io_hotword_list": {
+		"wake": "Hey otto",
+		"stop": "Stop"
+	},
 	"io_hotword_training_ask_name": [
 		"Come ti chiami?"
 	],
@@ -37,9 +41,12 @@
 		"VIA"
 	],
 	"io_hotword_training_failed": [
-		"Configurazione fallita"
+		"Configurazione per la hotword %s fallita"
 	],
 	"io_hotword_training_success": [
-		"Perfetto, ora puoi parlarmi!"
+		"Configurazione per la hotword %s riuscita"
+	],
+	"driver_started" : [
+		"Buongiorno"
 	]
 }

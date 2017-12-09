@@ -5,7 +5,10 @@ const Wolfram = apprequire('wolfram');
 module.exports = function({ result }, session_model) {
 	return new Promise(async(resolve) => {
 		resolve({
-			speech: result.fulfillment.speech
+			speech: result.fulfillment.speech,
+			data: {
+				feedback: true
+			}
 		});
 
 		const speech = await Wolfram.complexQuery(result.resolvedQuery, session_model.getTranslateTo());
