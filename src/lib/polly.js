@@ -107,7 +107,7 @@ exports.getAudioFile = function(text, opt = {}) {
 		pollyClient.synthesizeSpeech({
 			VoiceId: voice.Id,
 			Text: text,
-			TextType: ssml ? 'text' : 'ssml',
+			TextType: ssml ? 'ssml' : 'text',
 			OutputFormat: 'mp3',
 		}, (err, data) => {
 			if (err) {
