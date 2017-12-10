@@ -5,7 +5,10 @@ module.exports = function({ sessionId, result }, session_model) {
 		let { parameters: p, fulfillment } = result;
 
 		resolve({
-			speech: "Ok, dammi un attimo e ti faccio vedere..."
+			speech: fulfillment.speech,
+			data: {
+				feedback: true
+			}
 		});
 
 		apprequire('camera').recordVideo({

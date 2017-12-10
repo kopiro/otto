@@ -4,9 +4,6 @@ const _ = require('underscore');
 const fs = require('fs');
 const spawn = require('child_process').spawn;
 
-const _config = _.defaults(config.camera || {}, {
-});
-
 const IS_RPI = (() => {
 	try {
 		require('child_process').execSync('which raspistill');
@@ -118,8 +115,8 @@ Drivers.ffmpeg = {
 
 const driver = Drivers[ IS_RPI ? 'raspi' : 'ffmpeg' ];
 
-exports.takePhoto = function(opt) {
-	opt = _.defaults(opt || {}, {
+exports.takePhoto = function(opt = {}) {
+	_.defaults(opt, {
 		width: 640,
 		height: 480,
 		file: __tmpdir + '/cam_' + uuid() + '.jpg'
@@ -128,8 +125,8 @@ exports.takePhoto = function(opt) {
 	return driver.takePhoto(opt);
 };
 
-exports.recordVideo = function(opt) {
-	opt = _.defaults(opt || {}, {
+exports.recordVideo = function(opt = {}) {
+	_.defaults(opt, {
 		width: 640,
 		height: 480,
 		fps: 30,
