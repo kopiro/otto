@@ -46,8 +46,8 @@ global.config = _.defaults(require('./config.json'), {
 
 	"hotword": {
 		"sensitivity": {
-			"wake": 0.3,
-			"stop": 0.3
+			"wake": 0.4,
+			"stop": 0.4
 		}
 	},
 
