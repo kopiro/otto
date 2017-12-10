@@ -310,7 +310,6 @@ exports.startInput = async function() {
 
 	hotwordModels = await Hotword.getModels();
 	registerOutputQueueInterval();
-	return;
 	registerEORInterval();
 
 	await sendMessage(Messages.get('driver_started'));
