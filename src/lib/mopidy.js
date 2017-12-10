@@ -2,7 +2,7 @@ const TAG = 'Mopidy';
 
 const mopidy = require('mopidy');
 const client = new mopidy({
-	webSocketUrl: 'ws://otto-home.local:6680/mopidy/ws/',
+	webSocketUrl: 'ws://localhost:6680/mopidy/ws/',
 	autoConnect: false
 });
 
