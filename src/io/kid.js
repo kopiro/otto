@@ -152,7 +152,6 @@ function registerEORInterval() {
 			console.info(TAG, 'timeout exceeded for conversation');
 			eorTick = -1;
 			destroyRecognizeStream();
-			emitter.emit('stop');
 		} else if (eorTick > 0) {
 			console.debug(TAG, eorTick + ' seconds remaining');
 			eorTick--;
@@ -223,7 +222,7 @@ function createHotwordDetectorStream() {
 }
 
 async function processOutputQueue() {
-	if (queueOutput.length === 0 || queueProcessingItem) {
+	if (queueOutput.length === 0 || queueProcessingItem != null) {
 		return;
 	}
 
@@ -273,7 +272,11 @@ async function processOutputQueue() {
 	queueProcessingItem = null;
 	queueOutput.shift();
 
-	if (queueOutput.length === 0 && f.data.feedback == false) {
+	if (f.data.feedback) {
+		emitter.emit('thinking');
+	}
+
+	if (queueOutput.length === 0 && !f.data.feedback) {
 		eorTick = EOR_MAX; // re-enable at max
 		createRecognizeStream();
 	}
