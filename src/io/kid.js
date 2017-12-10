@@ -87,6 +87,7 @@ function stopOutput() {
 	queueProcessingItem = null;
 	queueOutput = [];
 	Play.kill();
+	Mopidy.playback.stop();
 }
 
 async function sendFirstHint(language) {
@@ -180,6 +181,27 @@ function registerOutputQueueInterval() {
 	queueIntv = setInterval(processOutputQueue, 1000);
 }
 
+function wake() {
+	emitter.emit('wake');
+	stopOutput();
+	wakeWordTick = 0;
+	eorTick = EOR_MAX;
+	destroyRecognizeStream();
+	createRecognizeStream();
+}
+
+exports.wake = wake;
+
+function stop() {
+	emitter.emit('stop');
+	stopOutput();
+	wakeWordTick = -1;
+	eorTick = -1;
+	destroyRecognizeStream();
+}
+
+exports.stop = stop;
+
 function createHotwordDetectorStream() {
 	hotwordDetectorStream = new Detector({
 		resource: __etcdir + '/common.res',
@@ -192,19 +214,10 @@ function createHotwordDetectorStream() {
 
 		switch (hotword) {
 			case 'wake':
-			emitter.emit('wake');
-			stopOutput();
-			wakeWordTick = 0;
-			eorTick = EOR_MAX;
-			destroyRecognizeStream();
-			createRecognizeStream();
+			wake();
 			break;
 			case 'stop':
-			emitter.emit('stop');
-			stopOutput();
-			wakeWordTick = -1;
-			eorTick = -1;
-			destroyRecognizeStream();
+			stop();
 			break;
 		}
 	});

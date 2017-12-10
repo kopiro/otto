@@ -29,9 +29,13 @@ wget -O - https://raw.githubusercontent.com/audstanley/NodeJs-Raspberry-Pi/maste
 
 apt-get -y install libmagic-dev libatlas-base-dev
 npm -g install nan --unsafe-perm
-npm -g install snowboy --unsafe-perm && npm link snowboy
-npm -g install rpio --unsafe-perm && npm link rpio
-npm -g install apa102-spi --unsafe-perm && npm link apa102-spi
-npm -g install miio --unsafe-perm && npm link miio
+npm -g install snowboy --unsafe-perm
+npm -g install rpio --unsafe-perm
+npm -g install apa102-spi --unsafe-perm
+npm -g install miio --unsafe-perm
 
 npm install --only=prod --unsafe-perm
+npm link snowboy
+npm link rpio
+npm link apa102-spi
+npm link miio
