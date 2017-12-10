@@ -87,7 +87,7 @@ function stopOutput() {
 	queueProcessingItem = null;
 	queueOutput = [];
 	Play.kill();
-	Mopidy.playback.stop();
+	if (Mopidy.playback) Mopidy.playback.stop();
 }
 
 async function sendFirstHint(language) {
