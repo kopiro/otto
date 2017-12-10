@@ -101,10 +101,13 @@ exports.getAudioFile = function(text, opt = {}) {
 
 		console.debug(TAG, 'request', { text, opt });
 
+		const ssml = /<speak>/.test(text);
+
 		let voice = await getVoice(opt);
 		pollyClient.synthesizeSpeech({
 			VoiceId: voice.Id,
 			Text: text,
+			TextType: ssml ? 'ssml' : 'text',
 			OutputFormat: 'mp3',
 		}, (err, data) => {
 			if (err) {

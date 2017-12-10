@@ -232,14 +232,14 @@ async function processOutputQueue() {
 	console.info(TAG, 'processing output queue', f);
 	console.debug(TAG, 'current queue length =', queueOutput.length);
 
+	eorTick = -1; // temporary disable timer
+	queueProcessingItem = f;
+	destroyRecognizeStream();
+
 	emitter.emit('output', {
 		sessionModel: session_model,
 		fulfillment: f
 	});
-
-	eorTick = -1; // temporary disable timer
-	queueProcessingItem = f;
-	destroyRecognizeStream();
 
 	try {
 		if (f.data.error) {
