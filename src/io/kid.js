@@ -216,9 +216,9 @@ function createHotwordDetectorStream() {
 			case 'wake':
 			wake();
 			break;
-			case 'stop':
-			stop();
-			break;
+			// case 'stop':
+			// stop();
+			// break;
 		}
 	});
 
