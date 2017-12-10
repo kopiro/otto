@@ -112,7 +112,7 @@ exports.output = async function(f, session_model) {
 			await sendMessage(chat_id, f.data.error.speech);
 		}
 		if (session_model.is_admin) {
-			await sendMessage(chat_id, "ERROR: `" + JSON.stringify(f.data.error) + "`");
+			await sendMessage(chat_id, "ERROR: ```" + JSON.stringify(f.data.error) + "```");
 		}
 		return;
 	}
@@ -155,13 +155,13 @@ exports.output = async function(f, session_model) {
 
 	if (f.data.media) {
 		if (f.data.media.artist) {
-			await sendMessage(chat_id, f.data.media.artist.external_urls.spotify, message_opt);
+			await sendMessage(chat_id, f.data.media.artist.share_url, message_opt);
 		}
 		if (f.data.media.track) {
-			await sendMessage(chat_id, f.data.media.track.external_urls.spotify, message_opt);
+			await sendMessage(chat_id, f.data.media.track.share_url, message_opt);
 		}
 		if (f.data.media.playlist) {
-			await sendMessage(chat_id, f.data.media.playlist.external_urls.spotify, message_opt);
+			await sendMessage(chat_id, f.data.media.playlist.share_url, message_opt);
 		}
 	}
 

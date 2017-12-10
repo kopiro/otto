@@ -1,11 +1,13 @@
 exports.id = 'coinflip';
 
+const Messages = apprequire('messages');
+
 module.exports = function({ sessionId, result }) {
 	return new Promise((resolve, reject) => {
 		let { parameters: p, fulfillment } = result;
 		
 		resolve({
-			speech: [ 'Testa', 'Croce' ].getRandom()
+			speech: Messages.getRaw('coinflip_choices').getRandom()
 		});
 	});
 };

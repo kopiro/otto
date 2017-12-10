@@ -1,68 +1,54 @@
 exports.id = 'media.music.play';
 
-const _config = config.spotify;
+const Spotify = apprequire('spotify');
 
-var SpotifyWebApi = require('spotify-web-api-node');
-var spotifyApi = new SpotifyWebApi(_config.options);
+module.exports = async function({ result }) {
+	let { parameters: p, fulfillment } = result;
 
-module.exports = function({ sessionId, result }) {
-	return new Promise((resolve, reject) => {
-		let { parameters: p, fulfillment } = result;
+	await Spotify.ensureConnected();
 	
-		if (p.track) {
-			spotifyApi.searchTracks(p.track + (p.artist ? (' ' + p.artist) : ''))
-			.then(function(data) {
-				let items = data.body.tracks.items;
-				if (items.length === 0) {
-					return reject();
-				}
-
-				resolve({
-					data: {
-						media: {
-							track: item[0]
-						}
+	if (p.track) {
+		const data = await Spotify.searchTracks(p.track + (p.artist ? (' ' + p.artist) : ''));
+		const items = data.body.tracks.items;
+		if (items.length === 0) throw fulfillment.payload.error;
+		return {
+			data: {
+				media: {
+					track: {
+						name: items[0].name,
+						uri: items[0].uri,
+						share_url: items[0].external_urls.spotify
 					}
-				});
-			}, reject);
-		
-		} else if (p.artist) {
-			spotifyApi.searchArtists(p.artist)
-			.then(function(data) {
-				let items = data.body.artists.items;
-				if (items.length === 0) {
-					return reject();
 				}
+			}
+		};
+	}
 
-				resolve({
-					data: {
-						media: {
-							artist: items[0]
-						}
-					}
-				});
-			}, reject);
-
-		} else if (p.playlist) {
-			spotifyApi.searchPlaylists(p.playlist)
-			.then(function(data) {
-				let items = data.body.playlists.items;
-				if (items.length === 0) {
-					return reject();
+	if (p.artist) {
+		const data = await Spotify.searchArtists(p.artist);
+		let items = data.body.artists.items;
+		if (items.length === 0) throw fulfillment.payload.error;
+		return {
+			data: {
+				media: {
+					artist: items[0]
 				}
+			}
+		};
+	}
 
-				resolve({
-					data: {
-						media: {
-							playlist: items[0]
-						}
-					}
-				});
-			}, reject);
-			
-		} else {
-			reject();
-		}
-		
-	});
+	if (p.playlist) {
+		const data = await Spotify.searchPlaylists(p.playlist);
+		let items = data.body.playlists.items;
+		if (items.length === 0) throw fulfillment.payload.error;
+		return {
+			data: {
+				media: {
+					playlist: items[0]
+				}
+			}
+		};
+	}
+
+	throw fulfillment.payload.error;
 };

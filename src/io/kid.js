@@ -17,6 +17,7 @@ const { Detector } = require('snowboy');
 const Hotword = apprequire('hotword');
 const Translator = apprequire('translator');
 const Messages = apprequire('messages');
+const Mopidy = apprequire('mopidy');
 
 let isRecognizing = false;
 let isInputStarted = false;
@@ -61,6 +62,22 @@ async function sendVoice(e) {
 		await Play.urlToSpeaker(e.remoteFile);
 	} else if (e.localFile) {
 		await Play.fileToSpeaker(e.localFile);
+	}
+}
+
+async function sendMedia(e) {
+	await Mopidy.ensureConnected();
+	if (e.action) {
+		await Mopidy.playback[e.action]();
+	}
+	if (e.track) {
+		await Mopidy.playTrackByUriNow(e.track.uri);
+	}
+	if (e.what) {
+		await Mopidy.playback.setVolume(10);
+		const track = await Mopidy.playback.getCurrentTrack();
+		await sendMessage(Messages.get('playback_current_track_is', track.name, track.artists[0].name, track.albums[0].name));
+		await Mopidy.playback.setVolume(100);
 	}
 }
 
@@ -227,8 +244,7 @@ async function processOutputQueue() {
 
 	const session_model = IOManager.sessionModel;
 	const f = queueOutput[0];
-	console.info(TAG, 'processing output queue', f);
-	console.debug(TAG, 'current queue length =', queueOutput.length);
+	console.debug(TAG, 'processing queue item');
 
 	eorTick = -1; // temporary disable timer
 	queueProcessingItem = f;
@@ -240,6 +256,7 @@ async function processOutputQueue() {
 	});
 
 	try {
+
 		if (f.data.error) {
 			if (f.data.error.speech) {	
 				await sendMessage(f.data.error.speech, f.data.language);
@@ -264,6 +281,11 @@ async function processOutputQueue() {
 		if (f.data.lyrics) {
 			await sendMessage(f.data.lyrics.text, f.data.lyrics.language);
 		}
+
+		if (f.data.media) {
+			await sendMedia(f.data.media);
+		}
+
 	} catch (err) {
 		console.error(TAG, err);
 	}
@@ -288,12 +310,13 @@ exports.startInput = async function() {
 
 	hotwordModels = await Hotword.getModels();
 	registerOutputQueueInterval();
+	return;
 	registerEORInterval();
 
 	await sendMessage(Messages.get('driver_started'));
 
-	isInputStarted = true;	
-
+	isInputStarted = true;
+	
 	Rec.start();
 	createHotwordDetectorStream();
 };
@@ -303,6 +326,7 @@ exports.stopInput = async function() {
 };
 
 exports.output = async function(f) {
-	console.debug(TAG, 'queueing output', f);
+	console.debug(TAG, 'output');
+	console.dir(f, { depth: 10 });
 	queueOutput.push(f);
 };

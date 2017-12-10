@@ -4,9 +4,7 @@ const _ = require('underscore');
 const Translator = apprequire('translator');
 const Messages = apprequire('messages');
 
-const _config = _.defaults(config.apiai, {
-	promiseTimeout: 10
-});
+const _config = config.apiai;
 
 const apiai = require('apiai');
 const client = apiai(_config.token);
@@ -38,7 +36,7 @@ async function fulfillmentTransformer(fulfillment, session_model) {
 
 exports.fulfillmentTransformer = fulfillmentTransformer;
 
-async function fulfillmentPromiseTransformer(execute_fn, body, session_model) {
+async function fulfillmentPromiseTransformer(action, body, session_model) {
 	return new Promise(async(resolve) => {
 		let fulfillment = null;
 		
@@ -49,10 +47,11 @@ async function fulfillmentPromiseTransformer(execute_fn, body, session_model) {
 				data: { error: { timeout: true } }
 			}, session_model);
 			resolve(fulfillment);
-		}, 1000 * _config.promiseTimeout);
+		}, 1000 * (_config.promiseTimeout || 10));
 
 		try {
-			fulfillment = await execute_fn(body, session_model);
+			console.debug(TAG, `calling action ${action}`);
+			fulfillment = await Actions.list[ body.result.action ]()(body, session_model);
 			fulfillment = await fulfillmentTransformer(fulfillment, session_model);
 		} catch (err) {
 			fulfillment = await fulfillmentTransformer({
@@ -88,10 +87,7 @@ exports.apiaiResultParser = async function(body, session_model) {
 	if (body.result.metadata.intentId != null) {
 		// If an intentId is returned, could auto resolve or call a promise
 		if (_.isEmpty(body.result.action) === false && body.result.actionIncomplete !== true) {
-			const action_fn = Actions.list[ body.result.action ];
-			console.info(TAG, `calling action ${body.result.action} with data...`);
-			console.dir(body, { depth: 10 });
-			body.result.fulfillment = await fulfillmentPromiseTransformer(action_fn(), body, session_model);
+			body.result.fulfillment = await fulfillmentPromiseTransformer(body.result.action, body, session_model);
 		} else {
 			body.result.fulfillment = await fulfillmentTransformer(body.result.fulfillment, session_model);
 		}
@@ -124,7 +120,7 @@ exports.textRequest = function(text, session_model) {
 				return resolve(body.result.fulfillment);
 			}
 	
-			console.info(TAG, 'webhook not used or failed, solving locally');
+			console.debug(TAG, 'webhook not used or failed, solving locally');
 			let fulfillment = await exports.apiaiResultParser(body, session_model);
 			resolve(fulfillment);
 		});

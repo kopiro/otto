@@ -3,6 +3,7 @@ const TAG = 'Camera';
 const _ = require('underscore');
 const fs = require('fs');
 const spawn = require('child_process').spawn;
+const exec = require('child_process').exec;
 
 const IS_RPI = (() => {
 	try {
@@ -44,7 +45,7 @@ Drivers.raspi = {
 			const file_h264 = __tmpdir + '/' + uuid() + '.h264';
 			const file_wav = __tmpdir + '/' + uuid() + '.wav';
 
-			require('child_process').exec([
+			exec([
 			`raspivid -t ${raspivid_time} -w ${opt.width} -h ${opt.height} -b 2000000 -fps ${opt.fps} -n -o "${file_h264}" | ` + 
 			`arecord -f S16_LE -c 1 -r 16000 -d ${opt.time} "${file_wav}"`,
 			`ffmpeg -y -i "${file_wav}" -r ${opt.fps} -i "${file_h264}" -filter:a aresample=async=1 -c:a flac -c:v copy "${opt.file}"`,

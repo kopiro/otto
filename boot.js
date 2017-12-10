@@ -72,7 +72,9 @@ global.config = _.defaults(require('./config.json'), {
 
 	// API.AI configuration
 	"apiai": {
-		"token": null
+		"token": null,
+		// Specify after how many seconds after request expires
+		"promiseTimeout": 10
 	},
 
 	// IO/Telegram configuration
