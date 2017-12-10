@@ -69,9 +69,7 @@ function stopOutput() {
 	currentSendMessageKey = null;
 	queueProcessingItem = null;
 	queueOutput = [];
-	if (Play.speakerProc != null) {
-		Play.speakerProc.kill();
-	}
+	Play.kill();
 }
 
 async function sendFirstHint(language) {
@@ -132,6 +130,7 @@ function destroyRecognizeStream() {
 	emitter.emit('notrecognizing');
 
 	if (recognizeStream != null) {
+		Rec.getStream().unpipe(recognizeStream);
 		recognizeStream.destroy();
 	}
 }

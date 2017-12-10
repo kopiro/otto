@@ -8,7 +8,14 @@ const request = require('request');
 
 const _config = config.play;
 
-exports.speakerProc = null;
+const processes = {};
+
+exports.kill = function() {
+	for (let pid of Object.keys(processes)) {
+		process.kill(pid);
+		delete processes[pid];
+	}
+};
 
 exports.fileToSpeaker = function(file) {
 	return new Promise((resolve, reject) => {
@@ -18,9 +25,11 @@ exports.fileToSpeaker = function(file) {
 		let bargs = [];
 		let args = [];
 
-		exports.speakerProc = spawn('play', bargs.concat(file).concat(_config.addArgs).concat(args), opt);
-		exports.speakerProc.on('close', (err) => {
-			exports.speakerProc = null;
+		const proc = spawn('play', bargs.concat(file).concat(_config.addArgs).concat(args), opt);
+		processes[proc.pid] = true;
+
+		proc.on('close', (err) => {
+			delete processes[proc.pid];
 			if (err) return reject(err);
 			resolve(true);
 		});
