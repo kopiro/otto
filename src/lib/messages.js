@@ -3,7 +3,6 @@ const TAG = 'Messages';
 const _ = require('underscore');
 const util = require('util');
 
-console.log(__basedir + '/messages.json');
 const library = _.extend({}, requireOrNull(__basedir + '/messages.json') || {}, requireOrNull(__basedir + '/messages-custom.json') || {});
 
 exports.getRaw = function(key) {
