@@ -39,10 +39,6 @@ Drivers.raspi = {
 	},
 	recordVideo: function(opt) {
 		return new Promise((resolve, reject) => {
-			_.defaults(opt, {
-				audioDevice: _config.audioDevice
-			});
-
 			const raspivid_time = opt.time * 1000;
 
 			const file_h264 = __tmpdir + '/' + uuid() + '.h264';
@@ -55,7 +51,7 @@ Drivers.raspi = {
 			].join(' && '), (err, stdout, stderr) => {
 				fs.unlink(file_h264, () => {});
 				fs.unlink(file_wav, () => {});
-				if (err) return reject(err);
+				if (err) return reject(stderr);
 				resolve(opt.file);
 			});
 
