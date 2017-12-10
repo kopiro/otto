@@ -29,7 +29,7 @@ global.cleanText = function(t) {
 };
 
 global.mimicHumanMessage = function(text) {
-	const splitted = text.split(/\.(?=\s+|[A-Z])/);
+	const splitted = text.split(/\\n|\n|\.(?=\s+|[A-Z])/);
 	return _.compact(splitted);
 };
 
