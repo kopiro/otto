@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/kopiro/otto-ai.svg?branch=master)](https://travis-ci.org/kopiro/otto-ai)
 
-![Logo](logo.png?raw=true "Logo")
+![Logo](image.png?raw=true "Logo")
 
 ## Build
 
