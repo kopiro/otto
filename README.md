@@ -16,7 +16,7 @@ npm run build
 
 ### Run locally in server mode
 
-Must be docker and docker-compose installed.
+Must have docker and docker-compose installed.
 
 Just type:
 
@@ -119,7 +119,7 @@ An action is a responder for an intent that has logic inside.
 
 Your action parameters are:
 
-* The API.AI object
+* The API.AI (Dialogflow) object
 * The mongoose *session_model* for this request
 
 Every action file must export a *Promise* or an *Async Function (ES6)*.
@@ -152,14 +152,14 @@ module.exports = async function({ sessionId, result }, session_model) {
 
 #### Naming
 
-The actions must be places in the `./src/actions` directory. 
+The actions must be placed in the `./src/actions` directory. 
 
-If an action name is `hello.name`, the final file is `./src/actions/hello/name.js`.
+If an action name is `hello.name`, the final file must be `./src/actions/hello/name.js`.
 
-If an action name is `hello`, the final file is `./src/actions/hello/index.js`.
+If an action name is `hello`, the final must be `./src/actions/hello/index.js`.
 
 If a promise can't be fullfilled in less than 5 seconds (this is the API.AI timeout), 
-you have to resolve it immediately, postponing eventuals outputs to the *IOManager*.
+you have to resolve it immediately, postponing an eventual output to the *IOManager*.
 
 ```js
 exports.id = 'hello.postponed';
@@ -194,7 +194,7 @@ Attribute | Description
 `data.replies[]` | List of choices that the user can select. See below for the structure
 `data.url` | URL to send or to open
 `data.music` | Music to send or to play. See below for the structure
-`data.feedback` | Boolean value indicating that this is a instant feedback and a future response could be sended
+`data.feedback` | Boolean value indicating that this is temporary feedback until the real response will be sent
 `data.game` | Game that can be handled via Telegram. See below for the structure
 `data.video` | Video to send or to show. See below for the structure
 `data.audio` | Audio to send or to show. See below for the structure
@@ -285,7 +285,7 @@ Attribute | Description
 
 ### Customize messages
 
-The file `messages.json` specify the messages used for certain actions.
+The file `messages.json` specifies the messages used for certain actions.
 
 To override some messages, place a `messages-custom.json` in the root directory.
 
