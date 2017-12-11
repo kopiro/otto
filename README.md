@@ -35,6 +35,82 @@ After that, just type:
 npm run start
 ```
 
+### I/O Drivers
+
+I/O drivers are the the way the AI handles inputs and output.
+
+Every I/O driver must expose these methods:
+
+* `startInput` -  To start receiving inputs
+* `stopInput` - To stop receiving inputs
+* `output` - To process output
+
+You can configure the I/O driver you want to spawn on your server via config,
+using the `ioDrivers` keyword.
+
+```json
+{
+    "ioDrivers": [ "telegram", "messenger" ]
+}
+```
+
+There are 4 I/O drivers available at the moment:
+
+* **Test**: handle I/O using the CLI (used for test purposes)
+* **Kid**: handle input using microphone and speech recognizer and output using a TTS via a speaker
+* **Telegram**: handle I/O for a Telegram bot
+* **Messenger**: handle I/O for a Facebook Messenger bot
+* **Rest**: handle I/O via HTTP REST API (*work in progress*)
+
+#### IO.Test
+
+This driver spawn an Interactive CLI where you can write to test your AI.
+
+To automate tests, you can put your messages in the `./etc/test.txt` file 
+separated by EOL. The CLI will send the lines on boot.
+
+#### IO.Kid
+
+This is the main I/O driver.
+
+It uses your microphone to register your voice;
+once it detects an hot word (example: *Hey BOT*),
+it sends the stream through an online speech recognizer and return the speeech.
+
+When you finish to talk, it sends the recognized speech over AI that could return
+a output speech; it is sent over an online TTS to get an audio file that is played over the speaker.
+
+Dependencies:
+
+* **Snowboy** - for the hotword service
+* **Google Cloud Speech Recognizer** - for the speech recognizer
+* **AWS Polly** - for the TTS
+* **Mopidy** - for the music playback
+
+#### IO.Telegram
+
+It listens via webhook (or via polling) the chat events of your Telegram bot,
+send the text over AI that return an output.
+
+The output is used to respond to the user request via Telegram.
+
+Dependencies:
+
+* **Google Cloud Speech Recognizer** - for the speech recognizer if the user send a voice message
+* **AWS Polly** - for the TTS if we want to send a voice 
+
+#### IO.Messenger
+
+It listens via webhook the chat events of your Facebook Messeger bot,
+send the text over AI that return an output.
+
+The output is used to respond to the user request via Facebook Messenger.
+
+Dependencies:
+
+* **Google Cloud Speech Recognizer** - for the speech recognizer if the user send a voice message
+* **AWS Polly** - for the TTS if we want to send a voice 
+
 ### How to write an action
 
 An action is a responder for an intent that has logic inside. 
