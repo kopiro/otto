@@ -1,4 +1,4 @@
-exports.id = 'media.music.play';
+exports.id = 'music.play';
 
 const Spotify = apprequire('spotify');
 
@@ -13,7 +13,7 @@ module.exports = async function({ result }) {
 		if (items.length === 0) throw fulfillment.payload.error;
 		return {
 			data: {
-				media: {
+				music: {
 					track: {
 						name: items[0].name,
 						uri: items[0].uri,
@@ -30,7 +30,7 @@ module.exports = async function({ result }) {
 		if (items.length === 0) throw fulfillment.payload.error;
 		return {
 			data: {
-				media: {
+				music: {
 					artist: items[0]
 				}
 			}
@@ -43,7 +43,7 @@ module.exports = async function({ result }) {
 		if (items.length === 0) throw fulfillment.payload.error;
 		return {
 			data: {
-				media: {
+				music: {
 					playlist: items[0]
 				}
 			}

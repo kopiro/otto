@@ -58,14 +58,12 @@ async function sendMessage(text, language) {
 }
 
 async function sendVoice(e) {
-	if (e.remoteFile) {
-		await Play.urlToSpeaker(e.remoteFile);
-	} else if (e.localFile) {
-		await Play.fileToSpeaker(e.localFile);
+	if (e.uri) {
+		await Play.urlToSpeaker(e.uri);
 	}
 }
 
-async function sendMedia(e) {
+async function sendMusic(e) {
 	await Mopidy.ensureConnected();
 	if (e.action) {
 		await Mopidy.playback[e.action]();
@@ -280,7 +278,7 @@ async function processOutputQueue() {
 		}
 
 		if (f.data.url) {
-			await URLManager.open(f.data.url);
+			URLManager.open(f.data.url);
 		}
 
 		if (f.speech) {
@@ -295,8 +293,8 @@ async function processOutputQueue() {
 			await sendMessage(f.data.lyrics.text, f.data.lyrics.language);
 		}
 
-		if (f.data.media) {
-			await sendMedia(f.data.media);
+		if (f.data.music) {
+			await sendMusic(f.data.music);
 		}
 
 	} catch (err) {

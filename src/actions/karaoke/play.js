@@ -1,4 +1,4 @@
-exports.id = 'media.karaoke.play';
+exports.id = 'karaoke.play';
 
 module.exports = function({ sessionId, result }) {
 	return new Promise(async(resolve, reject) => {
