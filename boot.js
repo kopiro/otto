@@ -25,6 +25,9 @@ global.config = _.defaults(require('./config.json'), {
 	// A map with driver => [accessories]
 	"ioAccessoriesMap": {},
 
+	// A map with driver input => driver output 
+	"ioRedirectMap": {},
+
 	// Let the schedulers run
 	"scheduler": true,
 

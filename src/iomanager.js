@@ -31,64 +31,70 @@ exports.driversCapabilities = {
 	},
 };
 
-async function processIOError(io, { session_model, fulfillment = {} }) {
-	console.error('processIOError', 'SID = ' + session_model._id);
+async function processDriverInputError(driver, { session_model, fulfillment = {} }) {
+	console.error('processDriverInputError', 'SID = ' + session_model._id);
 	console.dir(fulfillment, { depth: 10 });
 
 	fulfillment = await AI.fulfillmentTransformer(fulfillment, session_model);
-	return io.output(fulfillment, session_model);
+	return driver.output(fulfillment, session_model);
 }
 
-async function processIOResponse(io, { session_model, params = {} }) {
-	console.info(TAG, 'processIOResponse', 'SID = ' + session_model._id);
+async function processDriverInput(driver, { session_model, params = {} }) {
+	console.info(TAG, 'processDriverInput', 'SID = ' + session_model._id);
 	console.dir(params, { depth: 10 });
 
 	// Direct fulfillment
 	if (params.fulfillment) {
-		return io.output(params.fulfillment, session_model);
+		return driver.output(params.fulfillment, session_model);
 	}
 
 	// Interrogate AI to get fulfillment
 	// This invokes API.ai to detect the action and invoke the action to perform fulfillment
 	if (params.text) {
 		const fulfillment = await AI.textRequest(params.text, session_model);
-		return io.output(fulfillment, session_model);
+		return driver.output(fulfillment, session_model);
 	}
 }
 
-function configureAccessories(io) {
-	for (let accessory of (enabledAccesories[io.id] || [])) {
-		console.info(TAG, `attaching accessory <${accessory.id}> to <${io.id}>`);
-		accessory.attach(io);
+function configureAccessories(driver) {
+	for (let accessory of (enabledAccesories[driver.id] || [])) {
+		console.info(TAG, `attaching accessory <${accessory.id}> to <${driver.id}>`);
+		accessory.attach(driver);
 	}
 }
 
-function configureIO(io) {
-	console.info(TAG, `configuring IO <${io.id}>`);
+function configureDriver(driver) {
+	console.info(TAG, `configuring IO Driver <${driver.id}>`);
 
-	io.emitter.on('input', async(e) => {
+	let outputDriver = driver;
+	if (config.ioRedirectMap[driver.id] != null) {
+		const outputDriverStr = config.ioRedirectMap[driver.id];
+		console.info(TAG, `<${driver.id}> redirect output to <${outputDriverStr}>`);
+		outputDriver = exports.getDriver(outputDriverStr);
+	}
+
+	driver.emitter.on('input', async(e) => {
 		try {
 			if (e.error) throw e.error;
-			await processIOResponse(io, e);
+			await processDriverInput(outputDriver, e);
 		} catch (ex) {
 			e.data = { error: ex };
-			await processIOError(io, e);
+			await processDriverInputError(outputDriver, e);
 		}
 	});
 
-	configureAccessories(io);
-
-	io.startInput();
+	configureAccessories(driver);
+	driver.startInput();
 }
 
-function isDriverEnabled(io_id) {
-	return (io_id in enabledDrivers);
+function isDriverEnabled(e) {
+	return (e in enabledDrivers);
 }
 
 function loadDrivers() {
 	console.info(TAG, 'drivers to load => ' + config.ioDrivers.join(', '));
-	for (let io_id of config.ioDrivers) {
-		enabledDrivers[io_id] = require(__basedir + '/src/io/' + io_id);
+	for (let driver of config.ioDrivers) {
+		enabledDrivers[driver] = exports.getDriver(driver);
 	}
 }
 
@@ -98,15 +104,17 @@ function loadAccessories() {
 		const accessories = config.ioAccessoriesMap[driver] || [];
 		enabledAccesories[driver] = [];
 		for (let accessory of accessories) {
-			let accessory_module = require(__basedir + '/src/io_accessories/' + accessory);
-			enabledAccesories[driver].push(accessory_module);
+			enabledAccesories[driver].push(exports.getAccessory(accessory));
 		}
 	}
 }
 
-exports.getDriver = function(io_id, force_load) {
-	if (force_load) return require(__basedir + '/src/io/' + io_id);
-	return enabledDrivers[ io_id ] = enabledDrivers[ io_id ] || require(__basedir + '/src/io/' + io_id);
+exports.getDriver = function(e) {
+	return require(__basedir + '/src/io/' + e);
+};
+
+exports.getAccessory = function(e) {
+	return require(__basedir + '/src/io_accessories/' + e);
 };
 
 exports.output = async function(fulfillment, session_model) {
@@ -202,6 +210,6 @@ exports.start = function() {
 	loadDrivers();
 	loadAccessories();
 	for (let key of Object.keys(enabledDrivers)) {
-		configureIO(enabledDrivers[key]);
+		configureDriver(enabledDrivers[key]);
 	}
 };
