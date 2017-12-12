@@ -5,11 +5,12 @@ module.exports = function({ sessionId, result }) {
 		let { parameters: p, fulfillment } = result;
 		
 		const musics = await Data.Music.find();
-		const music = musics.getRandom();
+		const music = getRandomElement(musics);
+		
 		resolve({
 			data: {
 				voice: {
-					remoteFile: music.url
+					uri: music.url
 				}
 			}
 		});

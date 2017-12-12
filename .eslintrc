@@ -49,6 +49,7 @@
         "$": true,
         "timeout": true,
         "uuid": true,
+        "getRandomElement": true,
         "consoleultimate": true,
         "prettyjson": true,
         "getLocaleFromLanguageCode": true,

@@ -287,7 +287,7 @@ bot.on('message', async(e) => {
 			session_model: session_model,
 			params: {
 				image: {
-					remoteFile: photo_link,
+					uri: photo_link,
 				}
 			}
 		});

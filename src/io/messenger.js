@@ -219,7 +219,7 @@ bot.on('message', (e) => {
 					session_model: session_model,
 					params: {
 						image: {
-							remoteFile: attach.payload.url,
+							uri: attach.payload.url,
 						}
 					}
 				});
