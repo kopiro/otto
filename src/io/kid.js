@@ -223,7 +223,7 @@ function createHotwordDetectorStream() {
 	});
 
 	hotwordDetectorStream.on('silence', async() => {
-		process.stdout.write('〰️');
+		// process.stdout.write('〰️');
 		if (isRecognizing && wakeWordTick !== -1) {
 			if (++wakeWordTick == WAKE_WORD_TICKS) {
 				wakeWordTick = -1;
@@ -238,7 +238,7 @@ function createHotwordDetectorStream() {
 
 	hotwordDetectorStream.on('sound', (buffer) => {
 		wakeWordTick = -1;
-		process.stdout.write('🔉 ');
+		// process.stdout.write('🔉 ');
 	});
 
 	hotwordDetectorStream.on('error', (err) => {

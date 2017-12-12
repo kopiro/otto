@@ -24,7 +24,7 @@ module.exports = async function({ sessionId, result }, session_model) {
 		language_request = language_request.substr(0,1).toUpperCase() + language_request.substr(1);
 		const language = _.findWhere(languages, { name: language_request });
 		if (language == null) {
-			throw fulfillment.payload.errors.unknowLanguage;
+			throw fulfillment.payload.errors.unknownLanguage;
 		}
 
 		let language_to_set = language.code;

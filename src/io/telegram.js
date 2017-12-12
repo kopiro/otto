@@ -56,9 +56,13 @@ function handleInputVoice(session_model, e) {
 	});
 }
 
-async function sendMessage(chat_id, text, telegram_opt) {
+async function sendMessage(chat_id, text, telegram_opt = {}) {
 	const sentences = mimicHumanMessage(text);
 	await bot.sendChatAction(chat_id, 'typing');
+
+	_.defaults(telegram_opt, {
+		parse_mode: 'html'
+	});
 
 	for (let sentence of sentences) {
 		await bot.sendMessage(chat_id, sentence, telegram_opt);
@@ -112,7 +116,7 @@ exports.output = async function(f, session_model) {
 			await sendMessage(chat_id, f.data.error.speech);
 		}
 		if (session_model.is_admin) {
-			await sendMessage(chat_id, "ERROR: ```" + JSON.stringify(f.data.error) + "```");
+			await sendMessage(chat_id, "ERROR: <code>" + JSON.stringify(f.data.error) + "</code>");
 		}
 		return;
 	}

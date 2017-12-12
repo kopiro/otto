@@ -85,6 +85,9 @@ exports.apiaiResultParser = async function(body, session_model) {
 	});
 	body.result.fulfillment = f;
 
+	console.info(TAG, 'fulfillment');
+	console.dir(f, { depth: 10 });
+
 	if (body.result.metadata.intentId != null) {
 		// If an intentId is returned, could auto resolve or call a promise
 		if (_.isEmpty(body.result.action) === false && body.result.actionIncomplete !== true) {
