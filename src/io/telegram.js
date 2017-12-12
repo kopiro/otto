@@ -112,7 +112,7 @@ exports.output = async function(f, session_model) {
 			await sendMessage(chat_id, f.data.error.speech);
 		}
 		if (session_model.is_admin) {
-			await sendMessage(chat_id, "ERROR: `" + JSON.stringify(f.data.error) + "`");
+			await sendMessage(chat_id, "ERROR: ```" + JSON.stringify(f.data.error) + "```");
 		}
 		return;
 	}
@@ -153,35 +153,39 @@ exports.output = async function(f, session_model) {
 		await bot.sendGame(chat_id, f.data.game.id);
 	}
 
-	if (f.data.media) {
-		if (f.data.media.artist) {
-			await sendMessage(chat_id, f.data.media.artist.external_urls.spotify, message_opt);
+	if (f.data.music) {
+		if (f.data.music.track) {
+			await sendMessage(chat_id, f.data.music.track.share_url, message_opt);
 		}
-		if (f.data.media.track) {
-			await sendMessage(chat_id, f.data.media.track.external_urls.spotify, message_opt);
+		if (f.data.music.album) {
+			await sendMessage(chat_id, f.data.music.album.share_url, message_opt);
 		}
-		if (f.data.media.playlist) {
-			await sendMessage(chat_id, f.data.media.playlist.external_urls.spotify, message_opt);
+		if (f.data.music.artist) {
+			await sendMessage(chat_id, f.data.music.artist.share_url, message_opt);
+		}
+		if (f.data.music.playlist) {
+			await sendMessage(chat_id, f.data.music.playlist.share_url, message_opt);
 		}
 	}
 
 	if (f.data.video) {
-		if (f.data.video.remoteFile) {
+		if (f.data.video.uri) {
 			await bot.sendChatAction(chat_id, 'upload_video');
-			await bot.sendVideo(chat_id, f.data.video.remoteFile, message_opt);
-		} else if (f.data.video.localFile) {
-			await bot.sendChatAction(chat_id, 'upload_video');
-			await bot.sendVideo(chat_id, f.data.video.localFile, message_opt);
+			await bot.sendVideo(chat_id, f.data.video.uri, message_opt);
 		}
 	}
 
 	if (f.data.image) {
-		if (f.data.image.remoteFile) {
+		if (f.data.image.uri) {
 			await bot.sendChatAction(chat_id, 'upload_photo');
-			await bot.sendPhoto(chat_id, f.data.image.remoteFile, message_opt);
-		} else if (f.data.image.localFile) {
-			await bot.sendChatAction(chat_id, 'upload_photo');
-			await bot.sendPhoto(chat_id, f.data.image.localFile, message_opt);
+			await bot.sendPhoto(chat_id, f.data.image.uri, message_opt);
+		}
+	}
+
+	if (f.data.audio) {
+		if (f.data.audio.uri) {
+			await bot.sendChatAction(chat_id, 'upload_audio');
+			await bot.sendAudio(chat_id, f.data.audio.uri, message_opt);
 		}
 	}
 

@@ -7,14 +7,18 @@ const colorForRecognizing = [ 255, 0, 0 ];
 const colorForOutput = [ 0, 255, 0 ];
 
 exports.attach = function(io) {
+	RaspiLeds.off();
+
 	io.emitter.on('input', () => {
 		RaspiLeds.animateRandom();
 	});
 
-	io.emitter.on('output', (e) => {
-		if (!e.fulfillment.data.feedback) {
-			RaspiLeds.setColor(colorForOutput);
-		}
+	io.emitter.on('output', () => {
+		RaspiLeds.setColor(colorForOutput);
+	});
+
+	io.emitter.on('thinking', () => {
+		RaspiLeds.animateRandom();
 	});
 
 	io.emitter.on('recognizing', () => {

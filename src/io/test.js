@@ -12,7 +12,7 @@ const rl = readline.createInterface({
   output: process.stdout
 });
 
-let initial_strings = fs.readFileSync(__basedir + '/in.txt').toString().split("\n");
+let initial_strings = fs.readFileSync(__etcdir + '/io_test.txt').toString().split("\n");
 
 async function registerGlobalSession() {
 	return IOManager.registerSession({
@@ -66,19 +66,13 @@ exports.startInput = async function() {
 exports.output = async function(f) {
 	const session_model = IOManager.sessionModel;
 
-	if (null == config.testDriver) {
+	console.info(TAG, 'output');
+	emitter.emit('output', {
+		sessionModel: session_model,
+		fulfillment: f
+	});
 
-		console.info(TAG, 'output');
-		emitter.emit('output', {
-			sessionModel: session_model,
-			fulfillment: f
-		});
-
-		for (let i = 0; i < 50; i++) process.stdout.write("="); process.stdout.write("\n");
-		console.dir(f);
-		for (let i = 0; i < 50; i++) process.stdout.write("="); process.stdout.write("\n");
-
-	} else {
-		await IOManager.getDriver(config.testDriver, true).output(f, IOManager.sessionModel);
-	}
+	for (let i = 0; i < 50; i++) process.stdout.write("="); process.stdout.write("\n");
+	console.dir(f);
+	for (let i = 0; i < 50; i++) process.stdout.write("="); process.stdout.write("\n");
 };

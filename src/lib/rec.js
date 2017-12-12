@@ -51,6 +51,7 @@ exports.start = function(opt) {
 };
 
 exports.getStream = function() {
+	if (null == rec) return;
 	return rec.stdout;
 };
 

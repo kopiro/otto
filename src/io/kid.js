@@ -17,6 +17,7 @@ const { Detector } = require('snowboy');
 const Hotword = apprequire('hotword');
 const Translator = apprequire('translator');
 const Messages = apprequire('messages');
+const Mopidy = apprequire('mopidy');
 
 let isRecognizing = false;
 let isInputStarted = false;
@@ -57,10 +58,24 @@ async function sendMessage(text, language) {
 }
 
 async function sendVoice(e) {
-	if (e.remoteFile) {
-		await Play.urlToSpeaker(e.remoteFile);
-	} else if (e.localFile) {
-		await Play.fileToSpeaker(e.localFile);
+	if (e.uri) {
+		await Play.urlToSpeaker(e.uri);
+	}
+}
+
+async function sendMusic(e) {
+	await Mopidy.ensureConnected();
+	if (e.action) {
+		await Mopidy.playback[e.action]();
+	}
+	if (e.track) {
+		await Mopidy.playTrackByUriNow(e.track.uri);
+	}
+	if (e.what) {
+		await Mopidy.playback.setVolume(10);
+		const track = await Mopidy.playback.getCurrentTrack();
+		await sendMessage(Messages.get('playback_current_track_is', track.name, track.artists[0].name, track.albums[0].name));
+		await Mopidy.playback.setVolume(100);
 	}
 }
 
@@ -69,9 +84,8 @@ function stopOutput() {
 	currentSendMessageKey = null;
 	queueProcessingItem = null;
 	queueOutput = [];
-	if (Play.speakerProc != null) {
-		Play.speakerProc.kill();
-	}
+	Play.kill();
+	if (Mopidy.playback) Mopidy.playback.stop();
 }
 
 async function sendFirstHint(language) {
@@ -132,6 +146,7 @@ function destroyRecognizeStream() {
 	emitter.emit('notrecognizing');
 
 	if (recognizeStream != null) {
+		Rec.getStream().unpipe(recognizeStream);
 		recognizeStream.destroy();
 	}
 }
@@ -152,7 +167,6 @@ function registerEORInterval() {
 			console.info(TAG, 'timeout exceeded for conversation');
 			eorTick = -1;
 			destroyRecognizeStream();
-			emitter.emit('stop');
 		} else if (eorTick > 0) {
 			console.debug(TAG, eorTick + ' seconds remaining');
 			eorTick--;
@@ -164,6 +178,27 @@ function registerOutputQueueInterval() {
 	if (queueIntv) clearInterval(queueIntv);
 	queueIntv = setInterval(processOutputQueue, 1000);
 }
+
+function wake() {
+	emitter.emit('wake');
+	stopOutput();
+	wakeWordTick = 0;
+	eorTick = EOR_MAX;
+	destroyRecognizeStream();
+	createRecognizeStream();
+}
+
+exports.wake = wake;
+
+function stop() {
+	emitter.emit('stop');
+	stopOutput();
+	wakeWordTick = -1;
+	eorTick = -1;
+	destroyRecognizeStream();
+}
+
+exports.stop = stop;
 
 function createHotwordDetectorStream() {
 	hotwordDetectorStream = new Detector({
@@ -177,20 +212,11 @@ function createHotwordDetectorStream() {
 
 		switch (hotword) {
 			case 'wake':
-			emitter.emit('wake');
-			stopOutput();
-			wakeWordTick = 0;
-			eorTick = EOR_MAX;
-			destroyRecognizeStream();
-			createRecognizeStream();
+			wake();
 			break;
-			case 'stop':
-			emitter.emit('stop');
-			stopOutput();
-			wakeWordTick = -1;
-			eorTick = -1;
-			destroyRecognizeStream();
-			break;
+			// case 'stop':
+			// stop();
+			// break;
 		}
 	});
 
@@ -223,14 +249,13 @@ function createHotwordDetectorStream() {
 }
 
 async function processOutputQueue() {
-	if (queueOutput.length === 0 || queueProcessingItem) {
+	if (queueOutput.length === 0 || queueProcessingItem != null) {
 		return;
 	}
 
 	const session_model = IOManager.sessionModel;
 	const f = queueOutput[0];
-	console.info(TAG, 'processing output queue', f);
-	console.debug(TAG, 'current queue length =', queueOutput.length);
+	console.debug(TAG, 'processing queue item');
 
 	eorTick = -1; // temporary disable timer
 	queueProcessingItem = f;
@@ -242,6 +267,7 @@ async function processOutputQueue() {
 	});
 
 	try {
+
 		if (f.data.error) {
 			if (f.data.error.speech) {	
 				await sendMessage(f.data.error.speech, f.data.language);
@@ -252,7 +278,7 @@ async function processOutputQueue() {
 		}
 
 		if (f.data.url) {
-			await URLManager.open(f.data.url);
+			URLManager.open(f.data.url);
 		}
 
 		if (f.speech) {
@@ -266,6 +292,11 @@ async function processOutputQueue() {
 		if (f.data.lyrics) {
 			await sendMessage(f.data.lyrics.text, f.data.lyrics.language);
 		}
+
+		if (f.data.music) {
+			await sendMusic(f.data.music);
+		}
+
 	} catch (err) {
 		console.error(TAG, err);
 	}
@@ -273,7 +304,11 @@ async function processOutputQueue() {
 	queueProcessingItem = null;
 	queueOutput.shift();
 
-	if (queueOutput.length === 0 && f.data.feedback == false) {
+	if (f.data.feedback) {
+		emitter.emit('thinking');
+	}
+
+	if (queueOutput.length === 0 && !f.data.feedback) {
 		eorTick = EOR_MAX; // re-enable at max
 		createRecognizeStream();
 	}
@@ -290,8 +325,8 @@ exports.startInput = async function() {
 
 	await sendMessage(Messages.get('driver_started'));
 
-	isInputStarted = true;	
-
+	isInputStarted = true;
+	
 	Rec.start();
 	createHotwordDetectorStream();
 };
@@ -301,6 +336,7 @@ exports.stopInput = async function() {
 };
 
 exports.output = async function(f) {
-	console.debug(TAG, 'queueing output', f);
+	console.debug(TAG, 'output');
+	console.dir(f, { depth: 10 });
 	queueOutput.push(f);
 };

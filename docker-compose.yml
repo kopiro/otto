@@ -4,7 +4,6 @@ services:
   app:
     image: kopiro/otto
     build: .
-    restart: always
     command: /app/docker/dev.sh
     stdin_open: true
     tty: true

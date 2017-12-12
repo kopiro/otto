@@ -25,6 +25,9 @@ global.config = _.defaults(require('./config.json'), {
 	// A map with driver => [accessories]
 	"ioAccessoriesMap": {},
 
+	// A map with driver input => driver output 
+	"ioRedirectMap": {},
+
 	// Let the schedulers run
 	"scheduler": true,
 
@@ -72,7 +75,9 @@ global.config = _.defaults(require('./config.json'), {
 
 	// API.AI configuration
 	"apiai": {
-		"token": null
+		"token": null,
+		// Specify after how many seconds after request expires
+		"promiseTimeout": 10
 	},
 
 	// IO/Telegram configuration

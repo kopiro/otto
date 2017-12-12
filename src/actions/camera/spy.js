@@ -1,26 +1,27 @@
 exports.id = 'camera.spy';
 
+const Camera = apprequire('camera');
+
 module.exports = function({ sessionId, result }, session_model) {
-	return new Promise((resolve, reject) => {
+	return new Promise(async(resolve, reject) => {
 		let { parameters: p, fulfillment } = result;
 
 		resolve({
-			speech: "Ok, dammi un attimo e ti faccio vedere..."
+			speech: fulfillment.speech,
+			data: {
+				feedback: true
+			}
 		});
 
-		apprequire('camera').recordVideo({
+		const video_file = await Camera.recordVideo({
 			time: 3
-		})
-		.then((video_file) => {
-			IOManager.output({
-				data: {
-					video: {
-						localFile: video_file
-					}
+		});
+		IOManager.output({
+			data: {
+				video: {
+					localFile: video_file
 				}
-			}, session_model);
-
-		})
-		.catch(reject);		
+			}
+		}, session_model);	
 	});
 };

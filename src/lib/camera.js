@@ -3,9 +3,7 @@ const TAG = 'Camera';
 const _ = require('underscore');
 const fs = require('fs');
 const spawn = require('child_process').spawn;
-
-const _config = _.defaults(config.camera || {}, {
-});
+const exec = require('child_process').exec;
 
 const IS_RPI = (() => {
 	try {
@@ -42,23 +40,19 @@ Drivers.raspi = {
 	},
 	recordVideo: function(opt) {
 		return new Promise((resolve, reject) => {
-			_.defaults(opt, {
-				audioDevice: _config.audioDevice
-			});
-
 			const raspivid_time = opt.time * 1000;
 
 			const file_h264 = __tmpdir + '/' + uuid() + '.h264';
 			const file_wav = __tmpdir + '/' + uuid() + '.wav';
 
-			require('child_process').exec([
+			exec([
 			`raspivid -t ${raspivid_time} -w ${opt.width} -h ${opt.height} -b 2000000 -fps ${opt.fps} -n -o "${file_h264}" | ` + 
 			`arecord -f S16_LE -c 1 -r 16000 -d ${opt.time} "${file_wav}"`,
 			`ffmpeg -y -i "${file_wav}" -r ${opt.fps} -i "${file_h264}" -filter:a aresample=async=1 -c:a flac -c:v copy "${opt.file}"`,
 			].join(' && '), (err, stdout, stderr) => {
 				fs.unlink(file_h264, () => {});
 				fs.unlink(file_wav, () => {});
-				if (err) return reject(err);
+				if (err) return reject(stderr);
 				resolve(opt.file);
 			});
 
@@ -118,8 +112,8 @@ Drivers.ffmpeg = {
 
 const driver = Drivers[ IS_RPI ? 'raspi' : 'ffmpeg' ];
 
-exports.takePhoto = function(opt) {
-	opt = _.defaults(opt || {}, {
+exports.takePhoto = function(opt = {}) {
+	_.defaults(opt, {
 		width: 640,
 		height: 480,
 		file: __tmpdir + '/cam_' + uuid() + '.jpg'
@@ -128,8 +122,8 @@ exports.takePhoto = function(opt) {
 	return driver.takePhoto(opt);
 };
 
-exports.recordVideo = function(opt) {
-	opt = _.defaults(opt || {}, {
+exports.recordVideo = function(opt = {}) {
+	_.defaults(opt, {
 		width: 640,
 		height: 480,
 		fps: 30,
