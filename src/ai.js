@@ -1,6 +1,7 @@
 const TAG = 'AI';
 
 const _ = require('underscore');
+const deepExtend = require('deep-extend');
 const Translator = apprequire('translator');
 const Messages = apprequire('messages');
 
@@ -81,7 +82,7 @@ exports.apiaiResultParser = async function(body, session_model) {
 	};
 	(body.result.fulfillment.messages || []).forEach((m) => {
 		delete m.type;
-		f = _.extend(f, m);
+		deepExtend(f, m);
 	});
 	body.result.fulfillment = f;
 
