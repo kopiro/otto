@@ -1,31 +1,20 @@
 exports.id = 'stories.get';
 
-/*
-db.stories.createIndex({"title":"text","tag":"text"})
-*/
+module.exports = async function({ sessionId, result }, session_model) {
+	let { parameters: p, fulfillment } = result;
 
-module.exports = function({ sessionId, result }, session_model) {
-	return new Promise((resolve, reject) => {
-		let { parameters: p, fulfillment } = result;
+	const story = await Data.Story
+	.findOne({ $text: { $search: p.q }}, { score: { $meta: "textScore" }})
+	.sort({ score: { $meta:"textScore" } });
 
-		Data.Story
-		.findOne({ $text: { $search: p.q }}, { score: { $meta: "textScore" }})
-		.sort({ score: { $meta:"textScore" } })
-		.then((story) => {
-			if (story == null) {
-				resolve({
-					speech: 'Mi dispiace, ma non ricordo nulla del genere... 😔'
-				});
-			} else {
-				resolve({
-					speech: story.text,
-					data: {
-						url: story.url
-					}
-				});
-			}
-		})
-		.catch(reject);
+	if (story == null) {
+		throw fulfillment.payload.errors.notFound;
+	}
 
-	});
+	return {
+		speech: story.text,
+		data: {
+			url: story.url
+		}
+	};
 };

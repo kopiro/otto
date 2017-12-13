@@ -10,17 +10,18 @@ const _config = config.apiai;
 const apiai = require('apiai');
 const client = apiai(_config.token);
 
-async function fulfillmentTransformer(fulfillment, session_model) {
-	// Ensure always data object exists
+function fulfillmentSanitizer(fulfillment) {
 	if (!_.isObject(fulfillment)) {
 		throw new Error('Fulfillment is not an object');
 	}
-
-	_.defaults(fulfillment, {
+	return _.defaults(fulfillment, {
 		data: {},
 		payload: {}
 	});
-	
+}
+
+async function fulfillmentTransformer(fulfillment, session_model) {
+	fulfillment = fulfillmentSanitizer(fulfillment);
 	fulfillment.localTransform = true;
 
 	if (!_.isEmpty(fulfillment.speech)) {
@@ -115,14 +116,17 @@ exports.textRequest = function(text, session_model) {
 		request.on('response', async(body) => {
 			console.info(TAG, 'response');
 			console.dir(body, { depth: 10 });
+			
+			let fulfillment;
 
 			if (body.result.metadata.webhookUsed === 'true' && body.status.errorType !== 'partial_content') {
 				delete body.result.fulfillment.messages;
-				return resolve(body.result.fulfillment);
+				fulfillment = fulfillmentSanitizer(body.result.fulfillment);
+				return resolve(fulfillment);
 			}
 	
 			console.debug(TAG, 'webhook not used or failed, solving locally');
-			let fulfillment = await exports.apiaiResultParser(body, session_model);
+			fulfillment = await exports.apiaiResultParser(body, session_model);
 			resolve(fulfillment);
 		});
 
