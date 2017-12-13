@@ -345,7 +345,7 @@ exports.startInput = async function() {
 			event: {
 				name: 'welcome',
 				data: {
-					name: IOManager.sessionModel.alias
+					name: IOManager.sessionModel.alias || config.uid
 				}
 			}
 		}

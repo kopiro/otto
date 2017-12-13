@@ -15,3 +15,6 @@ ln -svf /usr/local/lib/grpc_node.node ./node_modules/google-gax/node_modules/grp
 
 mkdir -p ./node_modules/grpc/src/node/extension_binary/node-v57-linux-arm/
 ln -svf /usr/local/lib/grpc_node.node ./node_modules/grpc/src/node/extension_binary/node-v57-linux-arm/grpc_node.node
+
+mkdir -p ./node_modules/@google-cloud/speech/node_modules/grpc/src/node/extension_binary/node-v57-linux-arm-glibc
+ln -svf /usr/local/lib/grpc_node.node ./node_modules/@google-cloud/speech/node_modules/grpc/src/node/extension_binary/node-v57-linux-arm-glibc/grpc_node.node
