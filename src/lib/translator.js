@@ -8,11 +8,11 @@ const translateClient = translate({
 exports.translate = function(text, to_language = config.language, from_language = config.language) {
 	return new Promise((resolve, reject) => {
 		
+		console.debug(TAG, { text, to_language, from_language });
+
 		if (to_language === from_language) {
 			return resolve(text);
 		}
-
-		console.debug(TAG, { text, to_language, from_language });
 
 		translateClient.translate(text, to_language, (err, translation) => {
 			if (err) {

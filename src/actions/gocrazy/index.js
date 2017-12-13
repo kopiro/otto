@@ -42,13 +42,13 @@ module.exports = function({ sessionId, result }, session) {
 								.then().catch().then(_next);
 							});
 						} else if (what >= 8) {
-							const w = inputs.getRandom();
+							const w = getRandomElement(inputs);
 							client.search(`disegno "${w}"`)
 							.then((images) => {
 								IOManager.output({
 									data: { 
 										image: { 
-											remoteFile: images.getRandom().url 
+											uri: getRandomElement(images).url 
 										} 
 									}
 								}, session)

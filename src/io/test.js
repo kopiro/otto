@@ -12,7 +12,10 @@ const rl = readline.createInterface({
   output: process.stdout
 });
 
-let initial_strings = fs.readFileSync(__etcdir + '/io_test.txt').toString().split("\n");
+let initial_strings = [];
+try {
+	initial_strings = fs.readFileSync(__etcdir + '/io_test.txt').toString().split("\n");
+} catch (err) {}
 
 async function registerGlobalSession() {
 	return IOManager.registerSession({

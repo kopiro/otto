@@ -212,7 +212,7 @@ _.extend(GameSchema.methods, {
 			if (IOManager.driversCapabilities[ this.session.io_id ].speechOverGame) {
 				if (source === 'ai') {
 					IOManager.output({
-						speech: SPEECH_MOVING.getRandom().replace('{piece}', exports.PIECES[move.piece]).replace('{to}', move.to)
+						speech: getRandomElement(SPEECH_MOVING).replace('{piece}', exports.PIECES[move.piece]).replace('{to}', move.to)
 					}, this.session);
 				}
 			}

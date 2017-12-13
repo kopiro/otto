@@ -7,7 +7,7 @@ module.exports = function({ sessionId, result }) {
 		let { parameters: p, fulfillment } = result;
 		
 		resolve({
-			speech: Messages.getRaw('coinflip_choices').getRandom()
+			speech: getRandomElement(Messages.getRaw('coinflip_choices'))
 		});
 	});
 };

@@ -9,11 +9,11 @@ module.exports = function({ sessionId, result }) {
 
 		client.search(`disegno "${p.q}"`)
 		.then((images) => {
-			let img = images.getRandom();
+			let img = getRandomElement(images);
 			resolve({
 				data: {
 					image: {
-						remoteFile: img.url
+						uri: img.url
 					}
 				}
 			});

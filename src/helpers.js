@@ -7,8 +7,8 @@ global.requireOrNull = function(e) {
 	catch (ex) { return null; }
 };
 
-Array.prototype.getRandom = function() {
-	return this[ _.random(0, this.length - 1) ];
+global.getRandomElement = function(e) {
+	return _.isArray(e) ? e[_.random(0, e.length - 1)] : e;
 };
 
 // Define a new require to require files from our path
