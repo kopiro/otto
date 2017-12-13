@@ -21,7 +21,7 @@ module.exports = function({ result }, session_model) {
 		} catch (err) {
 			IOManager.output({
 				data: {
-					error: getRandomElement(fulfillment.payload.errors.generic)
+					error: getRandomElement(fulfillment.payload.notFound.generic)
 				}
 			}, session_model);
 		}
