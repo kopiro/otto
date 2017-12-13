@@ -15,13 +15,15 @@ function fulfillmentSanitizer(fulfillment) {
 		throw new Error('Fulfillment is not an object');
 	}
 	return _.defaults(fulfillment, {
-		data: {},
-		payload: {}
+		data: {}
 	});
 }
 
 async function fulfillmentTransformer(fulfillment, session_model) {
 	fulfillment = fulfillmentSanitizer(fulfillment);
+	// Here, merge data with payload in case 
+	// fulfillment is direct without an action resolution
+	_.defaults(fulfillment.data, fulfillment.payload);
 	fulfillment.localTransform = true;
 
 	if (!_.isEmpty(fulfillment.speech)) {
@@ -76,17 +78,14 @@ exports.textRequestTransformer = async function(text, session_model) {
 
 exports.apiaiResultParser = async function(body, session_model) {
 	// Parse messages
-	let f = { 
-		data: {},
-		payload: {}
-	};
+	let f = { payload: {} };
 	(body.result.fulfillment.messages || []).forEach((m) => {
 		delete m.type;
 		deepExtend(f, m);
 	});
 	body.result.fulfillment = f;
 
-	console.info(TAG, 'fulfillment');
+	console.info(TAG, 'input fulfillment');
 	console.dir(f, { depth: 10 });
 
 	if (body.result.metadata.intentId != null) {

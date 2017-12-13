@@ -196,6 +196,10 @@ exports.output = async function(f, session_model) {
 	if (f.data.lyrics) {
 		await sendMessage(chat_id, f.data.lyrics.text, message_opt);
 	}
+
+	if (f.data.sticker) {
+		await bot.sendSticker(chat_id, getRandomElement(f.data.sticker), message_opt);
+	}
 };
 
 /////////////////

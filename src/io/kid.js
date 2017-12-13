@@ -342,7 +342,12 @@ exports.startInput = async function() {
 
 	emitter.emit('input', {
 		params: {
-			event: 'welcome'
+			event: {
+				name: 'welcome',
+				data: {
+					name: IOManager.sessionModel.alias
+				}
+			}
 		}
 	});
 

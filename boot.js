@@ -17,7 +17,7 @@ global.config = _.defaults(require('./config.json'), {
 	"uid": null,
 
 	// A regex activator used to wakeup the AI in group messages
-	"aiNameRegex": null,
+	"aiNameRegex": "",
 
 	// A list of IO drivers to activate on boot for this instance
 	"ioDrivers": [],
@@ -167,11 +167,6 @@ global.config = _.defaults(require('./config.json'), {
 
 if (config.uid == null) {
 	console.error("Please define config.uid with your Universal ID (username)");
-	process.exit(1);
-}
-
-if (config.aiNameRegex == null) {
-	console.error("Please define config.aiNameRegex with the Regex used to activate via text your AI");
 	process.exit(1);
 }
 
