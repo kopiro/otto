@@ -262,8 +262,8 @@ bot.on('message', async(e) => {
 			if (err.unrecognized) {
 				return emitter.emit('input', {
 					session_model: IOManager.sessionModel,
-					error: {
-						speech: Messages.get('io_speechrecognizer_unrecognized')
+					params: {
+						event: 'io_speechrecognizer_unrecognized'
 					}
 				});
 			}

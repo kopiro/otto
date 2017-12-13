@@ -57,6 +57,15 @@ async function sendMessage(text, language) {
 	return true;
 }
 
+async function processEvent(event) {
+	switch (event) {
+		case 'hotword_recognized_first_hint':
+		eorTick = EOR_MAX;
+		createRecognizeStream();
+		break;
+	}
+}
+
 async function sendVoice(e) {
 	if (e.uri) {
 		await Play.urlToSpeaker(e.uri);
@@ -88,12 +97,6 @@ function stopOutput() {
 	if (Mopidy.playback) Mopidy.playback.stop();
 }
 
-async function sendFirstHint(language) {
-	language = language || IOManager.sessionModel.getTranslateTo();
-	let hint = await Translator.translate(Messages.get('io_first_hint'), language, config.language);
-	return sendMessage(hint, language);
-}
-
 function createRecognizeStream() {
 	console.log(TAG, 'recognizing microphone stream');
 
@@ -105,26 +108,23 @@ function createRecognizeStream() {
 		if (err) {
 			if (err.unrecognized) {
 				return emitter.emit('input', {
-					session_model: IOManager.sessionModel,
-					error: {
-						speech: Messages.get('io_speechrecognizer_unrecognized')
+					params: {
+						event: 'io_speechrecognizer_unrecognized'
 					}
 				});
 			}
 			return emitter.emit('input', {
-				session_model: IOManager.sessionModel,
 				error: err
 			});
 		}
 
 		emitter.emit('input', {
-			session_model: IOManager.sessionModel,
 			params: {
 				text: text
 			}
 		});
 
-		IOManager.writeLogForSession(IOManager.sessionModel.id, text);
+		IOManager.writeLogForSession(null, text);
 	});
 
 	// When user speaks, reset the timer to the max
@@ -227,9 +227,11 @@ function createHotwordDetectorStream() {
 				wakeWordTick = -1;
 				console.info(TAG, `detected ${WAKE_WORD_TICKS} ticks of consecutive silence, prompt user`);
 				destroyRecognizeStream();
-				await sendFirstHint();
-				eorTick = EOR_MAX;
-				createRecognizeStream();
+				emitter.emit('input', {
+					params: {
+						event: 'hotword_recognized_first_hint'
+					}
+				});
 			}
 		}
 	});
@@ -268,6 +270,10 @@ async function processOutputQueue() {
 
 	try {
 
+		if (f.payload.eventBeforeSpeech) {
+			await processEvent(f.payload.eventBeforeSpeech);
+		}
+
 		if (f.data.error) {
 			if (f.data.error.speech) {	
 				await sendMessage(f.data.error.speech, f.data.language);
@@ -297,6 +303,10 @@ async function processOutputQueue() {
 			await sendMusic(f.data.music);
 		}
 
+		if (f.payload.eventAfterSpeech) {
+			await processEvent(f.payload.eventAfterSpeech);
+		}
+
 	} catch (err) {
 		console.error(TAG, err);
 	}
@@ -308,9 +318,11 @@ async function processOutputQueue() {
 		emitter.emit('thinking');
 	}
 
-	if (queueOutput.length === 0 && !f.data.feedback) {
-		eorTick = EOR_MAX; // re-enable at max
-		createRecognizeStream();
+	if (f.data.feedback == false && f.payload.welcome == false) {
+		if (queueOutput.length === 0) {
+			eorTick = EOR_MAX; // re-enable at max
+			createRecognizeStream();
+		}
 	}
 }
 
@@ -323,7 +335,11 @@ exports.startInput = async function() {
 	registerOutputQueueInterval();
 	registerEORInterval();
 
-	await sendMessage(Messages.get('driver_started'));
+	emitter.emit('input', {
+		params: {
+			event: 'welcome'
+		}
+	});
 
 	isInputStarted = true;
 	

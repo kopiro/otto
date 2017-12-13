@@ -16,7 +16,8 @@ async function fulfillmentTransformer(fulfillment, session_model) {
 	}
 
 	_.defaults(fulfillment, {
-		data: {}
+		data: {},
+		payload: {}
 	});
 	
 	fulfillment.localTransform = true;
@@ -74,7 +75,6 @@ exports.textRequestTransformer = async function(text, session_model) {
 exports.apiaiResultParser = async function(body, session_model) {
 	// Parse messages
 	let f = { 
-		speech: '',
 		data: {},
 		payload: {}
 	};
@@ -91,15 +91,12 @@ exports.apiaiResultParser = async function(body, session_model) {
 		} else {
 			body.result.fulfillment = await fulfillmentTransformer(body.result.fulfillment, session_model);
 		}
-	} else {
-		// If not intentId is returned, this is a unhandled DialogFlow intent
-		// So return an error with this speech (ai_unhandled)
-		body.result.fulfillment = await fulfillmentTransformer({
-			data: { error: { speech: Messages.get('ai_unhandled') } }
-		}, session_model);
+		return body.result.fulfillment;
 	}
 
-	return body.result.fulfillment;
+	// If not intentId is returned, this is a unhandled DialogFlow intent
+	// So return an error with this speech (ai_unhandled)
+	return exports.eventRequest('ai_unhandled', session_model);
 };
 
 exports.textRequest = function(text, session_model) {
@@ -108,6 +105,41 @@ exports.textRequest = function(text, session_model) {
 
 		text = await exports.textRequestTransformer(text, session_model);
 		let request = client.textRequest(text, {
+			sessionId: session_model._id
+		});
+
+		request.on('response', async(body) => {
+			console.info(TAG, 'response');
+			console.dir(body, { depth: 10 });
+
+			if (body.result.metadata.webhookUsed === 'true' && body.status.errorType !== 'partial_content') {
+				delete body.result.fulfillment.messages;
+				return resolve(body.result.fulfillment);
+			}
+	
+			console.debug(TAG, 'webhook not used or failed, solving locally');
+			let fulfillment = await exports.apiaiResultParser(body, session_model);
+			resolve(fulfillment);
+		});
+
+		request.on('error', (err) => {
+			console.error(TAG, 'error', err);
+			reject(err);
+		});
+
+		request.end();
+	});
+};
+
+exports.eventRequest = function(event, session_model) {
+	return new Promise(async(resolve, reject) => {
+		console.debug(TAG, 'event request =======>', event);
+
+		if (_.isString(event)) {
+			event = { name: event };
+		}
+
+		let request = client.eventRequest(event, {
 			sessionId: session_model._id
 		});
 

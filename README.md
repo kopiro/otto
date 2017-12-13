@@ -4,6 +4,21 @@
 
 ![Logo](image.png?raw=true "Logo")
 
+Otto was my monkey plush, now is my personal AI.
+
+## Modes
+
+Otto is a monolitich (by design) server and a client app with the same codebase.
+
+It could run as a server to listen via webhook the incoming requests,
+or it could run as a client to interact with the user via voice.
+
+The flow is the following:
+
+```
+Request (client) --> [[ Dialogflow --> Server --> Fulfillment ]] --> Response (client)
+```
+
 ## Build
 
 ### Build for production

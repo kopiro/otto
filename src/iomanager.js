@@ -54,6 +54,11 @@ async function processDriverInput(driver, { session_model, params = {} }) {
 		const fulfillment = await AI.textRequest(params.text, session_model);
 		return driver.output(fulfillment, session_model);
 	}
+
+	if (params.event) {
+		const fulfillment = await AI.eventRequest(params.event, session_model);
+		return driver.output(fulfillment, session_model);
+	}
 }
 
 function configureAccessories(driver) {
@@ -74,6 +79,10 @@ function configureDriver(driver) {
 	}
 
 	driver.emitter.on('input', async(e) => {
+		_.defaults(e, {
+			session_model: exports.sessionModel
+		});
+		
 		try {
 			if (e.error) throw e.error;
 			await processDriverInput(outputDriver, e);
@@ -143,6 +152,7 @@ exports.output = async function(fulfillment, session_model) {
 };
 
 exports.writeLogForSession = async function(sessionId, text) {
+	sessionId = sessionId || exports.sessionModel._id;
 	return (new Data.SessionInput({ 
 		session: sessionId,
 		text: text

@@ -1,34 +1,4 @@
 {
-	"ai_exception": [ 
-		"Errore del sistema"
-	],
-	"io_speechrecognizer_unrecognized": [
-		"Scusa, ma non ho capito quello che hai detto!"
-	],
-	"ai_unhandled": [ 
-		"Cosa vuol dire?",
-		"Cosa significa scusa?",
-		"Uffa, sei lontano e non capisco...",
-		"Cosa vorresti dire?",
-		"Ero distratto. Potresti ripetere per favore?",
-		"Oh no!Non ti ho sentito. Cosa dicevi?",
-		"Stavo leggendo, e non ti ascoltavo. Dicevi?"
-	],
-	"io_first_hint": [
-		"Dimmi",
-		"Ehi",
-		"Weilà",
-		"Dica",
-		"Spara",
-		"Dimmi tutto",
-		"Vai",
-		"Sono pronto",
-		"Eccomi",
-		"Ti ascolto",
-		"Ci sono",
-		"Sì",
-		"Ti stavo aspettando"
-	],
 	"io_hotword_training_tutorial": [
 		"Configura per la hotword %s"
 	],
@@ -54,9 +24,6 @@
 	],
 	"io_hotword_training_success": [
 		"Configurazione per la hotword %s riuscita"
-	],
-	"driver_started" : [
-		"Buongiorno"
 	],
 	"coinflip_choices": [
 		"Testa", "Croce"
