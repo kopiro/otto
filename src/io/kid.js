@@ -272,8 +272,8 @@ async function processOutputQueue() {
 
 	try {
 
-		if (f.payload.eventBeforeSpeech) {
-			await processEvent(f.payload.eventBeforeSpeech);
+		if (f.data.eventBeforeSpeech) {
+			await processEvent(f.data.eventBeforeSpeech);
 		}
 
 		if (f.data.error) {
@@ -305,8 +305,8 @@ async function processOutputQueue() {
 			await sendMusic(f.data.music);
 		}
 
-		if (f.payload.eventAfterSpeech) {
-			await processEvent(f.payload.eventAfterSpeech);
+		if (f.data.eventAfterSpeech) {
+			await processEvent(f.data.eventAfterSpeech);
 		}
 
 	} catch (err) {
@@ -323,7 +323,7 @@ async function processOutputQueue() {
 	// If is not a welcome or a feedback fulfillment,
 	// and the output queue is empty (there's nothing left to say)
 	// listen for the user (createRecognizeStream)
-	if (f.data.feedback == false && f.payload.welcome == false) {
+	if (f.data.feedback == false && f.data.welcome == false) {
 		if (queueOutput.length === 0) {
 			eorTick = EOR_MAX; // re-enable at max
 			createRecognizeStream();
