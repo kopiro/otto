@@ -240,7 +240,7 @@ function createHotwordDetectorStream() {
 
 	hotwordDetectorStream.on('sound', (buffer) => {
 		wakeWordTick = -1;
-		// process.stdout.write('🔉 ');
+		process.stdout.write('🔉 ');
 	});
 
 	hotwordDetectorStream.on('error', (err) => {
@@ -318,6 +318,10 @@ async function processOutputQueue() {
 
 	if (f.data.feedback) {
 		emitter.emit('thinking');
+	}
+
+	if (f.data.welcome) {
+		emitter.emit('stop');
 	}
 
 	// If is not a welcome or a feedback fulfillment,
