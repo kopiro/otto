@@ -57,9 +57,12 @@ module.exports = function({ sessionId, result }, session_model) {
 			}
 
 			try {
-				await IOManager.output({
-					speech: `Hey! ${session_model.alias} mi ha detto di riferirti questo: ${text}`
-				}, eligible_contact);
+				await IOManager.input({
+					params: { fulfillment: {
+						speech: `Hey! ${session_model.alias} mi ha detto di riferirti questo: ${text}`
+					} },
+					session_model: eligible_contact
+				});
 				resolve({
 					speech: 'Perfetto, inviato!'
 				});

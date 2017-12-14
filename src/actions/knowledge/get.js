@@ -15,15 +15,17 @@ module.exports = function({ result }, session_model) {
 
 		try {
 			const speech = await Wolfram.complexQuery(result.resolvedQuery, session_model.getTranslateTo());
-			IOManager.output({
-				speech: speech
-			}, session_model);
+			IOManager.input({
+				params: { fulfillment: { speech: speech } },
+				session_model: session_model
+			});
 		} catch (err) {
-			IOManager.output({
-				data: {
+			IOManager.input({
+				params: { fulfillment: { data: {
 					error: getRandomElement(fulfillment.payload.notFound.generic)
-				}
-			}, session_model);
+				} } },
+				session_model: session_model
+			});
 		}
 	});
 };

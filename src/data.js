@@ -15,6 +15,10 @@ const Session = new Schema({
 	pipe: Schema.Types.Mixed
 });
 
+Session.methods.getIODriver = function() {
+	return IOManager.getDriver(this.io_id);
+};
+
 Session.methods.saveInPipe = function(data) {
 	this.pipe = _.extend(this.pipe || {}, data);
 	this.markModified('pipe');
@@ -48,7 +52,7 @@ exports.SessionInput = mongoose.model('session_input', SessionInput);
 const IOQueue = new Schema({
 	session: { type: String, ref: 'session' },
 	driver: String,
-	fulfillment: Schema.Types.Mixed,
+	data: Schema.Types.Mixed,
 });
 exports.IOQueue = mongoose.model('io_queue', IOQueue);
 

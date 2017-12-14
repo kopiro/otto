@@ -8,7 +8,7 @@ const Translator = apprequire('translator');
 const ImagesClient = require('google-images');
 const client = new ImagesClient(config.gcloud.cseId, config.gcloud.apiKey);
 
-module.exports = function({ sessionId, result }, session) {
+module.exports = function({ sessionId, result }, session_model) {
 	return new Promise((resolve, reject) => {
 		const { parameters: p, fulfillment } = result;
 		resolve();
@@ -38,21 +38,33 @@ module.exports = function({ sessionId, result }, session) {
 							const prc = spawn('dadadodo', [ '-c', 1, __tmpdir + '/dadadodo.txt' ]);
 							prc.stdout.on('data', (_text) => { text += _text.toString(); });
 							prc.on('close', () => {
-								IOManager.output({ speech: text.toString()}, session)
-								.then().catch().then(_next);
+								IOManager.input({ 
+									params: {
+										fulfillment: {
+											speech: text.toString()
+										}
+									},
+									session_model: session_model
+								});
+								_next();
 							});
 						} else if (what >= 8) {
 							const w = getRandomElement(inputs);
 							client.search(`disegno "${w}"`)
 							.then((images) => {
-								IOManager.output({
-									data: { 
-										image: { 
-											uri: getRandomElement(images).url 
-										} 
-									}
-								}, session)
-								.then().catch().then(_next);
+								IOManager.input({
+									params: {
+										fulfillment: {
+											data: { 
+												image: { 
+													uri: getRandomElement(images).url 
+												} 
+											}
+										}
+									},
+									session_model: session_model
+								});
+								_next();
 							});
 						}
 					}

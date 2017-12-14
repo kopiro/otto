@@ -31,20 +31,28 @@ exports.driversCapabilities = {
 	},
 };
 
-async function processDriverInputError(driver, { session_model, fulfillment = {} }) {
-	console.error('processDriverInputError', 'SID = ' + session_model._id);
-	console.dir(fulfillment, { depth: 10 });
-
-	fulfillment = await AI.fulfillmentTransformer(fulfillment, session_model);
-	return driver.output(fulfillment, session_model);
-}
-
-async function processDriverInput(driver, { session_model, params = {} }) {
-	console.info(TAG, 'processDriverInput', 'SID = ' + session_model._id);
+exports.input = async function({ session_model, params = {}, driver }) {
+	console.info(TAG, 'input', 'SID = ' + session_model._id);
 	console.dir(params, { depth: 10 });
+
+	session_model = session_model || IOManager.sessionModel;
+	driver = driver || session_model.getIODriver();
+
+	if (!isDriverEnabled(driver.id)) {	
+		console.info(TAG, 'putting in IO queue', { params, session_model });
+		await (new Data.IOQueue({
+			session: session_model._id,
+			driver: driver.id,
+			data: params
+		})).save();
+		return { 
+			inQueue: true 
+		};
+	}
 
 	// Direct fulfillment
 	if (params.fulfillment) {
+		params.fulfillment = await AI.fulfillmentTransformer(params.fulfillment, session_model);
 		return driver.output(params.fulfillment, session_model);
 	}
 
@@ -59,7 +67,7 @@ async function processDriverInput(driver, { session_model, params = {} }) {
 		const fulfillment = await AI.eventRequest(params.event, session_model);
 		return driver.output(fulfillment, session_model);
 	}
-}
+};
 
 function configureAccessories(driver) {
 	for (let accessory of (enabledAccesories[driver.id] || [])) {
@@ -71,24 +79,25 @@ function configureAccessories(driver) {
 function configureDriver(driver) {
 	console.info(TAG, `configuring IO Driver <${driver.id}>`);
 
-	let outputDriver = driver;
+	let driverOverride = null;
 	if (config.ioRedirectMap[driver.id] != null) {
 		const outputDriverStr = config.ioRedirectMap[driver.id];
 		console.info(TAG, `<${driver.id}> redirect output to <${outputDriverStr}>`);
-		outputDriver = exports.getDriver(outputDriverStr);
+		driverOverride = exports.getDriver(outputDriverStr);
 	}
 
 	driver.emitter.on('input', async(e) => {
 		_.defaults(e, {
+			driver: driverOverride,
 			session_model: exports.sessionModel
 		});
 		
 		try {
 			if (e.error) throw e.error;
-			await processDriverInput(outputDriver, e);
+			await exports.input(e);
 		} catch (ex) {
-			e.data = { error: ex };
-			await processDriverInputError(outputDriver, e);
+			e.params = { fulfillment: { data : { error: ex } } };
+			await exports.input(e);
 		}
 	});
 
@@ -124,31 +133,6 @@ exports.getDriver = function(e) {
 
 exports.getAccessory = function(e) {
 	return require(__basedir + '/src/io_accessories/' + e);
-};
-
-exports.output = async function(fulfillment, session_model) {
-	session_model = session_model || IOManager.sessionModel;
-	fulfillment = await AI.fulfillmentTransformer(fulfillment, session_model);
-	console.debug(TAG, 'output', { fulfillment, session_model });
-	
-	if (isDriverEnabled(session_model.io_id)) {	
-		// If driver is enabled, instantly resolve
-		let driver = exports.getDriver( session_model.io_id );
-		return driver.output(fulfillment, session_model);
-	}
-
-	// Otherwise, put in the queue and make resolve to other clients
-	console.info(TAG, 'putting in IO queue', { fulfillment, session_model });
-	
-	(new Data.IOQueue({
-		session: session_model._id,
-		driver: session_model.io_id,
-		fulfillment: fulfillment
-	})).save();
-
-	return { 
-		inQueue: true 
-	};
 };
 
 exports.writeLogForSession = async function(sessionId, text) {

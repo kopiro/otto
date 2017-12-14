@@ -1,7 +1,8 @@
 const TAG = 'Scheduler';
 
 const _ = require('underscore');
-const moment = apprequire('moment');
+const Moment = apprequire('moment');
+
 let started = false;
 
 async function getScheduler(time) {
@@ -18,13 +19,13 @@ async function getScheduler(time) {
 }
 
 async function tick() {
-	const now = moment();
+	const now = Moment();
 	console.debug(TAG, 'tick', now.format('YYYY-MM-DD HH:mm:ss', {trim:false}));
 
 	const data = await getScheduler(now);
 	if (_.isEmpty(data)) return;
 
-	console.log(data);
+	console.log(TAG, data);
 
 	data.forEach((sch) => {
 		console.debug(TAG, 'processing => ' + sch.program);

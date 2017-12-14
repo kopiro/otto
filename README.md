@@ -183,9 +183,14 @@ module.exports = async function({ sessionId, result }, session_model) {
     let { parameters: p, fulfillment } = result;
 
     doSomeLongWork(() => {
-        IOManager.output({
-            speech: `Hello ${p.name}! (postponed)`
-        }, session_model);
+        IOManager.input({
+            params: { 
+                fulfillment: { 
+                    speech: `Hello ${p.name}! (postponed)`
+                }
+            },
+            session_model: session_model
+        });
     });
 
     return {
