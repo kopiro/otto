@@ -324,14 +324,9 @@ async function processOutputQueue() {
 		emitter.emit('stop');
 	}
 
-	// If is not a welcome or a feedback fulfillment,
-	// and the output queue is empty (there's nothing left to say)
-	// listen for the user (createRecognizeStream)
-	if (f.data.feedback == false && f.data.welcome == false) {
-		if (queueOutput.length === 0) {
-			eorTick = EOR_MAX; // re-enable at max
-			createRecognizeStream();
-		}
+	if (f.data.listen == true && queueOutput.length === 0) {
+		eorTick = EOR_MAX;
+		createRecognizeStream();
 	}
 }
 
