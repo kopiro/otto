@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -ex
-
 apt-get update
 
 apt-get -y install sox
@@ -13,18 +11,6 @@ wget -q -O - https://apt.mopidy.com/mopidy.gpg | sudo apt-key add -
 wget -q -O /etc/apt/sources.list.d/mopidy.list https://apt.mopidy.com/jessie.list
 apt-get update
 apt-get -y install mopidy mopidy-spotify mpc
-
-apt-get -y install supervisor
-mkdir -p /var/log/otto
-echo "[program:otto]
-directory=/root/otto-ai
-command=npm run start
-autostart=true
-autorestrart=true
-stdout_logfile=/var/log/otto/out.log
-stderr_logfile=/var/log/otto/err.log
-environment=AUDIODEV="hw:1"
-" >/etc/supervisor/conf.d/otto.conf
 
 wget -O - https://raw.githubusercontent.com/audstanley/NodeJs-Raspberry-Pi/master/Install-Node.sh | bash
 
