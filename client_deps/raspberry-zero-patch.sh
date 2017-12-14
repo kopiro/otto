@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -ex
-
 wget https://github.com/grpc/grpc/files/1484635/grpc_node.node.zip
 unzip grpc_node.node.zip
 mv grpc_node.node /usr/local/lib/grpc_node.node 

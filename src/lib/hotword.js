@@ -31,7 +31,9 @@ async function getModels(forceTraining = false) {
 			let files = fs.readdirSync(PMDL_DIR + dir);
 			files = files.filter((file) => /\.pmdl$/.test(file));
 			
-			console.debug(TAG, 'scanned ' + files.length + ' pdml files in ' + dir);
+			const sens = _config.sensitivity[dir];
+			console.debug(TAG, 'added ' + files.length + ' pdml files (' + dir + ') with sensitivity = ' + sens);
+
 			files.forEach((file) => {
 				pmdls[dir].push(file);
 				hotwordModels.add({
