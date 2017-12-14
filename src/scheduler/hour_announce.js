@@ -6,7 +6,7 @@ exports.run = function({ session }) {
 	const now = Moment();
 	if (now.hours() >= 10 && now.hours() <= 23) {
 		return IOManager.input({
-			session_model: session,
+			session: session,
 			params: {
 				event: 'hour_announce'
 			}

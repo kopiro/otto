@@ -2,7 +2,7 @@ exports.id = 'camera.spy';
 
 const Camera = apprequire('camera');
 
-module.exports = function({ sessionId, result }, session_model) {
+module.exports = function({ sessionId, result }, session) {
 	return new Promise(async(resolve, reject) => {
 		let { parameters: p, fulfillment } = result;
 
@@ -26,7 +26,7 @@ module.exports = function({ sessionId, result }, session_model) {
 					}
 				}
 			},
-			session_model: session_model
+			session: session
 		});
 	});
 };

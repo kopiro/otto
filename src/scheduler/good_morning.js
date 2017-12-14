@@ -5,6 +5,6 @@ exports.run = function({ session }) {
 		params: { fulfillment: {
 			speech: 'Buongiorno! Sono le ' + now.hours() + ' e ' + now.minutes() + '; penso sia ora di svegliarsi!' 
 		} },
-		session_model: session
+		session: session
 	});
 };

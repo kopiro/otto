@@ -19,7 +19,7 @@ const bot = new MessengerBot(_config);
 
 let started = false;
 
-function handleInputVoice(session_model, e) {
+function handleInputVoice(session, e) {
 	return new Promise(async(resolve, reject) => {		
 		const file_link = await bot.getFileLink(e.voice.file_id);
 		const voice_file = __tmpdir + '/' + uuid() + '.ogg';
@@ -37,7 +37,7 @@ function handleInputVoice(session_model, e) {
 				
 				const recognize_stream = SpeechRecognizer.createRecognizeStream({
 					interimResults: false,
-					language: session_model.getTranslateFrom()
+					language: session.getTranslateFrom()
 				}, (err, text) => {
 					if (err) return reject(err);
 					resolve(text);
@@ -84,23 +84,23 @@ exports.startInput = function() {
 	console.info(TAG, 'started on port ' + _config.port);
 };
 
-exports.output = async function(f, session_model) {
+exports.output = async function(f, session) {
 	console.info(TAG, 'output');
-	console.dir({ f, session_model });
+	console.dir({ f, session });
 
 	emitter.emit('output', {
-		sessionModel: session_model,
+		session: session,
 		fulfillment: f
 	});
 
-	const language = f.data.language || session_model.getTranslateTo();
-	const chat_id = session_model.io_data.sender.id;
+	const language = f.data.language || session.getTranslateTo();
+	const chat_id = session.io_data.sender.id;
 
 	if (f.data.error) {
 		if (f.data.error.speech) {	
 			await sendMessage(chat_id, f.data.error.speech);
 		}
-		if (session_model.is_admin === true) {
+		if (session.is_admin === true) {
 			await sendMessage(chat_id, "ERROR: `" + JSON.stringify(f.data.error) + "`");
 		}
 
@@ -188,7 +188,7 @@ bot.on('message', (e) => {
 			return;
 		}
 
-		const session_model = await IOManager.registerSession({
+		const session = await IOManager.registerSession({
 			sessionId: sessionId,
 			io_id: exports.id, 
 			io_data: {
@@ -199,12 +199,12 @@ bot.on('message', (e) => {
 			text: e.message.text
 		});
 
-		const chat_id = session_model.io_data.sender.id;
+		const chat_id = session.io_data.sender.id;
 		bot.sendSenderAction(chat_id, 'mark_seen');
 
 		if (e.message.text) {
 			emitter.emit('input', {
-				session_model: session_model,
+				session: session,
 				params: {
 					text: e.message.text
 				}
@@ -216,7 +216,7 @@ bot.on('message', (e) => {
 			const attach = _.first(e.message.attachments);
 			if (attach.type === 'image') {
 				emitter.emit('input', {
-					session_model: session_model,
+					session: session,
 					params: {
 						image: {
 							uri: attach.payload.url,
@@ -228,7 +228,7 @@ bot.on('message', (e) => {
 		}
 
 		emitter.emit('input', {
-			session_model: session_model,
+			session: session,
 			error: {
 				unkownInputType: true
 			}

@@ -3,7 +3,7 @@ exports.id = 'settings.switchlang';
 const _ = require('underscore');
 const Translator = apprequire('translator');
 
-module.exports = async function({ sessionId, result }, session_model) {
+module.exports = async function({ sessionId, result }, session) {
 	let { parameters: p, fulfillment } = result;
 
 	if (p.translate_both) {
@@ -29,15 +29,15 @@ module.exports = async function({ sessionId, result }, session_model) {
 
 		let language_to_set = language.code;
 		if (language_to_set == config.language) language_to_set = null;
-		session_model['translate_' + x] = language_to_set;
+		session['translate_' + x] = language_to_set;
 	}
 
-	await session_model.save();
+	await session.save();
 
-	const from = _.findWhere(languages, { code: session_model.getTranslateFrom() }).name;
-	const to = _.findWhere(languages, { code: session_model.getTranslateTo() }).name;
+	const from = _.findWhere(languages, { code: session.getTranslateFrom() }).name;
+	const to = _.findWhere(languages, { code: session.getTranslateTo() }).name;
 
-	if (session_model.getTranslateFrom() === session_model.getTranslateTo()) {
+	if (session.getTranslateFrom() === session.getTranslateTo()) {
 		return {
 			speech: `Ok, parliamo in ${to}!`
 		};

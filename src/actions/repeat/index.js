@@ -2,7 +2,7 @@ exports.id = 'repeat';
 
 const _ = require('underscore');
 
-module.exports = function({ sessionId, result }, session_model) {
+module.exports = function({ sessionId, result }, session) {
 	return new Promise(async(resolve, reject) => {
 		let { parameters: p, fulfillment } = result;
 
@@ -12,9 +12,9 @@ module.exports = function({ sessionId, result }, session_model) {
 			});
 		}
 
-		let session_model_by_driver = await session_model.getRelatedSessions()
+		let session_by_driver = await session.getRelatedSessions()
 		.findOne({ io_id: p.driver });
-		if (session_model_by_driver == null) {
+		if (session_by_driver == null) {
 			return reject();
 		}
 
@@ -22,7 +22,7 @@ module.exports = function({ sessionId, result }, session_model) {
 			params: { fulfillment: {
 				speech: p.q
 			} },
-			session_model: session_model_by_driver
+			session: session_by_driver
 		});
 		
 		return resolve({});

@@ -1,6 +1,6 @@
 exports.id = 'stories.get';
 
-module.exports = async function({ sessionId, result }, session_model) {
+module.exports = async function({ sessionId, result }, session) {
 	let { parameters: p, fulfillment } = result;
 
 	const story = await Data.Story

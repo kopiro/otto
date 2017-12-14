@@ -43,7 +43,7 @@ let currentSendMessageKey = null;
 async function sendMessage(text, language) {
 	const key = md5(text);
 	currentSendMessageKey = key;
-	language = language || IOManager.sessionModel.getTranslateTo();
+	language = language || IOManager.session.getTranslateTo();
 	
 	const sentences = mimicHumanMessage(text);
 
@@ -101,7 +101,7 @@ function createRecognizeStream() {
 	console.log(TAG, 'recognizing microphone stream');
 
 	recognizeStream = SpeechRecognizer.createRecognizeStream({
-		language: IOManager.sessionModel.getTranslateFrom()
+		language: IOManager.session.getTranslateFrom()
 	}, (err, text) => {
 		destroyRecognizeStream();
 
@@ -257,7 +257,7 @@ async function processOutputQueue() {
 		return;
 	}
 
-	const session_model = IOManager.sessionModel;
+	const session = IOManager.session;
 	const f = queueOutput[0];
 	console.debug(TAG, 'processing queue item');
 
@@ -266,7 +266,7 @@ async function processOutputQueue() {
 	destroyRecognizeStream();
 
 	emitter.emit('output', {
-		sessionModel: session_model,
+		session: session,
 		fulfillment: f
 	});
 
@@ -280,7 +280,7 @@ async function processOutputQueue() {
 			if (f.data.error.speech) {	
 				await sendMessage(f.data.error.speech, f.data.language);
 			}
-			if (session_model.is_admin === true) {
+			if (session.is_admin === true) {
 				await sendMessage(String(f.data.error), 'en');
 			}
 		}
@@ -344,7 +344,7 @@ exports.startInput = async function() {
 			event: {
 				name: 'welcome',
 				data: {
-					name: IOManager.sessionModel.alias || config.uid
+					name: IOManager.session.alias || config.uid
 				}
 			}
 		}

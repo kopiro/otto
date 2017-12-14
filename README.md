@@ -135,7 +135,7 @@ An action is a responder for an intent that has logic inside.
 Your action parameters are:
 
 * The API.AI (Dialogflow) object
-* The mongoose *session_model* for this request
+* The mongoose *session* for this request
 
 Every action file must export a *Promise* or an *Async Function (ES6)*.
 
@@ -143,7 +143,7 @@ Every action file must export a *Promise* or an *Async Function (ES6)*.
 
 ```js
 exports.id = 'hello.name';
-module.exports = function({ sessionId, result }, session_model) {
+module.exports = function({ sessionId, result }, session) {
     return new Promise((resolve, reject) => {
         let { parameters: p, fulfillment } = result;
         if (p.name) return reject('Invalid parameters');
@@ -156,7 +156,7 @@ module.exports = function({ sessionId, result }, session_model) {
 
 ```js
 exports.id = 'hello.name';
-module.exports = async function({ sessionId, result }, session_model) {
+module.exports = async function({ sessionId, result }, session) {
     let { parameters: p, fulfillment } = result;
     if (p.name == null) throw 'Invalid parameters';
     return {
@@ -179,7 +179,7 @@ you have to resolve it immediately, postponing an eventual output to the *IOMana
 ```js
 exports.id = 'hello.postponed';
 
-module.exports = async function({ sessionId, result }, session_model) {
+module.exports = async function({ sessionId, result }, session) {
     let { parameters: p, fulfillment } = result;
 
     doSomeLongWork(() => {
@@ -189,7 +189,7 @@ module.exports = async function({ sessionId, result }, session_model) {
                     speech: `Hello ${p.name}! (postponed)`
                 }
             },
-            session_model: session_model
+            session: session
         });
     });
 

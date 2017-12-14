@@ -19,7 +19,7 @@ function fulfillmentSanitizer(fulfillment) {
 	});
 }
 
-async function fulfillmentTransformer(fulfillment, session_model) {
+async function fulfillmentTransformer(fulfillment, session) {
 	fulfillment = fulfillmentSanitizer(fulfillment);
 	// Here, merge data with payload in case 
 	// fulfillment is direct without an action resolution
@@ -27,12 +27,12 @@ async function fulfillmentTransformer(fulfillment, session_model) {
 	fulfillment.localTransform = true;
 
 	if (!_.isEmpty(fulfillment.speech)) {
-		fulfillment.speech = await Translator.translate(fulfillment.speech, session_model.getTranslateTo());
+		fulfillment.speech = await Translator.translate(fulfillment.speech, session.getTranslateTo());
 	}
 
 	if (fulfillment.data.error != null) {
 		if (!_.isEmpty(fulfillment.data.error.speech)) {
-			fulfillment.data.error.speech = await Translator.translate(fulfillment.data.error.speech, session_model.getTranslateTo());
+			fulfillment.data.error.speech = await Translator.translate(fulfillment.data.error.speech, session.getTranslateTo());
 		}
 	}
 
@@ -41,7 +41,7 @@ async function fulfillmentTransformer(fulfillment, session_model) {
 
 exports.fulfillmentTransformer = fulfillmentTransformer;
 
-async function fulfillmentPromiseTransformer(action, body, session_model) {
+async function fulfillmentPromiseTransformer(action, body, session) {
 	return new Promise(async(resolve) => {
 		let fulfillment = null;
 		
@@ -50,18 +50,18 @@ async function fulfillmentPromiseTransformer(action, body, session_model) {
 		let action_timeout = setTimeout(() => {
 			fulfillment = fulfillmentTransformer({
 				data: { error: { timeout: true } }
-			}, session_model);
+			}, session);
 			resolve(fulfillment);
 		}, 1000 * (_config.promiseTimeout || 10));
 
 		try {
 			console.debug(TAG, `calling action ${action}`);
-			fulfillment = await Actions.list[ body.result.action ]()(body, session_model);
-			fulfillment = await fulfillmentTransformer(fulfillment, session_model);
+			fulfillment = await Actions.list[ body.result.action ]()(body, session);
+			fulfillment = await fulfillmentTransformer(fulfillment, session);
 		} catch (err) {
 			fulfillment = await fulfillmentTransformer({
 				data: { error: err }
-			}, session_model);
+			}, session);
 		}
 
 		clearTimeout(action_timeout);
@@ -69,14 +69,14 @@ async function fulfillmentPromiseTransformer(action, body, session_model) {
 	});
 }
 
-exports.textRequestTransformer = async function(text, session_model) {
+exports.textRequestTransformer = async function(text, session) {
 	text = text.replace(config.aiNameRegex, ''); // Remove the AI name in the text
-	text = await Translator.translate(text, config.language, session_model.getTranslateTo());
+	text = await Translator.translate(text, config.language, session.getTranslateTo());
 	return text;
 };
 
 
-exports.apiaiResultParser = async function(body, session_model) {
+exports.apiaiResultParser = async function(body, session) {
 	// Parse messages
 	let f = { payload: {} };
 	(body.result.fulfillment.messages || []).forEach((m) => {
@@ -85,31 +85,31 @@ exports.apiaiResultParser = async function(body, session_model) {
 	});
 	body.result.fulfillment = f;
 
-	console.info(TAG, 'input fulfillment');
+	console.info(TAG, 'apiaiResultParser');
 	console.dir(f, { depth: 10 });
 
 	if (body.result.metadata.intentId != null) {
 		// If an intentId is returned, could auto resolve or call a promise
 		if (_.isEmpty(body.result.action) === false && body.result.actionIncomplete !== true) {
-			body.result.fulfillment = await fulfillmentPromiseTransformer(body.result.action, body, session_model);
+			body.result.fulfillment = await fulfillmentPromiseTransformer(body.result.action, body, session);
 		} else {
-			body.result.fulfillment = await fulfillmentTransformer(body.result.fulfillment, session_model);
+			body.result.fulfillment = await fulfillmentTransformer(body.result.fulfillment, session);
 		}
 		return body.result.fulfillment;
 	}
 
 	// If not intentId is returned, this is a unhandled DialogFlow intent
 	// So return an error with this speech (ai_unhandled)
-	return exports.eventRequest('ai_unhandled', session_model);
+	return exports.eventRequest('ai_unhandled', session);
 };
 
-exports.textRequest = function(text, session_model) {
+exports.textRequest = function(text, session) {
 	return new Promise(async(resolve, reject) => {
 		console.debug(TAG, 'text request =======>', text);
 
-		text = await exports.textRequestTransformer(text, session_model);
+		text = await exports.textRequestTransformer(text, session);
 		let request = client.textRequest(text, {
-			sessionId: session_model._id
+			sessionId: session._id
 		});
 
 		request.on('response', async(body) => {
@@ -125,7 +125,7 @@ exports.textRequest = function(text, session_model) {
 			}
 	
 			console.debug(TAG, 'webhook not used or failed, solving locally');
-			fulfillment = await exports.apiaiResultParser(body, session_model);
+			fulfillment = await exports.apiaiResultParser(body, session);
 			resolve(fulfillment);
 		});
 
@@ -138,7 +138,7 @@ exports.textRequest = function(text, session_model) {
 	});
 };
 
-exports.eventRequest = function(event, session_model) {
+exports.eventRequest = function(event, session) {
 	return new Promise(async(resolve, reject) => {
 		console.debug(TAG, 'event request =======>', event);
 
@@ -147,7 +147,7 @@ exports.eventRequest = function(event, session_model) {
 		}
 
 		let request = client.eventRequest(event, {
-			sessionId: session_model._id
+			sessionId: session._id
 		});
 
 		request.on('response', async(body) => {
@@ -160,7 +160,7 @@ exports.eventRequest = function(event, session_model) {
 			}
 	
 			console.debug(TAG, 'webhook not used or failed, solving locally');
-			let fulfillment = await exports.apiaiResultParser(body, session_model);
+			let fulfillment = await exports.apiaiResultParser(body, session);
 			resolve(fulfillment);
 		});
 

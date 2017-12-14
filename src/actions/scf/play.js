@@ -7,7 +7,7 @@ const GAME_VALUES = [
 	{ key: 'f', value: 'Forbice' }
 ];
 
-module.exports = function({ sessionId, result }, session_model) {
+module.exports = function({ sessionId, result }, session) {
 	return new Promise((resolve, reject) => {
 		let { parameters: p, fulfillment } = result;
 

@@ -7,7 +7,7 @@ const Transmission = apprequire('torrent/transmission');
 
 const pendingQueue = {};
 
-module.exports = function({ sessionId, result }, session_model) {
+module.exports = function({ sessionId, result }, session) {
 	return new Promise(async(resolve, reject) => {
 		const { parameters: p, fulfillment } = result;
 

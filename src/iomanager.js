@@ -6,7 +6,7 @@ const queueProcessing = {};
 const enabledDrivers = {};
 const enabledAccesories = {};
 
-exports.sessionModel = null;
+exports.session = null;
 
 exports.driversCapabilities = {
 	telegram: {
@@ -31,17 +31,17 @@ exports.driversCapabilities = {
 	},
 };
 
-exports.input = async function({ session_model, params = {}, driver }) {
-	console.info(TAG, 'input', 'SID = ' + session_model._id);
+exports.input = async function({ session, params = {}, driver }) {
+	console.info(TAG, 'input', 'SID = ' + session._id);
 	console.dir(params, { depth: 10 });
 
-	session_model = session_model || IOManager.sessionModel;
-	driver = driver || session_model.getIODriver();
+	session = session || IOManager.session;
+	driver = driver || session.getIODriver();
 
 	if (!isDriverEnabled(driver.id)) {	
-		console.info(TAG, 'putting in IO queue', { params, session_model });
+		console.info(TAG, 'putting in IO queue', { params, session });
 		await (new Data.IOQueue({
-			session: session_model._id,
+			session: session._id,
 			driver: driver.id,
 			data: params
 		})).save();
@@ -52,20 +52,20 @@ exports.input = async function({ session_model, params = {}, driver }) {
 
 	// Direct fulfillment
 	if (params.fulfillment) {
-		params.fulfillment = await AI.fulfillmentTransformer(params.fulfillment, session_model);
-		return driver.output(params.fulfillment, session_model);
+		params.fulfillment = await AI.fulfillmentTransformer(params.fulfillment, session);
+		return driver.output(params.fulfillment, session);
 	}
 
 	// Interrogate AI to get fulfillment
 	// This invokes API.ai to detect the action and invoke the action to perform fulfillment
 	if (params.text) {
-		const fulfillment = await AI.textRequest(params.text, session_model);
-		return driver.output(fulfillment, session_model);
+		const fulfillment = await AI.textRequest(params.text, session);
+		return driver.output(fulfillment, session);
 	}
 
 	if (params.event) {
-		const fulfillment = await AI.eventRequest(params.event, session_model);
-		return driver.output(fulfillment, session_model);
+		const fulfillment = await AI.eventRequest(params.event, session);
+		return driver.output(fulfillment, session);
 	}
 };
 
@@ -89,7 +89,7 @@ function configureDriver(driver) {
 	driver.emitter.on('input', async(e) => {
 		_.defaults(e, {
 			driver: driverOverride,
-			session_model: exports.sessionModel
+			session: exports.session
 		});
 		
 		try {
@@ -136,7 +136,7 @@ exports.getAccessory = function(e) {
 };
 
 exports.writeLogForSession = async function(sessionId, text) {
-	sessionId = sessionId || exports.sessionModel._id;
+	sessionId = sessionId || exports.session._id;
 	return (new Data.SessionInput({ 
 		session: sessionId,
 		text: text
@@ -145,10 +145,10 @@ exports.writeLogForSession = async function(sessionId, text) {
 
 exports.registerSession = async function({ sessionId, io_id, io_data, alias, text, uid }, as_global) {
 	const session_id_composite = io_id + '/' + sessionId;
-	let session_model = await Data.Session.findOne({ _id: session_id_composite });
+	let session = await Data.Session.findOne({ _id: session_id_composite });
 
-	if (session_model == null) {
-		session_model = await (new Data.Session({ 
+	if (session == null) {
+		session = await (new Data.Session({ 
 			_id: session_id_composite,
 			io_id: io_id,
 			io_data: io_data,
@@ -157,23 +157,23 @@ exports.registerSession = async function({ sessionId, io_id, io_data, alias, tex
 		}).save());
 	}
 
-	console.info(TAG, 'session model registered', session_model);
+	console.info(TAG, 'session model registered', session);
 
 	if (text != null) exports.writeLogForSession(session_id_composite, text);
-	if (as_global === true) exports.updateGlobalSessionModel(session_model);
-	return session_model;
+	if (as_global === true) exports.updateGlobalSession(session);
+	return session;
 };
 
-exports.updateGlobalSessionModel = function(new_session_model) {
+exports.updateGlobalSession = function(new_session) {
 	console.info(TAG, 'updating global session model');
-	exports.sessionModel = new_session_model;
+	exports.session = new_session;
 };
 
 exports.processQueue = async function() {
-	if (exports.sessionModel == null) return;
+	if (exports.session == null) return;
 
 	let qitem = await Data.IOQueue.findOne({
-		session: exports.sessionModel._id,
+		session: exports.session._id,
 		driver: { $in: _.keys(enabledDrivers) } 
 	}).populate('session');
 	if (qitem == null) return;

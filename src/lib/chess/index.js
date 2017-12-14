@@ -203,14 +203,14 @@ _.extend(GameSchema.methods, {
 					params: { fulfillment: {
 						speech: "Uffa, come fai ad essere così forte!"
 					} },
-					session_model: this.session
+					session: this.session
 				});
 			} else if (source === 'ai') {
 				IOManager.input({
 					params: { fulfillment: {
 						speech: "Ops, forse ho vinto!"
 					} },
-					session_model: this.session
+					session: this.session
 				});
 			}
 		} else {
@@ -221,7 +221,7 @@ _.extend(GameSchema.methods, {
 						params: { fulfillment: {
 							speech: getRandomElement(SPEECH_MOVING).replace('{piece}', exports.PIECES[move.piece]).replace('{to}', move.to)
 						} },
-						session_model: this.session
+						session: this.session
 					});
 				}
 			}

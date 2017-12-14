@@ -19,16 +19,16 @@ Router.post('/', async(req, res) => {
 	const sessionId = body.sessionId;
 
 	// From AWH can came any session ID, so ensure it exists on our DB
-	let session_model = await Data.Session.findOne({ _id: sessionId });
-	if (session_model == null) {
+	let session = await Data.Session.findOne({ _id: sessionId });
+	if (session == null) {
 		console.error(TAG, `creating a missing session ID with ${sessionId}`);
-		session_model = new Data.Session({ _id: sessionId });
-		session_model.save();
+		session = new Data.Session({ _id: sessionId });
+		session.save();
 	}
 
 	try {
 		
-		let fulfillment = await AI.apiaiResultParser(body, session_model);
+		let fulfillment = await AI.apiaiResultParser(body, session);
 		fulfillment.data.remoteTransform = true;
 		
 		console.info(TAG, 'output fulfillment');

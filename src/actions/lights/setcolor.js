@@ -3,7 +3,7 @@ exports.id = 'lights.setcolor';
 const colorConvert = require('color-convert');
 const MIIO = apprequire('miio');
 
-module.exports = function({ sessionId, result }, session_model) {
+module.exports = function({ sessionId, result }, session) {
 	return new Promise(async(resolve, reject) => {
 		let { parameters: p, fulfillment } = result;
 		resolve({

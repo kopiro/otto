@@ -2,7 +2,7 @@ exports.id = 'scf.start';
 
 const _ = require('underscore');
 
-module.exports = function({ sessionId, result }, session_model) {
+module.exports = function({ sessionId, result }, session) {
 	return new Promise((resolve, reject) => {
 		let { parameters: p, fulfillment } = result;
 

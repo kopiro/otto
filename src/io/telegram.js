@@ -26,7 +26,7 @@ const STICKERS = {
 	logo: 'CAADBAADRAMAAokSaQMXx8V8QvEybAI'
 };
 
-function handleInputVoice(session_model, e) {
+function handleInputVoice(session, e) {
 	return new Promise(async(resolve, reject) => {		
 		const file_link = await bot.getFileLink(e.voice.file_id);
 		const voice_file = __tmpdir + '/' + uuid() + '.ogg';
@@ -44,7 +44,7 @@ function handleInputVoice(session_model, e) {
 				
 				const recognize_stream = SpeechRecognizer.createRecognizeStream({
 					interimResults: false,
-					language: session_model.getTranslateFrom()
+					language: session.getTranslateFrom()
 				}, (err, text) => {
 					if (err) return reject(err);
 					resolve(text);
@@ -99,23 +99,23 @@ exports.startInput = function() {
 	}
 };
 
-exports.output = async function(f, session_model) {
+exports.output = async function(f, session) {
 	console.info(TAG, 'output');
-	console.dir({ f, session_model });
+	console.dir({ f, session });
 
 	emitter.emit('output', {
-		sessionModel: session_model,
+		session: session,
 		fulfillment: f
 	});
 	
-	const language = f.data.language || session_model.getTranslateTo();
-	const chat_id = session_model.io_data.id;
+	const language = f.data.language || session.getTranslateTo();
+	const chat_id = session.io_data.id;
 
 	if (f.data.error) {
 		if (f.data.error.speech) {		
 			await sendMessage(chat_id, f.data.error.speech);
 		}
-		if (session_model.is_admin) {
+		if (session.is_admin) {
 			await sendMessage(chat_id, "ERROR: <code>" + JSON.stringify(f.data.error) + "</code>");
 		}
 		return;
@@ -139,8 +139,8 @@ exports.output = async function(f, session_model) {
 	}
 
 	if (f.speech) {
-		if (session_model.getPipe().next_with_voice) {
-			session_model.saveInPipe({ next_with_voice: false });
+		if (session.getPipe().next_with_voice) {
+			session.saveInPipe({ next_with_voice: false });
 			await sendVoiceMessage(chat_id, f.speech, language, message_opt);
 		} else {
 			await sendMessage(chat_id, f.speech, message_opt);
@@ -224,7 +224,7 @@ bot.on('message', async(e) => {
 	}
 
 	// Register the session
-	const session_model = await IOManager.registerSession({
+	const session = await IOManager.registerSession({
 		sessionId: sessionId,
 		io_id: exports.id, 
 		io_data: e.chat,
@@ -239,7 +239,7 @@ bot.on('message', async(e) => {
 			return false;
 		}
 		emitter.emit('input', {
-			session_model: session_model,
+			session: session,
 			params: {
 				text: e.text
 			}
@@ -249,7 +249,7 @@ bot.on('message', async(e) => {
 
 	if (e.voice) {
 		try {
-			const text = await handleInputVoice(session_model, e);
+			const text = await handleInputVoice(session, e);
 		
 			// If we are in a group, only listen for activators
 			if (chat_is_group && !AI_NAME_REGEX.test(e.text)) {
@@ -258,9 +258,9 @@ bot.on('message', async(e) => {
 			}
 
 			// User sent a voice note, respond with a voice note :)
-			session_model.saveInPipe({ next_with_voice: true });
+			session.saveInPipe({ next_with_voice: true });
 			emitter.emit('input', {
-				session_model: session_model,
+				session: session,
 				params: {
 					text: text
 				}
@@ -269,14 +269,14 @@ bot.on('message', async(e) => {
 			if (chat_is_group) return false;
 			if (err.unrecognized) {
 				return emitter.emit('input', {
-					session_model: IOManager.sessionModel,
+					session: IOManager.session,
 					params: {
 						event: 'io_speechrecognizer_unrecognized'
 					}
 				});
 			}
 			return emitter.emit('input', {
-				session_model: IOManager.sessionModel,
+				session: IOManager.session,
 				error: err
 			});
 		}
@@ -288,7 +288,7 @@ bot.on('message', async(e) => {
 		if (chat_is_group) return false;
 
 		emitter.emit('input', {
-			session_model: session_model,
+			session: session,
 			params: {
 				image: {
 					uri: photo_link,
@@ -299,7 +299,7 @@ bot.on('message', async(e) => {
 	}
 
 	emitter.emit('input', {
-		session_model: session_model,
+		session: session,
 		error: {
 			unkownInputType: true
 		}

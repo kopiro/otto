@@ -8,7 +8,7 @@ const Translator = apprequire('translator');
 const ImagesClient = require('google-images');
 const client = new ImagesClient(config.gcloud.cseId, config.gcloud.apiKey);
 
-module.exports = function({ sessionId, result }, session_model) {
+module.exports = function({ sessionId, result }, session) {
 	return new Promise((resolve, reject) => {
 		const { parameters: p, fulfillment } = result;
 		resolve();
@@ -44,7 +44,7 @@ module.exports = function({ sessionId, result }, session_model) {
 											speech: text.toString()
 										}
 									},
-									session_model: session_model
+									session: session
 								});
 								_next();
 							});
@@ -62,7 +62,7 @@ module.exports = function({ sessionId, result }, session_model) {
 											}
 										}
 									},
-									session_model: session_model
+									session: session
 								});
 								_next();
 							});

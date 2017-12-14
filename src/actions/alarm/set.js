@@ -3,7 +3,7 @@ exports.id = 'alarm.set';
 const _ = require('underscore');
 const moment = apprequire('moment');
 
-module.exports = function({ sessionId, result }, session_model) {
+module.exports = function({ sessionId, result }, session) {
 	return new Promise((resolve, reject) => {
 		let { parameters: p, fulfillment } = result;
 
@@ -27,7 +27,7 @@ module.exports = function({ sessionId, result }, session_model) {
 		const when_human = when.calendar();
 
 		new Data.Alarm({
-			session: session_model._id,
+			session: session._id,
 			when: when.toDate()
 		})
 		.save()

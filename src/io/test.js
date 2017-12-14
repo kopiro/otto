@@ -27,7 +27,7 @@ async function registerGlobalSession() {
 }
 
 exports.startInput = async function() {
-	if (IOManager.sessionModel == null) {
+	if (IOManager.session == null) {
 		await registerGlobalSession();
 	}
 
@@ -36,7 +36,7 @@ exports.startInput = async function() {
 	if (!_.isEmpty(msg)) {
 		console.info(TAG, 'input', msg);
 		return emitter.emit('input', {
-			session_model: IOManager.sessionModel,
+			session: IOManager.session,
 			params: {
 				text: msg
 			}
@@ -55,7 +55,7 @@ exports.startInput = async function() {
 			exports.startInput();
 		} else {
 			emitter.emit('input', {
-				session_model: IOManager.sessionModel,
+				session: IOManager.session,
 				params: {
 					text: answer
 				}
@@ -67,11 +67,11 @@ exports.startInput = async function() {
 };
 
 exports.output = async function(f) {
-	const session_model = IOManager.sessionModel;
+	const session = IOManager.session;
 
 	console.info(TAG, 'output');
 	emitter.emit('output', {
-		sessionModel: session_model,
+		session: session,
 		fulfillment: f
 	});
 

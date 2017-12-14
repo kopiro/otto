@@ -4,7 +4,7 @@ const _ = require('underscore');
 
 const ELIGIBLE_MIN_MUL = 2;
 
-module.exports = function({ sessionId, result }, session_model) {
+module.exports = function({ sessionId, result }, session) {
 	return new Promise(async(resolve, reject) => {
 		let { parameters: p, fulfillment } = result;
 
@@ -33,7 +33,7 @@ module.exports = function({ sessionId, result }, session_model) {
 
 			// Ask which of these is the contact to send the message
 			if (eligible_contact == null) {
-				session_model.saveInPipe({
+				session.saveInPipe({
 					messaging_sendto_multiplecontacts: {
 						text: p.text
 					}
@@ -50,8 +50,8 @@ module.exports = function({ sessionId, result }, session_model) {
 			}
 
 			let text;
-			if (session_model.getPipe().messaging_sendto_multiplecontacts) {
-				text = session_model.getPipe().messaging_sendto_multiplecontacts.text;
+			if (session.getPipe().messaging_sendto_multiplecontacts) {
+				text = session.getPipe().messaging_sendto_multiplecontacts.text;
 			} else {
 				text = p.text;
 			}
@@ -59,9 +59,9 @@ module.exports = function({ sessionId, result }, session_model) {
 			try {
 				await IOManager.input({
 					params: { fulfillment: {
-						speech: `Hey! ${session_model.alias} mi ha detto di riferirti questo: ${text}`
+						speech: `Hey! ${session.alias} mi ha detto di riferirti questo: ${text}`
 					} },
-					session_model: eligible_contact
+					session: eligible_contact
 				});
 				resolve({
 					speech: 'Perfetto, inviato!'
