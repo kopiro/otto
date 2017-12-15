@@ -31,12 +31,17 @@ exports.driversCapabilities = {
 	},
 };
 
-exports.input = async function({ session, params = {}, driver }) {
+exports.input = async function({ session, params = {} }) {
 	console.info(TAG, 'input', 'SID = ' + session._id);
 	console.dir(params, { depth: 10 });
 
 	session = session || IOManager.session;
-	driver = driver || session.getIODriver();
+	let driver = session.getIODriver();
+	if (config.ioRedirectMap[driver.id] != null) {
+		const outputDriverStr = config.ioRedirectMap[driver.id];
+		console.info(TAG, `<${driver.id}> redirect output to <${outputDriverStr}>`);
+		driver = exports.getDriver(outputDriverStr);
+	}
 
 	if (!isDriverEnabled(driver.id)) {	
 		console.info(TAG, 'putting in IO queue', { params, session });
@@ -79,16 +84,8 @@ function configureAccessories(driver) {
 function configureDriver(driver) {
 	console.info(TAG, `configuring IO Driver <${driver.id}>`);
 
-	let driverOverride = null;
-	if (config.ioRedirectMap[driver.id] != null) {
-		const outputDriverStr = config.ioRedirectMap[driver.id];
-		console.info(TAG, `<${driver.id}> redirect output to <${outputDriverStr}>`);
-		driverOverride = exports.getDriver(outputDriverStr);
-	}
-
 	driver.emitter.on('input', async(e) => {
 		_.defaults(e, {
-			driver: driverOverride,
 			session: exports.session
 		});
 		

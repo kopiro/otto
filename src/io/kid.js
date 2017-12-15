@@ -17,7 +17,10 @@ const { Detector } = require('snowboy');
 const Hotword = apprequire('hotword');
 const Translator = apprequire('translator');
 const Messages = apprequire('messages');
+
 const Mopidy = apprequire('mopidy');
+const ChromeCast = apprequire('chromecast');
+const YoutubeCastClient  = require('youtube-castv2-client').Youtube;
 
 let isRecognizing = false;
 let isInputStarted = false;
@@ -72,8 +75,18 @@ async function sendVoice(e) {
 	}
 }
 
+async function sendVideo(e) {
+	if (e.youtube) {
+		const castClient = await ChromeCast.connect();
+		castClient.launch(YoutubeCastClient, function(err, player) {
+			player.load(e.youtube.id);
+		});
+	}
+}
+
 async function sendMusic(e) {
-	await Mopidy.ensureConnected();
+	await Mopidy.connect();
+	
 	if (e.action) {
 		await Mopidy.playback[e.action]();
 	}
@@ -303,6 +316,10 @@ async function processOutputQueue() {
 
 		if (f.data.music) {
 			await sendMusic(f.data.music);
+		}
+
+		if (f.data.video) {
+			await sendVideo(f.data.video);
 		}
 
 		if (f.data.eventAfterSpeech) {

@@ -6,7 +6,8 @@ const client = new mopidy({
 	autoConnect: false
 });
 
-client.ensureConnected = function() {
+client._connect = client.connect;
+client.connect = function() {
 	return new Promise(async(resolve) => {
 		if (client._connected) return resolve();
 		client.on('state:online', () => {
@@ -14,7 +15,7 @@ client.ensureConnected = function() {
 			client._connected = true;
 			resolve();
 		});
-		client.connect();
+		client._connect();
 	});
 };
 

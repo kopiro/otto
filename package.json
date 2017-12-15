@@ -34,6 +34,7 @@
     "aws-sdk": "^2.93.0",
     "body-parser": "^1.16.1",
     "browserify": "^14.1.0",
+    "castv2-client": "^1.2.0",
     "chess.js": "git+https://github.com/jhlywa/chess.js.git",
     "color-convert": "^1.9.1",
     "console-ultimate": "^2.9.0",
@@ -46,6 +47,7 @@
     "google-images": "^2.0.0",
     "html-entities": "^1.2.1",
     "md5": "^2.2.1",
+    "mdns": "^2.3.4",
     "messenger-bot": "^2.4.0",
     "moment": "^2.17.1",
     "mongoose": "^4.11.5",
@@ -54,12 +56,14 @@
     "node-wolfram": "0.0.1",
     "prettyjson": "^1.2.1",
     "request": "^2.79.0",
+    "simple-youtube-api": "^5.0.0",
     "socket.io": "^1.7.3",
     "spotify-web-api-node": "^2.3.6",
     "striptags": "^3.1.0",
     "transmission": "^0.4.9",
     "underscore": "^1.8.3",
-    "uuid": "^3.1.0"
+    "uuid": "^3.1.0",
+    "youtube-castv2-client": "git+https://github.com/kopiro/youtube-castv2-client.git"
   },
   "devDependencies": {
     "babel": "^6.23.0",

@@ -5,7 +5,7 @@ const SpotifyWebApi = require('spotify-web-api-node');
 
 const client = new SpotifyWebApi(_config);
 
-client.ensureConnected = async function() {
+client.connect = async function() {
 	if (client._connected) return client;
 
 	const data = await client.clientCredentialsGrant();

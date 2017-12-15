@@ -159,6 +159,15 @@ global.config = _.defaults(require('./config.json'), {
 		]
 	},
 
+	// Chromecast configuration
+	"chromecast": {
+		"devices": [
+			{
+				"name": null
+			}
+		]
+	},
+
 	"polly": {
 		"gender": "Female"
 	}
