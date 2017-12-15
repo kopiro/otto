@@ -32,7 +32,7 @@ exports.driversCapabilities = {
 };
 
 exports.input = async function({ session, params = {} }) {
-	console.info(TAG, 'input', 'SID = ' + session._id);
+	console.info(TAG, 'input', 'SID = ' + session._id, params);
 	console.dir(params, { depth: 10 });
 
 	session = session || IOManager.session;
@@ -44,12 +44,12 @@ exports.input = async function({ session, params = {} }) {
 	}
 
 	if (!isDriverEnabled(driver.id)) {	
-		console.info(TAG, 'putting in IO queue', { params, session });
-		await (new Data.IOQueue({
+		console.info(TAG, 'putting in IO queue', 'SID = ' + session._id, params);
+		new Data.IOQueue({
+			// driver: driver.id,
 			session: session._id,
-			driver: driver.id,
-			data: params
-		})).save();
+			params: params
+		}).save();
 		return { 
 			inQueue: true 
 		};
@@ -171,7 +171,7 @@ exports.processQueue = async function() {
 
 	let qitem = await Data.IOQueue.findOne({
 		session: exports.session._id,
-		driver: { $in: _.keys(enabledDrivers) } 
+		// driver: { $in: _.keys(enabledDrivers) } 
 	}).populate('session');
 	if (qitem == null) return;
 	if (queueProcessing[qitem._id]) return;
@@ -179,17 +179,17 @@ exports.processQueue = async function() {
 	queueProcessing[qitem._id] = true;
 
 	console.info(TAG, 'processing queue item');
-	console.dir(qitem);
+	console.dir(qitem, { depth: 10 });
 
 	qitem.remove();
-	exports.output(qitem.fulfillment, qitem.session);
+	exports.input(qitem);
 
 	return true;
 };
 
 exports.startQueuePolling = async function() {
 	try {
-		exports.processQueue();
+		await exports.processQueue();
 	} catch (ex) {
 		console.error(TAG, 'queue processing error', ex);
 	}

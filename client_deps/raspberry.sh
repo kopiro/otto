@@ -12,6 +12,8 @@ wget -q -O /etc/apt/sources.list.d/mopidy.list https://apt.mopidy.com/jessie.lis
 apt-get update
 apt-get -y install mopidy mopidy-spotify mpc
 
+apt-get -y install libavahi-compat-libdnssd-dev
+
 wget -O - https://raw.githubusercontent.com/audstanley/NodeJs-Raspberry-Pi/master/Install-Node.sh | bash
 
 npm -g install nan --unsafe-perm
