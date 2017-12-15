@@ -76,6 +76,6 @@ exports.output = async function(f) {
 	});
 
 	for (let i = 0; i < 50; i++) process.stdout.write("="); process.stdout.write("\n");
-	console.dir(f);
+	console.dir(f, { depth: 10 });
 	for (let i = 0; i < 50; i++) process.stdout.write("="); process.stdout.write("\n");
 };
