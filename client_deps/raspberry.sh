@@ -19,6 +19,7 @@ npm -g install snowboy --unsafe-perm
 npm -g install rpio --unsafe-perm
 npm -g install apa102-spi --unsafe-perm
 npm -g install miio --unsafe-perm
+npm -g install mdns --unsafe-perm
 
 npm install --only=prod --unsafe-perm
 
@@ -26,3 +27,4 @@ npm link snowboy
 npm link rpio
 npm link apa102-spi
 npm link miio
+npm link mdns
