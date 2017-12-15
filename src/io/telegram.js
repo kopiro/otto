@@ -1,14 +1,10 @@
 const TAG = 'IO.Telegram';
-exports.id = 'telegram';
+const _config = config.telegram;
 
 const _ = require('underscore');
 const fs = require('fs');
 const request = require('request');
 const spawn = require('child_process').spawn;
-
-const _config = _.defaults(config.telegram, {
-	writeKeySpeed: 1
-});
 
 const emitter = exports.emitter = new (require('events').EventEmitter)();
 
@@ -66,7 +62,7 @@ async function sendMessage(chat_id, text, telegram_opt = {}) {
 
 	for (let sentence of sentences) {
 		await bot.sendMessage(chat_id, sentence, telegram_opt);
-		await timeout(Math.max(2000, _config.writeKeySpeed * sentence.length));
+		await timeout(Math.max(2000, sentence.length));
 	}
 
 	return true;
@@ -101,7 +97,7 @@ exports.startInput = function() {
 
 exports.output = async function(f, session) {
 	console.info(TAG, 'output');
-	console.dir({ f, session });
+	console.dir({ f, session }, { depth: 10 });
 
 	emitter.emit('output', {
 		session: session,
@@ -226,7 +222,7 @@ bot.on('message', async(e) => {
 	// Register the session
 	const session = await IOManager.registerSession({
 		sessionId: sessionId,
-		io_id: exports.id, 
+		io_driver: 'telegram',
 		io_data: e.chat,
 		alias: alias,
 		text: e.text

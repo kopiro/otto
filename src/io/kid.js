@@ -1,5 +1,4 @@
 const TAG = 'IO.Kid';
-exports.id = 'kid';
 
 const md5 = require('md5');
 const fs = require('fs');
@@ -167,9 +166,8 @@ function destroyRecognizeStream() {
 async function registerGlobalSession() {
 	return IOManager.registerSession({
 		sessionId: require('os').hostname(),
-		uid: config.uid || uuid(),
-		io_id: exports.id, 
-		io_data: { platform: process.platform }
+		io_driver: 'kid', 
+		io_data: {}
 	}, true);
 }
 

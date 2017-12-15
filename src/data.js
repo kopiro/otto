@@ -3,6 +3,7 @@ const Schema = mongoose.Schema;
 
 const Session = new Schema({
 	_id: String,
+	io_driver: String,
 	io_id: String,
 	io_data: Schema.Types.Mixed,
 	debug: Boolean,
@@ -16,7 +17,7 @@ const Session = new Schema({
 });
 
 Session.methods.getIODriver = function() {
-	return IOManager.getDriver(this.io_id);
+	return IOManager.getDriver(this.io_driver);
 };
 
 Session.methods.saveInPipe = function(data) {
@@ -53,6 +54,7 @@ const IOQueue = new Schema({
 	session: { type: String, ref: 'session' },
 	driver: String,
 	params: Schema.Types.Mixed,
+	io_id: String
 });
 exports.IOQueue = mongoose.model('io_queue', IOQueue);
 

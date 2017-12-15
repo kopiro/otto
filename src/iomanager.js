@@ -4,49 +4,23 @@ const _ = require('underscore');
 const queueProcessing = {};
 
 const enabledDrivers = {};
+const configuredDriversId = [];
+
 const enabledAccesories = {};
 
 exports.session = null;
-
-exports.driversCapabilities = {
-	telegram: {
-		userCanViewUrls: true,
-		speechOverGame: false
-	},
-	messenger: {
-		userCanViewUrls: true,
-		speechOverGame: false
-	},
-	kid: {
-		userCanViewUrls: false,
-		speechOverGame: true
-	},
-	test: {
-		userCanViewUrls: true,
-		speechOverGame: true
-	},
-	api: {
-		userCanViewUrls: true,
-		speechOverGame: true
-	},
-};
 
 exports.input = async function({ session, params = {} }) {
 	console.info(TAG, 'input', 'SID = ' + session._id, params);
 	console.dir(params, { depth: 10 });
 
 	session = session || IOManager.session;
-	let driver = session.getIODriver();
-	if (config.ioRedirectMap[driver.id] != null) {
-		const outputDriverStr = config.ioRedirectMap[driver.id];
-		console.info(TAG, `<${driver.id}> redirect output to <${outputDriverStr}>`);
-		driver = exports.getDriver(outputDriverStr);
-	}
+	let driverStr = session.io_driver;
 
-	if (!isDriverEnabled(driver.id)) {	
+	if (false === isIdDriverUp(session.io_id)) {	
 		console.info(TAG, 'putting in IO queue', 'SID = ' + session._id, params);
 		new Data.IOQueue({
-			// driver: driver.id,
+			io_id: session.io_id,
 			session: session._id,
 			params: params
 		}).save();
@@ -54,6 +28,13 @@ exports.input = async function({ session, params = {} }) {
 			inQueue: true 
 		};
 	}
+
+	if (config.ioRedirectMap[driverStr] != null) {
+		driverStr = config.ioRedirectMap[driverStr];
+		console.info(TAG, `<${session.io_driver}> redirect output to <${driverStr}>`);
+	}
+
+	const driver = exports.getDriver(driverStr);
 
 	// Direct fulfillment
 	if (params.fulfillment) {
@@ -74,15 +55,19 @@ exports.input = async function({ session, params = {} }) {
 	}
 };
 
-function configureAccessories(driver) {
-	for (let accessory of (enabledAccesories[driver.id] || [])) {
-		console.info(TAG, `attaching accessory <${accessory.id}> to <${driver.id}>`);
+function configureAccessories(driverStr) {
+	const driver = enabledDrivers[driverStr];
+
+	for (let accessory of (enabledAccesories[driverStr] || [])) {
+		console.info(TAG, `attaching accessory <${accessory.id}> to <${driverStr}>`);
 		accessory.attach(driver);
 	}
 }
 
-function configureDriver(driver) {
-	console.info(TAG, `configuring IO Driver <${driver.id}>`);
+function configureDriver(driverStr) {
+	console.info(TAG, `configuring IO Driver <${driverStr}>`);
+
+	const driver = enabledDrivers[driverStr];
 
 	driver.emitter.on('input', async(e) => {
 		_.defaults(e, {
@@ -98,18 +83,19 @@ function configureDriver(driver) {
 		}
 	});
 
-	configureAccessories(driver);
+	configureAccessories(driverStr);
 	driver.startInput();
 }
 
-function isDriverEnabled(e) {
-	return (e in enabledDrivers);
+function isIdDriverUp(driverId) {
+	return configuredDriversId.indexOf(driverId) >= 0;
 }
 
 function loadDrivers() {
 	console.info(TAG, 'drivers to load => ' + config.ioDrivers.join(', '));
-	for (let driver of config.ioDrivers) {
-		enabledDrivers[driver] = exports.getDriver(driver);
+	for (let driverStr of config.ioDrivers) {
+		enabledDrivers[driverStr] = exports.getDriver(driverStr);
+		configuredDriversId.push(config.uid + '/' + driverStr);
 	}
 }
 
@@ -140,17 +126,18 @@ exports.writeLogForSession = async function(sessionId, text) {
 	})).save();
 };
 
-exports.registerSession = async function({ sessionId, io_id, io_data, alias, text, uid }, as_global) {
+exports.registerSession = async function({ sessionId, io_driver, io_data, alias, text }, as_global) {
+	const io_id = config.uid + '/' + io_driver;
 	const session_id_composite = io_id + '/' + sessionId;
 	let session = await Data.Session.findOne({ _id: session_id_composite });
 
 	if (session == null) {
 		session = await (new Data.Session({ 
 			_id: session_id_composite,
+			io_driver: io_driver,
 			io_id: io_id,
 			io_data: io_data,
-			alias: alias,
-			uid: uid
+			alias: alias
 		}).save());
 	}
 
@@ -167,11 +154,8 @@ exports.updateGlobalSession = function(new_session) {
 };
 
 exports.processQueue = async function() {
-	if (exports.session == null) return;
-
 	let qitem = await Data.IOQueue.findOne({
-		session: exports.session._id,
-		// driver: { $in: _.keys(enabledDrivers) } 
+		io_id: { $in: configuredDriversId }
 	}).populate('session');
 	if (qitem == null) return;
 	if (queueProcessing[qitem._id]) return;
@@ -183,8 +167,6 @@ exports.processQueue = async function() {
 
 	qitem.remove();
 	exports.input(qitem);
-
-	return true;
 };
 
 exports.startQueuePolling = async function() {
@@ -200,7 +182,7 @@ exports.startQueuePolling = async function() {
 exports.start = function() {
 	loadDrivers();
 	loadAccessories();
-	for (let key of Object.keys(enabledDrivers)) {
-		configureDriver(enabledDrivers[key]);
+	for (let driverStr of Object.keys(enabledDrivers)) {
+		configureDriver(driverStr);
 	}
 };

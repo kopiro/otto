@@ -1,5 +1,4 @@
 const TAG = 'IO.Test';
-exports.id = 'test';
 
 const _ = require('underscore');
 const fs = require('fs');
@@ -20,9 +19,8 @@ try {
 async function registerGlobalSession() {
 	return IOManager.registerSession({
 		sessionId: require('os').hostname(),
-		uid: config.uid || uuid(),
-		io_id: exports.id, 
-		io_data: { platform: process.platform }
+		io_driver: 'test',
+		io_data: {}
 	}, true);
 }
 

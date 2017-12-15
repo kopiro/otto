@@ -1,12 +1,8 @@
 const TAG = 'IO.Messenger';
-exports.id = 'messenger';
+const _config = config.messenger;
 
 const _ = require('underscore');
 const http = require('http');
-
-const _config = _.defaults(config.messenger, {
-	writeKeySpeed: 1
-});
 
 const emitter = exports.emitter = new (require('events').EventEmitter)();
 
@@ -56,7 +52,7 @@ async function sendMessage(chat_id, text, messenger_opt = {}) {
 	for (let sentence of sentences) {
 		messenger_opt = _.extend(messenger_opt, { text: sentence });
 		await bot.sendMessage(chat_id, messenger_opt);
-		await timeout(Math.max(2000, _config.writeKeySpeed * sentence.length));
+		await timeout(Math.max(2000, sentence.length));
 	}
 
 	return true;
@@ -190,7 +186,7 @@ bot.on('message', (e) => {
 
 		const session = await IOManager.registerSession({
 			sessionId: sessionId,
-			io_id: exports.id, 
+			io_driver: 'messenger', 
 			io_data: {
 				profile: profile,
 				sender: e.sender
