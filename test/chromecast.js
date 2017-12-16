@@ -2,6 +2,9 @@ var Client                = require('castv2-client').Client;
 var Youtube               = require('youtube-castv2-client').Youtube;
 var mdns                  = require('mdns');
 
+// Fix for RPI
+mdns.Browser.defaultResolverSequence[1] = 'DNSServiceGetAddrInfo' in mdns.dns_sd ? mdns.rst.DNSServiceGetAddrInfo() : mdns.rst.getaddrinfo({families:[4]});
+
 var browser = mdns.createBrowser(mdns.tcp('googlecast'));
 
 browser.on('serviceUp', function(service) {

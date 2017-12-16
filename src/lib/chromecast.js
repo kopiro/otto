@@ -4,6 +4,10 @@ const _config = config.chromecast;
 
 const CastClient = require('castv2-client').Client;
 const mdns = require('mdns');
+
+// Fix for RPI
+mdns.Browser.defaultResolverSequence[1] = 'DNSServiceGetAddrInfo' in mdns.dns_sd ? mdns.rst.DNSServiceGetAddrInfo() : mdns.rst.getaddrinfo({families:[4]});
+
 const browser = mdns.createBrowser(mdns.tcp('googlecast'));
 const YoutubeCastClient  = require('youtube-castv2-client').Youtube;
 
