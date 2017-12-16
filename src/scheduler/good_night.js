@@ -1,12 +1,10 @@
-const TAG = 'Scheduler/GoodMorning';
+const TAG = 'Scheduler/GoodNight';
 
 exports.run = function({ session }) {
-	IOManager.input({
+	return IOManager.input({
 		session: session,
 		params: {
-			fulfillment: { 
-				speech: 'Ehi, hai visto che ore sono?! Secondo me dovremmo andare a dormire'
-			}
+			event: 'good_night'
 		}
 	});
 };
