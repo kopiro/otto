@@ -66,6 +66,7 @@ const IOQueue = new Schema({
 	session: { type: String, ref: 'session', autopopulate: true },
 	driver: String,
 	params: Schema.Types.Mixed,
+	fulfillment: Schema.Types.Mixed,
 	io_id: String
 });
 IOQueue.plugin(autopopulate);

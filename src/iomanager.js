@@ -28,6 +28,7 @@ exports.input = async function({ session, params = {}, fulfillment }) {
 		new Data.IOQueue({
 			io_id: session.io_id,
 			session: session._id,
+			fulfillment: fulfillment,
 			params: params
 		}).save();
 		return { 
