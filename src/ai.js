@@ -11,27 +11,21 @@ const apiai = require('apiai');
 const client = apiai(_config.token);
 
 function getEntities(session) {
-	return (session.entities || []).concat([
-	{
-		name: "chromecast",
-		entries: _.map(config.chromecast.devices, ((value, key) => {
-			console.log(key);
-			return { 
-				value: key,
-				synonyms: [ value.name ]
-			};
-		}))
-	},
-	{
-		name: "miio_light",
-		entries: config.miio.devices.map((e) => {
-			return { 
-				value: e.address,
-				synonyms: [ e.name ]
-			};
-		})
+	let entities = [];
+	entities = entities.concat(session.entities || []);
+	if (config.chromecast.devices) {
+		entities = entities.concat([{
+			name: "chromecast",
+			entries: _.map(config.chromecast.devices, ((value, key) => {
+				console.log(key);
+				return { 
+					value: key,
+					synonyms: [ value.name ]
+				};
+			}))
+		}]);
 	}
-	]);
+	return entities;
 }
 
 function fulfillmentSanitizer(fulfillment) {
