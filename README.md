@@ -184,10 +184,8 @@ module.exports = async function({ sessionId, result }, session) {
 
     doSomeLongWork(() => {
         IOManager.input({
-            params: { 
-                fulfillment: { 
-                    speech: `Hello ${p.name}! (postponed)`
-                }
+            fulfillment: { 
+                speech: `Hello ${p.name}! (postponed)`
             },
             session: session
         });

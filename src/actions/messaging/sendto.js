@@ -58,9 +58,7 @@ module.exports = function({ sessionId, result }, session) {
 
 			try {
 				await IOManager.input({
-					params: { fulfillment: {
-						speech: `Hey! ${session.alias} mi ha detto di riferirti questo: ${text}`
-					} },
+					fulfillment: { speech: `Hey! ${session.alias} mi ha detto di riferirti questo: ${text}` },
 					session: eligible_contact
 				});
 				resolve({

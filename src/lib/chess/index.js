@@ -200,16 +200,12 @@ _.extend(GameSchema.methods, {
 		if (logic.game_over()) {
 			if (source === 'user') {
 				IOManager.input({
-					params: { fulfillment: {
-						speech: "Uffa, come fai ad essere così forte!"
-					} },
+					fulfillment: { speech: "Uffa, come fai ad essere così forte!" },
 					session: this.session
 				});
 			} else if (source === 'ai') {
 				IOManager.input({
-					params: { fulfillment: {
-						speech: "Ops, forse ho vinto!"
-					} },
+					fulfillment: { speech: "Ops, forse ho vinto!" },
 					session: this.session
 				});
 			}
@@ -218,9 +214,9 @@ _.extend(GameSchema.methods, {
 			if (IOManager.driversCapabilities[ this.session.io_id ].speechOverGame) {
 				if (source === 'ai') {
 					IOManager.input({
-						params: { fulfillment: {
+						fulfillment: {
 							speech: getRandomElement(SPEECH_MOVING).replace('{piece}', exports.PIECES[move.piece]).replace('{to}', move.to)
-						} },
+						},
 						session: this.session
 					});
 				}

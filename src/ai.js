@@ -12,7 +12,6 @@ const client = apiai(_config.token);
 
 function getEntities(session) {
 	let entities = [];
-	entities = entities.concat(session.entities || []);
 	if (config.chromecast.devices) {
 		entities = entities.concat([{
 			name: "chromecast",

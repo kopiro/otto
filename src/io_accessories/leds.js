@@ -6,6 +6,8 @@ const colorForHotword = [ 0, 0, 255 ];
 const colorForRecognizing = [ 255, 0, 0 ];
 const colorForOutput = [ 0, 255, 0 ];
 
+exports.canHandleOutput = function(e) { return false; };
+
 exports.attach = function(io) {
 	RaspiLeds.off();
 

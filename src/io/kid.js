@@ -17,9 +17,6 @@ const Hotword = apprequire('hotword');
 const Translator = apprequire('translator');
 const Messages = apprequire('messages');
 
-const Mopidy = apprequire('mopidy');
-const ChromeCast = apprequire('chromecast');
-
 let isRecognizing = false;
 let isInputStarted = false;
 
@@ -73,37 +70,12 @@ async function sendVoice(e) {
 	}
 }
 
-async function sendVideo(e, session) {
-	if (e.youtube) {
-		const client = await ChromeCast.connect(session.settings.data.chromecast);
-		ChromeCast.castYoutubeVideo(client, e.youtube.id);
-	}
-}
-
-async function sendMusic(e) {
-	await Mopidy.connect();
-	
-	if (e.action) {
-		await Mopidy.playback[e.action]();
-	}
-	if (e.track) {
-		await Mopidy.playTrackByUriNow(e.track.uri);
-	}
-	if (e.what) {
-		await Mopidy.playback.setVolume(10);
-		const track = await Mopidy.playback.getCurrentTrack();
-		await sendMessage(Messages.get('playback_current_track_is', track.name, track.artists[0].name, track.albums[0].name));
-		await Mopidy.playback.setVolume(100);
-	}
-}
-
 function stopOutput() {
 	console.info(TAG, 'stop output');
 	currentSendMessageKey = null;
 	queueProcessingItem = null;
 	queueOutput = [];
 	Play.kill();
-	if (Mopidy.playback) Mopidy.playback.stop();
 }
 
 function createRecognizeStream() {
@@ -248,7 +220,7 @@ function createHotwordDetectorStream() {
 
 	hotwordDetectorStream.on('sound', (buffer) => {
 		wakeWordTick = -1;
-		process.stdout.write('🔉 ');
+		// process.stdout.write('🔉 ');
 	});
 
 	hotwordDetectorStream.on('error', (err) => {
@@ -307,14 +279,6 @@ async function processOutputQueue() {
 
 		if (f.data.lyrics) {
 			await sendMessage(f.data.lyrics.text, f.data.lyrics.language);
-		}
-
-		if (f.data.music) {
-			await sendMusic(f.data.music);
-		}
-
-		if (f.data.video) {
-			await sendVideo(f.data.video, session);
 		}
 
 		if (f.data.eventAfterSpeech) {

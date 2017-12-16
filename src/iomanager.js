@@ -8,17 +8,23 @@ const configuredDriversId = [];
 
 const enabledAccesories = {};
 
+// COnstant used when forwarding output to an accessory
+exports.CAN_HANDLE_OUTPUT = {
+	YES_AND_BREAK: true,
+	YES_AND_CONTINUE: true,
+	NO: false
+};
+
 exports.session = null;
 
-exports.input = async function({ session, params = {} }) {
+exports.input = async function({ session, params = {}, fulfillment }) {
 	session = session || IOManager.session;
 	let driverStr = session.io_driver;
 
-	console.info(TAG, 'input', 'SID = ' + session._id, params);
-	console.dir(params, { depth: 10 });
+	console.info(TAG, 'input', 'SID = ' + session._id);
 
 	if (false === isIdDriverUp(session.io_id)) {	
-		console.info(TAG, 'putting in IO queue', 'SID = ' + session._id, params);
+		console.info(TAG, 'putting in IO queue', 'SID = ' + session._id);
 		new Data.IOQueue({
 			io_id: session.io_id,
 			session: session._id,
@@ -36,23 +42,46 @@ exports.input = async function({ session, params = {} }) {
 
 	const driver = exports.getDriver(driverStr);
 
-	// Direct fulfillment
-	if (params.fulfillment) {
-		params.fulfillment = await AI.fulfillmentTransformer(params.fulfillment, session);
-		return driver.output(params.fulfillment, session);
+	// Only one of those can be fulfilled, in this order
+	if (fulfillment) {
+		// Direct fulfillment
+		fulfillment = await AI.fulfillmentTransformer(fulfillment, session);
+		driver.output(fulfillment, session);
+	} else if (params.text) {
+		// Interrogate AI to get fulfillment by textRequest
+		// This invokes API.ai to detect the action and invoke the action to perform fulfillment
+		fulfillment = await AI.textRequest(params.text, session);
+		driver.output(fulfillment, session);
+	} else if (params.event) {
+		// Interrogate AI to get fulfillment by eventRequest
+		// This invokes API.ai to detect the action and invoke the action to perform fulfillment
+		fulfillment = await AI.eventRequest(params.event, session);
+		driver.output(fulfillment, session);
 	}
 
-	// Interrogate AI to get fulfillment
-	// This invokes API.ai to detect the action and invoke the action to perform fulfillment
-	if (params.text) {
-		const fulfillment = await AI.textRequest(params.text, session);
-		return driver.output(fulfillment, session);
-	}
-
-	if (params.event) {
-		const fulfillment = await AI.eventRequest(params.event, session);
-		return driver.output(fulfillment, session);
-	}
+	// Process output accessories:
+	// An accessory can:
+	// - handle a kind of output, process it and blocking the next accessory
+	// - handle a kind of output, process it but don't block the next accessory
+	// - do not handle and forward to next accessory
+	(async() => {
+		for (let accessory of (enabledAccesories[driverStr] || [])) {
+			let handleType = accessory.canHandleOutput(fulfillment, session);
+			switch (handleType) {
+				case IOManager.CAN_HANDLE_OUTPUT.YES_AND_BREAK:
+				console.info(TAG, `forwarding output to <${accessory.id}> with YES_AND_BREAK`);
+				await accessory.output(fulfillment, session);
+				return;
+				case IOManager.CAN_HANDLE_OUTPUT.YES_AND_CONTINUE:
+				console.info(TAG, `forwarding output to <${accessory.id}> with YES_AND_CONTINUE`);
+				await accessory.output(fulfillment, session);
+				break;
+				case IOManager.CAN_HANDLE_OUTPUT.NO:
+				default:
+				break;
+			}
+		}
+	})();
 };
 
 function configureAccessories(driverStr) {

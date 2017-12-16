@@ -39,10 +39,8 @@ module.exports = function({ sessionId, result }, session) {
 							prc.stdout.on('data', (_text) => { text += _text.toString(); });
 							prc.on('close', () => {
 								IOManager.input({ 
-									params: {
-										fulfillment: {
-											speech: text.toString()
-										}
+									fulfillment: {
+										speech: text.toString()
 									},
 									session: session
 								});
@@ -53,13 +51,11 @@ module.exports = function({ sessionId, result }, session) {
 							client.search(`disegno "${w}"`)
 							.then((images) => {
 								IOManager.input({
-									params: {
-										fulfillment: {
-											data: { 
-												image: { 
-													uri: getRandomElement(images).url 
-												} 
-											}
+									fulfillment: {
+										data: { 
+											image: { 
+												uri: getRandomElement(images).url 
+											} 
 										}
 									},
 									session: session

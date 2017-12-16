@@ -15,13 +15,11 @@ module.exports = function({ sessionId, result }, session) {
 
 		const videos = await Youtube.searchVideos(p.q, 1);
 		IOManager.input({
-			params: {
-				fulfillment: {
-					data: {
-						video: {
-							youtube: {
-								id: videos[0].id
-							}
+			fulfillment: {
+				data: {
+					video: {
+						youtube: {
+							id: videos[0].id
 						}
 					}
 				}

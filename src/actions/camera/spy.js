@@ -17,12 +17,10 @@ module.exports = function({ sessionId, result }, session) {
 			time: 3
 		});
 		IOManager.input({
-			params: {
-				fulfillment: {
-					data: {
-						video: {
-							localFile: video_file
-						}
+			fulfillment: {
+				data: {
+					video: {
+						localFile: video_file
 					}
 				}
 			},

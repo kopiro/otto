@@ -16,14 +16,14 @@ module.exports = function({ result }, session) {
 		try {
 			const speech = await Wolfram.complexQuery(result.resolvedQuery, session.getTranslateTo());
 			IOManager.input({
-				params: { fulfillment: { speech: speech } },
+				fulfillment: { speech: speech },
 				session: session
 			});
 		} catch (err) {
 			IOManager.input({
-				params: { fulfillment: { data: {
+				fulfillment: { data: {
 					error: getRandomElement(fulfillment.payload.notFound.generic)
-				} } },
+				} },
 				session: session
 			});
 		}
