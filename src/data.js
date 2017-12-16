@@ -6,13 +6,12 @@ const Session = new Schema({
 	io_driver: String,
 	io_id: String,
 	io_data: Schema.Types.Mixed,
-	debug: Boolean,
-	approved: Boolean,
 	translate_from: String,
 	translate_to: String,
 	alias: String,
 	is_admin: Boolean,
-	uid: String,
+	entities: [Schema.Types.Mixed],
+	settings: Schema.Types.Mixed,
 	pipe: Schema.Types.Mixed
 });
 
@@ -23,6 +22,12 @@ Session.methods.getIODriver = function() {
 Session.methods.saveInPipe = function(data) {
 	this.pipe = _.extend(this.pipe || {}, data);
 	this.markModified('pipe');
+	return this.save();
+};
+
+Session.methods.setSettings = function(data) {
+	this.settings = _.extend(this.settings || {}, data);
+	this.markModified('settings');
 	return this.save();
 };
 

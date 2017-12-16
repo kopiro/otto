@@ -19,7 +19,6 @@ const Messages = apprequire('messages');
 
 const Mopidy = apprequire('mopidy');
 const ChromeCast = apprequire('chromecast');
-const YoutubeCastClient  = require('youtube-castv2-client').Youtube;
 
 let isRecognizing = false;
 let isInputStarted = false;
@@ -74,12 +73,10 @@ async function sendVoice(e) {
 	}
 }
 
-async function sendVideo(e) {
+async function sendVideo(e, session) {
 	if (e.youtube) {
-		const castClient = await ChromeCast.connect();
-		castClient.launch(YoutubeCastClient, function(err, player) {
-			player.load(e.youtube.id);
-		});
+		const client = await ChromeCast.connect(session.settings.chromecast);
+		ChromeCast.castYoutubeVideo(client, e.youtube.id);
 	}
 }
 
@@ -317,7 +314,7 @@ async function processOutputQueue() {
 		}
 
 		if (f.data.video) {
-			await sendVideo(f.data.video);
+			await sendVideo(f.data.video, session);
 		}
 
 		if (f.data.eventAfterSpeech) {
@@ -339,7 +336,7 @@ async function processOutputQueue() {
 		emitter.emit('stop');
 	}
 
-	if (f.data.listen == true && queueOutput.length === 0) {
+	if (f.data.feedback == null && f.data.welcome == null && queueOutput.length === 0) {
 		eorTick = EOR_MAX;
 		createRecognizeStream();
 	}

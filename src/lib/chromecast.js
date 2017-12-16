@@ -5,13 +5,20 @@ const _config = config.chromecast;
 const CastClient = require('castv2-client').Client;
 const mdns = require('mdns');
 const browser = mdns.createBrowser(mdns.tcp('googlecast'));
+const YoutubeCastClient  = require('youtube-castv2-client').Youtube;
 
-exports.connect = function() {
+exports.castYoutubeVideo = function(client, video_id) {
+	client.launch(YoutubeCastClient, function(err, player) {
+		player.load(video_id);
+	});
+};
+
+exports.connect = function(chromecast_id) {
 	return new Promise((resolve, reject) => {
 		browser.on('serviceUp', (service) => {
 			console.debug(TAG, 'found device ' + service.name);
 			
-			if (service.name == _config.devices[0].name) {
+			if (service.name == chromecast_id) {
 				console.debug(TAG, 'found default device');
 				browser.stop();
 

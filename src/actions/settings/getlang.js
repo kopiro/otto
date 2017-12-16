@@ -8,8 +8,8 @@ module.exports = function({ sessionId, result }, session) {
 		let { parameters: p, fulfillment } = result;
 
 		const languages = await Translator.getLanguages(config.language);
-		const from = _.findWhere(languages, { code: session.translate_from || config.language }).name;
-		const to = _.findWhere(languages, { code: session.translate_to || config.language }).name;
+		const from = _.findWhere(languages, { code: session.getTranslateFrom() }).name;
+		const to = _.findWhere(languages, { code: session.getTranslateTo() }).name;
 
 		resolve({
 			speech: `Ti sto parlando in ${to}, tu mi parli in ${from}`

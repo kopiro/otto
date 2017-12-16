@@ -10,6 +10,30 @@ const _config = config.apiai;
 const apiai = require('apiai');
 const client = apiai(_config.token);
 
+function getEntities(session) {
+	return (session.entities || []).concat([
+	{
+		name: "chromecast",
+		entries: _.map(config.chromecast.devices, ((value, key) => {
+			console.log(key);
+			return { 
+				value: key,
+				synonyms: [ value.name ]
+			};
+		}))
+	},
+	{
+		name: "miio_light",
+		entries: config.miio.devices.map((e) => {
+			return { 
+				value: e.address,
+				synonyms: [ e.name ]
+			};
+		})
+	}
+	]);
+}
+
 function fulfillmentSanitizer(fulfillment) {
 	if (!_.isObject(fulfillment)) {
 		throw new Error('Fulfillment is not an object');
@@ -109,7 +133,8 @@ exports.textRequest = function(text, session) {
 
 		text = await exports.textRequestTransformer(text, session);
 		let request = client.textRequest(text, {
-			sessionId: session._id
+			sessionId: session._id,
+			entities: getEntities(session)
 		});
 
 		request.on('response', async(body) => {
@@ -147,7 +172,8 @@ exports.eventRequest = function(event, session) {
 		}
 
 		let request = client.eventRequest(event, {
-			sessionId: session._id
+			sessionId: session._id,
+			entities: getEntities(session)
 		});
 
 		request.on('response', async(body) => {
