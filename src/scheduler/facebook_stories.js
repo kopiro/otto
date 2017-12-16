@@ -12,12 +12,12 @@ exports.run = function() {
 
 			console.log(TAG, 'Creating new', fb_story);
 
-			new Data.Story({
+			await (new Data.Story({
 				text: fb_story.message,
-				url: fb_story.full_picture,
+				image: { uri: fb_story.full_picture },
 				date: fb_story.created_time,
 				facebook: fb_story
-			}).save();
+			})).save();
 		}
 	});
 };

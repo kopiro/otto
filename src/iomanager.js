@@ -103,7 +103,7 @@ function configureDriver(driverStr) {
 			if (e.error) throw e.error;
 			await exports.input(e);
 		} catch (ex) {
-			e.params = { fulfillment: { data : { error: ex } } };
+			e.fulfillment = { data : { error: ex } };
 			await exports.input(e);
 		}
 	});

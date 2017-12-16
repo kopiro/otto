@@ -14,7 +14,7 @@ module.exports = async function({ sessionId, result }, session) {
 	return {
 		speech: story.text,
 		data: {
-			url: story.url
+			image: story.image
 		}
 	};
 };

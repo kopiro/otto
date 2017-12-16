@@ -11,7 +11,6 @@ const Rec = apprequire('rec');
 const SpeechRecognizer = apprequire('speechrecognizer');
 const Polly = apprequire('polly');
 const Play = apprequire('play');
-const URLManager = apprequire('urlmanager');
 const { Detector } = require('snowboy');
 const Hotword = apprequire('hotword');
 const Translator = apprequire('translator');
@@ -264,11 +263,7 @@ async function processOutputQueue() {
 				await sendMessage(String(f.data.error), 'en');
 			}
 		}
-
-		if (f.data.url) {
-			URLManager.open(f.data.url);
-		}
-
+		
 		if (f.speech) {
 			await sendMessage(f.speech, f.data.language);
 		}

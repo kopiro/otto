@@ -77,6 +77,7 @@ const Story = new Schema({
 	tags: String,
 	url: String,
 	date: Date,
+	image: Schema.Types.Mixed,
 	facebook: Schema.Types.Mixed,
 });
 exports.Story = mongoose.model('stories', Story);
