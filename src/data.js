@@ -1,11 +1,11 @@
 const _ = require('underscore');
 const Schema = mongoose.Schema;
+const autopopulate = require('mongoose-autopopulate');
 
 const Settings = new Schema({
 	_id: String,
 	data: Schema.Types.Mixed
 });
-
 exports.Settings = mongoose.model('settings', Settings);
 
 const Session = new Schema({
@@ -13,7 +13,7 @@ const Session = new Schema({
 	io_driver: String,
 	io_id: String,
 	io_data: Schema.Types.Mixed,
-	settings: { type: String, ref: 'settings' },
+	settings: { type: String, ref: 'settings', autopopulate: true },
 	translate_from: String,
 	translate_to: String,
 	alias: String,
@@ -21,9 +21,11 @@ const Session = new Schema({
 	pipe: Schema.Types.Mixed
 });
 
+Session.plugin(autopopulate);
+
 Session.methods.saveSettings = async function(data) {
-	let s = await exports.Settings.findOne({ _id: this.settings });
-	if (s == null) s = new exports.Settings({ _id: this.settings });
+	let s = this.settings;
+	if (s == null) s = new exports.Settings({ _id: this.populated('settings') });
 	s.data = _.extend({}, s.data, data);
 	s.markModified('data');
 	return s.save();
@@ -54,25 +56,20 @@ Session.methods.getTranslateTo = function() {
 exports.Session = mongoose.model('session', Session);
 
 const SessionInput = new Schema({
-	session: { type: String, ref: 'session' },
+	session: { type: String, ref: 'session', autopopulate: true },
 	text: String,
 });
+SessionInput.plugin(autopopulate);
 exports.SessionInput = mongoose.model('session_input', SessionInput);
 
 const IOQueue = new Schema({
-	session: { type: String, ref: 'session' },
+	session: { type: String, ref: 'session', autopopulate: true },
 	driver: String,
 	params: Schema.Types.Mixed,
 	io_id: String
 });
+IOQueue.plugin(autopopulate);
 exports.IOQueue = mongoose.model('io_queue', IOQueue);
-
-const Alarm = new Schema({
-	session: { type: String, ref: 'session' },
-	when: Date,
-	what: String
-});
-exports.Alarm = mongoose.model('alarms', Alarm);
 
 const Story = new Schema({
 	title: String,
@@ -92,7 +89,7 @@ const Vision = new Schema({
 exports.Vision = mongoose.model('vision', Vision);
 
 const Scheduler = new Schema({
-	session: { type: String, ref: 'session' },
+	session: { type: String, ref: 'session', autopopulate: true },
 	manager_uid: String,
 	program: String,
 	yearly: String, // set dayofyear, hour and minute
@@ -102,14 +99,16 @@ const Scheduler = new Schema({
 	hourly: String, // set minute
 	on_tick: Boolean
 });
+Scheduler.plugin(autopopulate);
 exports.Scheduler = mongoose.model('scheduler', Scheduler);
 
 const Knowledge = new Schema({
 	input: String,
 	output: String,
-	session: { type: String, ref: 'session' },
+	session: { type: String, ref: 'session', autopopulate: true },
 	score: Number
 });
+Knowledge.plugin(autopopulate);
 exports.Knowledge = mongoose.model('knowledge', Knowledge);
 
 const Music = new Schema({

@@ -122,7 +122,7 @@ exports.writeLogForSession = async function(session, text) {
 };
 
 exports.getSession = function(sessionIdComposite) {
-	return Data.Session.findOne({ _id: sessionIdComposite }).populate('settings');
+	return Data.Session.findOne({ _id: sessionIdComposite });
 };
 
 exports.registerSession = async function({ sessionId, io_driver, io_data, alias, text }) {
@@ -155,7 +155,7 @@ exports.updateGlobalSession = function(new_session) {
 exports.processQueue = async function() {
 	let qitem = await Data.IOQueue.findOne({
 		io_id: { $in: configuredDriversId }
-	}).populate('session');
+	});
 	if (qitem == null) return;
 	if (queueProcessing[qitem._id]) return;
 

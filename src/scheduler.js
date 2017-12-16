@@ -14,8 +14,7 @@ async function getScheduler(time) {
 		{ hourly: time.format('mm', { trim: false }) },
 		{ on_tick: true }
 		]
-	}) 
-	.populate('session');
+	});
 }
 
 async function tick() {

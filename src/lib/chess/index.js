@@ -276,7 +276,6 @@ Server.io.on('connection', (socket) => {
 
 		Game
 		.findOne({ _id: data.id })
-		.populate('session')
 		.then((game) => {
 			game.setSocket(socket);
 			socket.emit('fen', game.getLogic().fen());
@@ -288,7 +287,6 @@ Server.io.on('connection', (socket) => {
 
 		Game
 		.findOne({ _id: data.id })
-		.populate('session')
 		.then((game) => {
 			game.userMove({
 				from: data.from,
@@ -324,7 +322,6 @@ exports.getGame = function(sessionId) {
 	return new Promise((resolve, reject) => {
 		Game
 		.findOne({ session: sessionId })
-		.populate('session')
 		.then((game) => {
 			game.recover();
 			resolve(game);
