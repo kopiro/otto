@@ -18,10 +18,9 @@ try {
 
 async function registerGlobalSession() {
 	return IOManager.registerSession({
-		sessionId: require('os').hostname(),
-		io_driver: 'test',
-		io_data: {}
-	}, true);
+		sessionId: null,
+		io_driver: 'test'
+	});
 }
 
 exports.startInput = async function() {

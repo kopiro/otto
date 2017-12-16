@@ -133,7 +133,7 @@ function createRecognizeStream() {
 			}
 		});
 
-		IOManager.writeLogForSession(null, text);
+		IOManager.writeLogForSession(IOManager.session, text);
 	});
 
 	// When user speaks, reset the timer to the max
@@ -162,10 +162,10 @@ function destroyRecognizeStream() {
 
 async function registerGlobalSession() {
 	return IOManager.registerSession({
-		sessionId: require('os').hostname(),
+		sessionId: null, // act as a global session
 		io_driver: 'kid', 
 		io_data: {}
-	}, true);
+	});
 }
 
 function registerEORInterval() {
@@ -336,7 +336,7 @@ async function processOutputQueue() {
 		emitter.emit('stop');
 	}
 
-	if (f.data.feedback == null && f.data.welcome == null && queueOutput.length === 0) {
+	if (!f.data.feedback && !f.data.welcome && queueOutput.length === 0) {
 		eorTick = EOR_MAX;
 		createRecognizeStream();
 	}
