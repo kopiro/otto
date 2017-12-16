@@ -134,12 +134,13 @@ exports.registerSession = async function({ sessionId, io_driver, io_data, alias,
 		console.info(TAG, 'session model registered', session);
 		session = await (new Data.Session({ 
 			_id: sessionIdComposite,
-			io_id: io_id,
 			io_driver: io_driver,
+			io_id: io_id,
 			io_data: io_data,
 			alias: alias
 		}).save());
 	}
+
 
 	if (text != null) exports.writeLogForSession(session, text);
 	if (sessionId == null) exports.updateGlobalSession(session);
