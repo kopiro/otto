@@ -122,7 +122,7 @@ exports.writeLogForSession = async function(session, text) {
 };
 
 exports.getSession = function(sessionIdComposite) {
-	return Data.Session.findOne({ _id: sessionIdComposite });
+	return Data.Session.findOne({ _id: sessionIdComposite }).populate('settings');
 };
 
 exports.registerSession = async function({ sessionId, io_driver, io_data, alias, text }) {

@@ -75,7 +75,7 @@ async function sendVoice(e) {
 
 async function sendVideo(e, session) {
 	if (e.youtube) {
-		const client = await ChromeCast.connect(session.settings.chromecast);
+		const client = await ChromeCast.connect(session.settings.data.chromecast);
 		ChromeCast.castYoutubeVideo(client, e.youtube.id);
 	}
 }
