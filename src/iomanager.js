@@ -126,14 +126,15 @@ exports.writeLogForSession = async function(sessionId, text) {
 	})).save();
 };
 
-exports.registerSession = async function({ sessionId, io_driver, io_data, alias, text }, as_global) {
+exports.registerSession = async function({ sessionId, io_driver, io_data, alias, text }) {
 	const io_id = config.uid + '/' + io_driver;
-	const session_id_composite = io_id + '/' + sessionId;
-	let session = await Data.Session.findOne({ _id: session_id_composite });
+	const sessionIdComposite = io_id + (sessionId == null ? '' : '/' + sessionId);
+	let session = await Data.Session.findOne({ _id: sessionIdComposite });
 
 	if (session == null) {
+		console.info(TAG, 'session model registered', session);
 		session = await (new Data.Session({ 
-			_id: session_id_composite,
+			_id: sessionIdComposite,
 			io_driver: io_driver,
 			io_id: io_id,
 			io_data: io_data,
@@ -141,10 +142,8 @@ exports.registerSession = async function({ sessionId, io_driver, io_data, alias,
 		}).save());
 	}
 
-	console.info(TAG, 'session model registered', session);
-
-	if (text != null) exports.writeLogForSession(session_id_composite, text);
-	if (as_global === true) exports.updateGlobalSession(session);
+	if (text != null) exports.writeLogForSession(sessionIdComposite, text);
+	if (sessionId == null) exports.updateGlobalSession(session);
 	return session;
 };
 
