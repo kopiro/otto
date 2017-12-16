@@ -16,7 +16,7 @@ exports.output = async function(e, session) {
 	if (e.data.video) {
 		if (e.data.video.youtube) {
 			client.launch(YoutubeCastClient, (err, player) => {
-				e.data.video.youtube.id.load(video_id);
+				player.load(e.data.video.youtube.id);
 			});
 		}
 	}
