@@ -11,11 +11,11 @@ const enabledAccesories = {};
 exports.session = null;
 
 exports.input = async function({ session, params = {} }) {
-	console.info(TAG, 'input', 'SID = ' + session._id, params);
-	console.dir(params, { depth: 10 });
-
 	session = session || IOManager.session;
 	let driverStr = session.io_driver;
+
+	console.info(TAG, 'input', 'SID = ' + session._id, params);
+	console.dir(params, { depth: 10 });
 
 	if (false === isIdDriverUp(session.io_id)) {	
 		console.info(TAG, 'putting in IO queue', 'SID = ' + session._id, params);
@@ -70,10 +70,6 @@ function configureDriver(driverStr) {
 	const driver = enabledDrivers[driverStr];
 
 	driver.emitter.on('input', async(e) => {
-		_.defaults(e, {
-			session: exports.session
-		});
-		
 		try {
 			if (e.error) throw e.error;
 			await exports.input(e);
@@ -125,22 +121,26 @@ exports.writeLogForSession = async function(session, text) {
 	})).save();
 };
 
+exports.getSession = function(sessionIdComposite) {
+	return Data.Session.findOne({ _id: sessionIdComposite });
+};
+
 exports.registerSession = async function({ sessionId, io_driver, io_data, alias, text }) {
 	const io_id = config.uid + '/' + io_driver;
 	const sessionIdComposite = io_id + (sessionId == null ? '' : '/' + sessionId);
-	let session = await Data.Session.findOne({ _id: sessionIdComposite });
+	let session = await exports.getSession(sessionIdComposite);
 
 	if (session == null) {
-		console.info(TAG, 'session model registered', session);
+		console.info(TAG, 'new session model registered', session);
 		session = await (new Data.Session({ 
 			_id: sessionIdComposite,
-			io_driver: io_driver,
 			io_id: io_id,
+			io_driver: io_driver,
 			io_data: io_data,
-			alias: alias
+			alias: alias,
+			settings: config.uid
 		}).save());
 	}
-
 
 	if (text != null) exports.writeLogForSession(session, text);
 	if (sessionId == null) exports.updateGlobalSession(session);

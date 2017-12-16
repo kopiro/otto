@@ -1,19 +1,33 @@
 const _ = require('underscore');
 const Schema = mongoose.Schema;
 
+const Settings = new Schema({
+	_id: String,
+	data: Schema.Types.Mixed
+});
+
+exports.Settings = mongoose.model('settings', Settings);
+
 const Session = new Schema({
 	_id: String,
 	io_driver: String,
 	io_id: String,
 	io_data: Schema.Types.Mixed,
+	settings: { type: String, ref: 'settings' },
 	translate_from: String,
 	translate_to: String,
 	alias: String,
 	is_admin: Boolean,
-	entities: [Schema.Types.Mixed],
-	settings: Schema.Types.Mixed,
 	pipe: Schema.Types.Mixed
 });
+
+Session.methods.saveSettings = async function(data) {
+	let s = await exports.Settings.findOne({ _id: this.settings });
+	if (s == null) s = new exports.Settings({ _id: this.settings });
+	s.data = _.extend({}, s.data, data);
+	s.markModified('data');
+	return s.save();
+};
 
 Session.methods.getIODriver = function() {
 	return IOManager.getDriver(this.io_driver);
@@ -22,12 +36,6 @@ Session.methods.getIODriver = function() {
 Session.methods.saveInPipe = function(data) {
 	this.pipe = _.extend(this.pipe || {}, data);
 	this.markModified('pipe');
-	return this.save();
-};
-
-Session.methods.setSettings = function(data) {
-	this.settings = _.extend(this.settings || {}, data);
-	this.markModified('settings');
 	return this.save();
 };
 
@@ -41,10 +49,6 @@ Session.methods.getTranslateFrom = function() {
 
 Session.methods.getTranslateTo = function() {
 	return this.translate_to || config.language;
-};
-
-Session.methods.getRelatedSessions = function() {
-	return exports.Session.find({ uid: this.uid });
 };
 
 exports.Session = mongoose.model('session', Session);

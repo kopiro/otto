@@ -346,7 +346,6 @@ exports.startInput = async function() {
 	console.debug(TAG, 'start input');
 
 	await registerGlobalSession();
-
 	hotwordModels = await Hotword.getModels();
 	registerOutputQueueInterval();
 	registerEORInterval();
@@ -375,5 +374,6 @@ exports.stopInput = async function() {
 exports.output = async function(f) {
 	console.debug(TAG, 'output');
 	console.dir(f, { depth: 10 });
+	await registerGlobalSession();
 	queueOutput.push(f);
 };

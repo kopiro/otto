@@ -19,7 +19,7 @@ Router.post('/', async(req, res) => {
 	const sessionId = body.sessionId;
 
 	// From AWH can came any session ID, so ensure it exists on our DB
-	let session = await Data.Session.findOne({ _id: sessionId });
+	let session = IOManager.getSession(sessionId);
 	if (session == null) {
 		console.error(TAG, `creating a missing session ID with ${sessionId}`);
 		session = new Data.Session({ _id: sessionId });

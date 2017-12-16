@@ -64,11 +64,11 @@ exports.startInput = async function() {
 };
 
 exports.output = async function(f) {
-	const session = IOManager.session;
+	await registerGlobalSession();
 
 	console.info(TAG, 'output');
 	emitter.emit('output', {
-		session: session,
+		session: IOManager.session,
 		fulfillment: f
 	});
 
