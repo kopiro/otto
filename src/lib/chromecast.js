@@ -8,7 +8,6 @@ const mdns = require('mdns');
 // Fix for RPI
 mdns.Browser.defaultResolverSequence[1] = 'DNSServiceGetAddrInfo' in mdns.dns_sd ? mdns.rst.DNSServiceGetAddrInfo() : mdns.rst.getaddrinfo({families:[4]});
 
-const browser = mdns.createBrowser(mdns.tcp('googlecast'));
 const YoutubeCastClient  = require('youtube-castv2-client').Youtube;
 
 exports.castYoutubeVideo = function(client, video_id) {
@@ -19,6 +18,7 @@ exports.castYoutubeVideo = function(client, video_id) {
 
 exports.connect = function(chromecast_id) {
 	return new Promise((resolve, reject) => {
+		const browser = mdns.createBrowser(mdns.tcp('googlecast'));
 		browser.on('serviceUp', (service) => {
 			console.debug(TAG, 'found device ' + service.name);
 			
