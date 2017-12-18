@@ -1,3 +1,5 @@
+const TAG = 'Leds';
+
 exports.id = 'leds';
 
 const RaspiLeds = apprequire('raspi/leds');
