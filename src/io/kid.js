@@ -160,9 +160,9 @@ function registerOutputQueueInterval() {
 
 function wake() {
 	console.info(TAG, 'wake');
-
 	emitter.emit('wake');
 	stopOutput();
+	Play.fileToSpeaker(__etcdir + '/wake.mp3');
 	wakeWordTick = 0;
 	eorTick = EOR_MAX;
 	destroyRecognizeStream();
