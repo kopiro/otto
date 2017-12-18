@@ -83,5 +83,12 @@
     "supervisor": "^0.12.0",
     "url-loader": "^0.5.9",
     "webpack": "^2.5.0"
+  },
+  "optionalDependencies": {
+    "apa102-spi": "0.0.3",
+    "mdns": "^2.3.4",
+    "miio": "^0.14.0",
+    "rpio": "^0.9.19",
+    "snowboy": "^1.2.0"
   }
 }
