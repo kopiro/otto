@@ -55,6 +55,7 @@
     "node-telegram-bot-api": "^0.27.0",
     "node-wolfram": "0.0.1",
     "prettyjson": "^1.2.1",
+    "raven": "^2.3.0",
     "request": "^2.79.0",
     "simple-youtube-api": "^5.0.0",
     "socket.io": "^1.7.3",

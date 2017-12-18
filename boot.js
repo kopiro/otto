@@ -37,6 +37,9 @@ global.config = _.defaults(require('./config.json'), {
 	// The source locale of the AI
 	"locale": "en-US",
 
+	// Raven configuration
+	"raven": null,
+
 	"play": {
 		// Additional args to send to SOX
 		"addArgs": [], 
@@ -180,6 +183,13 @@ if (config.uid == null) {
 }
 
 global.AI_NAME_REGEX = new RegExp(config.aiNameRegex, 'mgi');
+
+global.Raven = require('raven');
+if (config.raven) {
+	Raven.config(config.raven).install();
+} else {
+	console.warn('Raven not configured');
+}
 
 // Global (App) packages
 require(__basedir + '/src/helpers');
