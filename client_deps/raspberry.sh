@@ -14,19 +14,11 @@ apt-get -y install mopidy mopidy-spotify mpc
 
 apt-get -y install libavahi-compat-libdnssd-dev
 
-wget -O - https://raw.githubusercontent.com/audstanley/NodeJs-Raspberry-Pi/master/Install-Node.sh | bash
-
-npm -g install nan --unsafe-perm
-npm -g install snowboy --unsafe-perm
-npm -g install rpio --unsafe-perm
-npm -g install apa102-spi --unsafe-perm
-npm -g install miio --unsafe-perm
-npm -g install mdns --unsafe-perm
+if which node > /dev/null
+then
+	echo "Node has already been installed"
+else
+	wget -O - https://raw.githubusercontent.com/audstanley/NodeJs-Raspberry-Pi/master/Install-Node.sh | bash
+fi
 
 npm install --only=prod --unsafe-perm
-
-npm link snowboy
-npm link rpio
-npm link apa102-spi
-npm link miio
-npm link mdns

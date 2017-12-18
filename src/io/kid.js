@@ -191,6 +191,7 @@ function createHotwordDetectorStream() {
 	});
 
 	hotwordDetectorStream.on('hotword', async(index, hotword, buffer) => {
+		console.log(TAG, 'hotword', hotword);
 		switch (hotword) {
 			case 'wake':
 			wake();
