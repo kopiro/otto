@@ -1,8 +1,5 @@
 require('./boot');
 
-const Play = apprequire('play');
-Play.fileToSpeaker(__etcdir + '/boot.mp3');
-
 IOManager.start();
 
 mongoose.connectDefault();
@@ -12,10 +9,7 @@ if (config.awh) require(__basedir + '/src/awh');
 
 mongoose.connection.on('error', async(err) => {
 	console.error('Database connection error', err);
-	Play.kill().fileToSpeaker(__etcdir + '/nointernet.mp3');
-	setTimeout(() => {
-		process.exit(1);
-	}, 2000);
+	process.exit(1);
 });
 
 mongoose.connection.once('open', async() => {
