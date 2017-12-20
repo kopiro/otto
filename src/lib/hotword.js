@@ -69,7 +69,7 @@ async function getModels(forceTraining = false) {
 }
 
 async function sendMessage(text) {
-	return Play.fileToSpeaker(await Polly.getAudioFile(text));
+	return Play.voiceToSpeaker(await Polly.getAudioFile(text));
 }
 
 function listenForHotwordTraining() {

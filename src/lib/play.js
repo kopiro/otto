@@ -15,17 +15,29 @@ exports.kill = function() {
 		process.kill(pid);
 		delete processes[pid];
 	}
+	return exports;
 };
 
 exports.fileToSpeaker = function(file) {
 	return new Promise((resolve, reject) => {
 		console.debug(TAG, 'fileToSpeaker', file);
 
-		const opt = {};
-		let bargs = [];
-		let args = [];
+		const proc = spawn('play', [file]);
+		processes[proc.pid] = true;
 
-		const proc = spawn('play', bargs.concat(file).concat(_config.addArgs).concat(args), opt);
+		proc.on('close', (err) => {
+			delete processes[proc.pid];
+			if (err) return reject(err);
+			resolve(true);
+		});
+	});
+};
+
+exports.voiceToSpeaker = function(file) {
+	return new Promise((resolve, reject) => {
+		console.debug(TAG, 'voiceToSpeaker', file);
+
+		const proc = spawn('play', [file].concat(_config.addArgs));
 		processes[proc.pid] = true;
 
 		proc.on('close', (err) => {
@@ -56,10 +68,10 @@ exports.urlToSpeaker = function(url) {
 	});
 };
 
-exports.fileToTmpFile = function(file) {
+exports.voiceToTmpFile = function(file) {
 	return new Promise((resolve, reject) => {
 		const tmp_file = __tmpdir + '/' + uuid() + '.mp3';
-		console.debug(TAG, 'fileToTmpFile', { file, tmp_file });
+		console.debug(TAG, 'voiceToTmpFile', { file, tmp_file });
 
 		let proc = spawn('sox', [file].concat(tmp_file).concat(_config.addArgs));
 		let stderr = '';

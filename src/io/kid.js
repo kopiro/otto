@@ -47,7 +47,7 @@ async function sendMessage(text, language) {
 	for (let sentence of sentences) {
 		if (currentSendMessageKey === key) {
 			let polly_file = await Polly.getAudioFile(sentence, { language: language });
-			await Play.fileToSpeaker(polly_file);
+			await Play.voiceToSpeaker(polly_file);
 		}
 	}
 
@@ -162,7 +162,7 @@ function wake() {
 	console.info(TAG, 'wake');
 	emitter.emit('wake');
 	stopOutput();
-	Play.fileToSpeaker(__etcdir + '/wake.mp3');
+	Play.voiceToSpeaker(__etcdir + '/wake.mp3');
 	wakeWordTick = 0;
 	eorTick = EOR_MAX;
 	destroyRecognizeStream();
@@ -310,6 +310,7 @@ exports.startInput = async function() {
 	registerOutputQueueInterval();
 	registerEORInterval();
 
+	Play.kill();
 	emitter.emit('input', {
 		params: {
 			event: {
@@ -322,7 +323,7 @@ exports.startInput = async function() {
 	});
 
 	isInputStarted = true;
-	
+
 	Rec.start();
 	createHotwordDetectorStream();
 };
