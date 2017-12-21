@@ -64,7 +64,7 @@ async function processEvent(event) {
 	}
 }
 
-async function sendVoice(e) {
+async function sendAudio(e) {
 	if (e.uri) {
 		await Play.urlToSpeaker(e.uri);
 	}
@@ -266,8 +266,8 @@ async function processOutputQueue() {
 			await sendMessage(f.speech, f.data.language);
 		}
 
-		if (f.data.voice) {
-			await sendVoice(f.data.voice);
+		if (f.data.audio) {
+			await sendAudio(f.data.audio);
 		}
 
 		if (f.data.lyrics) {
