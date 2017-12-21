@@ -15,7 +15,7 @@ exports.attach = function(io) {
 
 	io.emitter.on('input', () => {
 		console.debug(TAG, 'input');
-		RaspiLeds.animateRandom();
+		RaspiLeds.setColor(colorForThinking);
 	});
 
 	io.emitter.on('output', () => {
