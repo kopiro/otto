@@ -338,3 +338,7 @@ exports.output = async function(f) {
 
 emitter.on('wake', wake);
 emitter.on('stop', stop);
+
+emitter.on('loaded', () => {
+	Play.fileToSpeaker(__etcdir + '/boot.mp3');
+});
