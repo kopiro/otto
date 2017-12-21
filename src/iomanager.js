@@ -17,6 +17,12 @@ exports.CAN_HANDLE_OUTPUT = {
 
 exports.session = null;
 
+exports.eventToAllIO = function(name, data) {
+	for (let k of Object.keys(enabledDrivers)) {
+		enabledDrivers[k].emitter.emit(name, data);
+	}
+};
+
 exports.input = async function({ session, params = {}, fulfillment }) {
 	session = session || IOManager.session;
 	let driverStr = session.io_driver;
@@ -41,7 +47,7 @@ exports.input = async function({ session, params = {}, fulfillment }) {
 		console.info(TAG, `<${session.io_driver}> redirect output to <${driverStr}>`);
 	}
 
-	const driver = exports.getDriver(driverStr);
+	const driver = enabledDrivers[driverStr];
 
 	// Only one of those can be fulfilled, in this order
 	if (fulfillment) {
