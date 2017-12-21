@@ -184,9 +184,9 @@ if (config.uid == null) {
 
 global.AI_NAME_REGEX = new RegExp(config.aiNameRegex, 'mgi');
 
-global.Raven = require('raven');
 if (config.raven) {
-	Raven.config(config.raven).install();
+	global.Raven = require('raven');
+	global.Raven.config(config.raven).install();
 } else {
 	console.warn('Raven not configured');
 }

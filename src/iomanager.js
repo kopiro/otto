@@ -127,8 +127,10 @@ function loadDrivers() {
 			continue;
 		}
 
-		enabledDrivers[driverStr] = exports.getDriver(driverStr);
+		enabledDrivers[driverStr] = driver;
 		configuredDriversId.push(config.uid + '/' + driver.config.id);
+
+		driver.emitter.emit('loaded');
 	}
 }
 

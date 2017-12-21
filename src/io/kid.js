@@ -5,7 +5,6 @@ exports.config = {
 };
 
 const md5 = require('md5');
-const fs = require('fs');
 
 const _config = config.kid;
 
@@ -17,8 +16,6 @@ const Polly = apprequire('polly');
 const Play = apprequire('play');
 const { Detector } = require('snowboy');
 const Hotword = apprequire('hotword');
-const Translator = apprequire('translator');
-const Messages = apprequire('messages');
 
 let isRecognizing = false;
 let isInputStarted = false;
@@ -164,7 +161,7 @@ function registerOutputQueueInterval() {
 
 function wake() {
 	console.info(TAG, 'wake');
-	emitter.emit('wake');
+	emitter.emit('woken');
 	stopOutput();
 	Play.voiceToSpeaker(__etcdir + '/wake.mp3');
 	wakeWordTick = 0;
@@ -173,19 +170,15 @@ function wake() {
 	createRecognizeStream();
 }
 
-exports.wake = wake;
-
 function stop() {
 	console.info(TAG, 'stop');
 
-	emitter.emit('stop');
+	emitter.emit('stopped');
 	stopOutput();
 	wakeWordTick = -1;
 	eorTick = -1;
 	destroyRecognizeStream();
 }
-
-exports.stop = stop;
 
 function createHotwordDetectorStream() {
 	hotwordDetectorStream = new Detector({
@@ -342,3 +335,6 @@ exports.output = async function(f) {
 	await registerGlobalSession();
 	queueOutput.push(f);
 };
+
+emitter.on('wake', wake);
+emitter.on('stop', stop);

@@ -38,12 +38,12 @@ exports.attach = function(io) {
 		RaspiLeds.off();
 	});
 
-	io.emitter.on('wake', () => {
-		console.debug(TAG, 'wake');
+	io.emitter.on('woken', () => {
+		console.debug(TAG, 'woken');
 		RaspiLeds.setColor(colorForHotword);
 	});
 
-	io.emitter.on('stop', () => {
+	io.emitter.on('stopped', () => {
 		console.debug(TAG, 'stop');
 		RaspiLeds.off();
 	});
