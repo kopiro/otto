@@ -1,4 +1,8 @@
 const TAG = 'IO.Test';
+exports.config = {
+	id: 'test',
+	noServerMode: true
+};
 
 const _ = require('underscore');
 const fs = require('fs');

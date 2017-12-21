@@ -1,4 +1,8 @@
 const TAG = 'IO.Telegram';
+exports.config = {
+	id: 'telegram'
+};
+
 const _config = config.telegram;
 
 const _ = require('underscore');

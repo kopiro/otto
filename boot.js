@@ -57,10 +57,10 @@ global.config = _.defaults(require('./config.json'), {
 		}
 	},
 
-	// A Boolean value indicating if the AWH (API.AI Web Hook) should be spawn
-	"awh": false,
+	// A Boolean value indicating if the server mode should be enabled
+	"serverMode": false,
 
-	// An object indicating the port and the domain where the eventual server should be spawn, false otherwise
+	// An object indicating the port and the domain where the eventual server should be spawn
 	"server": {
 		"port": 8080,
 		// The domain used for absolute URIs

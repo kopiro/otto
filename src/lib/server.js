@@ -1,11 +1,12 @@
-const _config = config.server;
+const TAG = 'Server';
 
-const port = _config.port;
+const _config = config.server;
 
 const http = require('http');
 const socketio = require('socket.io');
 const express = require('express');
 const app = express();
+const bodyParser = require('body-parser');
 
 const server = http.createServer(app);
 const io = socketio(server);
@@ -26,15 +27,16 @@ app.get('/', (req, res) => {
 	res.send('<h1>' + p.name + ' web server</h1>');
 });
 
-////////////
-// Router //
-////////////
+// Routers
 
 const router_api = express.Router();
-router_api.use(require('body-parser').json());
-router_api.use(require('body-parser').urlencoded({
-	extended: true
-}));
+const router_admin = express.Router();
+const router_actions = express.Router();
+
+// Configure routers
+
+router_api.use(bodyParser.json());
+router_api.use(bodyParser.urlencoded({ extended: true }));
 
 router_api.get('/', (req, res) => {
 	const p = require(__basedir + '/package.json');
@@ -44,37 +46,45 @@ router_api.get('/', (req, res) => {
 	});
 });
 
-///////////
-// Admin //
-///////////
+router_api.get('/fulfillment', (req, res) => {
+	res.json({ error: { message: 'You should call in POST' } });
+});
+ 
+router_api.post('/fulfillment', async(req, res) => {
+	if (req.body == null) {
+		console.error(TAG, 'empty body');
+		return res.json({ data: { error: 'Empty body' } });
+	}
 
-const router_admin = express.Router();
+	console.info(TAG, 'request');
+	console.dir(req.body, { depth: 10 });
 
-///////////
-// Client //
-///////////
+	const body = req.body;
+	const sessionId = body.sessionId;
 
-const router_client = express.Router();
+	// From AWH can came any session ID, so ensure it exists on our DB
+	let session = await IOManager.getSession(sessionId);
+	if (session == null) {
+		console.error(TAG, `creating a missing session ID with ${sessionId}`);
+		session = new Data.Session({ _id: sessionId });
+		session.save();
+	}
 
-////////////////////
-// API.AI webhook //
-////////////////////
+	try {
+		
+		let fulfillment = await AI.apiaiResultParser(body, session);
+		fulfillment.data.remoteTransform = true;
+		
+		console.info(TAG, 'output fulfillment');
+		console.dir(fulfillment, { depth: 10 });
 
-const router_awh = express.Router();
-router_awh.use(require('body-parser').json());
-router_awh.use(require('body-parser').urlencoded({
-	extended: true
-}));
-
-//////////////////
-// Actions part //
-//////////////////
-
-const router_actions = express.Router();
-
-///////////
-// Mount //
-///////////
+		res.json(fulfillment);
+	
+	} catch (ex) {
+		console.info(TAG, 'error', ex);
+		res.json({ data: { error: ex } });
+	}
+});
 
 // public
 app.use(express.static(__basedir + '/server/public'));
@@ -85,21 +95,19 @@ app.use('/tmp', express.static(__basedir + '/tmp'));
 // dynamics
 app.use('/api', router_api);
 app.use('/admin', router_admin);
-app.use('/awh', router_awh);
 app.use('/actions', router_actions);
-app.use('/client', router_client);
 
-// Start
-server.listen({ port: port, server: '0.0.0.0' }, (e) => {
-	console.info(`HTTP Server has started on port ${port}`);
-});
+function start() {
+	server.listen({ port: _config.port, server: '0.0.0.0' }, () => {
+		console.info(`HTTP Server has started on port ${_config.port}`);
+	});
+}
 
 module.exports = {
+	start: start,
 	app: app,
 	io: io,
 	routerActions: router_actions,
 	routerAdmin: router_admin,
-	routerApi: router_api,
-	routerAwh: router_awh,
-	routerClient: router_client
+	routerApi: router_api
 };

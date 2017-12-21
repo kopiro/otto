@@ -1,4 +1,8 @@
 const TAG = 'IO.Messenger';
+exports.config = {
+	id: 'messenger'
+};
+
 const _config = config.messenger;
 
 const _ = require('underscore');

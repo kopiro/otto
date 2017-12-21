@@ -1,4 +1,8 @@
 const TAG = 'IO.Kid';
+exports.config = {
+	id: 'kid',
+	noServerMode: true
+};
 
 const md5 = require('md5');
 const fs = require('fs');

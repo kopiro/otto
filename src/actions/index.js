@@ -1,29 +1,30 @@
 const fs = require('fs');
+let actionList = {};
 
-exports.list = {};
-
+// Try to load from cache
 (function iterate(dir) {
-	fs.readdirSync(dir).forEach(function(file) {
+	fs.readdirSync(dir).forEach((file) => {
 		file = dir + '/' + file;
+
 		const stat = fs.lstatSync(file);
 		if (stat.isDirectory()) {
 			iterate(file);
 		} else if (stat.isFile()) {
 			if (/\.js$/.test(file)) {
+
 				const action_name = file
 				.replace('/index.js', '')
 				.replace(__dirname, '')
 				.replace(/^./, '')
 				.replace(/\//g, '.')
 				.replace('.js','');
+
 				if (action_name) {
-					exports.list[action_name] = function() { 
-						let mod = require(file); 
-						mod.id = action_name;
-						return mod;
-					};
+					actionList[action_name] = () => require(file);
 				}
 			}
 		}
 	});
 })(__dirname);
+
+exports.list = actionList;

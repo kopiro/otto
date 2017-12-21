@@ -120,8 +120,15 @@ function isIdDriverUp(driverId) {
 function loadDrivers() {
 	console.info(TAG, 'drivers to load => ' + config.ioDrivers.join(', '));
 	for (let driverStr of config.ioDrivers) {
+		let driver = exports.getDriver(driverStr);
+
+		if (config.serverMode == true && driver.config.noServerMode == true) {
+			console.error(TAG, 'unable to load <' + driverStr + '> because this IO is not compatible with server mode');
+			continue;
+		}
+
 		enabledDrivers[driverStr] = exports.getDriver(driverStr);
-		configuredDriversId.push(config.uid + '/' + driverStr);
+		configuredDriversId.push(config.uid + '/' + driver.config.id);
 	}
 }
 

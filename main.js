@@ -1,11 +1,14 @@
 require('./boot');
 
+if (config.serverMode) {
+	console.log('Running in SERVER mode');
+	apprequire('server').start();
+} else {
+	console.log('Running in CLIENT mode');
+}
+
 IOManager.start();
-
 mongoose.connectDefault();
-
-if (config.server) require(__basedir + '/src/server');
-if (config.awh) require(__basedir + '/src/awh');
 
 mongoose.connection.on('error', async(err) => {
 	console.error('Database connection error', err);
