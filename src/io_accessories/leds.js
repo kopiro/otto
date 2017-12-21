@@ -4,9 +4,9 @@ exports.id = 'leds';
 
 const RaspiLeds = apprequire('raspi/leds');
 
-const colorForHotword = [ 0, 0, 255 ];
-const colorForRecognizing = [ 255, 0, 0 ];
-const colorForOutput = [ 0, 255, 0 ];
+const colorForRecognizing = [ 0, 255, 0 ];
+const colorForOutput = [ 255, 0, 0 ];
+const colorForThinking = [ 255, 255, 0 ];
 
 exports.canHandleOutput = function(e) { return false; };
 
@@ -25,7 +25,7 @@ exports.attach = function(io) {
 
 	io.emitter.on('thinking', () => {
 		console.debug(TAG, 'thinking');
-		RaspiLeds.animateRandom();
+		RaspiLeds.setColor(colorForThinking);
 	});
 
 	io.emitter.on('recognizing', () => {
@@ -36,11 +36,6 @@ exports.attach = function(io) {
 	io.emitter.on('notrecognizing', () => {
 		console.debug(TAG, 'notrecognizing');
 		RaspiLeds.off();
-	});
-
-	io.emitter.on('woken', () => {
-		console.debug(TAG, 'woken');
-		RaspiLeds.setColor(colorForHotword);
 	});
 
 	io.emitter.on('stopped', () => {

@@ -340,5 +340,5 @@ emitter.on('wake', wake);
 emitter.on('stop', stop);
 
 emitter.on('loaded', () => {
-	Play.fileToSpeaker(__etcdir + '/boot.mp3');
+	Play.fileToSpeaker(__etcdir + '/boot.wav');
 });

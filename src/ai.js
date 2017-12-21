@@ -96,10 +96,10 @@ exports.textRequestTransformer = async function(text, session) {
 exports.apiaiResultParser = async function(body, session) {
 	// Parse messages
 	let f = { payload: {} };
-	(body.result.fulfillment.messages || []).forEach((m) => {
+	for (let m of (body.result.fulfillment.messages || [])) {
 		delete m.type;
 		deepExtend(f, m);
-	});
+	}
 	if (f.payload.__random__) f.payload = getRandomElement(f.payload.__random__);
 	body.result.fulfillment = f;
 

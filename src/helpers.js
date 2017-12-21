@@ -33,11 +33,28 @@ global.mimicHumanMessage = function(text) {
 	return _.compact(splitted);
 };
 
+/*
+Valid Values: cy-GB | da-DK | de-DE | en-AU | en-GB | en-GB-WLS | en-IN | en-US | es-ES | es-US | fr-CA | fr-FR | is-IS | it-IT | ja-JP | nb-NO | nl-NL | pl-PL | pt-BR | pt-PT | ro-RO | ru-RU | sv-SE | tr-TR
+ */
 global.getLocaleFromLanguageCode = function(language) {
 	if (_.isEmpty(language)) return config.locale;
 	switch (language) {
-		case 'en': return 'en-US';
+		case 'de': return 'de-DE';
+		case 'da': return 'da-DK';
+		case 'it': return 'it-IT';
+		case 'is': return 'is-IS';
+		case 'fr': return 'fr-FR';
+		case 'es': return 'es-ES';
+		case 'tr': return 'tr-TR';
+		case 'ru': return 'ru-RU';
+		case 'ro': return 'ro-RO';
+		case 'en': return 'en-GB';
 		case 'ja': return 'ja-JP';
-		default: return language + '-' + language.toUpperCase();
+		case 'cy': return 'cy-GB';
+		case 'pt': return 'pt-PT';
+		case 'nl': return 'nl-NL';
+		case 'nb': return 'nb-NO';
+		case 'sv': return 'sv-SE';
+		default: return config.locale;
 	}
 };
