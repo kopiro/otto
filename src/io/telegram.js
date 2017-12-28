@@ -12,6 +12,7 @@ const spawn = require('child_process').spawn;
 
 const emitter = exports.emitter = new (require('events').EventEmitter)();
 
+const Server = apprequire('server');
 const TelegramBot = require('node-telegram-bot-api');
 const SpeechRecognizer = apprequire('speechrecognizer');
 const Polly = apprequire('polly');
@@ -89,10 +90,13 @@ exports.startInput = function() {
 	if (started) return;
 	started = true;
 
-	if (_config.webhook) {
-		bot.setWebHook(_config.webhook.url + _config.token, _config.webhook.options);
-		bot.getWebHookInfo().then((e) => {
-			console.info(TAG, 'started via webhook', e);
+	console.log(_config);
+
+	if (_config.useRouter) {
+		bot.setWebHook(config.server.domain + '/api/telegram/bot' + _config.token);
+		Server.routerApi.use('/telegram', (req, res) => {
+			bot.processUpdate(req.body);
+			res.sendStatus(200);
 		});
 	} else {
 		console.info(TAG, 'started via polling');

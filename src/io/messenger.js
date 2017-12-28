@@ -6,10 +6,10 @@ exports.config = {
 const _config = config.messenger;
 
 const _ = require('underscore');
-const http = require('http');
 
 const emitter = exports.emitter = new (require('events').EventEmitter)();
 
+const Server = apprequire('server');
 const MessengerBot = require('messenger-bot');
 const SpeechRecognizer = apprequire('speechrecognizer');
 const Polly = apprequire('polly');
@@ -80,8 +80,8 @@ exports.startInput = function() {
 	if (started === true) return;
 	started = true;
 	
-	http.createServer( bot.middleware() ).listen(_config.port);
-	console.info(TAG, 'started on port ' + _config.port);
+	Server.routerApi.use('/messenger', bot.middleware());
+	console.info(TAG, 'started');
 };
 
 exports.output = async function(f, session) {

@@ -186,7 +186,7 @@ _.extend(GameSchema.methods, {
 		Sockets[ this._id ] = socket;
 	},
 	getUrl: function() {
-		return `${config.server.domainWithPort}/actions/chess/` + this._id;
+		return `${config.server.domain}/actions/chess/` + this._id;
 	},
 	move: function(move, source) {
 		const logic = this.getLogic();

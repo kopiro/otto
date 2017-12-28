@@ -47,4 +47,4 @@ RUN ln -svf /node_modules /app/node_modules
 RUN npm run build
 
 CMD /app/docker/prod.sh
-EXPOSE 8880 8881 8882
+EXPOSE 80
