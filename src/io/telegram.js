@@ -90,8 +90,6 @@ exports.startInput = function() {
 	if (started) return;
 	started = true;
 
-	console.log(_config);
-
 	if (_config.useRouter) {
 		bot.setWebHook(config.server.domain + '/api/telegram/bot' + _config.token);
 		Server.routerApi.use('/telegram', (req, res) => {
