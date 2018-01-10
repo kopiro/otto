@@ -303,9 +303,6 @@ exports.startInput = async function() {
 	console.debug(TAG, 'start input');
 
 	await registerGlobalSession();
-	hotwordModels = await Hotword.getModels();
-	registerOutputQueueInterval();
-	registerEORInterval();
 
 	Play.kill();
 	emitter.emit('input', {
@@ -318,6 +315,10 @@ exports.startInput = async function() {
 			}
 		}
 	});
+
+	hotwordModels = await Hotword.getModels();
+	registerOutputQueueInterval();
+	registerEORInterval();
 
 	isInputStarted = true;
 

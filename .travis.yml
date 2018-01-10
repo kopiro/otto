@@ -12,4 +12,4 @@ jobs:
       - docker push $DOCKER_USERNAME/otto:latest
     - stage: deploy
       script:
-      - wget "http://deploy.kopiro.it/addtoqueue.php?p=otto"
+      - wget "http://deploy.kopiro.it:8080/?p=otto"
