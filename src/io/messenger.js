@@ -80,7 +80,7 @@ exports.startInput = function() {
 	if (started === true) return;
 	started = true;
 	
-	Server.routerApi.use('/messenger', bot.middleware());
+	Server.routerIO.use('/messenger', bot.middleware());
 	console.info(TAG, 'started');
 };
 

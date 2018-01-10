@@ -29,6 +29,7 @@ app.get('/', (req, res) => {
 
 // Routers
 
+const router_io = express.Router();
 const router_api = express.Router();
 const router_admin = express.Router();
 const router_actions = express.Router();
@@ -93,6 +94,7 @@ app.use(express.static(__basedir + '/server/public'));
 app.use('/tmp', express.static(__basedir + '/tmp'));
 
 // dynamics
+app.use('/io', router_io);
 app.use('/api', router_api);
 app.use('/admin', router_admin);
 app.use('/actions', router_actions);
@@ -109,5 +111,6 @@ module.exports = {
 	io: io,
 	routerActions: router_actions,
 	routerAdmin: router_admin,
-	routerApi: router_api
+	routerApi: router_api,
+	routerIO: router_io
 };

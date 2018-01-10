@@ -90,11 +90,9 @@ exports.startInput = function() {
 	if (started) return;
 	started = true;
 
-	console.log(_config);
-
 	if (_config.useRouter) {
-		bot.setWebHook(config.server.domain + '/api/telegram/bot' + _config.token);
-		Server.routerApi.use('/telegram', (req, res) => {
+		bot.setWebHook(config.server.domain + '/io/telegram/bot' + _config.token);
+		Server.routerIO.use('/telegram', require('body-parser').json(), (req, res) => {
 			bot.processUpdate(req.body);
 			res.sendStatus(200);
 		});
@@ -202,7 +200,7 @@ exports.output = async function(f, session) {
 	}
 
 	if (f.data.sticker) {
-		await bot.sendSticker(chat_id, getRandomElement(f.data.sticker), message_opt);
+		await bot.sendSticker(chat_id, rand(f.data.sticker), message_opt);
 	}
 };
 
