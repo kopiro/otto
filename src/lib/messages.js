@@ -16,5 +16,5 @@ exports.getRaw = function(key) {
 
 exports.get = function(key, ...args) {
 	let str = exports.getRaw(key);
-	return util.format(getRandomElement(str), ...args);	
+	return util.format(rand(str), ...args);	
 };

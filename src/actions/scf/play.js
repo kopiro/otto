@@ -12,7 +12,7 @@ module.exports = function({ sessionId, result }, session) {
 		let { parameters: p, fulfillment } = result;
 
 		let userAnswer = p.q;
-		let aiAnswer = getRandomElement(GAME_VALUES);
+		let aiAnswer = rand(GAME_VALUES);
 
 		resolve({
 			speech: aiAnswer.value,

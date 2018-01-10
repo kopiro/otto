@@ -5,7 +5,7 @@ module.exports = function({ sessionId, result }) {
 		let { parameters: p, fulfillment } = result;
 		
 		const musics = await Data.Music.find();
-		const music = getRandomElement(musics);
+		const music = rand(musics);
 		
 		resolve({
 			data: {

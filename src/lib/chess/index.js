@@ -215,7 +215,7 @@ _.extend(GameSchema.methods, {
 				if (source === 'ai') {
 					IOManager.input({
 						fulfillment: {
-							speech: getRandomElement(SPEECH_MOVING).replace('{piece}', exports.PIECES[move.piece]).replace('{to}', move.to)
+							speech: rand(SPEECH_MOVING).replace('{piece}', exports.PIECES[move.piece]).replace('{to}', move.to)
 						},
 						session: this.session
 					});

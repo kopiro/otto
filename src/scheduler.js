@@ -3,6 +3,8 @@ const TAG = 'Scheduler';
 const _ = require('underscore');
 const Moment = apprequire('moment');
 
+const FORMAT = 'YYYY-MM-DD HH:mm:ss';
+
 let started = false;
 
 async function getScheduler(time) {
@@ -10,8 +12,13 @@ async function getScheduler(time) {
 	.find({
 		manager_uid: config.uid,
 		$or: [
-		{ daily: time.format('HH:mm', { trim: false }) },
-		{ hourly: time.format('mm', { trim: false }) },
+		{ yearly: time.format('DDD HH:mm:ss', { trim: false }) },
+		{ monthly: time.format('D HH:mm:ss', { trim: false }) },
+		{ weekly: time.format('d HH:mm:ss', { trim: false }) },
+		{ daily: time.format('HH:mm:ss', { trim: false }) },
+		{ hourly: time.format('mm:ss', { trim: false }) },
+		{ minutely: time.format('ss', { trim: false }) },
+		{ on_date: time.format(FORMAT) },
 		{ on_tick: true }
 		]
 	});
@@ -19,8 +26,7 @@ async function getScheduler(time) {
 
 async function tick() {
 	const now = Moment();
-	console.debug(TAG, 'tick', now.format('YYYY-MM-DD HH:mm:ss', {trim:false}));
-
+	
 	const data = await getScheduler(now);
 	if (_.isEmpty(data)) return;
 
@@ -29,9 +35,7 @@ async function tick() {
 	data.forEach((sch) => {
 		console.debug(TAG, 'processing => ' + sch.program);
 		const program = require(__basedir + '/src/scheduler/' + sch.program);
-		program.run({
-			session: sch.session
-		});
+		program.run(sch);
 	});
 }
 
@@ -41,5 +45,5 @@ exports.startPolling = function() {
 
 	console.info(TAG, 'polling started');
 	tick();
-	setInterval(tick, 60 * 1000);
+	setInterval(tick, 1000);
 };

@@ -47,14 +47,14 @@ module.exports = function({ sessionId, result }, session) {
 								_next();
 							});
 						} else if (what >= 8) {
-							const w = getRandomElement(inputs);
+							const w = rand(inputs);
 							client.search(`disegno "${w}"`)
 							.then((images) => {
 								IOManager.input({
 									fulfillment: {
 										data: { 
 											image: { 
-												uri: getRandomElement(images).url 
+												uri: rand(images).url 
 											} 
 										}
 									},

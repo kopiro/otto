@@ -1,42 +1,45 @@
 exports.id = 'alarm.set';
 
 const _ = require('underscore');
-const moment = apprequire('moment');
+const Moment = apprequire('moment');
 
-module.exports = function({ sessionId, result }, session) {
-	return new Promise((resolve, reject) => {
-		let { parameters: p, fulfillment } = result;
+module.exports = async function({ sessionId, result }, session) {
+	let { parameters: p, fulfillment } = result;
 
-		const when = moment(
-		(_.isEmpty(p.date) ? moment().format('YYYY-MM-DD') : p.date) + ' ' + p.time, 
-		'YYYY-MM-DD HH:mm:ss'
-		);
+	let when = null;
+	let now = Moment();
 
-		if (false == when.isValid()) {
-			return reject({
-				speech: "Non riesco a capire quando mettere la sveglia."
-			});
+	if (!_.isEmpty(p.date) && !_.isEmpty(p.time)) {
+		when = Moment(p.date + ' ' + p.time, 'YYYY-MM-DD HH:mm:ss');
+	} else if (_.isEmpty(p.date) && !_.isEmpty(p.time)) {
+		// If date is null, try to parse only the time
+		// But if the time today is before now, postpone to tomorrow
+		let time = Moment(now.format('YYYY-MM-DD') + ' ' + p.time, 'YYYY-MM-DD HH:mm:ss');
+		if (time.isAfter(now)) {
+			when = time;
+		} else {
+			when = time.add(1, 'days');
 		}
+	}
 
-		if (when.unix() < moment().unix()) {
-			return reject({
-				speech: "Non posso ancora andare indietro nel tempo!"
-			});
-		}
+	if (when == null || !when.isValid()) {
+		throw rand(fulfillment.payload.errors.invalidDate);
+	}
 
-		const when_human = when.calendar();
+	if (when.unix() < Moment().unix()) {
+		throw rand(fulfillment.payload.errors.alarmIsInPast);
+	}
 
-		new Data.Alarm({
-			session: session._id,
-			when: when.toDate()
-		})
-		.save()
-		.then((contact) => {
-			resolve({
-				speech: fulfillment.speech.replace('$when', when_human)
-			});
-		})
-		.catch(reject);
-		
+	const scheduling = new Data.Scheduler({
+		session: session._id,
+		manager_uid: config.uid,
+		program: 'alarm',
+		on_date: when.format('YYYY-MM-DD HH:mm:ss')
 	});
+
+	await scheduling.save();
+
+	return {
+		speech: fulfillment.speech.replace('$when', when.calendar())
+	};
 };
