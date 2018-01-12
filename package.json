@@ -48,7 +48,7 @@
     "html-entities": "^1.2.1",
     "md5": "^2.2.1",
     "messenger-bot": "^2.4.0",
-    "moment": "^2.17.1",
+    "moment": "^2.20.1",
     "mongoose": "^4.11.5",
     "mongoose-autopopulate": "^0.6.0",
     "mopidy": "^0.5.0",
