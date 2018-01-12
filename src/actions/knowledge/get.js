@@ -21,9 +21,11 @@ module.exports = function({ result }, session) {
 			});
 		} catch (err) {
 			IOManager.input({
-				fulfillment: { data: {
-					error: getRandomElement(fulfillment.payload.notFound.generic)
-				} },
+				fulfillment: { 
+					data: {
+						error: rand(fulfillment.payload.errors.notFound.generic)
+					} 
+				},
 				session: session
 			});
 		}

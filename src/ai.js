@@ -100,7 +100,7 @@ exports.apiaiResultParser = async function(body, session) {
 		delete m.type;
 		deepExtend(f, m);
 	}
-	if (f.payload.__random__) f.payload = getRandomElement(f.payload.__random__);
+	if (f.payload.__random__) f.payload = rand(f.payload.__random__);
 	body.result.fulfillment = f;
 
 	console.info(TAG, 'apiaiResultParser');

@@ -7,7 +7,7 @@ global.requireOrNull = function(e) {
 	catch (ex) { return null; }
 };
 
-global.getRandomElement = function(e) {
+global.rand = function(e) {
 	return _.isArray(e) ? e[_.random(0, e.length - 1)] : e;
 };
 

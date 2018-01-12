@@ -7,7 +7,7 @@ module.exports = async function({ sessionId, result }) {
 	let { parameters: p, fulfillment } = result;
 
 	const images = await client.search(`disegno "${p.q}"`)
-	let img = getRandomElement(images);
+	let img = rand(images);
 	console.log(img);
 	return {
 		data: {

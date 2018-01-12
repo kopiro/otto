@@ -25,7 +25,11 @@ Session.plugin(autopopulate);
 
 Session.methods.saveSettings = async function(data) {
 	let s = this.settings;
-	if (s == null) s = new exports.Settings({ _id: this.populated('settings') });
+	if (s == null) {
+		s = new exports.Settings({ 
+			_id: (this.populated('settings') || this._id)
+		});
+	}
 	s.data = _.extend({}, s.data, data);
 	s.markModified('data');
 	return s.save();
@@ -94,12 +98,14 @@ const Scheduler = new Schema({
 	session: { type: String, ref: 'session', autopopulate: true },
 	manager_uid: String,
 	program: String,
-	yearly: String, // set dayofyear, hour and minute
-	monthly: String, // set dayofmonth, hour and minute
-	weekly: String, // set dayofweek, hour and minute
-	daily: String, // set hour and minute
+	program_data: Schema.Types.Mixed,
+	yearly: String, // set "dayofyear hour:minute"
+	monthly: String, // set "dayofmonth hour:minute"
+	weekly: String, // set "dayofweek hour:minute"
+	daily: String, // set "hour:minute"
 	hourly: String, // set minute
-	on_tick: Boolean
+	on_tick: Boolean, // every second
+	on_date: String // on a date
 });
 Scheduler.plugin(autopopulate);
 exports.Scheduler = mongoose.model('scheduler', Scheduler);
