@@ -7,8 +7,8 @@ exports.canHandleOutput = function() {
 };
 
 exports.attach = function(io) {
-	rpio.open(16, rpio.INPUT, rpio.PULL_UP); 
-	rpio.poll(16, (pin) => {
+	rpio.open(config.gpio_button.pin, rpio.INPUT, rpio.PULL_UP); 
+	rpio.poll(config.gpio_button.pin, (pin) => {
 		const pressed = !rpio.read(pin);
 		if (pressed) {
 			io.emitter.emit('wake');
