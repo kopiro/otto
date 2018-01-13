@@ -175,23 +175,23 @@ exports.output = async function(f, session) {
 	}
 
 	if (f.data.video) {
-		if (f.data.video.uri) {
+		if (f.data.video.uri || f.data.video.file) {
 			await bot.sendChatAction(chat_id, 'upload_video');
-			await bot.sendVideo(chat_id, f.data.video.uri, message_opt);
+			await bot.sendVideo(chat_id, f.data.video.uri || f.data.video.file, message_opt);
 		}
 	}
 
 	if (f.data.image) {
-		if (f.data.image.uri) {
+		if (f.data.image.uri || f.data.image.file) {
 			await bot.sendChatAction(chat_id, 'upload_photo');
-			await bot.sendPhoto(chat_id, f.data.image.uri, message_opt);
+			await bot.sendPhoto(chat_id, f.data.image.uri || f.data.image.file, message_opt);
 		}
 	}
 
 	if (f.data.audio) {
-		if (f.data.audio.uri) {
+		if (f.data.audio.uri || f.data.audio.file) {
 			await bot.sendChatAction(chat_id, 'upload_audio');
-			await bot.sendAudio(chat_id, f.data.audio.uri, message_opt);
+			await bot.sendAudio(chat_id, f.data.audio.uri || f.data.audio.file, message_opt);
 		}
 	}
 
