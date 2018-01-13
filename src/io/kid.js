@@ -160,6 +160,11 @@ function registerOutputQueueInterval() {
 }
 
 function wake() {
+	if (IOManager.session == null) {
+		console.error(TAG, 'called wake prematurely');
+		return;
+	}
+
 	console.info(TAG, 'wake');
 	emitter.emit('woken');
 	stopOutput();
@@ -171,6 +176,11 @@ function wake() {
 }
 
 function stop() {
+	if (IOManager.session == null) {
+		console.error(TAG, 'called stop prematurely');
+		return;
+	}
+
 	console.info(TAG, 'stop');
 
 	emitter.emit('stopped');
