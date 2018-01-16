@@ -1,41 +1,12 @@
 exports.id = 'weather.search';
 
 const _ = require('underscore');
-const moment = apprequire('moment');
-
+const Moment = apprequire('moment');
 const Wunderground = apprequire('wunderground');
 
-const wg_qualifiers = ['chance','mostly','partly'];
+const WG_QUALIFIERS = ['chance','mostly','partly'];
 
-const wg_qualifiers_to_lang = {
-	'chance': 'possibilità di',
-	'mostly': 'per la maggior parte',
-	'partly': 'parzialmente'
-};
-
-const wg_conditions_to_lang = {
-	flurries: 'Vento',
-	rain: 'Pioggia',
-	sleet: 'Nevischio',
-	snow: 'Neve',
-	sunny: 'Sole',
-	cloudy: 'Nuvoloso',
-	hazy: 'Nebbia',
-	fog: 'Nebbia',
-	clear: 'Sereno'
-};
-
-const apiai_to_lang = {
-	fog: 'Nebbia',
-	cloudy: 'Nuvoloso', 
-	rain: 'Pioggia',
-	snow: 'Neve',
-	storm: 'Temporale',
-	sun: 'Sole',
-	wind: 'Vento'
-};
-
-const apiai_to_wunderground = {
+const INTENT_TO_WG = {
 	fog: ['fog','hazy'],
 	cloudy: ['cloudy','mostlycloudy','partlycloudy'], 
 	rain: ['rain','chancerain'],
@@ -45,65 +16,71 @@ const apiai_to_wunderground = {
 	wind: ['flurries','chanceflurries'],
 };
 
-module.exports = function({ sessionId, result }) {
-	return new Promise((resolve, reject) => {
-		let { parameters: p, fulfillment } = result;
+module.exports = async function({ sessionId, result }) {
+	let { parameters: p, fulfillment } = result;
 
-		let date = null;
-		if (!_.isEmpty(p.date)) {		
-			date = moment(p.date + (!_.isEmpty(p.time) ? (' ' + p.time) : ' 09:00:00'));
-		} else {
-			date = moment();
-		}
-		const date_human = date.calendar();
+	const now = Moment();
+	let date;
+	if (!_.isEmpty(p.date) && !_.isEmpty(p.time)) {		
+		date = Moment(p.date + ' ' + p.time, 'YYYY-MM-DD HH:mm:ss');
+	} else if (!_.isEmpty(p.date)) {
+		date = Moment(p.date + now.format('HH:mm:ss'), 'YYYY-MM-DD HH:mm:ss');
+	} else if (!_.isEmpty(p.time)) {
+		date = Moment(now.format('YYYY-MM-DD') + ' ' + p.time, 'YYYY-MM-DD HH:mm:ss');
+	} else {
+		date = now;
+	}
 
-		Wunderground.api({
-			type: 'forecast',
-			city: p.location,
-		}, (err, data) => {
+	let human_date = date.fromNow();
+	const tempo = date.isSame(now) ? 'present' : (date.isAfter(now) ? 'future' : 'past');
 
-			const fores = data.forecast.simpleforecast.forecastday;
-			if (fores == null) return reject();
-
-			const obs = _.find(fores, (o) => { return o.date.epoch >= date.unix(); });
-			if (obs == null) return reject();
-
-			console.debug(exports.id, obs);
-
-			switch (p.request_type) {
-				case 'condition':
-				const desc = p.condition_description;
-
-				if (apiai_to_wunderground[desc]) {
-					const wg_search_condition = apiai_to_wunderground[desc]; // ex: ['snow','sleet','chancesnow','chancesleet']
-					if (wg_search_condition.indexOf( obs.icon ) >= 0) { // chancesnow
-						const wg_condition_wt_qualifiers = obs.icon.replace(new RegExp(wg_qualifiers.join('|'), 'g'), ''); // snow
-						const wg_qualifier = wg_qualifiers.find((q) => { return obs.icon.indexOf(q) === 0; }); // chance
-						const qualifier = wg_qualifiers_to_lang[wg_qualifier] || '';
-
-						resolve({
-							speech: `Si, è prevista ${qualifier} ${wg_conditions_to_lang[wg_condition_wt_qualifiers]} a ${p.location}`
-						});
-					} else { // no snow
-						resolve({
-							speech: `No, non è prevista ${apiai_to_lang[desc]} a ${p.location}`
-						});
-					}
-					break;
-				}
-				// no-break
-					
-				case 'explicit':
-				const avg_temp = ((parseInt(obs.high.celsius, 10) + parseInt(obs.low.celsius, 10)) / 2).toFixed(0);
-				resolve({
-					speech: `A ${p.location}, il tempo risulta essere ${obs.conditions}, con una temperatura media di ${avg_temp} gradi`
-				});
-				break;
-
-				default:
-				reject();
-				break;
-			}
-		});
+	const data = await Wunderground.api({
+		type: 'forecast',
+		city: p.location,
 	});
+
+	const fores = data.forecast.simpleforecast.forecastday;
+	if (fores == null) throw fulfillment.payload.error;
+
+	const obs = _.find(fores, (o) => { return o.date.epoch >= date.unix(); });
+	if (obs == null) throw fulfillment.payload.error;
+
+	if (p.request_type === 'condition') {
+		const c = p.condition_description;
+		const condition = fulfillment.payload.conditions[c];
+
+		if (null == INTENT_TO_WG[c]) {
+			throw fulfillment.payload.error;
+		}
+
+		const e = INTENT_TO_WG[c];
+		if (e.indexOf(obs.icon) >= 0) {
+			const _qualifier = WG_QUALIFIERS.find((q) => (obs.icon.indexOf(q) === 0));
+			const qualifier = fulfillment.payload.qualifiers[_qualifier];
+			return ({
+				speech: fulfillment.payload.speechs[ 'yes_' + tempo ]
+				.replace('$_condition', condition)
+				.replace('$_qualifier', qualifier)
+				.replace('$_location', p.location)
+				.replace('$_date', human_date)
+			});
+		} else {
+			return ({
+				speech: fulfillment.payload.speechs[ 'no_' + tempo ]
+				.replace('$_condition', condition)
+				.replace('$_location', p.location)
+				.replace('$_date', human_date)
+			});
+		}
+
+	} else if (p.request_type === 'explicit') {
+		const avg_temp = ((parseInt(obs.high.celsius, 10) + parseInt(obs.low.celsius, 10)) / 2).toFixed(0);
+		return ({
+			speech: fulfillment.payload.speech
+			.replace('$_location', p.location)
+			.replace('$_conditions', obs.conditions)
+			.replace('$_avg_temp', avg_temp)
+			.replace('$_date', date)
+		});
+	}
 };
