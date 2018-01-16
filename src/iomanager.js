@@ -8,7 +8,7 @@ const configuredDriversId = [];
 
 const enabledAccesories = {};
 
-// COnstant used when forwarding output to an accessory
+// Constant used when forwarding output to an accessory
 exports.CAN_HANDLE_OUTPUT = {
 	YES_AND_BREAK: true,
 	YES_AND_CONTINUE: true,
