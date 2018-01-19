@@ -30,6 +30,9 @@ cd .. && \
 rm -rf dadadodo-1.04 && \
 rm dadadodo-1.04.tar.gz
 
+# Install imagemagick
+RUN apk add --no-cache imagemagick graphicsmagick
+
 # Cleanup
 RUN rm -rf /var/cache/apk/*
 

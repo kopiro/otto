@@ -7,7 +7,7 @@ const md5 = require('md5');
 const download = require('download');
 
 const ImageSearch = apprequire('imagesearch');
-const Storage = apprequire('Storage');
+const Storage = apprequire('storage');
 
 const avatar_url = 'https://storage.googleapis.com/otto-ai/selfies/avatars/maglioncino.png';
 
