@@ -123,8 +123,9 @@ exports.output = async function(f, session) {
 	}
 
 
-	if (f.speech) {
-		await sendMessage(chat_id, f.speech, message_opt);
+	const speech = f.speech || f.data.speech;
+	if (speech) {
+		await sendMessage(chat_id, speech, message_opt);
 	}
 
 	if (f.data.url) {
