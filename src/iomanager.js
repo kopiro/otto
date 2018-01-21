@@ -23,6 +23,13 @@ exports.eventToAllIO = function(name, data) {
 	}
 };
 
+exports.output = function(fulfillment, session) {
+	return exports.input({
+		session: session,
+		fulfillment: fulfillment
+	});
+};
+
 exports.input = async function({ session, params = {}, fulfillment }) {
 	session = session || IOManager.session;
 	let driverStr = session.io_driver;
