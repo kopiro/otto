@@ -199,26 +199,21 @@ _.extend(GameSchema.methods, {
 
 		if (logic.game_over()) {
 			if (source === 'user') {
-				IOManager.input({
-					fulfillment: { speech: "Uffa, come fai ad essere così forte!" },
-					session: this.session
-				});
+				IOManager.output({
+					speech: "Uffa, come fai ad essere così forte!"
+				}, this.session);
 			} else if (source === 'ai') {
-				IOManager.input({
-					fulfillment: { speech: "Ops, forse ho vinto!" },
-					session: this.session
-				});
+				IOManager.output({ 
+					speech: "Ops, forse ho vinto!" 
+				}, this.session);
 			}
 		} else {
 			// Check if we can speech over game. Otherwise just ignore this phase
 			if (IOManager.driversCapabilities[ this.session.io_id ].speechOverGame) {
 				if (source === 'ai') {
-					IOManager.input({
-						fulfillment: {
-							speech: rand(SPEECH_MOVING).replace('{piece}', exports.PIECES[move.piece]).replace('{to}', move.to)
-						},
-						session: this.session
-					});
+					IOManager.output({
+						speech: rand(SPEECH_MOVING).replace('{piece}', exports.PIECES[move.piece]).replace('{to}', move.to)
+					}, this.session);
 				}
 			}
 		}
