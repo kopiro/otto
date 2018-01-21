@@ -66,7 +66,11 @@ async function sendMessage(chat_id, text, telegram_opt = {}) {
 	});
 
 	for (let sentence of sentences) {
-		await bot.sendMessage(chat_id, sentence, telegram_opt);
+		try {
+			await bot.sendMessage(chat_id, sentence, telegram_opt);
+		} catch (err) {
+			console.warn(TAG, err);
+		}
 		await timeout(Math.max(2000, sentence.length));
 	}
 
@@ -140,12 +144,13 @@ exports.output = async function(f, session) {
 		};
 	}
 
-	if (f.speech) {
+	const speech = f.speech || f.data.speech;
+	if (speech) {
 		if (session.getPipe().next_with_voice) {
 			session.saveInPipe({ next_with_voice: false });
-			await sendVoiceMessage(chat_id, f.speech, language, message_opt);
+			await sendVoiceMessage(chat_id, speech, language, message_opt);
 		} else {
-			await sendMessage(chat_id, f.speech, message_opt);
+			await sendMessage(chat_id, speech, message_opt);
 		}
 	}
 
@@ -192,6 +197,13 @@ exports.output = async function(f, session) {
 		if (f.data.audio.uri || f.data.audio.file) {
 			await bot.sendChatAction(chat_id, 'upload_audio');
 			await bot.sendAudio(chat_id, f.data.audio.uri || f.data.audio.file, message_opt);
+		}
+	}
+
+	if (f.data.document) {
+		if (f.data.document.uri || f.data.document.file) {
+			await bot.sendChatAction(chat_id, 'upload_document');
+			await bot.sendDocument(chat_id, f.data.document.uri || f.data.document.file, message_opt);
 		}
 	}
 

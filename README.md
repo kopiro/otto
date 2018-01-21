@@ -128,6 +128,20 @@ Dependencies:
 * **Google Cloud Speech Recognizer** - for the speech recognizer if the user send a voice message
 * **AWS Polly** - for the TTS if we want to send a voice 
 
+## I/O Accessories
+
+I/O Accessories are similar to drivers, but don't handle input and output direclty. They can be attached to I/O driver to perform additional things.
+
+Accessories listen for I/O drivers events and, when an output to a driver is request, this output could be forwarded to accessories.
+
+Each accessory has a method called `canHandleOutput` that should return constant from `IOManager.CAN_HANDLE_OUTPUT.*`: 
+
+* `YES_AND_BREAK `
+* `YES_AND_CONTINUE `
+* `NO  `
+
+Depending on this constant, the IOManager forward the output to the next configured driver or stops the chain.
+
 ### How to write an action
 
 An action is a responder for an intent that has logic inside. 
