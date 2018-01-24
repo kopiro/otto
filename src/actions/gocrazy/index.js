@@ -50,16 +50,13 @@ module.exports = function({ sessionId, result }, session) {
 							const w = rand(inputs);
 							client.search(`disegno "${w}"`)
 							.then((images) => {
-								IOManager.input({
-									fulfillment: {
-										data: { 
-											image: { 
-												uri: rand(images).url 
-											} 
-										}
-									},
-									session: session
-								});
+								IOManager.output({
+									data: { 
+										image: { 
+											uri: rand(images).url 
+										} 
+									}
+								}, session);
 								_next();
 							});
 						}

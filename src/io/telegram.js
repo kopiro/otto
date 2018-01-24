@@ -58,20 +58,16 @@ function handleInputVoice(session, e) {
 }
 
 async function sendMessage(chat_id, text, telegram_opt = {}) {
-	const sentences = mimicHumanMessage(text);
 	await bot.sendChatAction(chat_id, 'typing');
 
 	_.defaults(telegram_opt, {
 		parse_mode: 'html'
 	});
 
-	for (let sentence of sentences) {
-		try {
-			await bot.sendMessage(chat_id, sentence, telegram_opt);
-		} catch (err) {
-			console.warn(TAG, err);
-		}
-		await timeout(Math.max(2000, sentence.length));
+	try {
+		await bot.sendMessage(chat_id, text, telegram_opt);
+	} catch (err) {
+		console.warn(TAG, err);
 	}
 
 	return true;

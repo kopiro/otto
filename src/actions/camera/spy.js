@@ -16,15 +16,12 @@ module.exports = function({ sessionId, result }, session) {
 		const video_file = await Camera.recordVideo({
 			time: 3
 		});
-		IOManager.input({
-			fulfillment: {
-				data: {
-					video: {
-						localFile: video_file
-					}
+		IOManager.output({
+			data: {
+				video: {
+					localFile: video_file
 				}
-			},
-			session: session
-		});
+			}
+		}, session);
 	});
 };

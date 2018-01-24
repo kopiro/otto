@@ -14,17 +14,14 @@ module.exports = function({ sessionId, result }, session) {
 		});
 
 		const videos = await Youtube.searchVideos(p.q, 1);
-		IOManager.input({
-			fulfillment: {
-				data: {
-					video: {
-						youtube: {
-							id: videos[0].id
-						}
+		IOManager.output({
+			data: {
+				video: {
+					youtube: {
+						id: videos[0].id
 					}
 				}
-			},
-			session: session
-		});
+			}
+		}, session);
 	});
 };
