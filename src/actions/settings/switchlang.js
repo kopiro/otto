@@ -39,11 +39,13 @@ module.exports = async function({ sessionId, result }, session) {
 
 	if (session.getTranslateFrom() === session.getTranslateTo()) {
 		return {
-			speech: `Ok, parliamo in ${to}!`
+			speech: fulfillment.payload.speech.single.replace('$_language', from)
 		};
 	} else {
 		return {
-			speech: `Ok, da ora in poi io ti parlo in ${to}, mentre tu mi parli in ${from}`
+			speech: fulfillment.payload.plural
+					.replace('$_from', from)
+					.replace('$_to', to)
 		};
 	}
 };

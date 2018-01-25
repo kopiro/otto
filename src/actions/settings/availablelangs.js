@@ -8,10 +8,10 @@ module.exports = function({ sessionId, result }, session) {
 		let { parameters: p, fulfillment } = result;
 
 		let languages = await Translator.getLanguages(config.language);
-		languages = _.pluck(avail_langs, 'name').join(', ');
+		languages = _.pluck(languages, 'name').join(', ');
 
 		resolve({
-			speech: `Io parlo ${languages}`
+			speech: languages
 		});
 	});
 };
