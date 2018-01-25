@@ -43,6 +43,7 @@
     "download": "^6.2.5",
     "express": "^4.14.1",
     "express-handlebars": "^3.0.0",
+    "fast-levenshtein": "^2.0.6",
     "fb": "^2.0.0",
     "glob": "^7.1.1",
     "gm": "^1.23.1",
