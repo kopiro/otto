@@ -1,6 +1,8 @@
 exports.id = 'settings.switchlang';
 
 const _ = require('underscore');
+const levenshtein = require('fast-levenshtein');
+
 const Translator = apprequire('translator');
 
 module.exports = async function({ sessionId, result }, session) {
@@ -21,13 +23,24 @@ module.exports = async function({ sessionId, result }, session) {
 		let language_request = p['translate_' + x];
 		if (language_request == null) continue;
 
-		language_request = language_request.substr(0,1).toUpperCase() + language_request.substr(1);
-		const language = _.findWhere(languages, { name: language_request });
-		if (language == null) {
+		let preferred_lang = { distance: 999, code: null, name: null };
+
+		for (let l of languages) {
+			const lev = levenshtein.get(l.name.toUpperCase(), language_request.toUpperCase());
+			if (lev < 4 && preferred_lang.distance > lev) {
+				preferred_lang = {
+					distance: lev,
+					code: l.code,
+					name: l.name
+				};
+			}
+		}
+
+		if (preferred_lang.code == null) {
 			throw fulfillment.payload.errors.unknownLanguage;
 		}
 
-		let language_to_set = language.code;
+		let language_to_set = preferred_lang.code;
 		if (language_to_set == config.language) language_to_set = null;
 		session['translate_' + x] = language_to_set;
 	}
@@ -39,11 +52,13 @@ module.exports = async function({ sessionId, result }, session) {
 
 	if (session.getTranslateFrom() === session.getTranslateTo()) {
 		return {
-			speech: `Ok, parliamo in ${to}!`
+			speech: fulfillment.payload.speech.single.replace('$_language', from)
 		};
 	} else {
 		return {
-			speech: `Ok, da ora in poi io ti parlo in ${to}, mentre tu mi parli in ${from}`
+			speech: fulfillment.payload.speech.plural
+					.replace('$_from', from)
+					.replace('$_to', to)
 		};
 	}
 };

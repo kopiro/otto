@@ -7,6 +7,9 @@ const SpotifyCastClient = require('spotify-castv2-client').Spotify;
 const DefaultMediaReceiver = require('castv2-client').DefaultMediaReceiver;
 const _ = require('underscore');
 
+exports.clients = {
+};
+
 exports.canHandleOutput = function(e, session) {
 	if (e.data.video) return IOManager.CAN_HANDLE_OUTPUT.YES_AND_BREAK;
 	if (e.data.image) return IOManager.CAN_HANDLE_OUTPUT.YES_AND_BREAK;
@@ -14,7 +17,12 @@ exports.canHandleOutput = function(e, session) {
 };
 
 exports.output = async function(e, session) {
-	const client = await ChromeCast.connect(session.settings.data.chromecast);
+	const cid = session.settings.data.chromecast;
+	if (exports.clients[ cid ] == null) {
+		exports.clients[ cid ] = await ChromeCast.connect(cid);
+	}
+
+	const client = exports.clients[ cid ];
 
 	if (e.data.video) {
 		if (e.data.video.youtube) {
@@ -25,15 +33,29 @@ exports.output = async function(e, session) {
 	}
 
 	if (e.data.music) {
-		if (e.data.music.track) {
-			client.launch(SpotifyCastClient, async(err, player) => {
-				await player.authenticate(_.extend(config.spotify, {
-					device_name: client.name
-				}));
+		client.launch(SpotifyCastClient, async(err, player) => {
+			await player.authenticate(_.extend(config.spotify, {
+				device_name: client.name
+			}));
 
-				player.play([ e.data.music.track.uri ]);
-			});
-		}
+			if (e.data.music.track) {
+				player.play({
+					context_uri: e.data.music.track.uri
+				});
+			} else if (e.data.music.artist) {
+				player.play({
+					context_uri: e.data.music.artist.uri
+				});
+			} else if (e.data.music.album) {
+				player.play({
+					context_uri: e.data.music.album.uri
+				});
+			} else if (e.data.music.playlist) {
+				player.play({
+					context_uri: e.data.playlist.artist.uri
+				});
+			}
+		});
 	}
 
 	if (e.data.image) {

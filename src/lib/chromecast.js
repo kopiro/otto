@@ -22,7 +22,7 @@ exports.connect = function(chromecast_id) {
 				castClient.name = service.txtRecord.fn;
 
 				castClient.connect(service.addresses[0], () => {
-					console.log(TAG, 'connected to ' + service.name);
+					console.log(TAG, 'connected to ' + castClient.name);
 					resolve(castClient);
 				});
 
