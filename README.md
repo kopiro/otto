@@ -71,6 +71,12 @@ using the `ioDrivers` keyword.
 }
 ```
 
+You can temporary use a driver without altering your configuration by setting an environment var:
+
+```
+export OTTO_IO_DRIVERS=telegram,test
+```
+
 There are 4 I/O drivers available at the moment:
 
 * **Test**: handle I/O using the CLI (used for test purposes)
@@ -141,6 +147,12 @@ Each accessory has a method called `canHandleOutput` that should return constant
 * `NO  `
 
 Depending on this constant, the IOManager forward the output to the next configured driver or stops the chain.
+
+You can temporary use a accessory without altering your configuration by setting an environment var:
+
+```
+export OTTO_IO_ACCESSORIES=telegram,test
+```
 
 ### How to write an action
 
