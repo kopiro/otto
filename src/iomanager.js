@@ -130,9 +130,20 @@ function isIdDriverUp(driverId) {
 	return configuredDriversId.indexOf(driverId) >= 0;
 }
 
+function getDriversToLoad() {
+	if (process.env.OTTO_IO_DRIVERS) return process.env.OTTO_IO_DRIVERS.split(',');
+	return config.ioDrivers || [];
+}
+
+function getAccessoriesToLoad(driver) {
+	if (process.env.OTTO_IO_ACCESSORIES) return process.env.OTTO_IO_ACCESSORIES.split(',');
+	return config.ioAccessoriesMap[driver] || [];
+}
+
 function loadDrivers() {
-	console.info(TAG, 'drivers to load => ' + config.ioDrivers.join(', '));
-	for (let driverStr of config.ioDrivers) {
+	const driversToLoad = getDriversToLoad();
+	console.info(TAG, 'drivers to load', driversToLoad);
+	for (let driverStr of driversToLoad) {
 		let driver = exports.getDriver(driverStr);
 
 		if (config.serverMode == true && driver.config.noServerMode == true) {
@@ -148,12 +159,13 @@ function loadDrivers() {
 }
 
 function loadAccessories() {
-	console.info(TAG, 'accesories to load => ', Object.keys(config.ioAccessoriesMap).join(', '));
-	for (let driver of Object.keys(config.ioAccessoriesMap)) {
-		const accessories = config.ioAccessoriesMap[driver] || [];
-		enabledAccesories[driver] = [];
-		for (let accessory of accessories) {
-			enabledAccesories[driver].push(exports.getAccessory(accessory));
+	const driversToLoad = getDriversToLoad();
+	for (let driverStr of driversToLoad) {
+		enabledAccesories[driverStr] = [];
+		const accessoriesToLoad = getAccessoriesToLoad(driverStr);
+		console.info(TAG, 'accesories to load', driverStr, accessoriesToLoad);
+		for (let accessory of accessoriesToLoad) {
+			enabledAccesories[driverStr].push(exports.getAccessory(accessory));
 		}
 	}
 }
