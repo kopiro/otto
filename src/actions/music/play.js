@@ -4,8 +4,6 @@ const Spotify = apprequire('spotify');
 
 module.exports = async function({ result }) {
 	let { parameters: p, fulfillment } = result;
-
-	await Spotify.connect();
 	
 	if (p.track) {
 		const data = await Spotify.searchTracks(p.track + (p.artist ? (' ' + p.artist) : ''));
