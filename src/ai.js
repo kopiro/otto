@@ -16,7 +16,6 @@ function getEntities(session) {
 		entities = entities.concat([{
 			name: "chromecast",
 			entries: _.map(config.chromecast.devices, ((value, key) => {
-				console.log(key);
 				return { 
 					value: key,
 					synonyms: [ value.name ]
