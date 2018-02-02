@@ -25,6 +25,9 @@ global.config = _.defaults(require('./config.json'), {
 	// A map with driver => [accessories]
 	"ioAccessoriesMap": {},
 
+	// Listeners to load
+	"listeners": [],
+
 	// A map with driver input => driver output 
 	"ioRedirectMap": {},
 

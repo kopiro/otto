@@ -1,7 +1,7 @@
 const TAG = 'IO.Kid';
 exports.config = {
 	id: 'kid',
-	noServerMode: true
+	noServerMode: false
 };
 
 const md5 = require('md5');

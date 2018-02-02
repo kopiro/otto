@@ -33,6 +33,7 @@ const router_io = express.Router();
 const router_api = express.Router();
 const router_admin = express.Router();
 const router_actions = express.Router();
+const router_listeners = express.Router();
 
 // Configure routers
 
@@ -87,6 +88,9 @@ router_api.post('/fulfillment', async(req, res) => {
 	}
 });
 
+router_listeners.use(bodyParser.json());
+router_listeners.use(bodyParser.urlencoded({ extended: true }));
+
 // public
 app.use(express.static(__basedir + '/server/public'));
 
@@ -98,6 +102,7 @@ app.use('/io', router_io);
 app.use('/api', router_api);
 app.use('/admin', router_admin);
 app.use('/actions', router_actions);
+app.use('/listeners', router_listeners);
 
 function start() {
 	server.listen({ port: _config.port, server: '0.0.0.0' }, () => {
@@ -112,5 +117,6 @@ module.exports = {
 	routerActions: router_actions,
 	routerAdmin: router_admin,
 	routerApi: router_api,
-	routerIO: router_io
+	routerIO: router_io,
+	routerListeners: router_listeners
 };

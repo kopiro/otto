@@ -27,10 +27,7 @@ function getEntities(session) {
 }
 
 function fulfillmentSanitizer(fulfillment) {
-	if (!_.isObject(fulfillment)) {
-		throw new Error('Fulfillment is not an object');
-	}
-	return _.defaults(fulfillment, {
+	return _.defaults(fulfillment || {}, {
 		data: {}
 	});
 }
