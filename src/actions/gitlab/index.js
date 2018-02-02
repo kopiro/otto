@@ -11,6 +11,21 @@ module.exports = async function({ sessionId, result }) {
 				.replace('$_project', body.project.name)
 				.replace('$_name', body.object_attributes.title)
 		};
+		case 'pipeline':
+		switch (body.object_attributes.status) {
+			case 'failed':
+			return {
+				speech: fulfillment.payload.speechs.pipeline.failed
+				.replace('$_user', body.user.name)
+				.replace('$_project', body.project.name)
+			};
+			case 'success':
+			return {
+				speech: fulfillment.payload.speechs.pipeline.success
+				.replace('$_user', body.user.name)
+				.replace('$_project', body.project.name)
+			};
+		}
 		break;
 	}
 };
