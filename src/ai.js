@@ -155,7 +155,8 @@ exports.textRequest = function(text, session) {
 
 exports.eventRequest = function(event, session) {
 	return new Promise(async(resolve, reject) => {
-		console.debug(TAG, 'event request =======>', event);
+		console.debug(TAG, 'event request =======>');
+		console.dir(event, { depth: 10 });
 
 		if (_.isString(event)) {
 			event = { name: event };
