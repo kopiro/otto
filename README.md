@@ -142,6 +142,10 @@ Each accessory has a method called `canHandleOutput` that should return constant
 
 Depending on this constant, the IOManager forward the output to the next configured driver or stops the chain.
 
+## Listeners
+
+A listener is a file that listen for incoming requests and can trigger output.
+
 ### How to write an action
 
 An action is a responder for an intent that has logic inside. 
