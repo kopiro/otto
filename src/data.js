@@ -125,3 +125,10 @@ const Music = new Schema({
 	url: String
 });
 exports.Music = mongoose.model('musics', Music);
+
+const Listener = new Schema({
+	session: { type: String, ref: 'session', autopopulate: true },
+	listener: String
+});
+Listener.plugin(autopopulate);
+exports.Listener = mongoose.model('listener', Listener);

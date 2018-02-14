@@ -13,3 +13,6 @@ jobs:
     - stage: deploy
       script:
       - wget "http://deploy.kopiro.it:8080/?p=otto"
+  branches:
+    only:
+    - master

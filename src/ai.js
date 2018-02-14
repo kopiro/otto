@@ -16,7 +16,6 @@ function getEntities(session) {
 		entities = entities.concat([{
 			name: "chromecast",
 			entries: _.map(config.chromecast.devices, ((value, key) => {
-				console.log(key);
 				return { 
 					value: key,
 					synonyms: [ value.name ]
@@ -28,10 +27,7 @@ function getEntities(session) {
 }
 
 function fulfillmentSanitizer(fulfillment) {
-	if (!_.isObject(fulfillment)) {
-		throw new Error('Fulfillment is not an object');
-	}
-	return _.defaults(fulfillment, {
+	return _.defaults(fulfillment || {}, {
 		data: {}
 	});
 }
@@ -159,7 +155,8 @@ exports.textRequest = function(text, session) {
 
 exports.eventRequest = function(event, session) {
 	return new Promise(async(resolve, reject) => {
-		console.debug(TAG, 'event request =======>', event);
+		console.debug(TAG, 'event request =======>');
+		console.dir(event, { depth: 10 });
 
 		if (_.isString(event)) {
 			event = { name: event };

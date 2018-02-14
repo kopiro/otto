@@ -8,6 +8,8 @@ const configuredDriversId = [];
 
 const enabledAccesories = {};
 
+const enabledListeners = {};
+
 // Constant used when forwarding output to an accessory
 exports.CAN_HANDLE_OUTPUT = {
 	YES_AND_BREAK: true,
@@ -37,7 +39,7 @@ exports.input = async function({ session, params = {}, fulfillment }) {
 	console.info(TAG, 'input', 'SID = ' + session._id);
 
 	if (false === isIdDriverUp(session.io_id)) {	
-		console.info(TAG, 'putting in IO queue', 'SID = ' + session._id);
+		console.info(TAG, 'putting in IO queue', { session, params, fulfillment });
 		new Data.IOQueue({
 			io_id: session.io_id,
 			session: session._id,
@@ -130,9 +132,25 @@ function isIdDriverUp(driverId) {
 	return configuredDriversId.indexOf(driverId) >= 0;
 }
 
+function getDriversToLoad() {
+	if (process.env.OTTO_IO_DRIVERS) return process.env.OTTO_IO_DRIVERS.split(',');
+	return config.ioDrivers || [];
+}
+
+function getAccessoriesToLoad(driver) {
+	if (process.env.OTTO_IO_ACCESSORIES) return process.env.OTTO_IO_ACCESSORIES.split(',');
+	return config.ioAccessoriesMap[driver] || [];
+}
+
+function getListenersToLoad() {
+	if (process.env.OTTO_IO_LISTENERS) return process.env.OTTO_IO_LISTENERS.split(',');
+	return config.listeners || [];
+}
+
 function loadDrivers() {
-	console.info(TAG, 'drivers to load => ' + config.ioDrivers.join(', '));
-	for (let driverStr of config.ioDrivers) {
+	const driversToLoad = getDriversToLoad();
+	console.info(TAG, 'drivers to load', driversToLoad);
+	for (let driverStr of driversToLoad) {
 		let driver = exports.getDriver(driverStr);
 
 		if (config.serverMode == true && driver.config.noServerMode == true) {
@@ -141,25 +159,44 @@ function loadDrivers() {
 		}
 
 		enabledDrivers[driverStr] = driver;
-		configuredDriversId.push(config.uid + '/' + driver.config.id);
+
+		const driverId = config.uid + '/' + driver.config.id;
+		configuredDriversId.push(driverId);
+		console.info(TAG, 'enabled driver', driverId);
 
 		driver.emitter.emit('loaded');
 	}
 }
 
 function loadAccessories() {
-	console.info(TAG, 'accesories to load => ', Object.keys(config.ioAccessoriesMap).join(', '));
-	for (let driver of Object.keys(config.ioAccessoriesMap)) {
-		const accessories = config.ioAccessoriesMap[driver] || [];
-		enabledAccesories[driver] = [];
-		for (let accessory of accessories) {
-			enabledAccesories[driver].push(exports.getAccessory(accessory));
+	const driversToLoad = getDriversToLoad();
+	for (let driverStr of driversToLoad) {
+		enabledAccesories[driverStr] = [];
+		const accessoriesToLoad = getAccessoriesToLoad(driverStr);
+		console.info(TAG, 'accesories to load', driverStr, accessoriesToLoad);
+		for (let accessory of accessoriesToLoad) {
+			enabledAccesories[driverStr].push(exports.getAccessory(accessory));
 		}
+	}
+}
+
+function loadListeners() {
+	const listenersToLoad = getListenersToLoad();
+	console.info(TAG, 'listeners to load', listenersToLoad);
+
+	for (let listenerStr of listenersToLoad) {
+		const listener = exports.getListener(listenerStr);
+		enabledListeners[listenerStr] = listener;
+		listener.listen();
 	}
 }
 
 exports.getDriver = function(e) {
 	return require(__basedir + '/src/io/' + e);
+};
+
+exports.getListener = function(e) {
+	return require(__basedir + '/src/listeners/' + e);
 };
 
 exports.getAccessory = function(e) {
@@ -236,4 +273,5 @@ exports.start = function() {
 	for (let driverStr of Object.keys(enabledDrivers)) {
 		configureDriver(driverStr);
 	}
+	loadListeners();
 };

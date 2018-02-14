@@ -76,7 +76,7 @@ module.exports = async function({ sessionId, result }) {
 	} else if (p.request_type === 'explicit') {
 		const avg_temp = ((parseInt(obs.high.celsius, 10) + parseInt(obs.low.celsius, 10)) / 2).toFixed(0);
 		return ({
-			speech: fulfillment.payload.speech
+			speech: fulfillment.speech
 			.replace('$_location', p.location)
 			.replace('$_conditions', obs.conditions)
 			.replace('$_avg_temp', avg_temp)

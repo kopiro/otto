@@ -71,6 +71,12 @@ using the `ioDrivers` keyword.
 }
 ```
 
+You can temporary use a driver without altering your configuration by setting an environment var:
+
+```
+export OTTO_IO_DRIVERS=telegram,test
+```
+
 There are 4 I/O drivers available at the moment:
 
 * **Test**: handle I/O using the CLI (used for test purposes)
@@ -128,6 +134,10 @@ Dependencies:
 * **Google Cloud Speech Recognizer** - for the speech recognizer if the user send a voice message
 * **AWS Polly** - for the TTS if we want to send a voice 
 
+## Listeners
+
+A listener is a file that listen for incoming requests and can trigger output.
+
 ## I/O Accessories
 
 I/O Accessories are similar to drivers, but don't handle input and output direclty. They can be attached to I/O driver to perform additional things.
@@ -142,9 +152,12 @@ Each accessory has a method called `canHandleOutput` that should return constant
 
 Depending on this constant, the IOManager forward the output to the next configured driver or stops the chain.
 
-## Listeners
+You can temporary use a accessory without altering your configuration by setting an environment var:
 
-A listener is a file that listen for incoming requests and can trigger output.
+```
+export OTTO_IO_ACCESSORIES=telegram,test
+```
+>>>>>>> 173cfd970b00c7c55a684423f83e8d1b8c2da1df
 
 ### How to write an action
 
