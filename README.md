@@ -146,9 +146,9 @@ Accessories listen for I/O drivers events and, when an output to a driver is req
 
 Each accessory has a method called `canHandleOutput` that should return constant from `IOManager.CAN_HANDLE_OUTPUT.*`: 
 
-* `YES_AND_BREAK `
-* `YES_AND_CONTINUE `
-* `NO  `
+* `YES_AND_BREAK`
+* `YES_AND_CONTINUE`
+* `NO`
 
 Depending on this constant, the IOManager forward the output to the next configured driver or stops the chain.
 
@@ -157,7 +157,6 @@ You can temporary use a accessory without altering your configuration by setting
 ```
 export OTTO_IO_ACCESSORIES=telegram,test
 ```
->>>>>>> 173cfd970b00c7c55a684423f83e8d1b8c2da1df
 
 ### How to write an action
 
