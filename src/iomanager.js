@@ -191,6 +191,14 @@ function loadListeners() {
 	}
 }
 
+exports.encodeBody = function(b) {
+	return { body: new Buffer(JSON.stringify(b)).toString('base64') };
+};
+
+exports.decodeBody = function(fulfillment) {
+	return JSON.parse(new Buffer(fulfillment.payload.body, 'base64').toString('ascii'));
+};
+
 exports.getDriver = function(e) {
 	return require(__basedir + '/src/io/' + e);
 };

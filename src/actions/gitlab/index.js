@@ -2,7 +2,9 @@ exports.id = 'gitlab';
 
 module.exports = async function({ sessionId, result }) {
 	let { parameters: p, fulfillment } = result;
-	const body = JSON.parse(new Buffer(fulfillment.payload.body, 'base64').toString('ascii'));
+
+	const body = IOManager.decodeBody(fulfillment);
+	
 	switch (body.object_kind) {
 		case 'merge_request':
 		return {
