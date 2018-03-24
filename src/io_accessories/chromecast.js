@@ -40,7 +40,7 @@ exports.output = async function(e, session) {
 
 			if (e.data.music.track) {
 				player.play({
-					context_uri: e.data.music.track.uri
+					uris: [e.data.music.track.uri]
 				});
 			} else if (e.data.music.artist) {
 				player.play({

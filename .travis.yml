@@ -12,7 +12,10 @@ jobs:
       - docker push $DOCKER_USERNAME/otto:latest
     - stage: deploy
       script:
-      - wget "http://deploy.kopiro.it:8080/?p=otto"
+      - echo $SSH_KEY > key64
+      - base64 --decode key64 > key
+      - chmod 400 key
+      - ssh -o "StrictHostKeyChecking no" -i key $SSH_USERNAME@$SSH_HOST "$SSH_COMMAND"
   branches:
     only:
     - master
