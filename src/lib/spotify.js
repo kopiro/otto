@@ -8,11 +8,9 @@ const SpotifyWPAT = require('spotify-webplayer-accesstoken');
 const client = new SpotifyWebApi();
 
 client.connect = async function() {
-	if (client.connected == null) {
-		const access_token = await SpotifyWPAT.getAccessToken(_config.username, _config.password);
-		client.setAccessToken(access_token);
-		client.connected = true;
-	}
+	const access_token = await SpotifyWPAT.getAccessToken(_config.username, _config.password);
+	client.setAccessToken(access_token);
+	client.connected = true;
 };
 
 module.exports = client;
