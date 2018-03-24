@@ -68,6 +68,7 @@
     "socket.io": "^1.7.4",
     "spotify-castv2-client": "^1.0.4",
     "spotify-web-api-node": "^2.3.6",
+    "spotify-webplayer-accesstoken": "^1.0.0",
     "striptags": "^3.1.0",
     "transmission": "^0.4.9",
     "underscore": "^1.8.3",
