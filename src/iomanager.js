@@ -235,8 +235,8 @@ exports.registerSession = async function({ sessionId, io_driver, io_data, alias,
 			io_driver: io_driver,
 			io_data: io_data,
 			alias: alias,
-			settings: {},
-			pipe: {},
+			settings: { updated_at: Date.now() },
+			pipe: { updated_at: Date.now() },
 			server_settings: config.uid
 		}).save());
 	}

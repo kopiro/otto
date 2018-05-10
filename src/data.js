@@ -6,7 +6,7 @@ const ServerSettings = new Schema({
 	_id: String,
 	data: Schema.Types.Mixed
 });
-exports.ServerSettings = mongoose.model('settings', ServerSettings);
+exports.ServerSettings = mongoose.model('server_settings', ServerSettings);
 
 const Session = new Schema({
 	_id: String,
@@ -42,12 +42,14 @@ Session.methods.getIODriver = function() {
 
 Session.methods.savePipe = function(data) {
 	this.pipe = _.extend(this.pipe || {}, data);
+	this.pipe.updated_at = Date.now();
 	this.markModified('pipe');
 	return this.save();
 };
 
 Session.methods.saveSettings = function(data) {
-	this.pipe = _.extend(this.settings || {}, data);
+	this.settings = _.extend(this.settings || {}, data);
+	this.settings.updated_at = Date.now();
 	this.markModified('settings');
 	return this.save();
 };

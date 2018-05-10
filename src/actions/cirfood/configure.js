@@ -9,7 +9,7 @@ module.exports = async function({ sessionId, result }, session) {
 
 	try {		
 		c.login();
-		session.saveParams({
+		session.saveSettings({
 			cirfood: p
 		});
 		return {
