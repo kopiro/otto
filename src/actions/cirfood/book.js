@@ -47,10 +47,19 @@ module.exports = async function({ sessionId, result }, session) {
 				event: 'cirfood_book_response'
 			}
 		});
-		return;
-	}
 
-	let course_mispelled = false;
+		let text = "";
+		for (let c of cirfood.client.booking.courses) {
+			text += "---" + c.kind + "---\n";
+			for (let e of c.data) {
+				text += e.text + "\n";
+			}
+		}
+
+		return {
+			speech: text
+		};
+	}
 
 	const context_response = _.findWhere(result.contexts, {
 		name: 'cirfood_book_response'
@@ -67,8 +76,6 @@ module.exports = async function({ sessionId, result }, session) {
 		if (selected_course != null) {
 			cirfood.client.addCourseToCurrentBooking(selected_course.id);
 			cirfood.state++;
-		} else {
-			course_mispelled = true;
 		}
 	}
 
