@@ -18,25 +18,23 @@ module.exports = async function({ sessionId, result }, session) {
 		return;
 	}
 
-	let cirfood = CirFoodMem[ session.id ];
+	const context_response = _.findWhere(result.contexts, {
+		name: 'cirfood_book_response'
+	});
 
-	// If cirfood (CirFoodMem[ session.id ]) is null,
-	// it means that user is starting now to booking his lunch
-	// (or server is crashed and node rebooted)
-	if (cirfood == null) {
+	if (context_response == null || CirFoodMem[session.id] == null) {
+		let cf = {};
 
-		cirfood = {};
-
-		cirfood.client = new CirFood(
+		cf.client = new CirFood(
 		session.settings.cirfood.username, 
 		session.settings.cirfood.password
 		);
-		cirfood.date = p.date;
-		cirfood.state = 0;
+		cf.date = p.date;
+		cf.state = 0;
 
-		await cirfood.client.startBooking(new Date(p.date));		
+		await cf.client.startBooking(new Date(p.date));		
 
-		CirFoodMem[session.id] = cirfood;
+		CirFoodMem[session.id] = cf;
 
 		// Exit from this intent
 		// bacause we don't have enough data in this intent
@@ -61,22 +59,17 @@ module.exports = async function({ sessionId, result }, session) {
 		};
 	}
 
-	const context_response = _.findWhere(result.contexts, {
-		name: 'cirfood_book_response'
+	let cirfood = CirFoodMem[session.id];
+
+	// Find the answer into replies
+	const courses = cirfood.client.booking.courses[cirfood.state].data;
+	const selected_course = courses.find(e => {
+		return e.text === result.resolvedQuery || e.hid === result.resolvedQuery;
 	});
 
-	// The user responsd from a question of the bot
-	if (context_response != null)  {
-		// Find the answer into replies
-		const courses = cirfood.client.booking.courses[cirfood.state].data;
-		const selected_course = courses.find(e => {
-			return e.text === result.resolvedQuery || e.hid === result.resolvedQuery;
-		});
-
-		if (selected_course != null) {
-			cirfood.client.addCourseToCurrentBooking(selected_course.id);
-			cirfood.state++;
-		}
+	if (selected_course != null) {
+		cirfood.client.addCourseToCurrentBooking(selected_course.id);
+		cirfood.state++;
 	}
 
 	if (cirfood.state <= 2) {
