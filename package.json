@@ -37,6 +37,7 @@
     "browserify": "^14.1.0",
     "castv2-client": "^1.2.0",
     "chess.js": "git+https://github.com/jhlywa/chess.js.git",
+    "cir-food": "^1.0.0",
     "color-convert": "^1.9.1",
     "console-ultimate": "^2.9.0",
     "deep-extend": "^0.5.0",

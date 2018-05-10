@@ -27,13 +27,18 @@ function getEntities(session) {
 }
 
 function fulfillmentSanitizer(fulfillment) {
-	return _.defaults(fulfillment || {}, {
-		data: {}
-	});
+	if (_.isString(fulfillment)) {
+		fulfillment = {
+			speech: fulfillment
+		};
+	}
+	fulfillment.data = fulfillment.data || {};
+	return fulfillment;
 }
 
 async function fulfillmentTransformer(fulfillment, session) {
 	fulfillment = fulfillmentSanitizer(fulfillment);
+
 	// Here, merge data with payload in case 
 	// fulfillment is direct without an action resolution
 	_.defaults(fulfillment.data, fulfillment.payload);
@@ -43,7 +48,7 @@ async function fulfillmentTransformer(fulfillment, session) {
 		fulfillment.speech = await Translator.translate(fulfillment.speech, session.getTranslateTo());
 	}
 
-	if (fulfillment.data.error != null) {
+	if (fulfillment.data != null && fulfillment.data.error != null) {
 		if (!_.isEmpty(fulfillment.data.error.speech)) {
 			fulfillment.data.error.speech = await Translator.translate(fulfillment.data.error.speech, session.getTranslateTo());
 		}
