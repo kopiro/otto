@@ -22,7 +22,7 @@ console.log(result);
 
 	let cirfood = CirFoodMem[ session.id ];
 
-	// If cirfood is null,
+	// If cirfood (CirFoodMem[ session.id ]) is null,
 	// it means that user is starting now to booking his lunch
 	// (or server is crashed and node rebooted)
 	if (cirfood == null) {
@@ -40,6 +40,9 @@ console.log(result);
 
 		CirFoodMem[session.id] = cirfood;
 
+		// Exit from this intent
+		// bacause we don't have enough data in this intent
+		// to process speechs, switch to cirfood_book_response instead
 		IOManager.input({
 			session: session,
 			params: {
@@ -49,11 +52,11 @@ console.log(result);
 		return;
 	}
 
+	let course_mispelled = false;
+
 	const context_response = _.findWhere(result.contexts, {
 		name: 'cirfood_book_response'
 	});
-
-	let course_mispelled = false;
 
 	// The user responsd from a question of the bot
 	if (context_response != null)  {
