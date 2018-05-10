@@ -13,7 +13,7 @@ const Session = new Schema({
 	io_driver: String,
 	io_id: String,
 	io_data: Schema.Types.Mixed,
-	server_settings: { type: String, ref: 'settings', autopopulate: true },
+	server_settings: { type: String, ref: 'server_settings', autopopulate: true },
 	settings: Schema.Types.Mixed,
 	translate_from: String,
 	translate_to: String,
