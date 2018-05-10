@@ -14,6 +14,7 @@ const Session = new Schema({
 	io_id: String,
 	io_data: Schema.Types.Mixed,
 	settings: { type: String, ref: 'settings', autopopulate: true },
+	params: Schema.Types.Mixed,
 	translate_from: String,
 	translate_to: String,
 	alias: String,
@@ -47,6 +48,16 @@ Session.methods.saveInPipe = function(data) {
 
 Session.methods.getPipe = function() {
 	return this.pipe || {};
+};
+
+Session.methods.saveParams = function(data) {
+	this.pipe = _.extend(this.params || {}, data);
+	this.markModified('params');
+	return this.save();
+};
+
+Session.methods.getParams = function() {
+	return this.params || {};
 };
 
 Session.methods.getTranslateFrom = function() {

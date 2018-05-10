@@ -7,19 +7,14 @@ module.exports = async function({ sessionId, result }, session) {
 
 	const c = new CirFood(p.username, p.password);
 
-	try {
-		
+	try {		
 		c.login();
-		
-		// Save in this session the credentials
-		session.saveSettings({
+		session.saveParams({
 			cirfood: p
 		});
-		
 		return {
 			speech: fulfillment.speech
 		};
-
 	} catch (ex) {
 		throw fulfillment.payload.error;
 	}

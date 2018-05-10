@@ -8,9 +8,7 @@ const _  = require('underscore');
 module.exports = async function({ sessionId, result }, session) {
 	let { parameters: p, fulfillment } = result;
 
-console.log(result);
-
-	if (session.settings.data.cirfood == null) {
+	if (session.getParams().cirfood == null) {
 		IOManager.input({
 			session: session,
 			params: {
