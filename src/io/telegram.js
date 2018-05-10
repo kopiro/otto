@@ -142,8 +142,8 @@ exports.output = async function(f, session) {
 
 	const speech = f.speech || f.data.speech;
 	if (speech) {
-		if (session.getPipe().next_with_voice) {
-			session.saveInPipe({ next_with_voice: false });
+		if (session.pipe.next_with_voice) {
+			session.savePipe({ next_with_voice: false });
 			await sendVoiceMessage(chat_id, speech, language, message_opt);
 		} else {
 			await sendMessage(chat_id, speech, message_opt);
@@ -268,7 +268,7 @@ bot.on('message', async(e) => {
 			}
 
 			// User sent a voice note, respond with a voice note :)
-			session.saveInPipe({ next_with_voice: true });
+			session.savePipe({ next_with_voice: true });
 			emitter.emit('input', {
 				session: session,
 				params: {

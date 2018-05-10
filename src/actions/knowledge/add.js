@@ -4,7 +4,7 @@ module.exports = function({ sessionId, result }, session) {
 	return new Promise((resolve, reject) => {
 		let { parameters: p, fulfillment } = result;
 
-		var knowledgeGet = session.getPipe().knowledgeGet;
+		var knowledgeGet = session.pipe.knowledgeGet;
 		if (knowledgeGet == null) return reject();
 
 		new Data.Knowledge({

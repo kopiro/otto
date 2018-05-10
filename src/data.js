@@ -2,19 +2,19 @@ const _ = require('underscore');
 const Schema = mongoose.Schema;
 const autopopulate = require('mongoose-autopopulate');
 
-const Settings = new Schema({
+const ServerSettings = new Schema({
 	_id: String,
 	data: Schema.Types.Mixed
 });
-exports.Settings = mongoose.model('settings', Settings);
+exports.ServerSettings = mongoose.model('settings', ServerSettings);
 
 const Session = new Schema({
 	_id: String,
 	io_driver: String,
 	io_id: String,
 	io_data: Schema.Types.Mixed,
-	settings: { type: String, ref: 'settings', autopopulate: true },
-	params: Schema.Types.Mixed,
+	server_settings: { type: String, ref: 'settings', autopopulate: true },
+	settings: Schema.Types.Mixed,
 	translate_from: String,
 	translate_to: String,
 	alias: String,
@@ -24,11 +24,11 @@ const Session = new Schema({
 
 Session.plugin(autopopulate);
 
-Session.methods.saveSettings = async function(data) {
-	let s = this.settings;
+Session.methods.saveServerSettings = async function(data) {
+	let s = this.server_settings;
 	if (s == null) {
-		s = new exports.Settings({ 
-			_id: (this.populated('settings') || this._id)
+		s = new exports.ServerSettings({ 
+			_id: (this.populated('server_settings') || this._id)
 		});
 	}
 	s.data = _.extend({}, s.data, data);
@@ -40,24 +40,16 @@ Session.methods.getIODriver = function() {
 	return IOManager.getDriver(this.io_driver);
 };
 
-Session.methods.saveInPipe = function(data) {
+Session.methods.savePipe = function(data) {
 	this.pipe = _.extend(this.pipe || {}, data);
 	this.markModified('pipe');
 	return this.save();
 };
 
-Session.methods.getPipe = function() {
-	return this.pipe || {};
-};
-
-Session.methods.saveParams = function(data) {
-	this.pipe = _.extend(this.params || {}, data);
-	this.markModified('params');
+Session.methods.saveSettings = function(data) {
+	this.pipe = _.extend(this.settings || {}, data);
+	this.markModified('settings');
 	return this.save();
-};
-
-Session.methods.getParams = function() {
-	return this.params || {};
 };
 
 Session.methods.getTranslateFrom = function() {

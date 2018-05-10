@@ -4,6 +4,6 @@ const _ = require('underscore');
 
 module.exports = async function({ sessionId, result }, session) {
 	let { parameters: p, fulfillment } = result;
-	await session.saveSettings({ chromecast: p.chromecast });
+	await session.saveServerSettings({ chromecast: p.chromecast });
     return fulfillment;
 };

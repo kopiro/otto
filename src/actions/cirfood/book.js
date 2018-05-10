@@ -8,7 +8,7 @@ const _  = require('underscore');
 module.exports = async function({ sessionId, result }, session) {
 	let { parameters: p, fulfillment } = result;
 
-	if (session.getParams().cirfood == null) {
+	if (session.settings.cirfood == null) {
 		IOManager.input({
 			session: session,
 			params: {
@@ -28,8 +28,8 @@ module.exports = async function({ sessionId, result }, session) {
 		cirfood = {};
 
 		cirfood.client = new CirFood(
-		session.settings.data.cirfood.username, 
-		session.settings.data.cirfood.password
+		session.settings.cirfood.username, 
+		session.settings.cirfood.password
 		);
 		cirfood.date = p.date;
 		cirfood.state = 0;

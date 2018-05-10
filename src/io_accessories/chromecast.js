@@ -17,7 +17,7 @@ exports.canHandleOutput = function(e, session) {
 };
 
 exports.output = async function(e, session) {
-	const cid = session.settings.data.chromecast;
+	const cid = session.server_settings.data.chromecast;
 	if (exports.clients[ cid ] == null) {
 		exports.clients[ cid ] = await ChromeCast.connect(cid);
 	}

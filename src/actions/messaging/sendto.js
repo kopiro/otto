@@ -33,7 +33,7 @@ module.exports = function({ sessionId, result }, session) {
 
 			// Ask which of these is the contact to send the message
 			if (eligible_contact == null) {
-				session.saveInPipe({
+				session.savePipe({
 					messaging_sendto_multiplecontacts: {
 						text: p.text
 					}
@@ -50,8 +50,8 @@ module.exports = function({ sessionId, result }, session) {
 			}
 
 			let text;
-			if (session.getPipe().messaging_sendto_multiplecontacts) {
-				text = session.getPipe().messaging_sendto_multiplecontacts.text;
+			if (session.pipe.messaging_sendto_multiplecontacts) {
+				text = session.pipe.messaging_sendto_multiplecontacts.text;
 			} else {
 				text = p.text;
 			}
