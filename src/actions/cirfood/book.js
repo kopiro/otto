@@ -23,18 +23,16 @@ module.exports = async function({ sessionId, result }, session) {
 	});
 
 	if (context_response == null || CirFoodMem[session.id] == null) {
-		let cf = {};
+		let cirfood = {};
 
-		cf.client = new CirFood(
+		cirfood.client = new CirFood(
 		session.settings.cirfood.username, 
 		session.settings.cirfood.password
 		);
-		cf.date = p.date;
-		cf.state = 0;
+		cirfood.date = p.date;
+		cirfood.state = 0;
 
-		await cf.client.startBooking(new Date(p.date));		
-
-		CirFoodMem[session.id] = cf;
+		await cirfood.client.startBooking(new Date(p.date));		
 
 		// Exit from this intent
 		// bacause we don't have enough data in this intent
@@ -53,6 +51,8 @@ module.exports = async function({ sessionId, result }, session) {
 				text += e.text + "\n";
 			}
 		}
+
+		CirFoodMem[session.id] = cirfood;
 
 		return {
 			speech: text
