@@ -8,15 +8,17 @@ module.exports = async function({ sessionId, result }, session) {
 	const c = new CirFood(p.username, p.password);
 
 	try {		
-		c.login();
-		session.saveSettings({
-			cirfood: p
-		});
-		return {
-			speech: fulfillment.speech
-		};
+		await c.login();
 	} catch (ex) {
 		throw fulfillment.payload.error;
 	}
+
+	session.settings.cirfood = p;
+	session.markModified('settings');
+	session.save();
+
+	return {
+		speech: fulfillment.speech
+	};
 	
 };
