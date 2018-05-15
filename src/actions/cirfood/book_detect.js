@@ -44,8 +44,6 @@ module.exports = async function({ sessionId, result }, session) {
 		return course.data.sort((a,b) => (b.score - a.score))[ 0 ];
 	});
 
-	console.log('----------------', detected_courses);
-
 	try {
 
 		for (let course of detected_courses) {
