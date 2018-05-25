@@ -33,6 +33,10 @@ global.mimicHumanMessage = function(text) {
 	return _.compact(splitted);
 };
 
+global.helperrequire = function(k) {
+	return require(__basedir + '/src/helpers/' + k);
+};
+
 /*
 Valid Values: cy-GB | da-DK | de-DE | en-AU | en-GB | en-GB-WLS | en-IN | en-US | es-ES | es-US | fr-CA | fr-FR | is-IS | it-IT | ja-JP | nb-NO | nl-NL | pl-PL | pt-BR | pt-PT | ro-RO | ru-RU | sv-SE | tr-TR
  */

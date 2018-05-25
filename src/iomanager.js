@@ -63,6 +63,10 @@ exports.input = async function({ session, params = {}, fulfillment }) {
 		// Direct fulfillment
 		fulfillment = await AI.fulfillmentTransformer(fulfillment, session);
 		driver.output(fulfillment, session);
+	} else if (params.body) {
+		// Direct fulfillment but with action resolution
+		fulfillment = await AI.fulfillmentFromBody(params.body, session);
+		driver.output(fulfillment, session);
 	} else if (params.text) {
 		// Interrogate AI to get fulfillment by textRequest
 		// This invokes API.ai to detect the action and invoke the action to perform fulfillment
@@ -73,7 +77,7 @@ exports.input = async function({ session, params = {}, fulfillment }) {
 		// This invokes API.ai to detect the action and invoke the action to perform fulfillment
 		fulfillment = await AI.eventRequest(params.event, session);
 		driver.output(fulfillment, session);
-	}
+	} 
 
 	// Process output accessories:
 	// An accessory can:

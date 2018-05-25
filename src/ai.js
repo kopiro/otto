@@ -27,6 +27,12 @@ function getEntities(session) {
 }
 
 function fulfillmentSanitizer(fulfillment) {
+	// Always ensure that is an object
+	if (fulfillment == null) {
+		console.error('Fulfillment is null or undefined!');
+		fulfillment = {};
+	}
+	// Even if is a string
 	if (_.isString(fulfillment)) {
 		fulfillment = {
 			speech: fulfillment
@@ -36,6 +42,12 @@ function fulfillmentSanitizer(fulfillment) {
 	return fulfillment;
 }
 
+/**
+ * Transform a fulfillment by making some edits based on the current session settings
+ * @param  {Object} fulfillment Fulfillment object
+ * @param  {Object} session     Session
+ * @return {Object}
+ */
 async function fulfillmentTransformer(fulfillment, session) {
 	fulfillment = fulfillmentSanitizer(fulfillment);
 
@@ -59,7 +71,7 @@ async function fulfillmentTransformer(fulfillment, session) {
 
 exports.fulfillmentTransformer = fulfillmentTransformer;
 
-async function fulfillmentPromiseTransformer(action, body, session) {
+async function fulfillmentFromBody(body, session) {
 	return new Promise(async(resolve) => {
 		let fulfillment = null;
 		
@@ -73,26 +85,36 @@ async function fulfillmentPromiseTransformer(action, body, session) {
 		}, 1000 * (_config.promiseTimeout || 10));
 
 		try {
-			console.debug(TAG, `calling action ${action}`);
+			console.info(TAG, `calling action ${body.result.action}`);
+			// Actual call to the Action
 			fulfillment = await Actions.list[ body.result.action ]()(body, session);
-			fulfillment = await fulfillmentTransformer(fulfillment, session);
 		} catch (err) {
-			fulfillment = await fulfillmentTransformer({
-				data: { error: err }
-			}, session);
+			if (err.fulfillment) {
+				// Here is a bit of an hack to intercept a fulfillment that is into an error,
+				// maybe thrown from an actions_helper
+				fulfillment = err.fulfillment;
+			} else {
+				// instead, if only a simple error is thrown, 
+				// just wrap into a standard structure
+				fulfillment = { data: { error: err } };
+			}
 		}
+
+		// Pass the fulfillment to the transformer in final instance
+		fulfillment = await fulfillmentTransformer(fulfillment, session);
 
 		clearTimeout(action_timeout);
 		resolve(fulfillment);
 	});
 }
 
+exports.fulfillmentFromBody = fulfillmentFromBody;
+
 exports.textRequestTransformer = async function(text, session) {
 	text = text.replace(config.aiNameRegex, ''); // Remove the AI name in the text
 	text = await Translator.translate(text, config.language, session.getTranslateTo());
 	return text;
 };
-
 
 exports.apiaiResultParser = async function(body, session) {
 	// Parse messages
@@ -110,7 +132,7 @@ exports.apiaiResultParser = async function(body, session) {
 	if (body.result.metadata.intentId != null) {
 		// If an intentId is returned, could auto resolve or call a promise
 		if (_.isEmpty(body.result.action) === false && body.result.actionIncomplete !== true) {
-			body.result.fulfillment = await fulfillmentPromiseTransformer(body.result.action, body, session);
+			body.result.fulfillment = await fulfillmentFromBody(body, session);
 		} else {
 			body.result.fulfillment = await fulfillmentTransformer(body.result.fulfillment, session);
 		}
@@ -124,7 +146,7 @@ exports.apiaiResultParser = async function(body, session) {
 
 exports.textRequest = function(text, session) {
 	return new Promise(async(resolve, reject) => {
-		console.debug(TAG, 'text request =======>', text);
+		console.info(TAG, 'text request =======>', text);
 
 		text = await exports.textRequestTransformer(text, session);
 		let request = client.textRequest(text, {
@@ -160,7 +182,7 @@ exports.textRequest = function(text, session) {
 
 exports.eventRequest = function(event, session) {
 	return new Promise(async(resolve, reject) => {
-		console.debug(TAG, 'event request =======>');
+		console.info(TAG, 'event request =======>');
 		console.dir(event, { depth: 10 });
 
 		if (_.isString(event)) {

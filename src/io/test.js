@@ -1,7 +1,6 @@
 const TAG = 'IO.Test';
 exports.config = {
-	id: 'test',
-	noServerMode: true
+	id: 'test'
 };
 
 const _ = require('underscore');
@@ -35,7 +34,10 @@ exports.startInput = async function() {
 	let msg = initial_strings.shift();
 
 	if (!_.isEmpty(msg)) {
-		console.info(TAG, 'input', msg);
+		for (let i = 0; i < 50; i++) process.stdout.write("+"); process.stdout.write("\n");
+		process.stdout.write(msg);
+		process.stdout.write("\n");
+		for (let i = 0; i < 50; i++) process.stdout.write("+"); process.stdout.write("\n");
 		return emitter.emit('input', {
 			session: IOManager.session,
 			params: {
@@ -45,30 +47,21 @@ exports.startInput = async function() {
 	}
 	
 	rl.question('> ', (answer) => {
-		if (/^EVAL /.test(answer)) {
-			answer = answer.replace(/^EVAL /, '');
-			console.debug(answer);
-			try {
-				eval(answer);
-			} catch (err) {
-				console.error(err);
+		emitter.emit('input', {
+			session: IOManager.session,
+			params: {
+				text: answer
 			}
-			exports.startInput();
-		} else {
-			emitter.emit('input', {
-				session: IOManager.session,
-				params: {
-					text: answer
-				}
-			});
-		}
+		});
 	});
 
 	exports.startInput();
 };
 
 exports.output = async function(f) {
-	await registerGlobalSession();
+	if (IOManager.session == null) {
+		await registerGlobalSession();
+	}
 
 	console.info(TAG, 'output');
 	emitter.emit('output', {
@@ -79,4 +72,8 @@ exports.output = async function(f) {
 	for (let i = 0; i < 50; i++) process.stdout.write("="); process.stdout.write("\n");
 	console.dir(f, { depth: 10 });
 	for (let i = 0; i < 50; i++) process.stdout.write("="); process.stdout.write("\n");
+
+	setTimeout(() => {
+		exports.startInput();
+	}, 1000);
 };
