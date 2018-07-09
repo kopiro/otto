@@ -2,6 +2,8 @@ exports.id = 'chromecast';
 
 const ChromeCast = apprequire('chromecast');
 
+const spotify = apprequire('spotify');
+
 const YoutubeCastClient = require('youtube-castv2-client').Youtube;
 const SpotifyCastClient = require('spotify-castv2-client').Spotify;
 const DefaultMediaReceiver = require('castv2-client').DefaultMediaReceiver;
@@ -34,9 +36,13 @@ exports.output = async function(e, session) {
 
 	if (e.data.music) {
 		client.launch(SpotifyCastClient, async(err, player) => {
-			await player.authenticate(_.extend(config.spotify, {
+			const credentials = await spotify.getCredentialsForChromecast();
+
+			await player.authenticate({
+				access_token: credentials.access_token,
+				access_token_expiration: credentials.expiration,
 				device_name: client.name
-			}));
+			});
 
 			if (e.data.music.track) {
 				player.play({
