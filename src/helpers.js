@@ -33,7 +33,7 @@ global.mimicHumanMessage = function(text) {
 	return _.compact(splitted);
 };
 
-global.helperrequire = function(k) {
+global.requireHelper = function(k) {
 	return require(__basedir + '/src/helpers/' + k);
 };
 

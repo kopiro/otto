@@ -14,7 +14,7 @@ services:
     - ./log:/app/log
     - ./keys:/app/keys
     - ./config.json:/app/config.json 
-    # Used for instant volume change
+    - ./package.json:/app/package.json
     - ./package-lock.json:/app/package-lock.json
     - ./src:/app/src
     ports:

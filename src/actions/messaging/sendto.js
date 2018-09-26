@@ -1,6 +1,6 @@
 exports.id = 'messaging.sendto';
 
-const SessionSearch = helperrequire('sessionsearch');
+const SessionSearch = requireHelper('sessionsearch');
 
 module.exports = async function(body, session) {
 	const { sessionId, result } = body;

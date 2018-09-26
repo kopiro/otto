@@ -37,14 +37,12 @@ RUN apk add --no-cache imagemagick graphicsmagick
 RUN rm -rf /var/cache/apk/*
 
 # Install node modules
-ENV NODE_ENV development
-COPY package.json /package.json
-COPY package-lock.json /package-lock.json
-RUN cd / && npm install --unsafe-perm && rm -rf ~/.npm
+COPY package.json package.json
+COPY package-lock.json package-lock.json
+RUN npm install --unsafe-perm
 
 # Copy my code
-COPY . /app
-RUN ln -svf /node_modules /app/node_modules
+COPY . .
 
 # Do the build
 RUN npm run build

@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "node build.js",
-    "dev": "supervisor --extensions node,js,json --watch src main.js",
+    "dev": "supervisor --extensions node,js,json --watch ./src main.js",
     "start": "node main.js"
   },
   "repository": {
