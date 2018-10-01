@@ -13,10 +13,10 @@ exports.start = function(bpm = 120, steps = 4) {
     var count = steps - 1;
     intv = setInterval(() => {
         if (++count == steps){
-            Play.fileToSpeaker(high);
+            Play.playURI(high);
             count = 0;
         } else {
-            Play.fileToSpeaker(low);
+            Play.playURI(low);
         }
     }, delay);
     return intv;

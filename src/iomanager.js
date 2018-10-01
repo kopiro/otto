@@ -215,6 +215,10 @@ exports.getAccessory = function(e) {
 	return require(__basedir + '/src/io_accessories/' + e);
 };
 
+exports.writeLog = async function(text) {
+	return exports.writeLogForSession(exports.session, text);
+};
+
 exports.writeLogForSession = async function(session, text) {
 	return (new Data.SessionInput({ 
 		session: session._id,

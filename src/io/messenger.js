@@ -68,7 +68,7 @@ async function sendVoiceMessage(chat_id, text, language, telegram_opt) {
 
 	for (let sentence of sentences) {
 		const polly_file = await Polly.getAudioFile(sentence, { language: language });
-		const voice_file = await Play.voiceToTmpFile(polly_file);
+		const voice_file = await Play.playToTempFile(polly_file);
 		await bot.sendVoice(chat_id, voice_file, telegram_opt);
 	}
 

@@ -11,7 +11,7 @@ async function sendMessage(text, language = 'it') {
 
 	for (let sentence of sentences) {
 		let polly_file = await Polly.getAudioFile(sentence, { language: language });
-		await Play.voiceToSpeaker(polly_file);
+		await Play.playVoice(polly_file);
 	}
 }
 
