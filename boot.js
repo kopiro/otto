@@ -10,6 +10,8 @@ global.__cachedir = __dirname + '/cache';
 global.__publicdir = __dirname + '/public';
 global.__etcdir = __dirname + '/etc';
 
+global.__package = require(__basedir + '/package.json');
+
 // Read the config and expose as global
 global.config = _.defaults(require('./config.json'), {
 	
@@ -196,6 +198,7 @@ if (config.raven) {
 
 // Global (App) packages
 require(__basedir + '/src/helpers');
+
 global.mongoose = require(__basedir + '/src/mongoose');
 global.Data = require(__basedir + '/src/data');
 global.AI = require(__basedir + '/src/ai');

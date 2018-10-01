@@ -1,2 +1,5 @@
 const YouTube = require('simple-youtube-api');
-module.exports = new YouTube(config.youtube.apiKey);
+
+const _config = config.youtube;
+
+module.exports = new YouTube(_config.apiKey);

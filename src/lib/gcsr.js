@@ -1,10 +1,17 @@
-const TAG = 'SpeechRecognizer';
+const TAG = 'GCSR';
 
 const speech = require('@google-cloud/speech')({
 	keyFilename: __basedir + '/keys/gcloud.json'
 });
-const _ = require('underscore');
 
+const _ = require('underscore');
+const fs = require('fs');
+
+/**
+ * Start a recognition stream
+ * @param {Stream} stream 
+ * @param {Object} opt 
+ */
 exports.recognize = function(stream, opt = {}) {
 	return new Promise(async(resolve, reject) => {
 		stream.pipe(exports.createRecognizeStream(opt, (err, text) => {
@@ -14,8 +21,16 @@ exports.recognize = function(stream, opt = {}) {
 	});
 };
 
-exports.createRecognizeStream = function(opt = {}, callback) {
+/**
+ * Create a recognition stream
+ * @param {Object} opt 
+ * @param {Function} callback 
+ */
+exports.createRecognizeStream = function(opt, callback) {
 	_.defaults(opt, {
+		// If false or omitted, the recognizer will perform continuous recognition
+		singleUtterance: true,
+		// If true, interim results (tentative hypotheses) may be returned as they become available 
 		interimResults: true,
 		encoding: 'LINEAR16',
 		sampleRate: 16000,
@@ -23,9 +38,7 @@ exports.createRecognizeStream = function(opt = {}, callback) {
 	});
 
 	const stream = speech.streamingRecognize({
-		// If false or omitted, the recognizer will perform continuous recognition
-		singleUtterance: true,
-		// If true, interim results (tentative hypotheses) may be returned as they become available 
+		singleUtterance: opt.singleUtterance,
 		interimResults: opt.interimResults,
 		config: {
 			encoding: opt.encoding,
@@ -62,4 +75,19 @@ exports.createRecognizeStream = function(opt = {}, callback) {
 	});
 
 	return stream;
+};
+
+/**
+ * Recognize a local audio file
+ */
+exports.recognizeFile = function(file, opt = {}) {
+	return new Promise((resolve, reject) => {
+		fs.createReadStream(file).pipe(exports.createRecognizeStream({
+			interimResults: false,
+			language: opt.language
+		}, (err, text) => {
+			if (err) return reject(err);
+			resolve(text);
+		}));
+	});
 };

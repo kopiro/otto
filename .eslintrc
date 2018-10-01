@@ -37,6 +37,7 @@
         "__cachedir": true,
         "__publicdir": true,
         "__etcdir": true,
+        "__package": true,
         "requireOrNull": true,
         "config": true,
         "cleanText": true,
@@ -56,6 +57,7 @@
         "consoleultimate": true,
         "prettyjson": true,
         "getLocaleFromLanguageCode": true,
-        "mimicHumanMessage": true
+        "mimicHumanMessage": true,
+        "getLocalObjectFromURI": true
     }
 }

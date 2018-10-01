@@ -25,14 +25,6 @@ function setup() {
 	if (exports.animation) exports.animation.stop();
 }
 
-function interpolateColor(color1, color2, factor) {
-	var result = color1.slice();
-	for (var i = 0; i < 3; i++) {
-		result[i] = Math.round(result[i] + factor * (color2[i] - color1[i]));
-	}
-	return result;
-}
-
 var LedAnimator = function(ticker, freq) {
 	var self = this;
 

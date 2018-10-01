@@ -1,8 +1,11 @@
 require('./boot');
 
+let Server = apprequire('server');
+
 if (config.serverMode) {
 	console.log('Running in SERVER mode');
-	apprequire('server').start();
+	Server.start();
+	AI.attachToServer();
 } else {
 	console.log('Running in CLIENT mode');
 }

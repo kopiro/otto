@@ -1,6 +1,9 @@
 const uuid = require('uuid');
 const _ = require('underscore');
 const diacriticsRemove = require('diacritics').remove;
+const request = require('request');
+const fs = require('fs');
+const md5 = require('md5');
 
 global.requireOrNull = function(e) {
 	try { return require(e); } 
@@ -37,8 +40,11 @@ global.requireHelper = function(k) {
 	return require(__basedir + '/src/helpers/' + k);
 };
 
-/*
-Valid Values: cy-GB | da-DK | de-DE | en-AU | en-GB | en-GB-WLS | en-IN | en-US | es-ES | es-US | fr-CA | fr-FR | is-IS | it-IT | ja-JP | nb-NO | nl-NL | pl-PL | pt-BR | pt-PT | ro-RO | ru-RU | sv-SE | tr-TR
+/**
+ * Get the locale string from a language
+ * Valid return values: cy-GB | da-DK | de-DE | en-AU | en-GB | en-GB-WLS | en-IN | en-US | es-ES | es-US | fr-CA | fr-FR | is-IS | it-IT | ja-JP | nb-NO | nl-NL | pl-PL | pt-BR | pt-PT | ro-RO | ru-RU | sv-SE | tr-TR
+ * @param {String} language 
+ * @returns {String}
  */
 global.getLocaleFromLanguageCode = function(language) {
 	if (_.isEmpty(language)) return config.locale;
@@ -61,4 +67,24 @@ global.getLocaleFromLanguageCode = function(language) {
 		case 'sv': return 'sv-SE';
 		default: return config.locale;
 	}
+};
+
+global.getLocalObjectFromURI = function(uri) {
+	return new Promise((resolve) => {
+		if (/^https?\:\/\//.test(uri)) {
+			const local_file = __cachedir + '/' + md5(uri) + '.mp3';
+			if (fs.existsSync(local_file)) {
+				return resolve(local_file);
+			}
+
+			return request(uri)
+			.pipe(fs.createWriteStream(local_file))
+			.on('close', () => {
+				if (!fs.existsSync(local_file)) return reject();
+				resolve(local_file);
+			});
+		}
+
+		return resolve(uri);
+	});
 };

@@ -5,6 +5,8 @@ const fs = require('fs');
 const spawn = require('child_process').spawn;
 const exec = require('child_process').exec;
 
+const Proc = apprequire('proc');
+
 const IS_RPI = (() => {
 	try {
 		require('child_process').execSync('which raspistill');
@@ -17,26 +19,14 @@ const IS_RPI = (() => {
 const Drivers = {};
 
 Drivers.raspi = {
-	takePhoto: function(opt) {
-		return new Promise((resolve, reject) => {
-			const args = [ 
+	takePhoto: async function(opt) {
+		return Proc.spawn('raspistill', [
 			'-w', opt.width,
 			'-h', opt.height,
 			'-o', opt.file,
 			'-t', 300,
 			'-e', 'jpg',
-			];
-
-			const proc = spawn('raspistill', args);
-
-			let err = "";
-			proc.stderr.on('data', (data) => { err += data; });
-
-			proc.on('close', (code) => {
-				if (code > 0) return reject(err);
-				resolve(opt.file);
-			});
-		});
+		]);
 	},
 	recordVideo: function(opt) {
 		return new Promise((resolve, reject) => {
@@ -62,8 +52,7 @@ Drivers.raspi = {
 
 Drivers.ffmpeg = {
 	takePhoto: function(opt) {
-		return new Promise((resolve, reject) => {
-			const args = [ 
+		return Proc.spawn('ffmpeg', [
 			'-r', 30,
 			'-f', 'avfoundation',
 			'-i', 0,
@@ -71,23 +60,10 @@ Drivers.ffmpeg = {
 			'-vframes', 1,
 			'-y', 
 			opt.file
-			];
-
-			const proc = spawn('ffmpeg', args);
-
-			let err = "";
-			proc.stderr.on('data', (data) => { err += data; });
-
-			proc.on('close', (code) => {
-				if (code > 0) return reject(err);
-
-				resolve(opt.file);
-			});
-		});
+		]);
 	},
 	recordVideo: function(opt) {
-		return new Promise((resolve, reject) => {
-			const args = [ 
+		return Proc.spawn('ffmpeg', [ 
 			'-r', opt.fps,
 			'-f', 'avfoundation',
 			'-i', '0:0',
@@ -95,18 +71,7 @@ Drivers.ffmpeg = {
 			'-s', opt.size,
 			'-y', 
 			opt.file
-			];
-
-			const proc = spawn('ffmpeg', args);
-
-			let err = "";
-			proc.stderr.on('data', (data) => { err += data; });
-
-			proc.on('close', (code) => {
-				if (code > 0) return reject(err);
-				resolve(opt.file);
-			});
-		});
+		]);
 	}
 };
 

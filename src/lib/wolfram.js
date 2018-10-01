@@ -3,18 +3,17 @@ const TAG = 'Wolfram';
 const _config = config.wolfram;
 
 const _ = require('underscore');
-
 const Wolfram = require('node-wolfram');
 const Translator = apprequire('translator');
 
-const wolframClient = new Wolfram(_config.appId);
+const $ = new Wolfram(_config.appId);
 
-wolframClient.complexQuery = function(q, language) {
+$.complexQuery = function(q, language) {
 	return new Promise(async(resolve, reject) => {
 		
 		const q_translated = await Translator.translate(q, 'en');
 		
-		wolframClient.query(q_translated, async(err, result) => {
+		$.query(q_translated, async(err, result) => {
 			if (err) {
 				console.error(TAG, q_translated, err);
 				return reject(err);
@@ -35,7 +34,7 @@ wolframClient.complexQuery = function(q, language) {
 				const dym = result.queryresult.didyoumeans;
 				if (dym && dym[0].didyoumean[0]._) {
 					console.debug(TAG, 're-quering with didyoumean');
-					let result = await wolframClient.complexQuery(dym[0].didyoumean[0]._);
+					let result = await $.complexQuery(dym[0].didyoumean[0]._);
 					return resolve(result);
 				}
 			}
@@ -53,4 +52,4 @@ wolframClient.complexQuery = function(q, language) {
 	});
 };
 
-module.exports = wolframClient;
+module.exports = $;

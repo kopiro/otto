@@ -1,4 +1,4 @@
-const URL = "http://tntvillage.scambioetico.org/src/releaselist.php";
+const URL = 'http://tntvillage.scambioetico.org/src/releaselist.php';
 
 const request = require('request');
 const striptags = require('striptags');
@@ -14,7 +14,7 @@ exports.query = function(q) {
 				page: 1,
 				srcrel: q
 			}
-		}, function(err, resp, body) {
+		}, (err, resp, body) => {
 			if (err) return reject(err);
 			
 			let results = [];
@@ -37,7 +37,7 @@ exports.query = function(q) {
 					}
 				});
 				results.push(obj);
-			})
+			});
 
 			resolve(results);
 		});

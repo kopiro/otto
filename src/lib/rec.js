@@ -1,13 +1,13 @@
 const TAG = 'Rec';
 
 const _ = require('underscore');
-
 const spawn = require('child_process').spawn;
-let rec;
+
+let proc = null;
 
 // returns a Readable stream
 exports.start = function(opt) {
-	if (rec) rec.kill();
+	if (proc) proc.kill();
 
 	opt = _.defaults(opt || {}, {
 		sampleRate: 16000,
@@ -17,11 +17,11 @@ exports.start = function(opt) {
 		time: false
 	});
 
-	let rec_opt = {
+	let opt = {
 		encoding: 'binary'
 	};
 
-	let rec_args = [
+	let args = [
 	'-q',
 	'-r', opt.sampleRate,
 	'-c', '1',
@@ -33,31 +33,31 @@ exports.start = function(opt) {
 
 	if (opt.stopOnSilence) {
 		// silence 1 0.1 3% 1 3.0 3%
-		rec_args = rec_args.concat('silence', '1', '0.1', opt.threshold + '%', '1', '3.0', opt.threshold + '%');
+		args = args.concat('silence', '1', '0.1', opt.threshold + '%', '1', '3.0', opt.threshold + '%');
 	}
 
 	if (opt.time) {
-		rec_args = rec_args.concat('trim', '0', opt.time);
+		args = args.concat('trim', '0', opt.time);
 	}
 
-	console.debug(TAG, 'recording...');
-	rec = spawn('rec', rec_args, rec_opt);
+	console.debug(TAG, 'Recording...');
+	proc = spawn('rec', args, opt);
 
-	rec.stdout.on('end', function () {
+	proc.stdout.on('end', function () {
 		console.debug(TAG, 'end');
 	});
 
-	return rec.stdout;
+	return proc.stdout;
 };
 
 exports.getStream = function() {
-	if (null == rec) return;
-	return rec.stdout;
+	if (null == proc) return;
+	return proc.stdout;
 };
 
 exports.stop = function () {
-	if (null == rec) return;
+	if (null == proc) return;
 	
 	console.log(TAG, 'stop');
-	rec.kill();
+	proc.kill();
 };

@@ -12,11 +12,12 @@ const md5 = require('md5');
 const emitter = exports.emitter = new (require('events').EventEmitter)();
 
 const Rec = apprequire('rec');
-const SpeechRecognizer = apprequire('speechrecognizer');
-const Polly = apprequire('polly');
+const SpeechRecognizer = apprequire('gcsr');
+const TextToSpeech = apprequire('polly');
 const Play = apprequire('play');
 const { Detector } = require('snowboy');
 const Hotword = apprequire('hotword');
+const URLManager = apprequire('urlmanager');
 
 /**
  * TRUE when the audio is recording and it's submitting to GCP-SR
@@ -87,6 +88,18 @@ let hotwordModels = null;
 let currentSendMessageKey = null;
 
 /**
+ * Bind external events to internal procedures
+ */
+function bindEvents() {
+	emitter.on('wake', wake);
+	emitter.on('stop', stop);
+	
+	emitter.on('loaded', () => {
+		Play.playURI(__etcdir + '/boot.wav');
+	});
+}
+
+/**
  * Speak a sentence
  * @param {string} text String to speak
  * @param {string} language Language of text
@@ -99,8 +112,8 @@ async function sendMessage(text, { language = IOManager.session.getTranslateTo()
 
 	for (let sentence of sentences) {
 		if (currentSendMessageKey === key) {
-			let polly_file = await Polly.getAudioFile(sentence, { language: language });
-			await Play.playVoice(polly_file);
+			let audioFile = await TextToSpeech.getAudioFile(sentence, { language: language });
+			await Play.playVoice(audioFile);
 		}
 	}
 
@@ -125,8 +138,9 @@ async function processEvent(event) {
  * @param {Object} e 
  */
 async function sendAudio(e) {
-	if (e.uri) {
-		await Play.playURI(e.uri);
+	let uri = e.uri || e.file;
+	if (uri) {
+		await Play.playURI(uri);
 	}
 }
 
@@ -135,9 +149,18 @@ async function sendAudio(e) {
  * @param {Object} e 
  */
 async function sendVoice(e) {
-	if (e.uri) {
-		await Play.playVoice(e.uri);
+	let uri = e.uri || e.file;
+	if (uri) {
+		await Play.playVoice(uri);
 	}
+}
+
+/**
+ * Send a URL
+ * @param {String} e 
+ */
+async function sendURL(e) {
+	await URLManager.open(e); 
 }
 
 /**
@@ -401,11 +424,6 @@ async function processOutputQueue() {
 		fulfillment: f
 	});
 
-	// Now, in sequence, process every item in the fulfillment item
-	// Note that the order is important
-
-	// -------------
-
 	// Process an event that have to occur before any other type
 	try {
 		if (f.data.eventBeforeSpeech) {
@@ -440,7 +458,34 @@ async function processOutputQueue() {
 		console.error(TAG, err);
 	}
 
-	// Process an audio item
+	// Process a URL
+	try {
+		if (f.data.url) {
+			await sendURL(f.data.url);
+		}
+	} catch (err) {
+		console.error(TAG, err);
+	}
+
+	// Process a Music object
+	try {
+		if (f.data.music) {
+			// TODO
+		}
+	} catch (err) {
+		console.error(TAG, err);
+	}
+
+	// Process a Video object
+	try {
+		if (f.data.video) {
+			// TODO
+		}
+	} catch (err) {
+		console.error(TAG, err);
+	}
+
+	// Process an Audio Object
 	try {
 		if (f.data.audio) {
 			await sendAudio(f.data.audio);
@@ -449,7 +494,7 @@ async function processOutputQueue() {
 		console.error(TAG, err);
 	}
 
-	// Process a voice item
+	// Process a Voice object
 	try {
 		if (f.data.voice) {
 			await sendVoice(f.data.voice);
@@ -458,7 +503,16 @@ async function processOutputQueue() {
 		console.error(TAG, err);
 	}
 
-	// Process a lyrics
+	// Process a Document Object
+	try {
+		if (f.data.document) {
+			// TODO
+		}
+	} catch (err) {
+		console.error(TAG, err);
+	}
+
+	// Process a Lyrics object
 	try {
 		if (f.data.lyrics) {
 			await sendMessage(f.data.lyrics.text, f.data.lyrics.language);
@@ -553,8 +607,4 @@ exports.output = async function(f) {
 };
 
 // Bind events
-emitter.on('wake', wake);
-emitter.on('stop', stop);
-emitter.on('loaded', () => {
-	Play.playURI(__etcdir + '/boot.wav');
-});
+bindEvents();

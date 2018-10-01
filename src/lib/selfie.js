@@ -1,33 +1,33 @@
 const TAG = 'Selfie';
 
 const gm = require('gm');
-const fs = require('fs');
 const path = require('path');
 const md5 = require('md5');
 const download = require('download');
 
 const ImageSearch = apprequire('imagesearch');
-const Storage = apprequire('storage');
 
-const avatar_url = 'https://storage.googleapis.com/otto-ai/selfies/avatars/maglioncino.png';
+// TODO: get dynamic
+const AVATAR_URL = 'https://storage.googleapis.com/otto-ai/selfies/avatars/maglioncino.png';
 
+// TODO: refactor with async
 exports.create = async function(keyword) {
 	return new Promise(async(resolve, reject) => {
-		let panoramas = await ImageSearch.search(`${keyword}`, {
+		const panoramas = (await ImageSearch.search(`${keyword}`, {
 			size: 'xxlarge',
 			type: 'photo',
 			safe: 'high'
-		});
-		panoramas = panoramas.filter((e) => {
+		})).filter(e => {
 			return (e.type === 'image/jpeg' && e.width / e.height > 1.2 && e.width > 1200);
 		});
 
 		const panorama_url = rand(panoramas).url;
-		const avatar_file = __tmpdir + '/' + md5(avatar_url) + '.png';
+		const avatar_file = __tmpdir + '/' + md5(AVATAR_URL) + '.png';
 		const panorama_file = __tmpdir + '/' + md5(panorama_url) + '.jpg';
 
-		await download(avatar_url, __tmpdir, { filename: path.basename(avatar_file) });
+		await download(AVATAR_URL, __tmpdir, { filename: path.basename(avatar_file) });
 		await download(panorama_url, __tmpdir, { filename: path.basename(panorama_file) });
+		
 
 		gm(panorama_file)
 		.identify((err, panorama_data) => {

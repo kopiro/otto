@@ -6,41 +6,70 @@ const aws = apprequire('aws');
 const fs = require('fs');
 
 const _config = config.polly;
+const CACHE_REGISTRY_FILE = __cachedir + '/polly.json';
 
 const pollyClient = new aws.Polly({
 	signatureVersion: 'v4',
 	region: 'eu-west-1'
 });
 
-const CACHE_REGISTRY_FILE = __cachedir + '/polly.json';
+let cache = {
+	audio: {},
+	voices: {}
+};
 
-let cache = null;
-try { 
-	cache = JSON.parse(fs.readFileSync(CACHE_REGISTRY_FILE).toString());
-	if (cache.audio == null) throw 'Invalid format'; 
-} catch (ex) { 
-	cache = {
-		audio: {},
-		voices: {}
-	};
+/**
+ * Load the cache registry from file
+ */
+function loadCacheRegistry() {
+	try { 
+		let registry = JSON.parse(fs.readFileSync(CACHE_REGISTRY_FILE).toString());
+		if (registry.audio == null || registry.voices == null) throw 'Invalid format'; 
+		cache = registry;
+	} catch (ex) {}
 }
 
-function setCacheForVoice(opt, voice) {
-	cache.voices[JSON.stringify(opt)] = voice;
-	fs.writeFileSync(CACHE_REGISTRY_FILE, JSON.stringify(cache), () => {});
+/**
+ * Set the cache item for the voice
+ * @param {Object} opt
+ * @param {String} voice
+ */
+async function setCacheForVoice(opt, voice) {
+	return new Promise((resolve) => {
+		cache.voices[JSON.stringify(opt)] = voice;
+		fs.writeFile(CACHE_REGISTRY_FILE, JSON.stringify(cache), resolve);
+	});
 }
 
+/**
+ * Get the cache for a voice
+ * @param {Object} opt 
+ */
 function getCacheForVoice(opt) {
 	return cache.voices[JSON.stringify(opt)];
 }
 
-function setCacheForAudio(text, opt = {}, file) {
-	let key = md5(text + JSON.stringify(opt));
-	cache.audio[key] = file;
-	fs.writeFileSync(CACHE_REGISTRY_FILE, JSON.stringify(cache), () => {});
+/**
+ * Set the cache item for the audio
+ * @param {String} text	The spoken text
+ * @param {Object} opt	
+ * @param {String} file File containing the audio
+ */
+async function setCacheForAudio(text, opt, file) {
+	return new Promise((resolve) => {
+		let key = md5(text + JSON.stringify(opt));
+		cache.audio[key] = file;
+		fs.writeFile(CACHE_REGISTRY_FILE, JSON.stringify(cache), resolve);
+	});
 }
 
-function getCacheForAudio(text, opt = {}) {
+/**
+ * Get the cache item for an audio
+ * @param {String} text 
+ * @param {Object} opt 
+ * @returns {String} The file containing the audio
+ */
+function getCacheForAudio(text, opt) {
 	let key = md5(text + JSON.stringify(opt));
 	const file = cache.audio[key];
 	if (file != null && fs.existsSync(file)) {
@@ -48,31 +77,28 @@ function getCacheForAudio(text, opt = {}) {
 	}
 }
 
-function getVoice(opt = {}) {
+/**
+ * Retrieve the voice title based on language and gender
+ * @param {*} opt 
+ */
+function getVoice(opt) {
 	return new Promise((resolve, reject) => {
-		_.defaults(opt, {
-			language: config.language
-		});
-
 		const locale = getLocaleFromLanguageCode(opt.language);
 		let voice = getCacheForVoice(opt);
 		if (voice) {
 			return resolve(voice);
 		}
 
+		// Call the API to retrieve all voices in that locale
 		pollyClient.describeVoices({
 			LanguageCode: locale
 		}, async(err, data) => {
 			if (err != null) {
-				if (err.code !== 'ValidationException') {
-					console.error(TAG, err);
-					return reject(err);
-				}
+				return reject(err);
 			}
 
-			voice = data.Voices.find((v) => { 
-				return v.Gender == opt.gender; 
-			});
+			// Filter voice by selected gender
+			voice = data.Voices.find(v => (v.Gender == opt.gender));
 
 			if (voice == null) {
 				console.debug(TAG, `falling back to language ${config.language} instead of ${opt.language}`);
@@ -80,12 +106,18 @@ function getVoice(opt = {}) {
 				return resolve(voice);
 			}
 
+			// Save for later uses
 			setCacheForVoice(opt, voice);
 			return resolve(voice);
 		});
 	});
 }
 
+/**
+ * Download the audio file for that sentence and options
+ * @param {String} text	Sentence
+ * @param {Object} opt
+ */
 exports.getAudioFile = function(text, opt = {}) {
 	return new Promise(async(resolve, reject) => {
 		_.defaults(opt, {
@@ -93,39 +125,40 @@ exports.getAudioFile = function(text, opt = {}) {
 			language: config.language
 		});
 
-		let cached_file = getCacheForAudio(text, opt);
-		if (cached_file) {
-			console.debug(TAG, cached_file, '(cached)');
-			return resolve(cached_file);
+		// If file has been downloaded, just serve it
+		let file = getCacheForAudio(text, opt);
+		if (file) {
+			return resolve(file);
 		}
 
-		console.debug(TAG, 'request', { text, opt });
-
-		const ssml = /<speak>/.test(text);
-
+		// Find the voice title by options
 		let voice = await getVoice(opt);
+		const isSSML = /<speak>/.test(text);
+
+		// Call the API
 		pollyClient.synthesizeSpeech({
 			VoiceId: voice.Id,
 			Text: text,
-			TextType: ssml ? 'ssml' : 'text',
+			TextType: isSSML ? 'ssml' : 'text',
 			OutputFormat: 'mp3',
 		}, (err, data) => {
 			if (err) {
-				console.error(TAG, err);
 				return reject(err);
 			}
 
-			cached_file = __cachedir + '/polly_' + uuid() + '.mp3';
-			fs.writeFile(cached_file, data.AudioStream, function(err) {
+			file = __cachedir + '/polly_' + uuid() + '.mp3';
+			fs.writeFile(file, data.AudioStream, (err) => {
 				if (err) {
-					console.error(TAG, err);
 					return reject(err);
 				}
 
-				setCacheForAudio(text, opt, cached_file);
-				resolve(cached_file);
+				// Save this entry onto cache
+				setCacheForAudio(text, opt, file);
+				resolve(file);
 			});
 		});
 
 	});
 };
+
+loadCacheRegistry();
