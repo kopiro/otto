@@ -11,43 +11,13 @@ const emitter = exports.emitter = new (require('events').EventEmitter)();
 
 const Server = apprequire('server');
 const MessengerBot = require('messenger-bot');
-const SpeechRecognizer = apprequire('speechrecognizer');
-const Polly = apprequire('polly');
+const SpeechRecognizer = apprequire('gcsr');
+const TextToSpeech = apprequire('polly');
 const Play = apprequire('play');
 
 const bot = new MessengerBot(_config);
 
 let started = false;
-
-function handleInputVoice(session, e) {
-	return new Promise(async(resolve, reject) => {		
-		const file_link = await bot.getFileLink(e.voice.file_id);
-		const voice_file = __tmpdir + '/' + uuid() + '.ogg';
-		const voice_file_stream = fs.createWriteStream(voice_file);
-
-		request(file_link)
-		.pipe(voice_file_stream)
-		.on('close', () => {
-			
-			let proc = spawn('opusdec', [ voice_file, voice_file + '.wav', '--rate', 16000 ]);
-			let stderr = '';
-			proc.stderr.on('data', (buf) => { stderr += buf; });
-			proc.on('close', async(err) => {
-				if (err) return reject(stderr);
-				
-				const recognize_stream = SpeechRecognizer.createRecognizeStream({
-					interimResults: false,
-					language: session.getTranslateFrom()
-				}, (err, text) => {
-					if (err) return reject(err);
-					resolve(text);
-				});
-				fs.createReadStream(voice_file + '.wav').pipe(recognize_stream);
-			});
-
-		});
-	});
-}
 
 async function sendMessage(chat_id, text, messenger_opt = {}) {
 	const sentences = mimicHumanMessage(text);
@@ -67,8 +37,8 @@ async function sendVoiceMessage(chat_id, text, language, telegram_opt) {
 	await bot.sendSenderAction(chat_id, 'record_audio');
 
 	for (let sentence of sentences) {
-		const polly_file = await Polly.getAudioFile(sentence, { language: language });
-		const voice_file = await Play.playToTempFile(polly_file);
+		const TextToSpeech_file = await TextToSpeech.getAudioFile(sentence, { language: language });
+		const voice_file = await Play.playVoiceToTempFile(TextToSpeech_file);
 		await bot.sendVoice(chat_id, voice_file, telegram_opt);
 	}
 

@@ -3,10 +3,10 @@ const TAG = 'HotWord';
 const request = require('request');
 const fs = require('fs');
 
-const Polly = apprequire('polly');
+const TextToSpeech = apprequire('polly');
 const Play = apprequire('play');
 const Rec = apprequire('rec');
-const SpeechRecognizer = apprequire('speechrecognizer');
+const SpeechRecognizer = apprequire('gcsr');
 const Messages = apprequire('messages');
 const { Detector, Models } = require('snowboy');
 
@@ -69,7 +69,7 @@ async function getModels(forceTraining = false) {
 }
 
 async function sendMessage(text) {
-	return Play.voiceToSpeaker(await Polly.getAudioFile(text));
+	return Play.voiceToSpeaker(await TextToSpeech.getAudioFile(text));
 }
 
 function listenForHotwordTraining() {

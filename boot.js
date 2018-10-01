@@ -196,6 +196,7 @@ if (config.raven) {
 
 // Global (App) packages
 require(__basedir + '/src/helpers');
+
 global.mongoose = require(__basedir + '/src/mongoose');
 global.Data = require(__basedir + '/src/data');
 global.AI = require(__basedir + '/src/ai');
