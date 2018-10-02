@@ -167,8 +167,6 @@ async function sendURL(e) {
  * Stop current output by killing processed and flushing the queue
  */
 function stopOutput() {
-	console.info(TAG, 'stop output');
-
 	// Kill any audible
 	Play.kill();
 
@@ -387,7 +385,6 @@ function processEOR() {
 		eorTick = -1;
 		destroyRecognizeStream();
 	} else if (eorTick > 0) {
-		console.debug(TAG, eorTick + ' seconds remaining');
 		eorTick--;
 	}
 }

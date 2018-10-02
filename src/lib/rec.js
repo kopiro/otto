@@ -6,20 +6,16 @@ const spawn = require('child_process').spawn;
 let proc = null;
 
 // returns a Readable stream
-exports.start = function(opt) {
+exports.start = function(opt = {}) {
 	if (proc) proc.kill();
 
-	opt = _.defaults(opt || {}, {
+	_.defaults(opt, {
 		sampleRate: 16000,
 		threshold: '3',
 		stopOnSilence: false,
 		verbose: false,
 		time: false
 	});
-
-	let opt = {
-		encoding: 'binary'
-	};
 
 	let args = [
 	'-q',
@@ -41,7 +37,9 @@ exports.start = function(opt) {
 	}
 
 	console.debug(TAG, 'Recording...');
-	proc = spawn('rec', args, opt);
+	proc = spawn('rec', args, {
+		encoding: 'binary'
+	});
 
 	proc.stdout.on('end', function () {
 		console.debug(TAG, 'end');

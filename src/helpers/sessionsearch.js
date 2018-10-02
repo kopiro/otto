@@ -9,7 +9,7 @@ function returnUser(body, session, user) {
 	session.savePipe({ sessionsearch_user: user });
 
 	// And call the input
-	IOManager.input({
+	IOManager.handle({
 		session: session,
 		params: {
 			body: JSON.parse(session.pipe.sessionsearch_body)

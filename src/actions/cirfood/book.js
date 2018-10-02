@@ -10,7 +10,7 @@ module.exports = async function({ sessionId, result }, session) {
 	let { parameters: p, fulfillment } = result;
 
 	if (session.settings.cirfood == null) {
-		IOManager.input({
+		IOManager.handle({
 			session: session,
 			params: {
 				event: 'cirfood_configure'
@@ -36,7 +36,7 @@ module.exports = async function({ sessionId, result }, session) {
 		// Exit from this intent
 		// bacause we don't have enough data in this intent
 		// to process speechs, switch to cirfood_book_response instead
-		IOManager.input({
+		IOManager.handle({
 			session: session,
 			params: {
 				event: 'cirfood_book_response'

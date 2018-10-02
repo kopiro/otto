@@ -10,7 +10,7 @@ module.exports = async function({ sessionId, result }, session) {
 	let { parameters: p, fulfillment } = result;
 
 	if (session.settings.cirfood == null) {
-		IOManager.input({
+		IOManager.handle({
 			session: session,
 			params: {
 				event: 'cirfood_configure'

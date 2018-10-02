@@ -213,7 +213,7 @@ module.exports = async function({ sessionId, result }, session) {
     let { parameters: p, fulfillment } = result;
 
     doSomeLongWork(() => {
-        IOManager.input({
+        IOManager.handle({
             fulfillment: { 
                 speech: `Hello ${p.name}! (postponed)`
             },

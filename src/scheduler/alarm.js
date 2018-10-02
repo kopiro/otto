@@ -5,7 +5,7 @@ exports.run = function(e) {
 	const now = Moment();
 
 	if (e.program_data != null) {
-		return IOManager.input({
+		return IOManager.handle({
 			session: e.session,
 			params: {
 				event: {
@@ -16,7 +16,7 @@ exports.run = function(e) {
 		});	
 	}
 
-	return IOManager.input({
+	return IOManager.handle({
 		session: e.session,
 		params: {
 			event: 'alarm'

@@ -7,7 +7,7 @@ exports.listen = function() {
 		const listeners = await Data.Listener.find({ listener: TAG });
 		
 		listeners.forEach((l) => {
-			IOManager.input({
+			IOManager.handle({
 				session: l.session,
 				params: {
 					event: {

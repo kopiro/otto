@@ -38,7 +38,7 @@ module.exports = function({ sessionId, result }, session) {
 							const prc = spawn('dadadodo', [ '-c', 1, __tmpdir + '/dadadodo.txt' ]);
 							prc.stdout.on('data', (_text) => { text += _text.toString(); });
 							prc.on('close', () => {
-								IOManager.input({ 
+								IOManager.handle({ 
 									fulfillment: {
 										speech: text.toString()
 									},

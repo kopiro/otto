@@ -3,14 +3,13 @@ const TAG = 'AI';
 const _ = require('underscore');
 const deepExtend = require('deep-extend');
 const Translator = apprequire('translator');
-const Messages = apprequire('messages');
 const Server = apprequire('server');
 
 const _config = config.apiai;
 
-const apiai = require('apiai');
-const client = apiai(_config.token);
+const client = require('apiai')(_config.token);
 
+// TODO: remember what this shit does
 function getEntities(session) {
 	let entities = [];
 	if (config.chromecast.devices) {
@@ -27,10 +26,13 @@ function getEntities(session) {
 	return entities;
 }
 
+/**
+ * Sanitize a fulfillment by ensuring that it could be sent to a parser without errors
+ * @param {Object} fulfillment 
+ */
 function fulfillmentSanitizer(fulfillment) {
 	// Always ensure that is an object
 	if (fulfillment == null) {
-		console.error('Fulfillment is null or undefined!');
 		fulfillment = {};
 	}
 	// Even if is a string
@@ -39,14 +41,15 @@ function fulfillmentSanitizer(fulfillment) {
 			speech: fulfillment
 		};
 	}
+	// Ensure .data
 	fulfillment.data = fulfillment.data || {};
 	return fulfillment;
 }
 
 /**
- * Transform a fulfillment by making some edits based on the current session settings
+ * Transform a Fulfillment by making some edits based on the current session settings
  * @param  {Object} fulfillment Fulfillment object
- * @param  {Object} session     Session
+ * @param  {Object} session Session
  * @return {Object}
  */
 async function fulfillmentTransformer(fulfillment, session) {
@@ -57,10 +60,12 @@ async function fulfillmentTransformer(fulfillment, session) {
 	_.defaults(fulfillment.data, fulfillment.payload);
 	fulfillment.localTransform = true;
 
+	// Always translate fulfillment speech in the user language
 	if (!_.isEmpty(fulfillment.speech)) {
 		fulfillment.speech = await Translator.translate(fulfillment.speech, session.getTranslateTo());
 	}
 
+	// Always translate fulfillment error in the user language
 	if (fulfillment.data != null && fulfillment.data.error != null) {
 		if (!_.isEmpty(fulfillment.data.error.speech)) {
 			fulfillment.data.error.speech = await Translator.translate(fulfillment.data.error.speech, session.getTranslateTo());
@@ -70,8 +75,11 @@ async function fulfillmentTransformer(fulfillment, session) {
 	return fulfillment;
 }
 
-exports.fulfillmentTransformer = fulfillmentTransformer;
-
+/**
+ * Transform a body from DialogFlow into a Fulfillment by calling the internal action
+ * @param {Object} body Payload from DialogFlow
+ * @param {*} session  Session
+ */
 async function fulfillmentFromBody(body, session) {
 	return new Promise(async(resolve) => {
 		let fulfillment = null;
@@ -101,144 +109,166 @@ async function fulfillmentFromBody(body, session) {
 			}
 		}
 
+		clearTimeout(action_timeout);
+
 		// Pass the fulfillment to the transformer in final instance
 		fulfillment = await fulfillmentTransformer(fulfillment, session);
-
-		clearTimeout(action_timeout);
 		resolve(fulfillment);
 	});
 }
 
-exports.fulfillmentFromBody = fulfillmentFromBody;
-
-exports.textRequestTransformer = async function(text, session) {
+/**
+ * Transform a text request to make it compatible and translating it
+ * @param {String} text Sentemce
+ * @param {Object} session Session
+ */
+async function textRequestTransformer(text, session) {
 	text = text.replace(config.aiNameRegex, ''); // Remove the AI name in the text
 	text = await Translator.translate(text, config.language, session.getTranslateTo());
 	return text;
-};
+}
 
-exports.apiaiResultParser = async function(body, session) {
-	// Parse messages
+/**
+ * Transform an event by making compatible
+ * @param {Object} event Event string or object
+ * @param {Object} session Session
+ */
+async function eventRequestTransformer(event, session) {
+	if (_.isString(event)) {
+		event = { name: event };
+	}
+	return event;
+}
+
+/**
+ * Parse the Dialogflow body and decide what to do
+ * @param {Object} body Payload
+ * @param {Object} session Session
+ */
+async function bodyParser(body, session) {
 	let f = { payload: {} };
+
+	// Parse messages of the body and deep extend every message in the fulfillment
 	for (let m of (body.result.fulfillment.messages || [])) {
 		delete m.type;
 		deepExtend(f, m);
 	}
+
+	// If payload contains __random__, pick one of this array
 	if (f.payload.__random__) f.payload = rand(f.payload.__random__);
+
+	// Assign to body
 	body.result.fulfillment = f;
 
-	console.info(TAG, 'apiaiResultParser');
-	console.dir(f, { depth: 10 });
-
+	// If an intentId is returned, could auto resolve or call a promise
 	if (body.result.metadata.intentId != null) {
-		// If an intentId is returned, could auto resolve or call a promise
 		if (_.isEmpty(body.result.action) === false && body.result.actionIncomplete !== true) {
+			// If the action is incomplete, call the action resolver 
+			// that will also transform the fulfillment
 			body.result.fulfillment = await fulfillmentFromBody(body, session);
 		} else {
+			// Otherwise, just transform the fulfillment
 			body.result.fulfillment = await fulfillmentTransformer(body.result.fulfillment, session);
 		}
 		return body.result.fulfillment;
 	}
 
 	// If not intentId is returned, this is a unhandled DialogFlow intent
-	// So return an error with this speech (ai_unhandled)
-	return exports.eventRequest('ai_unhandled', session);
-};
+	// So make another event request to inform user (ai_unhandled)
+	return eventRequest('ai_unhandled', session);
+}
 
-exports.textRequest = function(text, session) {
-	return new Promise(async(resolve, reject) => {
-		console.info(TAG, 'text request =======>', text);
-
-		text = await exports.textRequestTransformer(text, session);
-		let request = client.textRequest(text, {
-			sessionId: session._id,
-			entities: getEntities(session)
-		});
-
-		request.on('response', async(body) => {
-			console.info(TAG, 'response');
-			console.dir(body, { depth: 10 });
-			
-			let fulfillment;
-
-			if (body.result.metadata.webhookUsed === 'true' && body.status.errorType !== 'partial_content') {
-				delete body.result.fulfillment.messages;
-				fulfillment = fulfillmentSanitizer(body.result.fulfillment);
-				return resolve(fulfillment);
-			}
+/**
+ * Function to call when Dialogflow respond
+ * @param {Object} body Body from DialogFlow
+ * @param {Object} session Session
+ */
+async function onRequestComplete(body, session) {
+	console.info(TAG, 'response');
+	console.dir(body, { depth: 3 });
 	
-			console.debug(TAG, 'webhook not used or failed, solving locally');
-			fulfillment = await exports.apiaiResultParser(body, session);
-			resolve(fulfillment);
-		});
+	let fulfillment = null;
 
-		request.on('error', (err) => {
-			console.error(TAG, 'error', err);
-			reject(err);
-		});
+	// If this response is already fullfilld by webhook, do not call action locally but just resolve
+	if (body.result.metadata.webhookUsed === 'true' && body.status.errorType !== 'partial_content') {
+		delete body.result.fulfillment.messages;
+		fulfillment = fulfillmentSanitizer(body.result.fulfillment);
+		return fulfillment;
+	}
 
+	// Othwerwise, call the action locally
+	console.debug(TAG, 'webhook not used or failed, solving locally');
+	fulfillment = await bodyParser(body, session);
+	return fulfillment;
+}
+
+/**
+ * Get the arguments for Dialogflow request
+ * @param {Object} session Session
+ */
+function getRequestArgs(session) {
+	return {
+		sessionId: session._id,
+		entities: getEntities(session)
+	};
+}
+
+/**
+ * Make a text request to DialogFlow and let the flow begin
+ * @param {String} text Sentence
+ * @param {Object} session Session
+ */
+function textRequest(text, session) {
+	return new Promise(async(resolve, reject) => {
+		console.info(TAG, 'text request:', text);
+
+		// Transform the text to eventually translate it
+		text = await textRequestTransformer(text, session);
+
+		// Instantiate the Dialogflow request
+		const request = client.textRequest(text, getRequestArgs(session));
+		request.on('response', async(body) => {
+			resolve(await onRequestComplete(body, session));
+		});
+		request.on('error', reject);
 		request.end();
 	});
-};
+}
 
-exports.eventRequest = function(event, session) {
+/**
+ * Make an event request to Dialogflow and let the flow begin
+ * @param {String} event Event name
+ * @param {Object} session Session
+ */
+function eventRequest(event, session) {
 	return new Promise(async(resolve, reject) => {
-		console.info(TAG, 'event request =======>');
-		console.dir(event, { depth: 10 });
-
-		if (_.isString(event)) {
-			event = { name: event };
-		}
-
-		let request = client.eventRequest(event, {
-			sessionId: session._id,
-			entities: getEntities(session)
-		});
-
+		console.info(TAG, 'event request:', event);
+		
+		event = await eventRequestTransformer(event, session);
+		
+		// Instantiate the Dialogflow request
+		const request = client.eventRequest(event, getRequestArgs(session));
 		request.on('response', async(body) => {
-			console.info(TAG, 'response');
-			console.dir(body, { depth: 10 });
-
-			if (body.result.metadata.webhookUsed === 'true' && body.status.errorType !== 'partial_content') {
-				delete body.result.fulfillment.messages;
-				return resolve(body.result.fulfillment);
-			}
-	
-			console.debug(TAG, 'webhook not used or failed, solving locally');
-			let fulfillment = await exports.apiaiResultParser(body, session);
-			resolve(fulfillment);
+			resolve(await onRequestComplete(body, session));
 		});
-
-		request.on('error', (err) => {
-			console.error(TAG, 'error', err);
-			reject(err);
-		});
-
+		request.on('error', reject);
 		request.end();
 	});
-};
+}
 
-exports.attachToServer = function() {
-	Server.routerApi.get('/fulfillment', async(req, res) => {
-		res.json({ 
-			error: { 
-				message: 'You should call in POST' 
-			} 
-		});
-	});
-
+/**
+ * Attach the AI to the Server
+ */
+function attachToServer() {
 	Server.routerApi.post('/fulfillment', async(req, res) => {
 		if (req.body == null) {
-			console.error(TAG, 'empty body');
 			return res.json({ 
-				data: { 
-					error: 'Empty body' 
-				} 
+				data: { error: 'Empty body' } 
 			});
 		}
 	
-		console.info(TAG, 'request');
-		console.dir(req.body, { depth: 10 });
+		console.info(TAG, 'webhook request');
+		console.dir(req.body, { depth: 3 });
 	
 		const body = req.body;
 		const sessionId = body.sessionId;
@@ -252,18 +282,19 @@ exports.attachToServer = function() {
 		}
 	
 		try {
-			
-			let fulfillment = await AI.apiaiResultParser(body, session);
+			let fulfillment = await bodyParser(body, session);
 			fulfillment.data.remoteTransform = true;
-			
-			console.info(TAG, 'output fulfillment');
+			console.info(TAG, 'webhook fulfillment');
 			console.dir(fulfillment, { depth: 3 });
-	
 			res.json(fulfillment);
-		
 		} catch (ex) {
-			console.info(TAG, 'error', ex);
 			res.json({ data: { error: ex } });
 		}
 	});
 }
+
+exports.fulfillmentTransformer = fulfillmentTransformer;
+exports.fulfillmentFromBody = fulfillmentFromBody;
+exports.textRequest = textRequest;
+exports.eventRequest = eventRequest;
+exports.attachToServer = attachToServer;
