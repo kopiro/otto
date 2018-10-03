@@ -3,32 +3,32 @@ WORKDIR /app
 
 # Instal base packages
 RUN set -ex && \
-apk update && \
-apk add ca-certificates && \
-update-ca-certificates && \
-apk add --no-cache \
-openssl \
-curl \
-git \
-build-base \
-libc6-compat \
-openssh-client
+   apk update && \
+   apk add ca-certificates && \
+   update-ca-certificates && \
+   apk add --no-cache \
+   openssl \
+   curl \
+   git \
+   build-base \
+   libc6-compat \
+   openssh-client
 
 # Install additional app packages
 RUN apk add --no-cache \
-sox \
-opus-tools # Used to decode Telegram Audio notes
+   sox \
+   opus-tools # Used to decode Telegram Audio notes
 
 # Install dadadodo from source
 RUN cd /tmp && \
-wget https://www.jwz.org/dadadodo/dadadodo-1.04.tar.gz && \
-tar -xvf dadadodo-1.04.tar.gz && \
-cd dadadodo-1.04 && \
-make && \
-mv dadadodo /usr/local/bin && \
-cd .. && \
-rm -rf dadadodo-1.04 && \
-rm dadadodo-1.04.tar.gz
+   wget https://www.jwz.org/dadadodo/dadadodo-1.04.tar.gz && \
+   tar -xvf dadadodo-1.04.tar.gz && \
+   cd dadadodo-1.04 && \
+   make && \
+   mv dadadodo /usr/local/bin && \
+   cd .. && \
+   rm -rf dadadodo-1.04 && \
+   rm dadadodo-1.04.tar.gz
 
 # Install imagemagick
 RUN apk add --no-cache imagemagick graphicsmagick
@@ -47,5 +47,5 @@ COPY . .
 # Do the build
 RUN npm run build
 
-CMD /app/docker/prod.sh
+CMD /app/docker/entrypoint.sh
 EXPOSE 80

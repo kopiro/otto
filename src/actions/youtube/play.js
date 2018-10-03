@@ -2,9 +2,15 @@ exports.id = 'youtube.play';
 
 const Youtube = apprequire('youtube');
 
-module.exports = function({ sessionId, result }, session) {
-	return new Promise(async(resolve, reject) => {
-		const { parameters: p, fulfillment } = result;
+module.exports = function ({
+	sessionId,
+	result
+}, session) {
+	return new Promise(async (resolve, reject) => {
+		const {
+			parameters: p,
+			fulfillment
+		} = result;
 
 		resolve({
 			speech: fulfillment.speech,

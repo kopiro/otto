@@ -31,7 +31,7 @@ app.set('view engine', 'hbs');
 // Routers
 
 exports.routerIO = express.Router();
-exports.routerAPI = express.Router();
+exports.routerApi = express.Router();
 exports.routerAdmin = express.Router();
 exports.routerActions = express.Router();
 exports.routerListeners = express.Router();
@@ -40,10 +40,10 @@ exports.routerListeners = express.Router();
 
 // API Router
 
-exports.routerAPI.use(bodyParser.json());
-exports.routerAPI.use(bodyParser.urlencoded({ extended: true }));
+exports.routerApi.use(bodyParser.json());
+exports.routerApi.use(bodyParser.urlencoded({ extended: true }));
 
-exports.routerAPI.get('/', (req, res) => {
+exports.routerApi.get('/', (req, res) => {
 	res.json({
 		name: __package.name,
 		version: __package.version
@@ -63,7 +63,7 @@ app.use('/tmp', express.static(__basedir + '/tmp'));
 
 // Handle all routers
 app.use('/io', exports.routerIO);
-app.use('/api', exports.routerAPI);
+app.use('/api', exports.routerApi);
 app.use('/admin', exports.routerAdmin);
 app.use('/actions', exports.routerActions);
 app.use('/listeners', exports.routerListeners);

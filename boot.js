@@ -14,7 +14,7 @@ global.__package = require(__basedir + '/package.json');
 
 // Read the config and expose as global
 global.config = _.defaults(require('./config.json'), {
-	
+
 	// The UID used for your current AI instance to link other sessions with the same UID
 	"uid": null,
 
@@ -47,7 +47,7 @@ global.config = _.defaults(require('./config.json'), {
 
 	"play": {
 		// Additional args to send to SOX
-		"addArgs": [], 
+		"addArgs": [],
 	},
 
 	// Snowboy configuration
@@ -98,8 +98,7 @@ global.config = _.defaults(require('./config.json'), {
 	},
 
 	// IO/Kid configuration
-	"kid": {
-	},
+	"kid": {},
 
 	// IO/Messenger configuration
 	"messenger": {
@@ -128,8 +127,8 @@ global.config = _.defaults(require('./config.json'), {
 
 	// Spotify configuration
 	"spotify": {
-		"clientId" : null,
-		"clientSecret" : null
+		"clientId": null,
+		"clientSecret": null
 	},
 
 	// Wolfram configuration
@@ -158,22 +157,18 @@ global.config = _.defaults(require('./config.json'), {
 
 	// MIIO configuration
 	"miio": {
-		"devices": [
-			{
-				"name": null,
-				"id": null,
-				"token": null
-			}
-		]
+		"devices": [{
+			"name": null,
+			"id": null,
+			"token": null
+		}]
 	},
 
 	// Chromecast configuration
 	"chromecast": {
-		"devices": [
-			{
-				"name": null
-			}
-		]
+		"devices": [{
+			"name": null
+		}]
 	},
 
 	"polly": {

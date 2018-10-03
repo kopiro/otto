@@ -6,7 +6,11 @@ const Session = new Schema({
 	io_driver: String,
 	io_id: String,
 	io_data: Schema.Types.Mixed,
-	server_settings: { type: String, ref: 'server_settings', autopopulate: true },
+	server_settings: {
+		type: String,
+		ref: 'server_settings',
+		autopopulate: true
+	},
 	settings: Schema.Types.Mixed,
 	translate_from: String,
 	translate_to: String,
@@ -17,10 +21,14 @@ const Session = new Schema({
 
 Session.plugin(require('mongoose-autopopulate'));
 
-Session.methods.saveServerSettings = async function(data) {
+/**
+ * Save new settings in DB
+ * @param {Object} data 
+ */
+Session.methods.saveServerSettings = async function (data) {
 	let s = this.server_settings;
 	if (s == null) {
-		s = new exports.ServerSettings({ 
+		s = new exports.ServerSettings({
 			_id: (this.populated('server_settings') || this._id)
 		});
 	}
@@ -29,29 +37,46 @@ Session.methods.saveServerSettings = async function(data) {
 	return s.save();
 };
 
-Session.methods.getIODriver = function() {
+/**
+ * Retrieve the IO driver module
+ */
+Session.methods.getIODriver = function () {
 	return IOManager.getDriver(this.io_driver);
 };
 
-Session.methods.savePipe = function(data) {
+/**
+ * Save new data in pipe in DB
+ * @param {Object} data 
+ */
+Session.methods.savePipe = function (data) {
 	this.pipe = _.extend(this.pipe || {}, data);
 	this.pipe.updated_at = Date.now();
 	this.markModified('pipe');
 	return this.save();
 };
 
-Session.methods.saveSettings = function(data) {
+/**
+ * Save new settings in DB
+ * @param {Object} data 
+ */
+Session.methods.saveSettings = function (data) {
 	this.settings = _.extend(this.settings || {}, data);
 	this.settings.updated_at = Date.now();
 	this.markModified('settings');
 	return this.save();
 };
 
-Session.methods.getTranslateFrom = function() {
+/**
+ * Get the language to translate from
+ */
+Session.methods.getTranslateFrom = function () {
 	return this.translate_from || config.language;
 };
 
-Session.methods.getTranslateTo = function() {
+/**
+ * Get the language to translate to
+ */
+Session.methods.getTranslateTo = function () {
 	return this.translate_to || config.language;
 };
 

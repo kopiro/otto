@@ -4,13 +4,15 @@ exports.id = 'leds';
 
 const RaspiLeds = apprequire('raspi/leds');
 
-const colorForRecognizing = [ 0, 255, 0 ];
-const colorForOutput = [ 255, 0, 0 ];
-const colorForThinking = [ 255, 255, 0 ];
+const colorForRecognizing = [0, 255, 0];
+const colorForOutput = [255, 0, 0];
+const colorForThinking = [255, 255, 0];
 
-exports.canHandleOutput = function(e) { return false; };
+exports.canHandleOutput = function (e) {
+	return false;
+};
 
-exports.attach = function(io) {
+exports.attach = function (io) {
 	RaspiLeds.off();
 
 	io.emitter.on('input', () => {

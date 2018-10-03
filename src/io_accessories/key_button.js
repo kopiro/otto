@@ -2,11 +2,11 @@ exports.id = 'key_button';
 
 const keypress = require('keypress');
 
-exports.canHandleOutput = function() { 
-	return false; 
+exports.canHandleOutput = function () {
+	return false;
 };
 
-exports.attach = function(io) {
+exports.attach = function (io) {
 	keypress(process.stdin);
 
 	process.stdin.on('keypress', function (ch, key) {

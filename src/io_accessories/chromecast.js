@@ -9,22 +9,21 @@ const SpotifyCastClient = require('spotify-castv2-client').Spotify;
 const DefaultMediaReceiver = require('castv2-client').DefaultMediaReceiver;
 const _ = require('underscore');
 
-exports.clients = {
-};
+exports.clients = {};
 
-exports.canHandleOutput = function(e, session) {
+exports.canHandleOutput = function (e, session) {
 	if (e.data.video) return IOManager.CAN_HANDLE_OUTPUT.YES_AND_BREAK;
 	if (e.data.image) return IOManager.CAN_HANDLE_OUTPUT.YES_AND_BREAK;
 	if (e.data.music) return IOManager.CAN_HANDLE_OUTPUT.YES_AND_BREAK;
 };
 
-exports.output = async function(e, session) {
+exports.output = async function (e, session) {
 	const cid = session.server_settings.data.chromecast;
-	if (exports.clients[ cid ] == null) {
-		exports.clients[ cid ] = await ChromeCast.connect(cid);
+	if (exports.clients[cid] == null) {
+		exports.clients[cid] = await ChromeCast.connect(cid);
 	}
 
-	const client = exports.clients[ cid ];
+	const client = exports.clients[cid];
 
 	if (e.data.video) {
 		if (e.data.video.youtube) {
@@ -35,7 +34,7 @@ exports.output = async function(e, session) {
 	}
 
 	if (e.data.music) {
-		client.launch(SpotifyCastClient, async(err, player) => {
+		client.launch(SpotifyCastClient, async (err, player) => {
 			const credentials = await spotify.getCredentialsForChromecast();
 
 			await player.authenticate({
@@ -65,15 +64,17 @@ exports.output = async function(e, session) {
 	}
 
 	if (e.data.image) {
-		client.launch(DefaultMediaReceiver, function(err, player) {
+		client.launch(DefaultMediaReceiver, function (err, player) {
 			var media = {
 				contentId: e.data.image.uri,
 				contentType: 'image/jpg',
-				streamType: 'BUFFERED'     
+				streamType: 'BUFFERED'
 			};
-			player.load(media, { autoplay: true }, () => {});
+			player.load(media, {
+				autoplay: true
+			}, () => {});
 		});
 	}
 };
 
-exports.attach = function(io) {};
+exports.attach = function (io) {};

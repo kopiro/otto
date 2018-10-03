@@ -1,23 +1,25 @@
-version: '3'
+version: "3"
 
 services:
   app:
     image: kopiro/otto
     build: .
-    command: /app/docker/dev.sh
+    command: /app/docker/entrypoint.sh
     stdin_open: true
     tty: true
+    environment:
+      - DEV=1
     volumes:
-    - ./cache:/app/cache
-    - ./storage:/app/storage
-    - ./tmp:/app/tmp
-    - ./log:/app/log
-    - ./keys:/app/keys
-    - ./config.json:/app/config.json 
-    - ./package.json:/app/package.json
-    - ./package-lock.json:/app/package-lock.json
-    - ./src:/app/src
+      - ./cache:/app/cache
+      - ./storage:/app/storage
+      - ./tmp:/app/tmp
+      - ./log:/app/log
+      - ./keys:/app/keys
+      - ./config.json:/app/config.json
+      - ./package.json:/app/package.json
+      - ./package-lock.json:/app/package-lock.json
+      - ./src:/app/src
     ports:
-    - 8880:8880
-    - 8881:8881
-    - 8882:8882
+      - 8880:8880
+      - 8881:8881
+      - 8882:8882

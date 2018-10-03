@@ -5,39 +5,72 @@ const request = require('request');
 const fs = require('fs');
 const md5 = require('md5');
 
+/**
+ * Require a module or return null if not found
+ * @param {String} e 
+ */
 global.requireOrNull = function(e) {
-	try { return require(e); } 
-	catch (ex) { return null; }
+	try { 
+		return require(e); 
+	}  catch (ex) { 
+		return null; 
+	}
 };
 
+/**
+ * Pick a random element in an array
+ * @param {Array} e 
+ */
 global.rand = function(e) {
 	return _.isArray(e) ? e[_.random(0, e.length - 1)] : e;
 };
 
-// Define a new require to require files from our path
-global.apprequire = function(k) {
-	return require(__basedir + '/src/lib/' + k);
+/**
+ * Require a module from our internal library
+ * @param {String} e 
+ */
+global.apprequire = global.requireLibrary = function(e) {
+	return require(__basedir + '/src/lib/' + e);
 };
 
+/**
+ * Require a module from our helpers library
+ * @param {String} e 
+ */
+global.requireHelper = function(e) {
+	return require(__basedir + '/src/helpers/' + e);
+};
+
+/**
+ * Timeout using promises
+ * @param {Number} ms 
+ */
 global.timeout = function(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 };
 
+/**
+ * Generate a UUID v4
+ */
 global.uuid = function() {
 	return uuid.v4();
 };
 
+/**
+ * Clean text by removing diacritics and lowering its case
+ * @param {String} t 
+ */
 global.cleanText = function(t) {
 	return diacriticsRemove(t).toLowerCase();
 };
 
+/**
+ * Split a text using a pattern to mimic a message sent by a human
+ * @param {String} text 
+ */
 global.mimicHumanMessage = function(text) {
 	const splitted = text.split(/\\n|\n|\.(?=\s+|[A-Z])/);
 	return _.compact(splitted);
-};
-
-global.requireHelper = function(k) {
-	return require(__basedir + '/src/helpers/' + k);
 };
 
 /**
@@ -69,10 +102,14 @@ global.getLocaleFromLanguageCode = function(language) {
 	}
 };
 
+/**
+ * Get the local URI of a remote object by downloading it
+ * @param {String} uri 
+ */
 global.getLocalObjectFromURI = function(uri) {
-	return new Promise((resolve) => {
+	return new Promise((resolve, reject) => {
 		if (/^https?\:\/\//.test(uri)) {
-			const local_file = __cachedir + '/' + md5(uri) + '.mp3';
+			const local_file = __cachedir + '/' + md5(uri);
 			if (fs.existsSync(local_file)) {
 				return resolve(local_file);
 			}

@@ -59,6 +59,7 @@ exports.handle = async function({
 	// so we'll enqueue it.
 	if (false === isIdDriverUp(session.io_id)) {	
 		console.info(TAG, 'putting in IO queue', { session, params, fulfillment });
+		
 		new Data.IOQueue({
 			io_id: session.io_id,
 			session: session._id,
@@ -85,20 +86,28 @@ exports.handle = async function({
 	if (fulfillment) {
 		// Direct fulfillment
 		fulfillment = await AI.fulfillmentTransformer(fulfillment, session);
-		driver.output(fulfillment, session);
 	} else if (body) {
 		// Body resolution with action calling
 		fulfillment = await AI.fulfillmentFromBody(body, session);
-		driver.output(fulfillment, session);
-	} else if (params.text) {
-		// Interrogate AI to get fulfillment by textRequest
-		fulfillment = await AI.textRequest(params.text, session);
-		driver.output(fulfillment, session);
-	} else if (params.event) {
-		// Interrogate AI to get fulfillment by eventRequest
-		fulfillment = await AI.eventRequest(params.event, session);
-		driver.output(fulfillment, session);
-	} 
+	} else if (params) {
+		if (params.text) {
+			// Interrogate AI to get fulfillment by textRequest
+			fulfillment = await AI.textRequest(params.text, session);
+		} else if (params.event) {
+			// Interrogate AI to get fulfillment by eventRequest
+			fulfillment = await AI.eventRequest(params.event, session);
+		} else {
+			console.warn("Neither text, event in params is not null");
+		}
+	}
+
+	if (fulfillment == null) {
+		console.error("Do not output to driver because fulfillment is null");
+		return;
+	}
+
+	// Call the output
+	driver.output(fulfillment, session);
 
 	// Process output accessories:
 	// An accessory can:
@@ -108,6 +117,7 @@ exports.handle = async function({
 	(async() => {
 		for (let accessory of (enabledAccesories[driverStr] || [])) {
 			let handleType = accessory.canHandleOutput(fulfillment, session);
+			
 			switch (handleType) {
 				case IOManager.CAN_HANDLE_OUTPUT.YES_AND_BREAK:
 				console.info(TAG, `forwarding output to <${accessory.id}> with YES_AND_BREAK`);
@@ -160,11 +170,14 @@ function configureDriver(driverStr) {
 
 	const driver = enabledDrivers[driverStr];
 
+	// Input --> Handle
 	driver.emitter.on('input', async(e) => {
 		try {
+			// If input has the error key, throw again to handle in the catch
 			if (e.error) throw e.error;
 			await exports.handle(e);
 		} catch (ex) {
+			console.error(TAG, 'driver input error', ex);
 			e.fulfillment = { data : { error: ex } };
 			await exports.handle(e);
 		}

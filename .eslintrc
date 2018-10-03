@@ -14,16 +14,18 @@
         },
         "sourceType": "module"
     },
-    "plugins": [
-    ],
+    "plugins": [],
     "rules": {
-        "indent": "off",
         "linebreak-style": [
-            "warn",
+            "error",
             "unix"
         ],
-        "semi": [
+        "quotes": [
             "warn",
+            "single"
+        ],
+        "semi": [
+            "error",
             "always"
         ],
         "no-unused-vars": [

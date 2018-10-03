@@ -11,15 +11,15 @@ console.log('Searching for webpack.config.js...');
 
 let files = [];
 files.push('server/webpack.config.js');
-files = files.concat(glob.sync('src/**/webpack.config.js', { 
+files = files.concat(glob.sync('src/**/webpack.config.js', {
 	matchBase: true,
 	nodir: true
 }));
 
 files.map((e) => {
 	console.log(e);
-	exec(__dirname + '/node_modules/.bin/webpack', { 
-		cwd: path.dirname(e), 
-		stdio: [0,1,2] 
+	exec(__dirname + '/node_modules/.bin/webpack', {
+		cwd: path.dirname(e),
+		stdio: [0, 1, 2]
 	});
 });

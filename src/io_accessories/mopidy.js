@@ -2,11 +2,11 @@ exports.id = 'mopidy';
 
 const Mopidy = apprequire('mopidy');
 
-exports.canHandleOutput = function(e) {
+exports.canHandleOutput = function (e) {
 	if (e.data.music) return IOManager.CAN_HANDLE_OUTPUT.YES_AND_BREAK;
 };
 
-exports.output = async function(e, session) {
+exports.output = async function (e, session) {
 	if (e.data.music) {
 		await Mopidy.connect();
 
@@ -19,4 +19,4 @@ exports.output = async function(e, session) {
 	}
 };
 
-exports.attach = function(io) {};
+exports.attach = function (io) {};
