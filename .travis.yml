@@ -1,21 +1,31 @@
 services:
   - docker
 
+stages:
+  - name: build
+    if: branch != master
+  - name: push
+    if: branch = master
+  - name: deploy
+    if: branch = master
+
 jobs:
   include:
-    - stage: build docker image
+    - stage: build
       script:
-      - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
-      - docker pull $DOCKER_USERNAME/otto:latest
-      - docker build . -t $DOCKER_USERNAME/otto:$TRAVIS_COMMIT --cache-from $DOCKER_USERNAME/otto:latest
-      - docker tag $DOCKER_USERNAME/otto:$TRAVIS_COMMIT $DOCKER_USERNAME/otto:latest
-      - docker push $DOCKER_USERNAME/otto:latest
+        - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
+        - docker pull $DOCKER_USERNAME/otto:latest
+        - docker build . -t $DOCKER_USERNAME/otto:$TRAVIS_COMMIT --cache-from $DOCKER_USERNAME/otto:latest
+    - stage: push
+      script:
+        - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
+        - docker pull $DOCKER_USERNAME/otto:latest
+        - docker build . -t $DOCKER_USERNAME/otto:$TRAVIS_COMMIT --cache-from $DOCKER_USERNAME/otto:latest
+        - docker tag $DOCKER_USERNAME/otto:$TRAVIS_COMMIT $DOCKER_USERNAME/otto:latest
+        - docker push $DOCKER_USERNAME/otto:latest
     - stage: deploy
       script:
-      - echo $SSH_KEY > key64
-      - base64 --decode key64 > key
-      - chmod 400 key
-      - ssh -o "StrictHostKeyChecking no" -i key $SSH_USERNAME@$SSH_HOST "$SSH_COMMAND"
-  branches:
-    only:
-    - master
+        - echo $SSH_KEY > key64
+        - base64 --decode key64 > key
+        - chmod 400 key
+        - ssh -o "StrictHostKeyChecking no" -i key $SSH_USERNAME@$SSH_HOST "$SSH_COMMAND"
