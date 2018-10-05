@@ -144,9 +144,8 @@ async function processEvent(event) {
  * @param {Object} e 
  */
 async function sendAudio(e) {
-	let uri = e.uri || e.file;
-	if (uri) {
-		await Play.playURI(uri);
+	if (e.uri) {
+		await Play.playURI(e.uri);
 	}
 }
 
@@ -155,9 +154,8 @@ async function sendAudio(e) {
  * @param {Object} e 
  */
 async function sendVoice(e) {
-	let uri = e.uri || e.file;
-	if (uri) {
-		await Play.playVoice(uri);
+	if (e.uri) {
+		await Play.playVoice(e.uri);
 	}
 }
 

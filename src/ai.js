@@ -14,11 +14,11 @@ function getEntities(session) {
 	let entities = [];
 	if (config.chromecast.devices) {
 		entities = entities.concat([{
-			name: "chromecast",
+			name: 'chromecast',
 			entries: _.map(config.chromecast.devices, ((value, key) => {
-				return { 
+				return {
 					value: key,
-					synonyms: [ value.name ]
+					synonyms: [value.name]
 				};
 			}))
 		}]);
@@ -81,14 +81,18 @@ async function fulfillmentTransformer(fulfillment, session) {
  * @param {*} session  Session
  */
 async function fulfillmentFromBody(body, session) {
-	return new Promise(async(resolve) => {
+	return new Promise(async (resolve) => {
 		let fulfillment = null;
-		
+
 		// Start a timeout to ensure that the promise
 		// will be anyway triggered, also with an error
 		let action_timeout = setTimeout(() => {
 			fulfillment = fulfillmentTransformer({
-				data: { error: { timeout: true } }
+				data: {
+					error: {
+						timeout: true
+					}
+				}
 			}, session);
 			resolve(fulfillment);
 		}, 1000 * (_config.promiseTimeout || 10));
@@ -96,7 +100,7 @@ async function fulfillmentFromBody(body, session) {
 		try {
 			console.info(TAG, `calling action ${body.result.action}`);
 			// Actual call to the Action
-			fulfillment = await Actions.list[ body.result.action ]()(body, session);
+			fulfillment = await Actions.list[body.result.action]()(body, session);
 		} catch (err) {
 			if (err.fulfillment) {
 				// Here is a bit of an hack to intercept a fulfillment that is into an error,
@@ -105,7 +109,11 @@ async function fulfillmentFromBody(body, session) {
 			} else {
 				// instead, if only a simple error is thrown, 
 				// just wrap into a standard structure
-				fulfillment = { data: { error: err } };
+				fulfillment = {
+					data: {
+						error: err
+					}
+				};
 			}
 		}
 
@@ -135,7 +143,9 @@ async function textRequestTransformer(text, session) {
  */
 async function eventRequestTransformer(event, session) {
 	if (_.isString(event)) {
-		event = { name: event };
+		event = {
+			name: event
+		};
 	}
 	return event;
 }
@@ -146,7 +156,9 @@ async function eventRequestTransformer(event, session) {
  * @param {Object} session Session
  */
 async function bodyParser(body, session) {
-	let f = { payload: {} };
+	let f = {
+		payload: {}
+	};
 
 	// Parse messages of the body and deep extend every message in the fulfillment
 	for (let m of (body.result.fulfillment.messages || [])) {
@@ -185,8 +197,10 @@ async function bodyParser(body, session) {
  */
 async function onRequestComplete(body, session) {
 	console.info(TAG, 'response');
-	console.dir(body, { depth: 3 });
-	
+	console.dir(body, {
+		depth: 3
+	});
+
 	let fulfillment = null;
 
 	// If this response is already fullfilld by webhook, do not call action locally but just resolve
@@ -219,7 +233,7 @@ function getRequestArgs(session) {
  * @param {Object} session Session
  */
 function textRequest(text, session) {
-	return new Promise(async(resolve, reject) => {
+	return new Promise(async (resolve, reject) => {
 		console.info(TAG, 'text request:', text);
 
 		// Transform the text to eventually translate it
@@ -227,7 +241,7 @@ function textRequest(text, session) {
 
 		// Instantiate the Dialogflow request
 		const request = client.textRequest(text, getRequestArgs(session));
-		request.on('response', async(body) => {
+		request.on('response', async (body) => {
 			resolve(await onRequestComplete(body, session));
 		});
 		request.on('error', reject);
@@ -241,14 +255,14 @@ function textRequest(text, session) {
  * @param {Object} session Session
  */
 function eventRequest(event, session) {
-	return new Promise(async(resolve, reject) => {
+	return new Promise(async (resolve, reject) => {
 		console.info(TAG, 'event request:', event);
-		
+
 		event = await eventRequestTransformer(event, session);
-		
+
 		// Instantiate the Dialogflow request
 		const request = client.eventRequest(event, getRequestArgs(session));
-		request.on('response', async(body) => {
+		request.on('response', async (body) => {
 			resolve(await onRequestComplete(body, session));
 		});
 		request.on('error', reject);
@@ -260,35 +274,47 @@ function eventRequest(event, session) {
  * Attach the AI to the Server
  */
 function attachToServer() {
-	Server.routerApi.post('/fulfillment', async(req, res) => {
+	Server.routerApi.post('/fulfillment', async (req, res) => {
 		if (req.body == null) {
-			return res.json({ 
-				data: { error: 'Empty body' } 
+			return res.json({
+				data: {
+					error: 'Empty body'
+				}
 			});
 		}
-	
+
 		console.info(TAG, 'webhook request');
-		console.dir(req.body, { depth: 3 });
-	
+		console.dir(req.body, {
+			depth: 3
+		});
+
 		const body = req.body;
 		const sessionId = body.sessionId;
-	
+
 		// From AWH can came any session ID, so ensure it exists on our DB
 		let session = await IOManager.getSession(sessionId);
 		if (session == null) {
 			console.error(TAG, `creating a missing session ID with ${sessionId}`);
-			session = new Data.Session({ _id: sessionId });
+			session = new Data.Session({
+				_id: sessionId
+			});
 			session.save();
 		}
-	
+
 		try {
 			let fulfillment = await bodyParser(body, session);
 			fulfillment.data.remoteTransform = true;
 			console.info(TAG, 'webhook fulfillment');
-			console.dir(fulfillment, { depth: 3 });
+			console.dir(fulfillment, {
+				depth: 3
+			});
 			res.json(fulfillment);
 		} catch (ex) {
-			res.json({ data: { error: ex } });
+			res.json({
+				data: {
+					error: ex
+				}
+			});
 		}
 	});
 }
