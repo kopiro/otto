@@ -131,17 +131,21 @@ exports.output = async function (f, session) {
 	// Process a Music object
 	try {
 		if (f.data.music) {
-			if (f.data.music.track) {
-				await sendMessage(chat_id, f.data.music.track.share_url, bot_opt);
-			}
-			if (f.data.music.album) {
-				await sendMessage(chat_id, f.data.music.album.share_url, bot_opt);
-			}
-			if (f.data.music.artist) {
-				await sendMessage(chat_id, f.data.music.artist.share_url, bot_opt);
-			}
-			if (f.data.music.playlist) {
-				await sendMessage(chat_id, f.data.music.playlist.share_url, bot_opt);
+			if (f.data.music.spotify) {
+				if (f.data.music.spotify.track) {
+					await sendMessage(chat_id, f.data.music.spotify.track.share_url, bot_opt);
+				}
+				if (f.data.music.spotify.album) {
+					await sendMessage(chat_id, f.data.music.spotify.album.share_url, bot_opt);
+				}
+				if (f.data.music.spotify.artist) {
+					await sendMessage(chat_id, f.data.music.spotify.artist.share_url, bot_opt);
+				}
+				if (f.data.music.spotify.playlist) {
+					await sendMessage(chat_id, f.data.music.spotify.playlist.share_url, bot_opt);
+				}
+			} else if (f.data.music.uri) {
+				await sendMessage(chat_id, f.data.music.uri, bot_opt);
 			}
 		}
 	} catch (err) {
@@ -151,9 +155,11 @@ exports.output = async function (f, session) {
 	// Process a Video object
 	try {
 		if (f.data.video) {
-			if (f.data.video.uri || f.data.video.file) {
+			if (f.data.video.uri) {
 				await bot.sendSenderAction(chat_id, 'upload_video');
-				await bot.sendVideo(chat_id, f.data.video.uri || f.data.video.file, bot_opt);
+				await bot.sendVideo(chat_id, f.data.video.uri, bot_opt);
+			} else if (f.data.video.youtube) {
+				await bot.sendMessage(chat_id, 'https://www.youtube.com/watch?v=' + f.data.video.youtube.id, bot_opt);
 			}
 		}
 	} catch (err) {
@@ -163,9 +169,9 @@ exports.output = async function (f, session) {
 	// Process an Image Object
 	try {
 		if (f.data.image) {
-			if (f.data.image.uri || f.data.image.file) {
+			if (f.data.image.uri) {
 				await bot.sendSenderAction(chat_id, 'upload_photo');
-				await bot.sendPhoto(chat_id, f.data.image.uri || f.data.image.file, bot_opt);
+				await bot.sendPhoto(chat_id, f.data.image.uri, bot_opt);
 			}
 		}
 	} catch (err) {
@@ -175,9 +181,9 @@ exports.output = async function (f, session) {
 	// Process an Audio Object
 	try {
 		if (f.data.audio) {
-			if (f.data.audio.uri || f.data.audio.file) {
+			if (f.data.audio.uri) {
 				await bot.sendSenderAction(chat_id, 'upload_audio');
-				await bot.sendAudio(chat_id, f.data.audio.uri || f.data.audio.file, bot_opt);
+				await bot.sendAudio(chat_id, f.data.audio.uri, bot_opt);
 			}
 		}
 	} catch (err) {
@@ -187,9 +193,9 @@ exports.output = async function (f, session) {
 	// Process a Voice Object
 	try {
 		if (f.data.voice) {
-			if (f.data.voice.uri || f.data.voice.file) {
+			if (f.data.voice.uri) {
 				await bot.sendSenderAction(chat_id, 'upload_audio');
-				const voice_file = await Play.playVoiceToTempFile(f.data.voice.uri || f.data.voice.file);
+				const voice_file = await Play.playVoiceToTempFile(f.data.voice.uri);
 				await bot.sendVoice(chat_id, voice_file, bot_opt);
 			}
 		}
@@ -200,9 +206,9 @@ exports.output = async function (f, session) {
 	// Process a Document Object
 	try {
 		if (f.data.document) {
-			if (f.data.document.uri || f.data.document.file) {
+			if (f.data.document.uri) {
 				await bot.sendSenderAction(chat_id, 'upload_document');
-				await bot.sendDocument(chat_id, f.data.document.uri || f.data.document.file, bot_opt);
+				await bot.sendDocument(chat_id, f.data.document.uri, bot_opt);
 			}
 		}
 	} catch (err) {

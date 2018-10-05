@@ -20,14 +20,14 @@ module.exports = function ({
 		});
 
 		const videos = await Youtube.searchVideos(p.q, 1);
+		console.log('videos :', videos[0]);
 		IOManager.output({
-			data: {
-				video: {
-					youtube: {
-						id: videos[0].id
+				data: {
+					video: {
+						youtube: videos[0]
 					}
 				}
-			}
-		}, session);
+			},
+			session);
 	});
 };
