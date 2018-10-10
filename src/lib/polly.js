@@ -22,9 +22,9 @@ let cache = {
  * Load the cache registry from file
  */
 function loadCacheRegistry() {
-	try { 
+	try {
 		let registry = JSON.parse(fs.readFileSync(CACHE_REGISTRY_FILE).toString());
-		if (registry.audio == null || registry.voices == null) throw 'Invalid format'; 
+		if (registry.audio == null || registry.voices == null) throw 'Invalid format';
 		cache = registry;
 	} catch (ex) {}
 }
@@ -92,7 +92,7 @@ function getVoice(opt) {
 		// Call the API to retrieve all voices in that locale
 		pollyClient.describeVoices({
 			LanguageCode: locale
-		}, async(err, data) => {
+		}, async (err, data) => {
 			if (err != null) {
 				return reject(err);
 			}
@@ -102,7 +102,9 @@ function getVoice(opt) {
 
 			if (voice == null) {
 				console.debug(TAG, `falling back to language ${config.language} instead of ${opt.language}`);
-				voice = await getVoice(_.extend({}, opt, { language: config.language }));
+				voice = await getVoice(_.extend({}, opt, {
+					language: config.language
+				}));
 				return resolve(voice);
 			}
 
@@ -118,8 +120,8 @@ function getVoice(opt) {
  * @param {String} text	Sentence
  * @param {Object} opt
  */
-exports.getAudioFile = function(text, opt = {}) {
-	return new Promise(async(resolve, reject) => {
+exports.getAudioFile = function (text, opt = {}) {
+	return new Promise(async (resolve, reject) => {
 		_.defaults(opt, {
 			gender: _config.gender,
 			language: config.language
@@ -134,6 +136,8 @@ exports.getAudioFile = function(text, opt = {}) {
 		// Find the voice title by options
 		let voice = await getVoice(opt);
 		const isSSML = /<speak>/.test(text);
+
+		// TODO: split by text length so that Polly can process
 
 		// Call the API
 		pollyClient.synthesizeSpeech({

@@ -36,6 +36,10 @@ exports.routerAdmin = express.Router();
 exports.routerActions = express.Router();
 exports.routerListeners = express.Router();
 
+exports.getAbsoluteURIByRelativeURI = function (link) {
+	return _config.domain + link;
+};
+
 // Configure routers
 
 // API Router
@@ -61,9 +65,6 @@ exports.routerListeners.use(bodyParser.urlencoded({
 
 // public
 app.use(express.static(__basedir + '/server/public'));
-
-// Serve tmp directory - be careful here to do not put sensitive data
-app.use('/tmp', express.static(__basedir + '/tmp'));
 
 // Handle all routers
 app.use('/io', exports.routerIO);

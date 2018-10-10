@@ -6,14 +6,17 @@ const speech = require('@google-cloud/speech')({
 
 const _ = require('underscore');
 const fs = require('fs');
+const Proc = apprequire('proc');
+
+exports.SAMPLE_RATE = 16000;
 
 /**
  * Start a recognition stream
  * @param {Stream} stream 
  * @param {Object} opt 
  */
-exports.recognize = function(stream, opt = {}) {
-	return new Promise(async(resolve, reject) => {
+exports.recognize = function (stream, opt = {}) {
+	return new Promise(async (resolve, reject) => {
 		stream.pipe(exports.createRecognizeStream(opt, (err, text) => {
 			if (err) return reject(err);
 			resolve(text);
@@ -26,14 +29,16 @@ exports.recognize = function(stream, opt = {}) {
  * @param {Object} opt 
  * @param {Function} callback 
  */
-exports.createRecognizeStream = function(opt, callback) {
+exports.createRecognizeStream = function (opt, callback) {
+	let resolved = false;
+
 	_.defaults(opt, {
 		// If false or omitted, the recognizer will perform continuous recognition
 		singleUtterance: true,
 		// If true, interim results (tentative hypotheses) may be returned as they become available 
 		interimResults: true,
 		encoding: 'LINEAR16',
-		sampleRate: 16000,
+		sampleRate: exports.SAMPLE_RATE,
 		language: config.language
 	});
 
@@ -47,13 +52,13 @@ exports.createRecognizeStream = function(opt, callback) {
 		}
 	});
 
-	// stream.on('end', () => {
-	// 	console.debug(TAG, 'end');
-	// 	if (false === finished) {
-	// 		finished = true;
-	// 		callback({ unrecognized: true });
-	// 	}      
-	// });     
+	stream.on('end', () => {
+		if (resolved === false) {
+			return callback({
+				unrecognized: true
+			});
+		}
+	});
 
 	stream.on('error', (err) => {
 		console.error(TAG, err);
@@ -69,6 +74,7 @@ exports.createRecognizeStream = function(opt, callback) {
 			if (r.isFinal) {
 				const text = r.alternatives[0].transcript;
 				console.info(TAG, 'recognized', text);
+				resolved = true;
 				callback(null, text);
 			}
 		}
@@ -77,12 +83,33 @@ exports.createRecognizeStream = function(opt, callback) {
 	return stream;
 };
 
+
 /**
  * Recognize a local audio file
  */
-exports.recognizeFile = function(file, opt = {}) {
+exports.recognizeFile = async function (file, opt = {
+	convertFile: false
+}) {
+	if (opt.convertFile === true) {
+		await Proc.spawn('ffmpeg', [
+			'-i', file,
+			'-acodec', 'pcm_s16le',
+			'-ar', exports.SAMPLE_RATE,
+			'-ac', '1',
+			file + '.wav'
+		]);
+		file = file + '.wav';
+	}
+
+	return exports.recognizeStream(fs.createReadStream(file), opt);
+};
+
+/**
+ * Recognize a Stream
+ */
+exports.recognizeStream = async function (stream, opt = {}) {
 	return new Promise((resolve, reject) => {
-		fs.createReadStream(file).pipe(exports.createRecognizeStream({
+		stream.pipe(exports.createRecognizeStream({
 			interimResults: false,
 			language: opt.language
 		}, (err, text) => {
