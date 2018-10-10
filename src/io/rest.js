@@ -7,7 +7,15 @@ exports.config = {
 const _config = config.rest;
 
 const emitter = exports.emitter = new(require('events').EventEmitter)();
+const request = require('request');
+const bodyParser = require('body-parser');
+const fileUpload = require('express-fileupload');
+const path = require('path');
 
+const Play = apprequire('play');
+const Proc = apprequire('proc');
+const SpeechRecognizer = apprequire('gcsr');
+const TextToSpeech = apprequire('polly');
 const Server = apprequire('server');
 
 /**
@@ -15,14 +23,48 @@ const Server = apprequire('server');
  */
 let started = false;
 
-async function processInput(req, res) {
+/**
+ * Handle a voice input by recognizing the text
+ * @param {Object} session	Current session 
+ * @param {Object} e Telegram object
+ */
+async function handleInputVoice(session, audio_file) {
+	return new Promise((resolve, reject) => {
+		const tmp_file = path.join(__tmpdir, uuid());
+		audio_file.mv(tmp_file, async (err) => {
+			if (err) return reject(err);
+
+			try {
+				const text = await SpeechRecognizer.recognizeFile(tmp_file, {
+					language: session.getTranslateFrom(),
+					convertFile: true
+				});
+				resolve(text);
+			} catch (err) {
+				reject(err);
+			}
+		});
+	});
+}
+
+/**
+ * Process an input request by Express
+ * @param {Object} req 
+ * @param {Object} res 
+ */
+async function handleRequest(req, res) {
 	if (req.query.sessionId == null) {
 		throw new Error('Invalid session identifier');
 	}
 
-	if (req.query.text == null) {
-		throw new Error('Provide a text');
+	let outputType = null;
+	switch (req.query.outputType) {
+		case 'voice':
+			outputType = 'voice';
+			break;
 	}
+
+	console.info(TAG, 'request', req.query, req.body, req.files);
 
 	// Register the session
 	const session = await IOManager.registerSession({
@@ -32,14 +74,31 @@ async function processInput(req, res) {
 		text: req.query.text
 	});
 
-	session.res = res;
+	session.rest = {
+		req: req,
+		res: res,
+		outputType: outputType
+	};
 
-	emitter.emit('input', {
-		session: session,
-		params: {
-			text: req.query.text
-		}
-	});
+	if (req.body.text) {
+		emitter.emit('input', {
+			session: session,
+			params: {
+				text: req.body.text
+			}
+		});
+
+	} else if (req.files.audio) {
+		emitter.emit('input', {
+			session: session,
+			params: {
+				text: (await handleInputVoice(session, req.files.audio))
+			}
+		});
+
+	} else {
+		throw new Error('Unable to understand your request');
+	}
 }
 
 /**
@@ -49,18 +108,27 @@ exports.startInput = function () {
 	if (started) return;
 	started = true;
 
-	Server.routerIO.use('/rest', require('body-parser').json(), async (req, res) => {
-		try {
-			await processInput(req, res);
-		} catch (err) {
-			res.json({
-				error: {
-					message: err.message,
-					code: err.code
-				}
-			});
-		}
-	});
+	Server.routerIO.use('/rest',
+		bodyParser.json(),
+		bodyParser.urlencoded(),
+		fileUpload({
+			abortOnLimit: true,
+			limits: {
+				fileSize: 5 * 1024 * 1024
+			},
+		}),
+		async (req, res) => {
+			try {
+				await handleRequest(req, res);
+			} catch (err) {
+				console.error(TAG, err);
+				res.status(400).json({
+					error: (err.message ? {
+						message: err.message
+					} : err)
+				});
+			}
+		});
 	console.info(TAG, 'started');
 };
 
@@ -84,5 +152,19 @@ exports.output = async function (f, session) {
 		fulfillment: f
 	});
 
-	return session.res.json(f);
+	// Process voice if output type set
+	if (session.rest.outputType === 'voice') {
+		const speech = f.speech || f.data.speech;
+		const language = f.data.language || session.getTranslateTo();
+
+		if (speech != null) {
+			const output_file = path.join(__publictmpdir, uuid() + '.mp3');
+			await Play.playVoiceToFile(await TextToSpeech.getAudioFile(speech, {
+				language: language
+			}), output_file);
+			f.voice = Server.getAbsoluteURIByRelativeURI('/tmp/' + path.basename(output_file));
+		}
+	}
+
+	return session.rest.res.json(f);
 };

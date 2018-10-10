@@ -1,65 +1,66 @@
 {
-    "env": {
-        "commonjs": true,
-        "es6": true,
-        "node": true,
-        "browser": true
-    },
-    "extends": "eslint:recommended",
-    "parserOptions": {
-        "ecmaVersion": 2017,
-        "ecmaFeatures": {
-            "experimentalObjectRestSpread": true,
-            "jsx": true
-        },
-        "sourceType": "module"
-    },
-    "plugins": [],
-    "rules": {
-        "linebreak-style": [
-            "error",
-            "unix"
-        ],
-        "quotes": [
-            "warn",
-            "single"
-        ],
-        "semi": [
-            "error",
-            "always"
-        ],
-        "no-unused-vars": [
-            "warn"
-        ],
-        "no-console": "off"
-    },
-    "globals": {
-        "__basedir": true,
-        "__tmpdir": true,
-        "__cachedir": true,
-        "__publicdir": true,
-        "__etcdir": true,
-        "__package": true,
-        "requireOrNull": true,
-        "config": true,
-        "cleanText": true,
-        "AI_NAME_REGEX": true,
-        "apprequire": true,
-        "mongoose": true,
-        "Data": true,
-        "AI": true,
-        "Util": true,
-        "IOManager": true,
-        "Scheduler": true,
-        "Actions": true,
-        "$": true,
-        "timeout": true,
-        "uuid": true,
-        "rand": true,
-        "consoleultimate": true,
-        "prettyjson": true,
-        "getLocaleFromLanguageCode": true,
-        "mimicHumanMessage": true,
-        "getLocalObjectFromURI": true
-    }
+	"env": {
+		"commonjs": true,
+		"es6": true,
+		"node": true,
+		"browser": true
+	},
+	"extends": "eslint:recommended",
+	"parserOptions": {
+		"ecmaVersion": 2017,
+		"ecmaFeatures": {
+			"experimentalObjectRestSpread": true,
+			"jsx": true
+		},
+		"sourceType": "module"
+	},
+	"plugins": [],
+	"rules": {
+		"linebreak-style": [
+			"error",
+			"unix"
+		],
+		"quotes": [
+			"warn",
+			"single"
+		],
+		"semi": [
+			"error",
+			"always"
+		],
+		"no-unused-vars": [
+			"warn"
+		],
+		"no-console": "off"
+	},
+	"globals": {
+		"__basedir": true,
+		"__tmpdir": true,
+		"__publictmpdir": true,
+		"__cachedir": true,
+		"__publicdir": true,
+		"__etcdir": true,
+		"__package": true,
+		"requireOrNull": true,
+		"config": true,
+		"cleanText": true,
+		"AI_NAME_REGEX": true,
+		"apprequire": true,
+		"mongoose": true,
+		"Data": true,
+		"AI": true,
+		"Util": true,
+		"IOManager": true,
+		"Scheduler": true,
+		"Actions": true,
+		"$": true,
+		"timeout": true,
+		"uuid": true,
+		"rand": true,
+		"consoleultimate": true,
+		"prettyjson": true,
+		"getLocaleFromLanguageCode": true,
+		"mimicHumanMessage": true,
+		"getLocalObjectFromURI": true
+	}
 }

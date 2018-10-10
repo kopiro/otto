@@ -134,6 +134,61 @@ Dependencies:
 - **Google Cloud Speech Recognizer** - for the speech recognizer if the user send a voice message
 - **AWS Polly** - for the TTS if we want to send a voice
 
+#### IO.Rest
+
+It provides a clean HTTP REST interface to interact with the bot under the `/io/rest` URI.
+
+Dependencies:
+
+- **Google Cloud Speech Recognizer** - for the speech recognizer
+- **AWS Polly** - for the TTS
+
+For every request, you must provide a unique session ID via query string.
+
+##### Send a text input
+
+```sh
+curl http://${HOST}/io/rest?sessionId=${SESSION_ID} -X POST --data "text=Hello"
+```
+
+```json
+{
+  "speech": "...",
+  "data": {}
+}
+```
+
+##### Send an audio input
+
+You can send an audio file that will be recognized on-the-fly as a text.
+
+```sh
+curl http://${HOST}/io/rest?sessionId=${SESSION_ID} -X POST -F "audio=@${AUDIO_FILE}"
+```
+
+```json
+{
+  "speech": "...",
+  "data": {}
+}
+```
+
+##### Request a voice output
+
+Append `outputType=voice` to the query string to request a voice file under the `voice` key.
+
+```sh
+curl http://${HOST}/io/rest?sessionId=${SESSION_ID}&outputType=voice -X POST --data "text=Hello"
+```
+
+```json
+{
+  "speech": "...",
+  "data": {},
+  "voice": "http://${HOST}/tmp/0000-00000-00000.mp3"
+}
+```
+
 ## Listeners
 
 A listener is a file that listen for incoming requests and can trigger output.

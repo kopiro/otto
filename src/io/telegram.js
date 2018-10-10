@@ -39,8 +39,9 @@ async function handleInputVoice(session, e) {
 		request(file_link)
 			.pipe(fs.createWriteStream(voice_file))
 			.on('close', async () => {
-				await Proc.spawn('opusdec', [voice_file, voice_file + '.wav', '--rate', 16000]);
+				await Proc.spawn('opusdec', [voice_file, voice_file + '.wav', '--rate', SpeechRecognizer.SAMPLE_RATE]);
 				const text = await SpeechRecognizer.recognizeFile(voice_file + '.wav', {
+					convertFile: false,
 					language: session.getTranslateFrom()
 				});
 				resolve(text);
@@ -153,7 +154,7 @@ exports.output = async function (f, session) {
 				await sendMessage(chat_id, f.data.error.speech);
 			}
 			if (session.is_admin) {
-				await sendMessage(chat_id, "ERROR: <code>" + JSON.stringify(f.data.error) + "</code>");
+				await sendMessage(chat_id, 'ERROR: <code>' + JSON.stringify(f.data.error) + '</code>');
 			}
 		}
 	} catch (err) {
@@ -421,7 +422,7 @@ bot.on('message', async (e) => {
 	});
 });
 
-bot.on("callback_query", (e) => {
+bot.on('callback_query', (e) => {
 	if (e.game_short_name) {
 		const user = callback_queries[e.from.id];
 		if (user) {
