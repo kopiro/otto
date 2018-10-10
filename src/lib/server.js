@@ -53,8 +53,11 @@ exports.routerListeners.use(bodyParser.urlencoded({
 	extended: true
 }));
 
+// web-client public
+app.use(express.static(__basedir + '/web-client/build'));
+
 // public
-app.use(express.static(__basedir + '/public'));
+app.use('/tmp', express.static(__tmpdir));
 
 // Handle all routers
 app.use('/io', exports.routerIO);

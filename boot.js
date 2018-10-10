@@ -7,8 +7,6 @@ require('console-ultimate/global').replace();
 global.__basedir = __dirname;
 global.__tmpdir = __dirname + '/tmp';
 global.__cachedir = __dirname + '/cache';
-global.__publicdir = __dirname + '/public';
-global.__publictmpdir = __publicdir + '/tmp';
 global.__etcdir = __dirname + '/etc';
 
 global.__package = require(__basedir + '/package.json');
