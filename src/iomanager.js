@@ -27,7 +27,7 @@ exports.session = null;
  * @param {String} name	Name of the event
  * @param {Object} data Payload for the event
  */
-exports.eventToAllIO = function(name, data) {
+exports.eventToAllIO = function (name, data) {
 	for (let k of Object.keys(enabledDrivers)) {
 		enabledDrivers[k].emitter.emit(name, data);
 	}
@@ -43,10 +43,10 @@ exports.eventToAllIO = function(name, data) {
  * @param {String} e.params.text A text query to parse over Dialogflow
  * @param {Object} e.params.event An event query to parse over Dialogflow 
  */
-exports.handle = async function({ 
-	session, 
-	params = {}, 
-	fulfillment = null, 
+exports.handle = async function ({
+	session,
+	params = {},
+	fulfillment = null,
 	body = null
 }) {
 	session = session || IOManager.session;
@@ -57,9 +57,13 @@ exports.handle = async function({
 	// If this driver is not up & running for this configuration,
 	// the item could be handled by another platform that has that driver configured,
 	// so we'll enqueue it.
-	if (false === isIdDriverUp(session.io_id)) {	
-		console.info(TAG, 'putting in IO queue', { session, params, fulfillment });
-		
+	if (false === isIdDriverUp(session.io_id)) {
+		console.info(TAG, 'putting in IO queue', {
+			session,
+			params,
+			fulfillment
+		});
+
 		new Data.IOQueue({
 			io_id: session.io_id,
 			session: session._id,
@@ -67,8 +71,8 @@ exports.handle = async function({
 			params: params
 		}).save();
 
-		return { 
-			inQueue: true 
+		return {
+			inQueue: true
 		};
 	}
 
@@ -114,22 +118,22 @@ exports.handle = async function({
 	// - handle a kind of output, process it and blocking the next accessory
 	// - handle a kind of output, process it but don't block the next accessory
 	// - do not handle and forward to next accessory
-	(async() => {
+	(async () => {
 		for (let accessory of (enabledAccesories[driverStr] || [])) {
 			let handleType = accessory.canHandleOutput(fulfillment, session);
-			
+
 			switch (handleType) {
 				case IOManager.CAN_HANDLE_OUTPUT.YES_AND_BREAK:
-				console.info(TAG, `forwarding output to <${accessory.id}> with YES_AND_BREAK`);
-				await accessory.output(fulfillment, session);
-				return;
+					console.info(TAG, `forwarding output to <${accessory.id}> with YES_AND_BREAK`);
+					await accessory.output(fulfillment, session);
+					return;
 				case IOManager.CAN_HANDLE_OUTPUT.YES_AND_CONTINUE:
-				console.info(TAG, `forwarding output to <${accessory.id}> with YES_AND_CONTINUE`);
-				await accessory.output(fulfillment, session);
-				break;
+					console.info(TAG, `forwarding output to <${accessory.id}> with YES_AND_CONTINUE`);
+					await accessory.output(fulfillment, session);
+					break;
 				case IOManager.CAN_HANDLE_OUTPUT.NO:
 				default:
-				break;
+					break;
 			}
 		}
 	})();
@@ -140,7 +144,7 @@ exports.handle = async function({
  * @param {Object} fulfillment Fulfillment payload
  * @param {Object} session Session object
  */
-exports.output = function(fulfillment, session) {
+exports.output = function (fulfillment, session) {
 	return exports.handle({
 		session: session,
 		fulfillment: fulfillment
@@ -171,14 +175,18 @@ function configureDriver(driverStr) {
 	const driver = enabledDrivers[driverStr];
 
 	// Input --> Handle
-	driver.emitter.on('input', async(e) => {
+	driver.emitter.on('input', async (e) => {
 		try {
 			// If input has the error key, throw again to handle in the catch
 			if (e.error) throw e.error;
 			await exports.handle(e);
 		} catch (ex) {
 			console.error(TAG, 'driver input error', ex);
-			e.fulfillment = { data : { error: ex } };
+			e.fulfillment = {
+				data: {
+					error: ex
+				}
+			};
 			await exports.handle(e);
 		}
 	});
@@ -277,15 +285,17 @@ function loadListeners() {
  * Encode an object to be sure that can be passed to API requests
  * @param {Object} b 
  */
-exports.encodeBody = function(b) {
-	return { body: new Buffer(JSON.stringify(b)).toString('base64') };
+exports.encodeBody = function (b) {
+	return {
+		body: new Buffer(JSON.stringify(b)).toString('base64')
+	};
 };
 
 /**
  * Decode an object previously encoded via IOManager.encodeBody
  * @param {Object} fulfillment 
  */
-exports.decodeBody = function(fulfillment) {
+exports.decodeBody = function (fulfillment) {
 	return JSON.parse(new Buffer(fulfillment.payload.body, 'base64').toString('ascii'));
 };
 
@@ -293,7 +303,7 @@ exports.decodeBody = function(fulfillment) {
  * Load the driver module
  * @param {String} e 
  */
-exports.getDriver = function(e) {
+exports.getDriver = function (e) {
 	return require(__basedir + '/src/io/' + e);
 };
 
@@ -301,7 +311,7 @@ exports.getDriver = function(e) {
  * Load the listener module
  * @param {String} e 
  */
-exports.getListener = function(e) {
+exports.getListener = function (e) {
 	return require(__basedir + '/src/listeners/' + e);
 };
 
@@ -309,7 +319,7 @@ exports.getListener = function(e) {
  * Load the accessory module
  * @param {String} e 
  */
-exports.getAccessory = function(e) {
+exports.getAccessory = function (e) {
 	return require(__basedir + '/src/io_accessories/' + e);
 };
 
@@ -317,7 +327,7 @@ exports.getAccessory = function(e) {
  * Write a log of what (global) user said - uses: IOManager.session as a user
  * @param {String} text 
  */
-exports.writeLog = async function(text) {
+exports.writeLog = async function (text) {
 	return exports.writeLogForSession(text, exports.session);
 };
 
@@ -326,8 +336,8 @@ exports.writeLog = async function(text) {
  * @param {Object} session 
  * @param {String} text 
  */
-exports.writeLogForSession = async function(text, session = {}) {
-	return (new Data.SessionInput({ 
+exports.writeLogForSession = async function (text, session = {}) {
+	return (new Data.SessionInput({
 		session: session._id,
 		text: text
 	})).save();
@@ -337,8 +347,10 @@ exports.writeLogForSession = async function(text, session = {}) {
  * Load the session from ORM
  * @param {String} sessionIdComposite 
  */
-exports.getSession = function(sessionIdComposite) {
-	return Data.Session.findOne({ _id: sessionIdComposite });
+exports.getSession = function (sessionIdComposite) {
+	return Data.Session.findOne({
+		_id: sessionIdComposite
+	});
 };
 
 /**
@@ -350,11 +362,11 @@ exports.getSession = function(sessionIdComposite) {
  * @param {String} [e.alias=null] Alias of this session
  * @param {String} [e.text=null] Eventual initial text that user said
  */
-exports.registerSession = async function({ 
-	sessionId, 
-	io_driver, 
-	io_data, 
-	alias, 
+exports.registerSession = async function ({
+	sessionId,
+	io_driver,
+	io_data,
+	alias,
 	text
 }) {
 	const io_id = config.uid + '/' + io_driver;
@@ -363,15 +375,19 @@ exports.registerSession = async function({
 	let session = await exports.getSession(sessionIdComposite);
 
 	if (session == null) {
-		console.info(TAG, 'new session model registered', session);
-		session = await (new Data.Session({ 
+		console.info(TAG, 'a new session model registered: ' + sessionId);
+		session = await (new Data.Session({
 			_id: sessionIdComposite,
 			io_id: io_id,
 			io_driver: io_driver,
 			io_data: io_data,
 			alias: alias,
-			settings: { updated_at: Date.now() },
-			pipe: { updated_at: Date.now() },
+			settings: {
+				updated_at: Date.now()
+			},
+			pipe: {
+				updated_at: Date.now()
+			},
 			server_settings: config.uid
 		}).save());
 	}
@@ -385,7 +401,7 @@ exports.registerSession = async function({
  * Register this session as global session, available via IOManager.session
  * @param {Object} session 
  */
-exports.updateGlobalSession = function(session) {
+exports.updateGlobalSession = function (session) {
 	console.info(TAG, 'updating global session model');
 	exports.session = session;
 };
@@ -395,7 +411,9 @@ exports.updateGlobalSession = function(session) {
  */
 async function processQueue() {
 	let qitem = await Data.IOQueue.findOne({
-		io_id: { $in: configuredDriversId }
+		io_id: {
+			$in: configuredDriversId
+		}
 	});
 
 	if (qitem == null) return null;
@@ -405,7 +423,9 @@ async function processQueue() {
 	queueProcessing[qitem._id] = true;
 
 	console.info(TAG, 'processing queue item');
-	console.dir(qitem, { depth: 2 });
+	console.dir(qitem, {
+		depth: 2
+	});
 
 	// Remove from database
 	qitem.remove();
@@ -419,7 +439,7 @@ async function processQueue() {
 /**
  * Start the polling to process IO queue
  */
-exports.startQueuePolling = async function() {
+exports.startQueuePolling = async function () {
 	processQueue();
 	await timeout(1000);
 	exports.startQueuePolling();
@@ -428,7 +448,7 @@ exports.startQueuePolling = async function() {
 /**
  * Start drivers, accessories and listeners
  */
-exports.start = function() {
+exports.start = function () {
 	loadDrivers();
 	loadAccessories();
 	for (let driverStr of Object.keys(enabledDrivers)) {
