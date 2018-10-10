@@ -31,10 +31,8 @@ function getEntities(session) {
  * @param {Object} fulfillment 
  */
 function fulfillmentSanitizer(fulfillment) {
-	// Always ensure that is an object
-	if (fulfillment == null) {
-		fulfillment = {};
-	}
+	if (fulfillment == null) return null;
+
 	// Even if is a string
 	if (_.isString(fulfillment)) {
 		fulfillment = {
@@ -53,6 +51,8 @@ function fulfillmentSanitizer(fulfillment) {
  * @return {Object}
  */
 async function fulfillmentTransformer(fulfillment, session) {
+	if (fulfillment == null) return null;
+
 	fulfillment = fulfillmentSanitizer(fulfillment);
 
 	// Here, merge data with payload in case 
@@ -86,15 +86,14 @@ async function fulfillmentFromBody(body, session) {
 
 		// Start a timeout to ensure that the promise
 		// will be anyway triggered, also with an error
-		let action_timeout = setTimeout(() => {
-			fulfillment = fulfillmentTransformer({
+		let action_timeout = setTimeout(async () => {
+			resolve(await fulfillmentTransformer({
 				data: {
 					error: {
 						timeout: true
 					}
 				}
-			}, session);
-			resolve(fulfillment);
+			}, session));
 		}, 1000 * (_config.promiseTimeout || 10));
 
 		try {
@@ -120,8 +119,7 @@ async function fulfillmentFromBody(body, session) {
 		clearTimeout(action_timeout);
 
 		// Pass the fulfillment to the transformer in final instance
-		fulfillment = await fulfillmentTransformer(fulfillment, session);
-		resolve(fulfillment);
+		resolve(await fulfillmentTransformer(fulfillment, session));
 	});
 }
 
@@ -182,12 +180,13 @@ async function bodyParser(body, session) {
 			// Otherwise, just transform the fulfillment
 			body.result.fulfillment = await fulfillmentTransformer(body.result.fulfillment, session);
 		}
+
 		return body.result.fulfillment;
 	}
 
 	// If not intentId is returned, this is a unhandled DialogFlow intent
 	// So make another event request to inform user (ai_unhandled)
-	return eventRequest('ai_unhandled', session);
+	return (await eventRequest('ai_unhandled', session));
 }
 
 /**
@@ -206,12 +205,11 @@ async function onRequestComplete(body, session) {
 	// If this response is already fullfilld by webhook, do not call action locally but just resolve
 	if (body.result.metadata.webhookUsed === 'true' && body.status.errorType !== 'partial_content') {
 		delete body.result.fulfillment.messages;
-		fulfillment = fulfillmentSanitizer(body.result.fulfillment);
-		return fulfillment;
+		return fulfillmentSanitizer(body.result.fulfillment);
 	}
 
 	// Othwerwise, call the action locally
-	console.debug(TAG, 'webhook not used or failed, solving locally');
+	console.warn(TAG, 'webhook not used or failed, solving locally');
 	fulfillment = await bodyParser(body, session);
 	return fulfillment;
 }
@@ -232,7 +230,7 @@ function getRequestArgs(session) {
  * @param {String} text Sentence
  * @param {Object} session Session
  */
-function textRequest(text, session) {
+async function textRequest(text, session) {
 	return new Promise(async (resolve, reject) => {
 		console.info(TAG, 'text request:', text);
 
@@ -242,7 +240,8 @@ function textRequest(text, session) {
 		// Instantiate the Dialogflow request
 		const request = client.textRequest(text, getRequestArgs(session));
 		request.on('response', async (body) => {
-			resolve(await onRequestComplete(body, session));
+			let r = await onRequestComplete(body, session);
+			resolve(r);
 		});
 		request.on('error', reject);
 		request.end();
@@ -254,7 +253,7 @@ function textRequest(text, session) {
  * @param {String} event Event name
  * @param {Object} session Session
  */
-function eventRequest(event, session) {
+async function eventRequest(event, session) {
 	return new Promise(async (resolve, reject) => {
 		console.info(TAG, 'event request:', event);
 
@@ -263,7 +262,8 @@ function eventRequest(event, session) {
 		// Instantiate the Dialogflow request
 		const request = client.eventRequest(event, getRequestArgs(session));
 		request.on('response', async (body) => {
-			resolve(await onRequestComplete(body, session));
+			let r = await onRequestComplete(body, session);
+			resolve(r);
 		});
 		request.on('error', reject);
 		request.end();

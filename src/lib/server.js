@@ -20,7 +20,7 @@ app.set('title', __package.name);
 
 // Configure view engine
 app.set('views', __basedir + '/server/web/views');
-app.engine('hbs', require('express-handlebars')({ 
+app.engine('hbs', require('express-handlebars')({
 	defaultLayout: 'main',
 	extname: '.hbs',
 	layoutsDir: __basedir + '/server/web/views/layouts',
@@ -41,7 +41,9 @@ exports.routerListeners = express.Router();
 // API Router
 
 exports.routerApi.use(bodyParser.json());
-exports.routerApi.use(bodyParser.urlencoded({ extended: true }));
+exports.routerApi.use(bodyParser.urlencoded({
+	extended: true
+}));
 
 exports.routerApi.get('/', (req, res) => {
 	res.json({
@@ -53,7 +55,9 @@ exports.routerApi.get('/', (req, res) => {
 // Listeners
 
 exports.routerListeners.use(bodyParser.json());
-exports.routerListeners.use(bodyParser.urlencoded({ extended: true }));
+exports.routerListeners.use(bodyParser.urlencoded({
+	extended: true
+}));
 
 // public
 app.use(express.static(__basedir + '/server/public'));
@@ -71,8 +75,11 @@ app.use('/listeners', exports.routerListeners);
 exports.io = io;
 exports.app = app;
 
-exports.start = function() {
-	server.listen({ port: _config.port, server: '0.0.0.0' }, () => {
-		console.info(`HTTP Server has started on port ${_config.port}`);
+exports.start = function () {
+	server.listen({
+		port: _config.port,
+		server: '0.0.0.0'
+	}, () => {
+		console.info(`HTTP Server has started: http://0.0.0.0:${_config.port}`);
 	});
 };

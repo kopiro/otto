@@ -52,7 +52,12 @@ exports.handle = async function ({
 	session = session || IOManager.session;
 	let driverStr = session.io_driver;
 
-	console.info(TAG, 'handle', 'SID = ' + session._id);
+	console.info(TAG, 'handle', {
+		session,
+		params,
+		fulfillment,
+		body
+	});
 
 	// If this driver is not up & running for this configuration,
 	// the item could be handled by another platform that has that driver configured,
@@ -101,12 +106,12 @@ exports.handle = async function ({
 			// Interrogate AI to get fulfillment by eventRequest
 			fulfillment = await AI.eventRequest(params.event, session);
 		} else {
-			console.warn("Neither text, event in params is not null");
+			console.warn('Neither text, event in params is not null');
 		}
 	}
 
 	if (fulfillment == null) {
-		console.error("Do not output to driver because fulfillment is null");
+		console.warn('Do not output to driver because fulfillment is null - this could be intentional');
 		return;
 	}
 
@@ -145,6 +150,10 @@ exports.handle = async function ({
  * @param {Object} session Session object
  */
 exports.output = function (fulfillment, session) {
+	console.info(TAG, 'direct output', {
+		fulfillment,
+		session
+	});
 	return exports.handle({
 		session: session,
 		fulfillment: fulfillment
@@ -174,8 +183,10 @@ function configureDriver(driverStr) {
 
 	const driver = enabledDrivers[driverStr];
 
-	// Input --> Handle
+	// Link Driver.Input to IOManager.Handle --> Driver.Output
 	driver.emitter.on('input', async (e) => {
+		console.info(TAG, `received input from driver <${driverStr}>`);
+
 		try {
 			// If input has the error key, throw again to handle in the catch
 			if (e.error) throw e.error;
@@ -237,8 +248,13 @@ function loadDrivers() {
 	for (let driverStr of driversToLoad) {
 		let driver = exports.getDriver(driverStr);
 
-		if (config.serverMode == true && driver.config.noServerMode == true) {
+		if (config.serverMode == true && driver.config.onlyClientMode == true) {
 			console.error(TAG, 'unable to load <' + driverStr + '> because this IO is not compatible with server mode');
+			continue;
+		}
+
+		if (config.serverMode == false && driver.config.onlyServerMode == true) {
+			console.error(TAG, 'unable to load <' + driverStr + '> because this IO is not compatible with client mode');
 			continue;
 		}
 

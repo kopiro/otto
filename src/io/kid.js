@@ -3,7 +3,7 @@ const TAG = 'IO.Kid';
 // Header
 exports.config = {
 	id: 'kid',
-	noServerMode: false
+	onlyClientMode: true
 };
 
 const _config = config.kid;

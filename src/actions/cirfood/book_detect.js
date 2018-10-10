@@ -6,17 +6,17 @@ const CirFoodMem = {};
 const _ = require('underscore');
 const stringSimilarity = require('string-similarity');
 
-module.exports = async function({ sessionId, result }, session) {
-	let { parameters: p, fulfillment } = result;
+module.exports = async function ({
+	sessionId,
+	result
+}, session) {
+	let {
+		parameters: p,
+		fulfillment
+	} = result;
 
 	if (session.settings.cirfood == null) {
-		IOManager.handle({
-			session: session,
-			params: {
-				event: 'cirfood_configure'
-			}
-		});
-		return;
+		return await AI.eventRequest('cirfood_configure', session);
 	}
 
 	let cirfood = {};
@@ -24,7 +24,7 @@ module.exports = async function({ sessionId, result }, session) {
 	cirfood.client = new CirFood(session.settings.cirfood.username, session.settings.cirfood.password);
 	cirfood.date = p.date;
 
-	await cirfood.client.startBooking(new Date(cirfood.date));		
+	await cirfood.client.startBooking(new Date(cirfood.date));
 
 	const courses = cirfood.client.booking.courses;
 	const past_bookings = session.settings.cirfood_bookings;
@@ -39,9 +39,9 @@ module.exports = async function({ sessionId, result }, session) {
 			}
 		}
 	}
-	
+
 	const detected_courses = courses.map(course => {
-		return course.data.sort((a,b) => (b.score - a.score))[ 0 ];
+		return course.data.sort((a, b) => (b.score - a.score))[0];
 	});
 
 	try {
@@ -62,9 +62,9 @@ module.exports = async function({ sessionId, result }, session) {
 	session.save();
 
 	const speech = fulfillment.speech
-	.replace('$_date', p.date)
-	.replace('$_courses', detected_courses.map(e => e.text).join(", "));
-	
+		.replace('$_date', p.date)
+		.replace('$_courses', detected_courses.map(e => e.text).join(", "));
+
 	return {
 		speech: speech
 	};

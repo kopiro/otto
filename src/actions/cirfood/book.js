@@ -6,17 +6,17 @@ const CirFoodMem = {};
 const _ = require('underscore');
 const stringSimilarity = require('string-similarity');
 
-module.exports = async function({ sessionId, result }, session) {
-	let { parameters: p, fulfillment } = result;
+module.exports = async function ({
+	sessionId,
+	result
+}, session) {
+	let {
+		parameters: p,
+		fulfillment
+	} = result;
 
 	if (session.settings.cirfood == null) {
-		IOManager.handle({
-			session: session,
-			params: {
-				event: 'cirfood_configure'
-			}
-		});
-		return;
+		return await AI.eventRequest('cirfood_configure', session);
 	}
 
 	const context_response = _.findWhere(result.contexts, {
@@ -31,7 +31,7 @@ module.exports = async function({ sessionId, result }, session) {
 		cirfood.state = -1;
 		cirfood.booking = [];
 
-		await cirfood.client.startBooking(new Date(cirfood.date));		
+		await cirfood.client.startBooking(new Date(cirfood.date));
 
 		// Exit from this intent
 		// bacause we don't have enough data in this intent
@@ -72,8 +72,8 @@ module.exports = async function({ sessionId, result }, session) {
 	const courses = cirfood.client.booking.courses[cirfood.state].data;
 
 	if (do_course_parsing) {
-		selected_course = courses.find(e => { 
-			return e.hid === result.resolvedQuery; 
+		selected_course = courses.find(e => {
+			return e.hid === result.resolvedQuery;
 		});
 
 		// If we didn't found a course by ID, use levenshtein
@@ -86,7 +86,7 @@ module.exports = async function({ sessionId, result }, session) {
 		}
 
 		if (selected_course != null) {
-			
+
 			try {
 				await cirfood.client.addCourseToCurrentBooking(selected_course.id);
 			} catch (err) {
@@ -110,13 +110,13 @@ module.exports = async function({ sessionId, result }, session) {
 			speech = fulfillment.payload.speechs.available_courses_step_done;
 			speech = speech.replace('$_course', selected_course.text);
 		} else {
-			speech = fulfillment.payload.speechs[ again ? "available_courses_again" : "available_courses" ];
+			speech = fulfillment.payload.speechs[again ? "available_courses_again" : "available_courses"];
 		}
 
 		speech = speech
-		.replace('$_state', (1 + cirfood.state))
-		.replace('$_date', cirfood.date);
-		
+			.replace('$_state', (1 + cirfood.state))
+			.replace('$_date', cirfood.date);
+
 		speech += "\n" + cirfood.client.booking.courses[cirfood.state].data.map(e => (e.hid + '. ' + e.text)).join("\n");
 
 		return {
@@ -125,9 +125,10 @@ module.exports = async function({ sessionId, result }, session) {
 				forceText: true,
 				replies: cirfood.client.booking.courses[cirfood.state].data.map(e => e.hid)
 			},
-			contextOut: [
-			{ name: "cirfood_book_response", lifespan: 1 }
-			]
+			contextOut: [{
+				name: "cirfood_book_response",
+				lifespan: 1
+			}]
 		};
 	}
 
@@ -138,14 +139,14 @@ module.exports = async function({ sessionId, result }, session) {
 		console.error(exports.id, err);
 		return fulfillment.payload.error;
 	}
-	
+
 	session.settings.cirfood_bookings = session.settings.cirfood_bookings || {};
 	session.settings.cirfood_bookings[cirfood.date] = cirfood.booking;
 	session.markModified('settings');
 	session.save();
 
 	delete CirFoodMem[session.id];
-	
+
 	return {
 		speech: fulfillment.payload.speechs.done
 	};

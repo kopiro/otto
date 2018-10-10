@@ -92,7 +92,7 @@ exports.startInput = function () {
 	started = true;
 
 	// We could attach the webhook to the Router API or via polling
-	if (_config.useRouter) {
+	if (_config.useRouter && config.serverMode == true) {
 		bot.setWebHook(config.server.domain + '/io/telegram/bot' + _config.token);
 		Server.routerIO.use('/telegram', require('body-parser').json(), (req, res) => {
 			bot.processUpdate(req.body);

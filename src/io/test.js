@@ -7,11 +7,11 @@ const _ = require('underscore');
 const fs = require('fs');
 const readline = require('readline');
 
-const emitter = exports.emitter = new (require('events').EventEmitter)();
+const emitter = exports.emitter = new(require('events').EventEmitter)();
 
 const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
+	input: process.stdin,
+	output: process.stdout
 });
 
 let initial_strings = [];
@@ -26,7 +26,7 @@ async function registerGlobalSession() {
 	});
 }
 
-exports.startInput = async function() {
+exports.startInput = async function () {
 	if (IOManager.session == null) {
 		await registerGlobalSession();
 	}
@@ -34,10 +34,12 @@ exports.startInput = async function() {
 	let msg = initial_strings.shift();
 
 	if (!_.isEmpty(msg)) {
-		for (let i = 0; i < 50; i++) process.stdout.write("+"); process.stdout.write("\n");
+		for (let i = 0; i < 50; i++) process.stdout.write("+");
+		process.stdout.write("\n");
 		process.stdout.write(msg);
 		process.stdout.write("\n");
-		for (let i = 0; i < 50; i++) process.stdout.write("+"); process.stdout.write("\n");
+		for (let i = 0; i < 50; i++) process.stdout.write("+");
+		process.stdout.write("\n");
 		return emitter.emit('input', {
 			session: IOManager.session,
 			params: {
@@ -45,7 +47,7 @@ exports.startInput = async function() {
 			}
 		});
 	}
-	
+
 	rl.question('> ', (answer) => {
 		emitter.emit('input', {
 			session: IOManager.session,
@@ -58,7 +60,7 @@ exports.startInput = async function() {
 	exports.startInput();
 };
 
-exports.output = async function(f) {
+exports.output = async function (f) {
 	if (IOManager.session == null) {
 		await registerGlobalSession();
 	}
@@ -69,9 +71,13 @@ exports.output = async function(f) {
 		fulfillment: f
 	});
 
-	for (let i = 0; i < 50; i++) process.stdout.write("="); process.stdout.write("\n");
-	console.dir(f, { depth: 10 });
-	for (let i = 0; i < 50; i++) process.stdout.write("="); process.stdout.write("\n");
+	for (let i = 0; i < 50; i++) process.stdout.write("=");
+	process.stdout.write("\n");
+	console.dir(f, {
+		depth: 10
+	});
+	for (let i = 0; i < 50; i++) process.stdout.write("=");
+	process.stdout.write("\n");
 
 	setTimeout(() => {
 		exports.startInput();

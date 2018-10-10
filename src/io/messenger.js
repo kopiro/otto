@@ -1,6 +1,7 @@
 const TAG = 'IO.Messenger';
 exports.config = {
-	id: 'messenger'
+	id: 'messenger',
+	onlyServerMode: true
 };
 
 const _config = config.messenger;
@@ -49,8 +50,12 @@ exports.startInput = function () {
 	started = true;
 
 	// Attach to the server
-	Server.routerIO.use('/messenger', bot.middleware());
-	console.info(TAG, 'started');
+	if (config.serverMode == true) {
+		Server.routerIO.use('/messenger', bot.middleware());
+		console.info(TAG, 'started');
+	} else {
+		console.error(TAG, 'unable to start in client mode; enable serverMode in config');
+	}
 };
 
 /**
