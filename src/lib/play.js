@@ -30,9 +30,17 @@ exports.playURI = async function (uri, addArgs = [], program = 'play') {
 		const proc = spawn(program, [localUri].concat(addArgs));
 		processes[proc.pid] = true;
 
+		let stderr = '';
+		proc.stderr.on('data', (buf) => {
+			stderr += buf;
+		});
+
 		proc.on('close', (err) => {
 			delete processes[proc.pid];
-			if (err) return reject(err);
+			if (err) {
+				return reject(stderr);
+			}
+
 			resolve(localUri);
 		});
 	});

@@ -13,6 +13,7 @@ exports.spawn = function (program, args) {
 		spawned.stdout.on('data', (buf) => {
 			stdout += buf;
 		});
+
 		spawned.stderr.on('data', (buf) => {
 			stderr += buf;
 		});

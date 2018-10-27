@@ -7,6 +7,7 @@ const enabledDrivers = {};
 const enabledAccesories = {};
 const enabledListeners = {};
 const queueProcessing = {};
+const emitter = exports.emitter = new(require('events').EventEmitter)();
 
 /**
  * Define constants used when forwarding output to an accessory
@@ -418,8 +419,11 @@ exports.registerSession = async function ({
  * @param {Object} session 
  */
 exports.updateGlobalSession = function (session) {
+	if (exports.session != null) return;
+
 	console.info(TAG, 'updating global session model');
 	exports.session = session;
+	emitter.emit('session_ready');
 };
 
 /**

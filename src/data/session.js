@@ -34,7 +34,8 @@ Session.methods.saveServerSettings = async function (data) {
 	}
 	s.data = _.extend({}, s.data, data);
 	s.markModified('data');
-	return s.save();
+	s.save();
+	return;
 };
 
 /**
@@ -48,22 +49,24 @@ Session.methods.getIODriver = function () {
  * Save new data in pipe in DB
  * @param {Object} data 
  */
-Session.methods.savePipe = function (data) {
+Session.methods.savePipe = async function (data) {
 	this.pipe = _.extend(this.pipe || {}, data);
 	this.pipe.updated_at = Date.now();
 	this.markModified('pipe');
-	return this.save();
+	await this.save();
+	return;
 };
 
 /**
  * Save new settings in DB
  * @param {Object} data 
  */
-Session.methods.saveSettings = function (data) {
+Session.methods.saveSettings = async function (data) {
 	this.settings = _.extend(this.settings || {}, data);
 	this.settings.updated_at = Date.now();
 	this.markModified('settings');
-	return this.save();
+	await this.save();
+	return;
 };
 
 /**
