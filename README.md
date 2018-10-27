@@ -145,10 +145,15 @@ Dependencies:
 
 For every request, you must provide a unique session ID via query string.
 
+Query params:
+
+- `sessionId`: required
+- `outputType`: optional, define an additional output type (example: `voice`)
+
 ##### Send a text input
 
 ```sh
-curl http://${HOST}/io/rest?sessionId=${SESSION_ID} -X POST --data "text=Hello"
+curl "http://${HOST}/io/rest?sessionId=${SESSION_ID}" -X POST --data "text=Hello"
 ```
 
 ```json
@@ -163,7 +168,7 @@ curl http://${HOST}/io/rest?sessionId=${SESSION_ID} -X POST --data "text=Hello"
 You can send an audio file that will be recognized on-the-fly as a text.
 
 ```sh
-curl http://${HOST}/io/rest?sessionId=${SESSION_ID} -X POST -F "audio=@${AUDIO_FILE}"
+curl "http://${HOST}/io/rest?sessionId=${SESSION_ID}" -X POST -F "audio=@${AUDIO_FILE}"
 ```
 
 ```json
@@ -178,7 +183,7 @@ curl http://${HOST}/io/rest?sessionId=${SESSION_ID} -X POST -F "audio=@${AUDIO_F
 Append `outputType=voice` to the query string to request a voice file under the `voice` key.
 
 ```sh
-curl http://${HOST}/io/rest?sessionId=${SESSION_ID}&outputType=voice -X POST --data "text=Hello"
+curl "http://${HOST}/io/rest?sessionId=${SESSION_ID}&outputType=voice" -X POST --data "text=Hello"
 ```
 
 ```json

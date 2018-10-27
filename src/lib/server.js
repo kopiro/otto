@@ -18,27 +18,17 @@ const io = socketio(server);
 
 app.set('title', __package.name);
 
-// Configure view engine
-app.set('views', __basedir + '/server/web/views');
-app.engine('hbs', require('express-handlebars')({
-	defaultLayout: 'main',
-	extname: '.hbs',
-	layoutsDir: __basedir + '/server/web/views/layouts',
-	partialsDir: __basedir + '/server/web/views/partials'
-}));
-app.set('view engine', 'hbs');
+exports.getAbsoluteURIByRelativeURI = function (link) {
+	return _config.domain + link;
+};
+
 
 // Routers
 
 exports.routerIO = express.Router();
 exports.routerApi = express.Router();
-exports.routerAdmin = express.Router();
 exports.routerActions = express.Router();
 exports.routerListeners = express.Router();
-
-exports.getAbsoluteURIByRelativeURI = function (link) {
-	return _config.domain + link;
-};
 
 // Configure routers
 
@@ -63,13 +53,15 @@ exports.routerListeners.use(bodyParser.urlencoded({
 	extended: true
 }));
 
+// web-client public
+app.use(express.static(__basedir + '/web-client/build'));
+
 // public
-app.use(express.static(__basedir + '/server/public'));
+app.use('/tmp', express.static(__tmpdir));
 
 // Handle all routers
 app.use('/io', exports.routerIO);
 app.use('/api', exports.routerApi);
-app.use('/admin', exports.routerAdmin);
 app.use('/actions', exports.routerActions);
 app.use('/listeners', exports.routerListeners);
 

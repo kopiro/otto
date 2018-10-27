@@ -88,7 +88,7 @@ async function handleRequest(req, res) {
 			}
 		});
 
-	} else if (req.files.audio) {
+	} else if (req.files != null && req.files.audio) {
 		emitter.emit('input', {
 			session: session,
 			params: {
@@ -158,7 +158,7 @@ exports.output = async function (f, session) {
 		const language = f.data.language || session.getTranslateTo();
 
 		if (speech != null) {
-			const output_file = path.join(__publictmpdir, uuid() + '.mp3');
+			const output_file = path.join(__tmpdir, uuid() + '.mp3');
 			await Play.playVoiceToFile(await TextToSpeech.getAudioFile(speech, {
 				language: language
 			}), output_file);
