@@ -46,6 +46,7 @@
 		"cleanText": true,
 		"AI_NAME_REGEX": true,
 		"apprequire": true,
+		"requireInterface": true,
 		"mongoose": true,
 		"Data": true,
 		"AI": true,

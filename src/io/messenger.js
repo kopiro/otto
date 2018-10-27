@@ -14,10 +14,7 @@ const emitter = exports.emitter = new(require('events').EventEmitter)();
 
 const Server = apprequire('server');
 const MessengerBot = require('messenger-bot');
-const SpeechRecognizer = apprequire('gcsr');
-const TextToSpeech = apprequire('polly');
 const Play = apprequire('play');
-const Proc = apprequire('proc');
 
 /**
  * Messenger bot Client

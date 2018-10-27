@@ -14,7 +14,7 @@ const emitter = exports.emitter = new(require('events').EventEmitter)();
 const Server = apprequire('server');
 const TelegramBot = require('node-telegram-bot-api');
 const SpeechRecognizer = apprequire('gcsr');
-const TextToSpeech = apprequire('polly');
+const TTS = requireInterface('tts');
 const Play = apprequire('play');
 const Proc = apprequire('proc');
 
@@ -77,7 +77,7 @@ async function sendVoiceMessage(chat_id, text, language, bot_opt = {}) {
 	await bot.sendChatAction(chat_id, 'record_audio');
 
 	for (let sentence of sentences) {
-		const audio_file = await TextToSpeech.getAudioFile(sentence, {
+		const audio_file = await TTS.getAudioFile(sentence, {
 			language: language
 		});
 		const voice_file = await Play.playVoiceToTempFile(audio_file);

@@ -1,16 +1,18 @@
-const TAG = 'Polly';
+const TAG = 'GCTTS';
 
 const _ = require('underscore');
 const md5 = require('md5');
-const aws = apprequire('aws');
 const fs = require('fs');
 
-const _config = config.polly;
+const _config = config.gctts;
 const CACHE_REGISTRY_FILE = __cachedir + '/' + TAG + '.json';
 
-const client = new aws.Polly({
-	signatureVersion: 'v4',
-	region: 'eu-west-1'
+// Creates a client
+const GCTTS = require('@google-cloud/text-to-speech');
+const client = new GCTTS.TextToSpeechClient({
+	options: {
+		keyFilename: __basedir + '/keys/gcloud.json'
+	}
 });
 
 let cache = {
@@ -81,38 +83,13 @@ function getCacheForAudio(text, opt) {
  * Retrieve the voice title based on language and gender
  * @param {*} opt 
  */
-function getVoice(opt) {
-	return new Promise((resolve, reject) => {
-		const locale = getLocaleFromLanguageCode(opt.language);
-		let voice = getCacheForVoice(opt);
-		if (voice) {
-			return resolve(voice);
-		}
-
-		// Call the API to retrieve all voices in that locale
-		client.describeVoices({
-			LanguageCode: locale
-		}, async (err, data) => {
-			if (err != null) {
-				return reject(err);
-			}
-
-			// Filter voice by selected gender
-			voice = data.Voices.find(v => (v.Gender == opt.gender));
-
-			if (voice == null) {
-				console.debug(TAG, `falling back to language ${config.language} instead of ${opt.language}`);
-				voice = await getVoice(_.extend({}, opt, {
-					language: config.language
-				}));
-				return resolve(voice);
-			}
-
-			// Save for later uses
-			setCacheForVoice(opt, voice);
-			return resolve(voice);
-		});
-	});
+async function getVoice(opt) {
+	const locale = getLocaleFromLanguageCode(opt.language);
+	return {
+		languageCode: locale,
+		name: locale + '-Wavenet-A',
+		ssmlGender: opt.gender
+	};
 }
 
 /**
@@ -137,21 +114,24 @@ exports.getAudioFile = function (text, opt = {}) {
 		let voice = await getVoice(opt);
 		const isSSML = /<speak>/.test(text);
 
-		// TODO: split by text length so that Polly can process
+		const input = {};
+		if (isSSML) input.ssml = text;
+		else input.text = text;
 
 		// Call the API
 		client.synthesizeSpeech({
-			VoiceId: voice.Id,
-			Text: text,
-			TextType: isSSML ? 'ssml' : 'text',
-			OutputFormat: 'mp3',
+			input: input,
+			voice: voice,
+			audioConfig: {
+				audioEncoding: 'MP3'
+			}
 		}, (err, data) => {
 			if (err) {
 				return reject(err);
 			}
 
 			file = __cachedir + '/' + TAG + '_' + uuid() + '.mp3';
-			fs.writeFile(file, data.AudioStream, (err) => {
+			fs.writeFile(file, data.audioContent, 'binary', (err) => {
 				if (err) {
 					return reject(err);
 				}

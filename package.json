@@ -25,6 +25,7 @@
 	"dependencies": {
 		"@google-cloud/speech": "^0.10.3",
 		"@google-cloud/storage": "^1.1.0",
+		"@google-cloud/text-to-speech": "^0.3.0",
 		"@google-cloud/translate": "^1.0.0",
 		"@google-cloud/vision": "^0.12.0",
 		"@google/maps": "^0.4.5",
