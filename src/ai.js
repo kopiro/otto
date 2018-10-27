@@ -98,8 +98,15 @@ async function fulfillmentFromBody(body, session) {
 
 		try {
 			console.info(TAG, `calling action ${body.result.action}`);
+
 			// Actual call to the Action
-			fulfillment = await Actions.list[body.result.action]()(body, session);
+			const foo = Actions.list[body.result.action];
+			if (foo == null) {
+				throw new Error('Invalid action name');
+			}
+
+			fulfillment = await foo()(body, session);
+
 		} catch (err) {
 			if (err.fulfillment) {
 				// Here is a bit of an hack to intercept a fulfillment that is into an error,
@@ -302,13 +309,17 @@ function attachToServer() {
 		}
 
 		try {
-			let fulfillment = await bodyParser(body, session);
+
+			const fulfillment = await bodyParser(body, session);
 			fulfillment.data.remoteTransform = true;
+
 			console.info(TAG, 'webhook fulfillment');
 			console.dir(fulfillment, {
 				depth: 3
 			});
+
 			res.json(fulfillment);
+
 		} catch (ex) {
 			res.json({
 				data: {

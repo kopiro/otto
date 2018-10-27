@@ -2,8 +2,7 @@ const TAG = 'IO.Kid';
 
 // Header
 exports.config = {
-	id: 'kid',
-	onlyClientMode: true
+	id: 'kid'
 };
 
 const _config = config.kid;
@@ -197,11 +196,13 @@ function createRecognizeStream(language = IOManager.session.getTranslateFrom()) 
 		// If erred, emit an error and exit
 		if (err) {
 			if (err.unrecognized) {
-				return emitter.emit('input', {
-					params: {
-						event: 'io_speechrecognizer_unrecognized'
-					}
-				});
+				return;
+				// Do not re-enable, it causes continue loops
+				// return emitter.emit('input', {
+				// 	params: {
+				// 		event: 'io_speechrecognizer_unrecognized'
+				// 	}
+				// });
 			}
 			return emitter.emit('input', {
 				error: err
@@ -454,8 +455,9 @@ async function processOutputQueue() {
 
 	// Process a speech
 	try {
-		if (f.speech) {
-			await sendMessage(f.speech, {
+		const speech = f.speech || f.data.speech;
+		if (speech) {
+			await sendMessage(speech, {
 				language: f.data.language
 			});
 		}
@@ -569,16 +571,16 @@ exports.startInput = async function () {
 
 	// Emit the initial event to inform 
 	// the user that the bot is ready
-	emitter.emit('input', {
-		params: {
-			event: {
-				name: 'welcome',
-				data: {
-					name: session.alias || config.uid
-				}
-			}
-		}
-	});
+	// emitter.emit('input', {
+	// 	params: {
+	// 		event: {
+	// 			name: 'welcome',
+	// 			data: {
+	// 				name: session.alias || config.uid
+	// 			}
+	// 		}
+	// 	}
+	// });
 
 	// Start all timers
 	await registerHotwordModels();
