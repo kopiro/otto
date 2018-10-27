@@ -50,7 +50,7 @@ module.exports = async function ({
 
 		await IOManager.output({
 			speech: question.text
-		});
+		}, session);
 	}
 
 	return false;
