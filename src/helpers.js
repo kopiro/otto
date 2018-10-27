@@ -34,6 +34,14 @@ global.apprequire = global.requireLibrary = function (e) {
 };
 
 /**
+ * Require an interface
+ * @param {String} e 
+ */
+global.requireInterface = function (e) {
+	return require(__basedir + '/src/interfaces/' + e);
+};
+
+/**
  * Require a module from our helpers library
  * @param {String} e 
  */

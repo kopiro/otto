@@ -12,7 +12,7 @@ const emitter = exports.emitter = new(require('events').EventEmitter)();
 
 const Rec = apprequire('rec');
 const SpeechRecognizer = apprequire('gcsr');
-const TextToSpeech = apprequire('polly');
+const TTS = requireInterface('tts');
 const Play = apprequire('play');
 const {
 	Detector
@@ -115,7 +115,7 @@ async function sendMessage(text, {
 
 	for (let sentence of sentences) {
 		if (currentSendMessageKey === key) {
-			let audioFile = await TextToSpeech.getAudioFile(sentence, {
+			let audioFile = await TTS.getAudioFile(sentence, {
 				language: language
 			});
 			await Play.playVoice(audioFile);

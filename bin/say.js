@@ -4,14 +4,14 @@ require('../boot');
 
 const TAG = 'Say';
 
-const TextToSpeech = apprequire('polly');
+const TTS = requireInterface('tts');
 const Play = apprequire('play');
 
 async function sendMessage(text, language = 'it') {
 	const sentences = mimicHumanMessage(text);
 
 	for (let sentence of sentences) {
-		let polly_file = await TextToSpeech.getAudioFile(sentence, {
+		let polly_file = await TTS.getAudioFile(sentence, {
 			language: language
 		});
 		await Play.playVoice(polly_file);

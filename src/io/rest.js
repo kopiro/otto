@@ -15,7 +15,7 @@ const path = require('path');
 const Play = apprequire('play');
 const Proc = apprequire('proc');
 const SpeechRecognizer = apprequire('gcsr');
-const TextToSpeech = apprequire('polly');
+const TTS = requireInterface('tts');
 const Server = apprequire('server');
 
 /**
@@ -159,7 +159,7 @@ exports.output = async function (f, session) {
 
 		if (speech != null) {
 			const output_file = path.join(__tmpdir, uuid() + '.mp3');
-			await Play.playVoiceToFile(await TextToSpeech.getAudioFile(speech, {
+			await Play.playVoiceToFile(await TTS.getAudioFile(speech, {
 				language: language
 			}), output_file);
 			f.voice = Server.getAbsoluteURIByRelativeURI('/tmp/' + path.basename(output_file));

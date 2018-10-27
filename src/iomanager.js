@@ -50,6 +50,7 @@ exports.handle = async function ({
 	fulfillment = null,
 	body = null
 }) {
+	session = session || IOManager.session;
 	let driverStr = session.io_driver;
 
 	console.info(TAG, 'handle', {

@@ -3,12 +3,15 @@ const TAG = 'HotWord';
 const request = require('request');
 const fs = require('fs');
 
-const TextToSpeech = apprequire('polly');
+const TTS = requireInterface('tts');
 const Play = apprequire('play');
 const Rec = apprequire('rec');
 const SpeechRecognizer = apprequire('gcsr');
 const Messages = apprequire('messages');
-const { Detector, Models } = require('snowboy');
+const {
+	Detector,
+	Models
+} = require('snowboy');
 
 const PMDL_DIR = __etcdir + '/hotwords-pmdl/';
 
@@ -16,21 +19,21 @@ let gender_id = null;
 
 const _config = config.hotword;
 
-async function getModels(forceTraining = false) {	
-	return new Promise(async(resolve, reject) => {
+async function getModels(forceTraining = false) {
+	return new Promise(async (resolve, reject) => {
 		let directories = fs.readdirSync(PMDL_DIR);
 		directories = directories.filter((e) => fs.statSync(PMDL_DIR + e).isDirectory());
 
 		let pmdls = {};
 		let hotwordModels = new Models();
-	
+
 		directories.forEach((dir) => {
 			dir = String(dir);
 			pmdls[dir] = [];
 
 			let files = fs.readdirSync(PMDL_DIR + dir);
 			files = files.filter((file) => /\.pmdl$/.test(file));
-			
+
 			const sens = _config.sensitivity[dir];
 			console.debug(TAG, 'added ' + files.length + ' pdml files (' + dir + ') with sensitivity = ' + sens);
 
@@ -69,15 +72,15 @@ async function getModels(forceTraining = false) {
 }
 
 async function sendMessage(text) {
-	return Play.voiceToSpeaker(await TextToSpeech.getAudioFile(text));
+	return Play.voiceToSpeaker(await TTS.getAudioFile(text));
 }
 
 function listenForHotwordTraining() {
 	return new Promise((resolve) => {
 		const wav_file = __etcdir + '/hotwords-wavs/' + uuid() + '.wav';
 		const wav_stream = fs.createWriteStream(wav_file);
-		
-		Rec.start({ 
+
+		Rec.start({
 			time: 3
 		});
 		Rec.getStream().pipe(wav_stream);
@@ -100,37 +103,39 @@ async function sendWavFiles(opt) {
 		console.info(TAG, 'sendWav', opt);
 
 		request.post({
-			url: 'https://snowboy.kitt.ai/api/v1/train/',
-			method: 'POST',
-			headers: {
-				'content-type': 'application/json'
-			},
-			body: JSON.stringify({
-				token: config.snowboy.apiKey,
-				name: opt.hotwordSpeech,
-				language: config.language,
-				gender: opt.gender_id,
-				microphone: "mic",
-				voice_samples: opt.wav_files.map((wav_file) => {
-					return { wave: fs.readFileSync(wav_file).toString('base64') };
+				url: 'https://snowboy.kitt.ai/api/v1/train/',
+				method: 'POST',
+				headers: {
+					'content-type': 'application/json'
+				},
+				body: JSON.stringify({
+					token: config.snowboy.apiKey,
+					name: opt.hotwordSpeech,
+					language: config.language,
+					gender: opt.gender_id,
+					microphone: "mic",
+					voice_samples: opt.wav_files.map((wav_file) => {
+						return {
+							wave: fs.readFileSync(wav_file).toString('base64')
+						};
+					})
 				})
+			}, (err, response, body) => {
+				if (response.statusCode >= 400) {
+					console.error(TAG, body);
+				}
 			})
-		}, (err, response, body) => {
-			if (response.statusCode >= 400) {
-				console.error(TAG, body);
-			}
-		})
-		.on('response', async(response) => {
-			if (response.statusCode >= 400) {
-				await sendMessage(Messages.get('io_hotword_training_failed', opt.hotwordSpeech));
-				return reject();
-			}
+			.on('response', async (response) => {
+				if (response.statusCode >= 400) {
+					await sendMessage(Messages.get('io_hotword_training_failed', opt.hotwordSpeech));
+					return reject();
+				}
 
-			response.pipe(fs.createWriteStream(pmdl_file))
-			.on('close', () => {
-				resolve(pmdl_file);
+				response.pipe(fs.createWriteStream(pmdl_file))
+					.on('close', () => {
+						resolve(pmdl_file);
+					});
 			});
-		});
 	});
 }
 
