@@ -91,17 +91,25 @@ exports.handle = async function ({
 
 	// Get the driver object 
 	const driver = enabledDrivers[driverStr];
+	let fulfillment_input = null;
 
 	// Only one of those can be fulfilled, in this order
 	if (fulfillment) {
 		// Direct fulfillment
 		fulfillment = await AI.fulfillmentTransformer(fulfillment, session);
+		fulfillment_input = {
+			fulfillment: true
+		};
 	} else if (body) {
 		// Body resolution with action calling
 		fulfillment = await AI.fulfillmentFromBody(body, session);
+		fulfillment_input = {
+			body: body
+		};
 	} else if (params) {
 		if (params.text) {
 			// Interrogate AI to get fulfillment by textRequest
+			exports.writeLogForSession(params.text, session);
 			fulfillment = await AI.textRequest(params.text, session);
 		} else if (params.event) {
 			// Interrogate AI to get fulfillment by eventRequest
@@ -109,12 +117,18 @@ exports.handle = async function ({
 		} else {
 			console.warn('Neither text, event in params is not null');
 		}
+		fulfillment_input = {
+			params: params
+		};
 	}
 
 	if (fulfillment == null) {
 		console.warn('Do not output to driver because fulfillment is null - this could be intentional');
 		return;
 	}
+
+	// Add informations about input into output
+	fulfillment.input = fulfillment_input;
 
 	// Call the output
 	driver.output(fulfillment, session);
@@ -383,8 +397,7 @@ exports.registerSession = async function ({
 	sessionId,
 	io_driver,
 	io_data,
-	alias,
-	text
+	alias
 }) {
 	const io_id = config.uid + '/' + io_driver;
 	const sessionIdComposite = io_id + (sessionId == null ? '' : '/' + sessionId);
@@ -409,7 +422,6 @@ exports.registerSession = async function ({
 		}).save());
 	}
 
-	if (text != null) exports.writeLogForSession(text, session);
 	if (sessionId == null) exports.updateGlobalSession(session);
 	return session;
 };

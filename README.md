@@ -83,7 +83,7 @@ There are 4 I/O drivers available at the moment:
 - **Kid**: handle input using microphone and speech recognizer and output using a TTS via a speaker
 - **Telegram**: handle I/O for a Telegram bot
 - **Messenger**: handle I/O for a Facebook Messenger bot
-- **Rest**: handle I/O via HTTP REST API (_work in progress_)
+- **Web**: handle I/O via Socket.IO
 
 #### IO.Test
 
@@ -134,65 +134,21 @@ Dependencies:
 - **Google Cloud Speech Recognizer** - for the speech recognizer if the user send a voice message
 - **AWS Polly** - for the TTS if we want to send a voice
 
-#### IO.Rest
+#### IO.Web
 
-It provides a clean HTTP REST interface to interact with the bot under the `/io/rest` URI.
+It provides a clean Socket.IO interface to interact with the bot.
 
 Dependencies:
 
 - **Google Cloud Speech Recognizer** - for the speech recognizer
 - **AWS Polly** - for the TTS
 
-For every request, you must provide a unique session ID via query string.
+For every request, you must provide a unique session ID.
 
-Query params:
+Params:
 
 - `sessionId`: required
 - `outputType`: optional, define an additional output type (example: `voice`)
-
-##### Send a text input
-
-```sh
-curl "http://${HOST}/io/rest?sessionId=${SESSION_ID}" -X POST --data "text=Hello"
-```
-
-```json
-{
-  "speech": "...",
-  "data": {}
-}
-```
-
-##### Send an audio input
-
-You can send an audio file that will be recognized on-the-fly as a text.
-
-```sh
-curl "http://${HOST}/io/rest?sessionId=${SESSION_ID}" -X POST -F "audio=@${AUDIO_FILE}"
-```
-
-```json
-{
-  "speech": "...",
-  "data": {}
-}
-```
-
-##### Request a voice output
-
-Append `outputType=voice` to the query string to request a voice file under the `voice` key.
-
-```sh
-curl "http://${HOST}/io/rest?sessionId=${SESSION_ID}&outputType=voice" -X POST --data "text=Hello"
-```
-
-```json
-{
-  "speech": "...",
-  "data": {},
-  "voice": "http://${HOST}/tmp/0000-00000-00000.mp3"
-}
-```
 
 ## Listeners
 

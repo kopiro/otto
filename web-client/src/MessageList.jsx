@@ -4,9 +4,6 @@ import { ChatFeed, Message } from "react-chat-ui";
 import "./MessageList.css";
 
 export default class MessageList extends Component {
-  constructor(props) {
-    super(props);
-  }
   render() {
     return (
       <div className="message-list">

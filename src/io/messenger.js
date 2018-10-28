@@ -255,8 +255,7 @@ bot.on('message', (e) => {
 				profile: profile,
 				sender: e.sender
 			},
-			alias: profile.first_name + ' ' + profile.last_name,
-			text: e.message.text
+			alias: profile.first_name + ' ' + profile.last_name
 		});
 
 		const chat_id = session.io_data.sender.id;

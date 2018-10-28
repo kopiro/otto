@@ -1,0 +1,1 @@
+module.exports = apprequire('gcsr');

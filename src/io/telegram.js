@@ -13,7 +13,7 @@ const emitter = exports.emitter = new(require('events').EventEmitter)();
 
 const Server = apprequire('server');
 const TelegramBot = require('node-telegram-bot-api');
-const SpeechRecognizer = apprequire('gcsr');
+const SR = requireInterface('sr');
 const TTS = requireInterface('tts');
 const Play = apprequire('play');
 const Proc = apprequire('proc');
@@ -39,8 +39,8 @@ async function handleInputVoice(session, e) {
 		request(file_link)
 			.pipe(fs.createWriteStream(voice_file))
 			.on('close', async () => {
-				await Proc.spawn('opusdec', [voice_file, voice_file + '.wav', '--rate', SpeechRecognizer.SAMPLE_RATE]);
-				const text = await SpeechRecognizer.recognizeFile(voice_file + '.wav', {
+				await Proc.spawn('opusdec', [voice_file, voice_file + '.wav', '--rate', SR.SAMPLE_RATE]);
+				const text = await SR.recognizeFile(voice_file + '.wav', {
 					convertFile: false,
 					language: session.getTranslateFrom()
 				});
@@ -334,8 +334,7 @@ bot.on('message', async (e) => {
 		sessionId: sessionId,
 		io_driver: 'telegram',
 		io_data: e.chat,
-		alias: alias,
-		text: e.text
+		alias: alias
 	});
 
 	// Process a Text object
@@ -384,7 +383,7 @@ bot.on('message', async (e) => {
 				return emitter.emit('input', {
 					session: IOManager.session,
 					params: {
-						event: 'io_speechrecognizer_unrecognized'
+						event: 'io_SR_unrecognized'
 					}
 				});
 			}

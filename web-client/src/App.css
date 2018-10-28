@@ -1,3 +1,11 @@
-.App {
+.app {
 	text-align: center;
+}
+
+.logo {
+	width: 400px;
+	height: 200px;
+	margin: 0 auto;
+	background: url("/images/image.svg") center no-repeat;
+	background-size: 100%;
 }
