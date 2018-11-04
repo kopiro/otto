@@ -11,7 +11,7 @@ const md5 = require('md5');
 const emitter = exports.emitter = new(require('events').EventEmitter)();
 
 const Rec = apprequire('rec');
-const SpeechRecognizer = apprequire('gcsr');
+const SR = requireInterface('sr');
 const TTS = requireInterface('tts');
 const Play = apprequire('play');
 const {
@@ -188,7 +188,7 @@ function stopOutput() {
 function createRecognizeStream(language = IOManager.session.getTranslateFrom()) {
 	console.log(TAG, 'recognizing microphone stream');
 
-	recognizeStream = SpeechRecognizer.createRecognizeStream({
+	recognizeStream = SR.createRecognizeStream({
 		language: language
 	}, (err, text) => {
 		destroyRecognizeStream();
@@ -200,7 +200,7 @@ function createRecognizeStream(language = IOManager.session.getTranslateFrom()) 
 				// Do not re-enable, it causes continue loops
 				// return emitter.emit('input', {
 				// 	params: {
-				// 		event: 'io_speechrecognizer_unrecognized'
+				// 		event: 'io_SR_unrecognized'
 				// 	}
 				// });
 			}

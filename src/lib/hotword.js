@@ -6,7 +6,7 @@ const fs = require('fs');
 const TTS = requireInterface('tts');
 const Play = apprequire('play');
 const Rec = apprequire('rec');
-const SpeechRecognizer = apprequire('gcsr');
+const SR = requireInterface('sr');
 const Messages = apprequire('messages');
 const {
 	Detector,
@@ -17,7 +17,7 @@ const PMDL_DIR = __etcdir + '/hotwords-pmdl/';
 
 let gender_id = null;
 
-const _config = config.hotword;
+const _config = config.snowboy;
 
 async function getModels(forceTraining = false) {
 	return new Promise(async (resolve, reject) => {
@@ -91,7 +91,7 @@ function listenForHotwordTraining() {
 }
 
 async function recognizeFromMic() {
-	let text = await SpeechRecognizer.recognize(Rec.start());
+	let text = await SR.recognize(Rec.start());
 	Rec.stop();
 	return text;
 }

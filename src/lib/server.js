@@ -22,7 +22,6 @@ exports.getAbsoluteURIByRelativeURI = function (link) {
 	return _config.domain + link;
 };
 
-
 // Routers
 
 exports.routerIO = express.Router();

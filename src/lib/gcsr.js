@@ -7,6 +7,9 @@ const speech = require('@google-cloud/speech')({
 const _ = require('underscore');
 const fs = require('fs');
 const Proc = apprequire('proc');
+const {
+	promisify
+} = require("util");
 
 exports.SAMPLE_RATE = 16000;
 
@@ -88,20 +91,35 @@ exports.createRecognizeStream = function (opt, callback) {
  * Recognize a local audio file
  */
 exports.recognizeFile = async function (file, opt = {
-	convertFile: false
+	convertFile: false,
+	overrideFile: false
 }) {
 	if (opt.convertFile === true) {
+		let new_file = (opt.overrideFile) ? file : file + '.wav';
 		await Proc.spawn('ffmpeg', [
+			(opt.overrideFile ? '-y' : ''),
 			'-i', file,
 			'-acodec', 'pcm_s16le',
 			'-ar', exports.SAMPLE_RATE,
 			'-ac', '1',
-			file + '.wav'
+			new_file
 		]);
-		file = file + '.wav';
+		file = new_file;
 	}
 
 	return exports.recognizeStream(fs.createReadStream(file), opt);
+};
+
+/**
+ * Recognize a buffer
+ */
+exports.recognizeBuffer = async function (buffer, opt = {}) {
+	const tmp_file = __tmpdir + '/' + uuid() + '.wav';
+	await promisify(fs.writeFile)(tmp_file, buffer);
+	return exports.recognizeFile(tmp_file, Object.assign({
+		convertFile: true,
+		overrideFile: true
+	}, opt));
 };
 
 /**
