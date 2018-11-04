@@ -4,7 +4,7 @@ const _ = require('underscore');
 const md5 = require('md5');
 const fs = require('fs');
 
-const _config = config.gctts;
+const _config = config.gcloud.tts;
 const CACHE_REGISTRY_FILE = __cachedir + '/' + TAG + '.json';
 
 // Creates a client
@@ -88,7 +88,7 @@ async function getVoice(opt) {
 	return {
 		languageCode: locale,
 		name: locale + '-Wavenet-A',
-		ssmlGender: opt.gender
+		ssmlGender: opt.gender.toUpperCase()
 	};
 }
 

@@ -1,0 +1,94 @@
+{
+	"aiNameRegex": "",
+	"ioDrivers": [],
+	"ioAccessoriesMap": {},
+	"listeners": [],
+	"ioRedirectMap": {},
+	"scheduler": true,
+	"language": "en",
+	"raven": null,
+	"serverMode": false,
+	"play": {
+		"addArgs": []
+	},
+	"snowboy": {
+		"apiKey": null,
+		"sensitivity": {
+			"wake": 0.4,
+			"stop": 0.4
+		}
+	},
+	"aws": {
+		"polly": {
+			"gender": "Female"
+		}
+	},
+	"server": {
+		"domain": null,
+		"port": 8080
+	},
+	"mongo": {
+		"host": "db",
+		"port": 27017,
+		"database": "admin",
+		"user": "admin",
+		"password": null
+	},
+	"apiai": {
+		"token": null,
+		"actionTimeout": 10
+	},
+	"telegram": {
+		"token": null,
+		"options": {
+			"polling": true
+		}
+	},
+	"kid": {},
+	"messenger": {
+		"token": null,
+		"verify": null,
+		"appId": null,
+		"appSecret": null,
+		"port": null
+	},
+	"facebook": {
+		"appId": null,
+		"secret": null,
+		"pageId": null,
+		"accessToken": null
+	},
+	"gcloud": {
+		"cseId": null,
+		"apiKey": null,
+		"storage": {
+			"bucket": null
+		},
+		"tts": {
+			"gender": "Female"
+		}
+	},
+	"spotify": {
+		"clientId": null,
+		"clientSecret": null
+	},
+	"wolfram": {
+		"appId": null
+	},
+	"youtube": {
+		"apiKey": null
+	},
+	"musixmatch": {
+		"apiKey": null
+	},
+	"wunderground": {
+		"apiKey": null
+	},
+	"transmission": {
+		"host": null,
+		"port": null,
+		"username": null,
+		"password": null,
+		"ssl": false
+	}
+}

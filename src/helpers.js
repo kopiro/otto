@@ -87,8 +87,11 @@ global.mimicHumanMessage = function (text) {
  * @param {String} language 
  * @returns {String}
  */
-global.getLocaleFromLanguageCode = function (language) {
-	if (_.isEmpty(language)) return config.locale;
+global.getLocaleFromLanguageCode = function (language = null) {
+	if (language == null) {
+		return getLocaleFromLanguageCode(config.language);
+	}
+
 	switch (language) {
 		case 'de':
 			return 'de-DE';
@@ -122,8 +125,6 @@ global.getLocaleFromLanguageCode = function (language) {
 			return 'nb-NO';
 		case 'sv':
 			return 'sv-SE';
-		default:
-			return config.locale;
 	}
 };
 

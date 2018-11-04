@@ -17,7 +17,7 @@ const PMDL_DIR = __etcdir + '/hotwords-pmdl/';
 
 let gender_id = null;
 
-const _config = config.hotword;
+const _config = config.snowboy;
 
 async function getModels(forceTraining = false) {
 	return new Promise(async (resolve, reject) => {

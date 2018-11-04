@@ -323,6 +323,168 @@ The output payload of an action could have these attributes:
 | `spotify.artist`   | Spotify Artist object                                                                 |
 | `spotify.playlist` | Spotify Playlist object                                                               |
 
+### Configuration keys
+
+#### First level keys
+
+| Key              | Description                                      | Default value | Required | Type     |
+| ---------------- | ------------------------------------------------ | ------------- | -------- | -------- |
+| uid              | Name of current AI instance                      | null          | yes      | String   |
+| aiNameRegex      | Regex used to wakeup the AI in groups chats      |               | yes\*    | String   |
+| ioDrivers        | List of IO drivers to load                       | []            | yes\*    | String[] |
+| language         | The source language of the AI                    | en            | no       | String   |
+| ioAccessoriesMap | Map with driver: list accessories                | {}            | no       | String{} |
+| listeners        | List of listeners to load                        | []            | no       | String[] |
+| listeners        | List of listeners to load                        | []            | no       | String[] |
+| ioRedirectMap    | Redirection map with input driver: output driver | {}            | no       | String{} |
+| scheduler        | On/Off the scheduler                             | true          | no       | Bool     |
+| serverMode       | On/Off the server mode                           | false         | no       | Bool     |
+| raven            | Sentry DSN                                       | null          | no       | String   |
+
+#### Play
+
+| Key          | Description                                 | Default value | Required | Type     |
+| ------------ | ------------------------------------------- | ------------- | -------- | -------- |
+| play.addArgs | Additional CLI args to send to Play program | []            | no       | String[] |
+
+#### Snowboy
+
+| Key                      | Description                                       | Default value | Required | Type   |
+| ------------------------ | ------------------------------------------------- | ------------- | -------- | ------ |
+| snowboy.apiKey           | Snowboy API key to record new speechs for hotword | null          | yes\*    | String |
+| snowboy.sensitivity.wake | Sensitivity param for Snowboy wake hotword        | 0.4           | no       | Number |
+| snowboy.sensitivity.stop | Sensitivity param for Snowboy stop hotword        | 0.4           | no       | Number |
+
+#### Server
+
+| Key           | Description                                          | Default value | Required | Type   |
+| ------------- | ---------------------------------------------------- | ------------- | -------- | ------ |
+| server.domain | HTTP domain for the server (used for absolute links) | null          | yes\*    | String |
+| server.port   | HTTP port for the server                             | 8080          | no       | Number |
+| server.port   | HTTP port for the server                             | 8080          | no       | Number |
+
+#### Mongo
+
+| Key            | Description                     | Default value | Required | Type   |
+| -------------- | ------------------------------- | ------------- | -------- | ------ |
+| mongo.host     | Host for DB connection          | db            | yes      | String |
+| mongo.port     | Port for DB connection          | 27017         | yes      | Number |
+| mongo.database | Database name for DB connection | admin         | yes      | String |
+| mongo.user     | User for DB connection          | admin         | yes      | String |
+| mongo.password | Password for DB connection      | null          | yes      | String |
+
+#### APIAI (Dialogflow)
+
+| Key                 | Description                                      | Default value | Required | Type   |
+| ------------------- | ------------------------------------------------ | ------------- | -------- | ------ |
+| apiai.token         | API.AI/Dialogflow API key (client token)         | null          | yes      | String |
+| apiai.actionTimeout | Specify after how many seconds an action expires | 10            | no       | Number |
+
+#### Telegram (IO driver)
+
+| Key              | Description                            | Default value    | Required | Type   |
+| ---------------- | -------------------------------------- | ---------------- | -------- | ------ |
+| telegram.token   | Token used to instantiate Telegram bot | null             | yes\*    | String |
+| telegram.options | Options passed to TelegramBot library  | { polling: true} | yes\*    | Object |
+
+#### Kid (IO Driver)
+
+| Key | Description | Default value | Required | Type |
+| --- | ----------- | ------------- | -------- | ---- |
+
+
+#### Messenger (IO Driver)
+
+| Key                 | Description                                          | Default value | Required | Type   |
+| ------------------- | ---------------------------------------------------- | ------------- | -------- | ------ |
+| messenger.token     | Token used to instantiate Facebook bot               | null          | yes\*    | String |
+| messenger.verify    | Verify signature used to instantiate Facebook bot    | null          | yes\*    | String |
+| messenger.appId     | Applcation ID to instantiate Facebook bot            | null          | yes\*    | String |
+| messenger.appSecret | Applcation secret to instantiate Facebook bot        | null          | yes\*    | String |
+| messenger.port      | Port where webhook for Facebook bot should listen to | null          | yes\*    | Number |
+
+#### Facebook (Library)
+
+| Key                  | Description                        | Default value | Required | Type   |
+| -------------------- | ---------------------------------- | ------------- | -------- | ------ |
+| facebook.appId       | Application ID                     | null          | yes\*    | String |
+| facebook.secret      | Application secret                 | null          | yes\*    | String |
+| facebook.pageId      | Facebook Page ID                   | null          | yes\*    | String |
+| facebook.accessToken | Static page-token used to call API | null          | yes\*    | String |
+
+#### AWS (Library)
+
+| Key              | Description         | Default value | Required | Type        |
+| ---------------- | ------------------- | ------------- | -------- | ----------- |
+| aws.polly.gender | Gender used for TTS | Female        | no       | Male/Female |
+
+#### GCloud (Library)
+
+| Key                   | Description                      | Default value | Required | Type        |
+| --------------------- | -------------------------------- | ------------- | -------- | ----------- |
+| gcloud.cseId          | Application ID                   | null          | yes\*    | String      |
+| gcloud.apiKey         | Application key                  | null          | yes\*    | String      |
+| gcloud.storage.bucket | Google Cloud Storage bucket name | null          | yes\*    | String      |
+| gcloud.tts.gender     | Gender used for TTS              | Female        | no       | Male/Female |
+
+#### Spotify (Library)
+
+| Key                  | Description                           | Default value | Required | Type   |
+| -------------------- | ------------------------------------- | ------------- | -------- | ------ |
+| spotify.clientId     | Application ID                        | null          | yes\*    | String |
+| spotify.clientSecret | Application key                       | null          | yes\*    | String |
+| spotify.cookies      | User cookies to use Chromecast sender | null          | yes\*    | String |
+
+#### Wolfram (Library)
+
+| Key           | Description    | Default value | Required | Type   |
+| ------------- | -------------- | ------------- | -------- | ------ |
+| wolfram.appId | Application ID | null          | yes\*    | String |
+
+#### Youtube (Library)
+
+| Key            | Description     | Default value | Required | Type   |
+| -------------- | --------------- | ------------- | -------- | ------ |
+| youtube.apiKey | Application key | null          | yes\*    | String |
+
+#### Musixmatch (Library)
+
+| Key               | Description     | Default value | Required | Type   |
+| ----------------- | --------------- | ------------- | -------- | ------ |
+| musixmatch.apiKey | Application key | null          | yes\*    | String |
+
+#### Wunderground (Library)
+
+| Key                 | Description     | Default value | Required | Type   |
+| ------------------- | --------------- | ------------- | -------- | ------ |
+| wunderground.apiKey | Application key | null          | yes\*    | String |
+
+#### Cognitive (Library)
+
+| Key                     | Description                            | Default value | Required | Type   |
+| ----------------------- | -------------------------------------- | ------------- | -------- | ------ |
+| cognitive.face.apiKey   | Application key for Face recognition   | null          | yes\*    | String |
+| cognitive.vision.apiKey | Application key for Vision recognition | null          | yes\*    | String |
+
+#### Gitlab (Library)
+
+| Key          | Description               | Default value | Required | Type   |
+| ------------ | ------------------------- | ------------- | -------- | ------ |
+| gitlab.url   | URL of your GitLab server | null          | yes\*    | String |
+| gitlab.token | Application token         | null          | yes\*    | String |
+
+#### Transmission (Library)
+
+| Key                   | Description                            | Default value | Required | Type   |
+| --------------------- | -------------------------------------- | ------------- | -------- | ------ |
+| transmission.host     | Host of your Transmission instance     | null          | yes\*    | String |
+| transmission.port     | Port of your Transmission instance     | null          | yes\*    | Number |
+| transmission.username | Username of your Transmission instance | null          | yes\*    | String |
+| transmission.password | Password of your Transmission instance | null          | yes\*    | String |
+| transmission.ssl      | On/Off SSL to connect                  | false         | no       | Bool   |
+
+yes\* = (yes if you use that service)
+
 ### Customize messages
 
 The file `messages.json` specifies the messages used for certain actions.

@@ -94,7 +94,7 @@ async function fulfillmentFromBody(body, session) {
 					}
 				}
 			}, session));
-		}, 1000 * (_config.promiseTimeout || 10));
+		}, 1000 * _config.actionTimeout);
 
 		try {
 			console.info(TAG, `calling action ${body.result.action}`);
