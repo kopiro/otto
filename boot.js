@@ -1,4 +1,5 @@
 const _ = require('underscore');
+const assignDeep = require('assign-deep');
 
 // Replace the console with a better console with colors
 require('console-ultimate/global').replace();
@@ -12,7 +13,7 @@ global.__etcdir = __dirname + '/etc';
 global.__package = require(__basedir + '/package.json');
 
 // Read the config and expose as global
-global.config = Object.assignDeep(require('./default-config.json'), require('./config.json'));
+global.config = assignDeep(require('./default-config.json'), require('./config.json'));
 
 if (config.uid == null) {
 	console.error("Please define config.uid with your Universal ID (username)");
