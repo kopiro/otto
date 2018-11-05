@@ -1,26 +1,32 @@
-exports.id = 'icloud.configure';
+exports.id = "icloud.configure";
 
-const iCloud = requireLibrary('icloud');
+const iCloud = require("apple-icloud");
 
 module.exports = async function({ sessionId, result }, session) {
-	let { parameters: p, fulfillment } = result;
+  return new Promise((resolve, reject) => {
+    let { parameters: p, fulfillment } = result;
 
-	const $ = new iCloud(p.username, p.password);
+    const icloud = new iCloud({}, p.username, p.password);
 
-	try {		
-		await $.login();
-	} catch (err) {
-		if (err.twoFactorAuthenticationIsRequired) {
-			// TODO
-		}
-		throw fulfillment.payload.error;
-	}
+    icloud.on("ready", async () => {
+      if (icloud.twoFactorAuthenticationIsRequired) {
+        icloud.sendSecurityCode("sms");
+        // TODO
+        require("prompt").get(["Security Code"], async (err, input) => {
+          const code = input["Security Code"];
+          // Set the security code to the instance
+          icloud.securityCode = code;
+        });
+        return;
+      }
 
-	session.saveSettings({
-		icloud: p
-	});
+      session.saveSettings({
+        icloud: icloud.exportSession()
+      });
 
-	return {
-		speech: fulfillment.speech
-	};
+      resolve({
+        speech: fulfillment.speech
+      });
+    });
+  });
 };
