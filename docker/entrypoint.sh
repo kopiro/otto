@@ -1,5 +1,5 @@
 #!/bin/sh
-if [ $DEV -eq 1 ]; then
+if [ "$DEV" = "1" ]; then
    npm i
    npm run dev
 else

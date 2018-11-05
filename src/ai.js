@@ -12,17 +12,15 @@ const client = require('apiai')(_config.token);
 // TODO: remember what this shit does
 function getEntities(session) {
 	let entities = [];
-	if (config.chromecast.devices) {
-		entities = entities.concat([{
-			name: 'chromecast',
-			entries: _.map(config.chromecast.devices, ((value, key) => {
-				return {
-					value: key,
-					synonyms: [value.name]
-				};
-			}))
-		}]);
-	}
+	entities = entities.concat([{
+		name: 'chromecast',
+		entries: _.map(session.settings.chromecasts, ((value, key) => {
+			return {
+				value: key,
+				synonyms: [value.name]
+			};
+		}))
+	}]);
 	return entities;
 }
 
