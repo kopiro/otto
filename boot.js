@@ -9,6 +9,8 @@ global.__basedir = __dirname;
 global.__tmpdir = __dirname + '/tmp';
 global.__cachedir = __dirname + '/cache';
 global.__etcdir = __dirname + '/etc';
+global.__keysdir = __dirname + '/keys';
+global.__tmpsecretdir = __dirname + '/tmp-secret';
 
 global.__package = require(__basedir + '/package.json');
 

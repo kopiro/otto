@@ -5,7 +5,7 @@ const md5 = require('md5');
 const aws = apprequire('aws');
 const fs = require('fs');
 
-const _config = config.polly;
+const _config = config.aws.polly;
 const CACHE_REGISTRY_FILE = __cachedir + '/' + TAG + '.json';
 
 const client = new aws.Polly({

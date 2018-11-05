@@ -397,7 +397,7 @@ function processEOR() {
 /**
  * Process the item in the output queue
  */
-async function processOutputQueue() {
+async function processOutputQueue() {	
 	// Do not process if no item in the queue
 	if (queueOutput.length === 0) return;
 
@@ -405,7 +405,7 @@ async function processOutputQueue() {
 	if (queueProcessingItem != null) return;
 
 	// Always ensure that there is the session
-	await registerGlobalSession();
+	if (IOManager.session == null) return;
 	const session = IOManager.session;
 
 	// Grab the first item in the queue
@@ -564,7 +564,6 @@ exports.startInput = async function () {
 
 	// Ensure session is present
 	await registerGlobalSession();
-	const session = IOManager.session;
 
 	// Preventive stop any other output
 	stopOutput();

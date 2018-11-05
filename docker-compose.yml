@@ -15,6 +15,7 @@ services:
       - ./tmp:/app/tmp
       - ./log:/app/log
       - ./keys:/app/keys
+		- ./tmp-secret:/app/tmp-secret
       - ./config.json:/app/config.json
       - ./package.json:/app/package.json
       - ./package-lock.json:/app/package-lock.json

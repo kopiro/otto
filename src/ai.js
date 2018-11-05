@@ -14,7 +14,7 @@ function getEntities(session) {
 	let entities = [];
 	entities = entities.concat([{
 		name: 'chromecast',
-		entries: _.map(session.settings.chromecasts, ((value, key) => {
+		entries: _.map(session.settings.chromecasts || [], ((value, key) => {
 			return {
 				value: key,
 				synonyms: [value.name]
