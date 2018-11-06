@@ -7,7 +7,9 @@ const enabledDrivers = {};
 const enabledAccesories = {};
 const enabledListeners = {};
 const queueProcessing = {};
-const emitter = exports.emitter = new(require('events').EventEmitter)();
+const emitter = (exports.emitter = new (require('events')).EventEmitter());
+
+exports.SEPARATOR = '-';
 
 /**
  * Define constants used when forwarding output to an accessory
@@ -28,7 +30,7 @@ exports.session = null;
  * @param {String} name	Name of the event
  * @param {Object} data Payload for the event
  */
-exports.eventToAllIO = function (name, data) {
+exports.eventToAllIO = function(name, data) {
 	for (let k of Object.keys(enabledDrivers)) {
 		enabledDrivers[k].emitter.emit(name, data);
 	}
@@ -39,25 +41,19 @@ exports.eventToAllIO = function (name, data) {
  * @param {Object} e
  * @param {Object} e.session Session object
  * @param {Object} e.params Input params object
- * @param {Object} e.body A Dialogflow body payload 
  * @param {Object} e.fulfillment A Dialogflow direct fulfillment
  * @param {String} e.params.text A text query to parse over Dialogflow
- * @param {Object} e.params.event An event query to parse over Dialogflow 
+ * @param {Object} e.params.event An event query to parse over Dialogflow
  */
-exports.handle = async function ({
-	session,
-	params = {},
-	fulfillment = null,
-	body = null
-}) {
+exports.handle = async function({ session, params = {}, fulfillment = null }) {
 	session = session || IOManager.session;
 	let driverStr = session.io_driver;
 
-	console.info(TAG, 'handle', {
+	console.info(TAG, 'handle');
+	console.dir({
 		session,
 		params,
-		fulfillment,
-		body
+		fulfillment
 	});
 
 	// If this driver is not up & running for this configuration,
@@ -70,7 +66,7 @@ exports.handle = async function ({
 			fulfillment
 		});
 
-		new Data.IOQueue({
+		await new Data.IOQueue({
 			io_id: session.io_id,
 			session: session._id,
 			fulfillment: fulfillment,
@@ -86,25 +82,22 @@ exports.handle = async function ({
 	// by simplying replacing the driver
 	if (config.ioRedirectMap[driverStr] != null) {
 		driverStr = config.ioRedirectMap[driverStr];
-		console.info(TAG, `<${session.io_driver}> redirect output to <${driverStr}>`);
+		console.info(
+			TAG,
+			`<${session.io_driver}> redirect output to <${driverStr}>`
+		);
 	}
 
-	// Get the driver object 
+	// Get the driver object
 	const driver = enabledDrivers[driverStr];
-	let fulfillment_input = null;
+	let input = null;
 
 	// Only one of those can be fulfilled, in this order
 	if (fulfillment) {
 		// Direct fulfillment
 		fulfillment = await AI.fulfillmentTransformer(fulfillment, session);
-		fulfillment_input = {
+		input = {
 			fulfillment: true
-		};
-	} else if (body) {
-		// Body resolution with action calling
-		fulfillment = await AI.fulfillmentFromBody(body, session);
-		fulfillment_input = {
-			body: body
 		};
 	} else if (params) {
 		if (params.text) {
@@ -115,23 +108,25 @@ exports.handle = async function ({
 			// Interrogate AI to get fulfillment by eventRequest
 			fulfillment = await AI.eventRequest(params.event, session);
 		} else {
-			console.warn('Neither text, event in params is not null');
+			console.warn('Neither { text, event } in params is not null');
 		}
-		fulfillment_input = {
+		input = {
 			params: params
 		};
 	}
 
 	if (fulfillment == null) {
-		console.warn('Do not output to driver because fulfillment is null - this could be intentional');
+		console.warn(
+			'Do not output to driver because fulfillment is null - this could be intentional'
+		);
 		return;
 	}
 
 	// Add informations about input into output
-	fulfillment.input = fulfillment_input;
+	fulfillment.__input = input;
 
 	// Call the output
-	driver.output(fulfillment, session);
+	await driver.output(fulfillment, session);
 
 	// Process output accessories:
 	// An accessory can:
@@ -139,16 +134,22 @@ exports.handle = async function ({
 	// - handle a kind of output, process it but don't block the next accessory
 	// - do not handle and forward to next accessory
 	(async () => {
-		for (let accessory of (enabledAccesories[driverStr] || [])) {
+		for (let accessory of enabledAccesories[driverStr] || []) {
 			let handleType = accessory.canHandleOutput(fulfillment, session);
 
 			switch (handleType) {
 				case IOManager.CAN_HANDLE_OUTPUT.YES_AND_BREAK:
-					console.info(TAG, `forwarding output to <${accessory.id}> with YES_AND_BREAK`);
+					console.info(
+						TAG,
+						`forwarding output to <${accessory.id}> with YES_AND_BREAK`
+					);
 					await accessory.output(fulfillment, session);
 					return;
 				case IOManager.CAN_HANDLE_OUTPUT.YES_AND_CONTINUE:
-					console.info(TAG, `forwarding output to <${accessory.id}> with YES_AND_CONTINUE`);
+					console.info(
+						TAG,
+						`forwarding output to <${accessory.id}> with YES_AND_CONTINUE`
+					);
 					await accessory.output(fulfillment, session);
 					break;
 				case IOManager.CAN_HANDLE_OUTPUT.NO:
@@ -160,38 +161,41 @@ exports.handle = async function ({
 };
 
 /**
- * Process a fulfillment to a session 
+ * Process a fulfillment to a session
  * @param {Object} fulfillment Fulfillment payload
  * @param {Object} session Session object
  */
-exports.output = function (fulfillment, session) {
+exports.output = async function(fulfillment, session) {
 	console.info(TAG, 'direct output', {
 		fulfillment,
 		session
 	});
-	return exports.handle({
-		session: session,
-		fulfillment: fulfillment
+	return await exports.handle({
+		fulfillment: fulfillment,
+		session: session
 	});
 };
 
 /**
  * Configure every accessory for that driver
- * @param {String} driverStr 
+ * @param {String} driverStr
  */
 function configureAccessories(driverStr) {
 	const driver = enabledDrivers[driverStr];
 
-	for (let accessory of (enabledAccesories[driverStr] || [])) {
-		console.info(TAG, `attaching accessory <${accessory.id}> to <${driverStr}>`);
+	for (let accessory of enabledAccesories[driverStr] || []) {
+		console.info(
+			TAG,
+			`attaching accessory <${accessory.id}> to <${driverStr}>`
+		);
 		accessory.attach(driver);
 	}
 }
 
 /**
- * Configure driver by handling its input event, 
+ * Configure driver by handling its input event,
  * parsing it and re-calling the output method of the driver
- * @param {String} driverStr 
+ * @param {String} driverStr
  */
 function configureDriver(driverStr) {
 	console.info(TAG, `configuring IO Driver <${driverStr}>`);
@@ -199,15 +203,16 @@ function configureDriver(driverStr) {
 	const driver = enabledDrivers[driverStr];
 
 	// Link Driver.Input to IOManager.Handle --> Driver.Output
-	driver.emitter.on('input', async (e) => {
+	driver.emitter.on('input', async e => {
 		console.info(TAG, `received input from driver <${driverStr}>`);
+		console.dir(e);
 
 		try {
 			// If input has the error key, throw again to handle in the catch
 			if (e.error) throw e.error;
 			await exports.handle(e);
 		} catch (ex) {
-			console.error(TAG, 'driver input error', ex);
+			console.error(TAG, 'driver handle error', ex);
 			e.fulfillment = {
 				data: {
 					error: ex
@@ -223,7 +228,7 @@ function configureDriver(driverStr) {
 
 /**
  * Return true if this driver is currently enabled
- * @param {String} driverId 
+ * @param {String} driverId
  */
 function isIdDriverUp(driverId) {
 	return configuredDriversId.indexOf(driverId) >= 0;
@@ -233,16 +238,18 @@ function isIdDriverUp(driverId) {
  * Return an array of drivers strings to load
  */
 function getDriversToLoad() {
-	if (process.env.OTTO_IO_DRIVERS) return process.env.OTTO_IO_DRIVERS.split(',');
+	if (process.env.OTTO_IO_DRIVERS)
+		return process.env.OTTO_IO_DRIVERS.split(',');
 	return config.ioDrivers || [];
 }
 
 /**
  * Return an array of accessories strings to load for that driver
- * @param {String} driver 
+ * @param {String} driver
  */
 function getAccessoriesToLoad(driver) {
-	if (process.env.OTTO_IO_ACCESSORIES) return process.env.OTTO_IO_ACCESSORIES.split(',');
+	if (process.env.OTTO_IO_ACCESSORIES)
+		return process.env.OTTO_IO_ACCESSORIES.split(',');
 	return config.ioAccessoriesMap[driver] || [];
 }
 
@@ -250,7 +257,8 @@ function getAccessoriesToLoad(driver) {
  * Return an array of listeners strings to load
  */
 function getListenersToLoad() {
-	if (process.env.OTTO_IO_LISTENERS) return process.env.OTTO_IO_LISTENERS.split(',');
+	if (process.env.OTTO_IO_LISTENERS)
+		return process.env.OTTO_IO_LISTENERS.split(',');
 	return config.listeners || [];
 }
 
@@ -264,18 +272,28 @@ function loadDrivers() {
 		let driver = exports.getDriver(driverStr);
 
 		if (config.serverMode == true && driver.config.onlyClientMode == true) {
-			console.error(TAG, 'unable to load <' + driverStr + '> because this IO is not compatible with server mode');
+			console.error(
+				TAG,
+				'unable to load <' +
+					driverStr +
+					'> because this IO is not compatible with server mode'
+			);
 			continue;
 		}
 
 		if (config.serverMode == false && driver.config.onlyServerMode == true) {
-			console.error(TAG, 'unable to load <' + driverStr + '> because this IO is not compatible with client mode');
+			console.error(
+				TAG,
+				'unable to load <' +
+					driverStr +
+					'> because this IO is not compatible with client mode'
+			);
 			continue;
 		}
 
 		enabledDrivers[driverStr] = driver;
 
-		const driverId = config.uid + '/' + driver.config.id;
+		const driverId = config.uid + exports.SEPARATOR + driver.config.id;
 		configuredDriversId.push(driverId);
 		console.info(TAG, 'enabled driver', driverId);
 
@@ -314,9 +332,9 @@ function loadListeners() {
 
 /**
  * Encode an object to be sure that can be passed to API requests
- * @param {Object} b 
+ * @param {Object} b
  */
-exports.encodeBody = function (b) {
+exports.encodeBody = function(b) {
 	return {
 		body: new Buffer(JSON.stringify(b)).toString('base64')
 	};
@@ -324,61 +342,63 @@ exports.encodeBody = function (b) {
 
 /**
  * Decode an object previously encoded via IOManager.encodeBody
- * @param {Object} fulfillment 
+ * @param {Object} fulfillment
  */
-exports.decodeBody = function (fulfillment) {
-	return JSON.parse(new Buffer(fulfillment.payload.body, 'base64').toString('ascii'));
+exports.decodeBody = function(fulfillment) {
+	return JSON.parse(
+		new Buffer(fulfillment.payload.body, 'base64').toString('ascii')
+	);
 };
 
 /**
  * Load the driver module
- * @param {String} e 
+ * @param {String} e
  */
-exports.getDriver = function (e) {
+exports.getDriver = function(e) {
 	return require(__basedir + '/src/io/' + e);
 };
 
 /**
  * Load the listener module
- * @param {String} e 
+ * @param {String} e
  */
-exports.getListener = function (e) {
+exports.getListener = function(e) {
 	return require(__basedir + '/src/listeners/' + e);
 };
 
 /**
  * Load the accessory module
- * @param {String} e 
+ * @param {String} e
  */
-exports.getAccessory = function (e) {
+exports.getAccessory = function(e) {
 	return require(__basedir + '/src/io_accessories/' + e);
 };
 
 /**
  * Write a log of what (global) user said - uses: IOManager.session as a user
- * @param {String} text 
+ * @param {String} text
  */
-exports.writeLog = async function (text) {
+exports.writeLog = async function(text) {
 	return exports.writeLogForSession(text, exports.session);
 };
 
 /**
- * Write a log of what user said 
- * @param {Object} session 
- * @param {String} text 
+ * Write a log of what user said
+ * @param {Object} session
+ * @param {String} text
  */
-exports.writeLogForSession = async function (text, session = {}) {
-	return (new Data.SessionInput({
+exports.writeLogForSession = async function(text, session = {}) {
+	return new Data.SessionInput({
 		session: session._id,
 		text: text
-	})).save();
+	}).save();
 };
 
 /**
  * Load the session from ORM
- * @param {String} sessionIdComposite 
+ * @param {String} sessionIdComposite
  */
-exports.getSession = function (sessionIdComposite) {
+exports.getSession = function(sessionIdComposite) {
 	return Data.Session.findOne({
 		_id: sessionIdComposite
 	});
@@ -393,20 +413,21 @@ exports.getSession = function (sessionIdComposite) {
  * @param {String} [e.alias=null] Alias of this session
  * @param {String} [e.text=null] Eventual initial text that user said
  */
-exports.registerSession = async function ({
+exports.registerSession = async function({
 	sessionId,
 	io_driver,
 	io_data,
 	alias
 }) {
-	const io_id = config.uid + '/' + io_driver;
-	const sessionIdComposite = io_id + (sessionId == null ? '' : '/' + sessionId);
+	const io_id = config.uid + exports.SEPARATOR + io_driver;
+	const sessionIdComposite =
+		io_id + (sessionId == null ? '' : exports.SEPARATOR + sessionId);
 
 	let session = await exports.getSession(sessionIdComposite);
 
 	if (session == null) {
 		console.info(TAG, 'a new session model registered: ' + sessionId);
-		session = await (new Data.Session({
+		session = await new Data.Session({
 			_id: sessionIdComposite,
 			io_id: io_id,
 			io_driver: io_driver,
@@ -419,7 +440,7 @@ exports.registerSession = async function ({
 				updated_at: Date.now()
 			},
 			server_settings: config.uid
-		}).save());
+		}).save();
 	}
 
 	if (sessionId == null) exports.updateGlobalSession(session);
@@ -428,9 +449,9 @@ exports.registerSession = async function ({
 
 /**
  * Register this session as global session, available via IOManager.session
- * @param {Object} session 
+ * @param {Object} session
  */
-exports.updateGlobalSession = function (session) {
+exports.updateGlobalSession = function(session) {
 	if (exports.session != null) return;
 
 	console.info(TAG, 'updating global session model');
@@ -439,7 +460,7 @@ exports.updateGlobalSession = function (session) {
 };
 
 /**
- * Process items in the queue based on configured drivers 
+ * Process items in the queue based on configured drivers
  */
 async function processQueue() {
 	let qitem = await Data.IOQueue.findOne({
@@ -471,7 +492,7 @@ async function processQueue() {
 /**
  * Start the polling to process IO queue
  */
-exports.startQueuePolling = async function () {
+exports.startQueuePolling = async function() {
 	processQueue();
 	await timeout(1000);
 	exports.startQueuePolling();
@@ -480,7 +501,7 @@ exports.startQueuePolling = async function () {
 /**
  * Start drivers, accessories and listeners
  */
-exports.start = function () {
+exports.start = function() {
 	loadDrivers();
 	loadAccessories();
 	for (let driverStr of Object.keys(enabledDrivers)) {

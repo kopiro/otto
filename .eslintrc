@@ -16,21 +16,10 @@
 	},
 	"plugins": [],
 	"rules": {
-		"linebreak-style": [
-			"error",
-			"unix"
-		],
-		"quotes": [
-			"warn",
-			"single"
-		],
-		"semi": [
-			"error",
-			"always"
-		],
-		"no-unused-vars": [
-			"warn"
-		],
+		"linebreak-style": ["error", "unix"],
+		"quotes": ["warn", "single"],
+		"semi": ["error", "always"],
+		"no-unused-vars": ["warn"],
 		"no-console": "off"
 	},
 	"globals": {
@@ -48,6 +37,7 @@
 		"cleanText": true,
 		"AI_NAME_REGEX": true,
 		"apprequire": true,
+		"extractWithPattern": true,
 		"requireLibrary": true,
 		"requireInterface": true,
 		"mongoose": true,

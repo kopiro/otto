@@ -7,9 +7,9 @@ const md5 = require('md5');
 
 /**
  * Require a module or return null if not found
- * @param {String} e 
+ * @param {String} e
  */
-global.requireOrNull = function (e) {
+global.requireOrNull = function(e) {
 	try {
 		return require(e);
 	} catch (ex) {
@@ -19,64 +19,64 @@ global.requireOrNull = function (e) {
 
 /**
  * Pick a random element in an array
- * @param {Array} e 
+ * @param {Array} e
  */
-global.rand = function (e) {
+global.rand = function(e) {
 	return _.isArray(e) ? e[_.random(0, e.length - 1)] : e;
 };
 
 /**
  * Require a module from our internal library
- * @param {String} e 
+ * @param {String} e
  */
-global.apprequire = global.requireLibrary = function (e) {
+global.apprequire = global.requireLibrary = function(e) {
 	return require(__basedir + '/src/lib/' + e);
 };
 
 /**
  * Require an interface
- * @param {String} e 
+ * @param {String} e
  */
-global.requireInterface = function (e) {
+global.requireInterface = function(e) {
 	return require(__basedir + '/src/interfaces/' + e);
 };
 
 /**
  * Require a module from our helpers library
- * @param {String} e 
+ * @param {String} e
  */
-global.requireHelper = function (e) {
+global.requireHelper = function(e) {
 	return require(__basedir + '/src/helpers/' + e);
 };
 
 /**
  * Timeout using promises
- * @param {Number} ms 
+ * @param {Number} ms
  */
-global.timeout = function (ms) {
+global.timeout = function(ms) {
 	return new Promise(resolve => setTimeout(resolve, ms));
 };
 
 /**
  * Generate a UUID v4
  */
-global.uuid = function () {
+global.uuid = function() {
 	return uuid.v4();
 };
 
 /**
  * Clean text by removing diacritics and lowering its case
- * @param {String} t 
+ * @param {String} t
  */
-global.cleanText = function (t) {
+global.cleanText = function(t) {
 	return diacriticsRemove(t).toLowerCase();
 };
 
 /**
  * Split a text using a pattern to mimic a message sent by a human
- * @param {String} text 
+ * @param {String} text
  */
-global.mimicHumanMessage = function (text) {
+global.mimicHumanMessage = function(text) {
 	const splitted = text.split(/\\n|\n|\.(?=\s+|[A-Z])/);
 	return _.compact(splitted);
 };
@@ -84,10 +84,10 @@ global.mimicHumanMessage = function (text) {
 /**
  * Get the locale string from a language
  * Valid return values: cy-GB | da-DK | de-DE | en-AU | en-GB | en-GB-WLS | en-IN | en-US | es-ES | es-US | fr-CA | fr-FR | is-IS | it-IT | ja-JP | nb-NO | nl-NL | pl-PL | pt-BR | pt-PT | ro-RO | ru-RU | sv-SE | tr-TR
- * @param {String} language 
+ * @param {String} language
  * @returns {String}
  */
-global.getLocaleFromLanguageCode = function (language = null) {
+global.getLocaleFromLanguageCode = function(language = null) {
 	if (language == null) {
 		return getLocaleFromLanguageCode(config.language);
 	}
@@ -130,9 +130,9 @@ global.getLocaleFromLanguageCode = function (language = null) {
 
 /**
  * Get the local URI of a remote object by downloading it
- * @param {String} uri 
+ * @param {String} uri
  */
-global.getLocalObjectFromURI = function (uri) {
+global.getLocalObjectFromURI = function(uri) {
 	return new Promise((resolve, reject) => {
 		if (/^https?\:\/\//.test(uri)) {
 			let extension = uri.split('.').pop() || 'unknown';
@@ -151,4 +151,30 @@ global.getLocalObjectFromURI = function (uri) {
 
 		return resolve(uri);
 	});
+};
+
+global.extractWithPattern = function extractWithPattern(input, pattern) {
+	if (input == null) return null;
+	if (pattern == '') return input;
+
+	const p = pattern.split('.');
+	let _p = p.shift();
+
+	// Array search
+	if (_p === '[]') {
+		_p = p.shift();
+		for (let _input of input) {
+			if (_input[_p] != null) {
+				const found = extractWithPattern(_input[_p], p.join('.'));
+				if (found) return found;
+			}
+		}
+		return null;
+	}
+
+	if (p.length === 0) {
+		return input[_p];
+	}
+
+	return extractWithPattern(input[_p], p.join('.'));
 };

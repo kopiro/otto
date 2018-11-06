@@ -10,7 +10,7 @@ const _ = require('underscore');
 const fs = require('fs');
 const request = require('request');
 
-const emitter = exports.emitter = new(require('events').EventEmitter)();
+const emitter = (exports.emitter = new (require('events')).EventEmitter());
 
 const Server = apprequire('server');
 const MessengerBot = require('messenger-bot');
@@ -25,7 +25,7 @@ let started = false;
 
 /**
  * Send a message to the user
- * @param {String} chat_id	Chat ID 
+ * @param {String} chat_id	Chat ID
  * @param {*} text Text to send
  * @param {*} opt Additional bot options
  */
@@ -42,7 +42,7 @@ async function sendMessage(chat_id, text, opt = {}) {
 /**
  * Start the polling/webhook cycle
  */
-exports.startInput = function () {
+exports.startInput = function() {
 	if (started === true) return;
 	started = true;
 
@@ -51,23 +51,29 @@ exports.startInput = function () {
 		Server.routerIO.use('/messenger', bot.middleware());
 		console.info(TAG, 'started');
 	} else {
-		console.error(TAG, 'unable to start in client mode; enable serverMode in config');
+		console.error(
+			TAG,
+			'unable to start in client mode; enable serverMode in config'
+		);
 	}
 };
 
 /**
  * Output an object to the user
- * @param {Object} f	The item 
+ * @param {Object} f	The item
  * @param {*} session The user session
  */
-exports.output = async function (f, session) {
+exports.output = async function(f, session) {
 	console.info(TAG, 'output');
-	console.dir({
-		f,
-		session
-	}, {
-		depth: 2
-	});
+	console.dir(
+		{
+			f,
+			session
+		},
+		{
+			depth: 2
+		}
+	);
 
 	// Inform observers
 	emitter.emit('output', {
@@ -76,46 +82,32 @@ exports.output = async function (f, session) {
 	});
 
 	const chat_id = session.io_data.sender.id;
-	const language = f.data.language || session.getTranslateTo();
+	const language = f.payload.language || session.getTranslateTo();
 
 	let bot_opt = {};
 
 	// If we have replies, set the bot opt to reflect the keyboard
-	if (f.data.replies) {
+	if (f.payload.replies) {
 		bot_opt = {
-			quick_replies: f.data.replies.map((r) => {
-				if (_.isString(r)) r = {
-					id: r,
-					text: r
-				};
+			quick_replies: f.payload.replies.map(r => {
+				if (_.isString(r))
+					r = {
+						id: r,
+						text: r
+					};
 				return {
 					title: r.text,
 					data: r.id,
-					content_type: 'text',
+					content_type: 'text'
 				};
 			})
 		};
 	}
 
-	// Process an error
+	// Process a Text Object
 	try {
-		if (f.data.error) {
-			if (f.data.error.speech) {
-				await sendMessage(chat_id, f.data.error.speech);
-			}
-			if (session.is_admin === true) {
-				await sendMessage(chat_id, "ERROR: <code>" + JSON.stringify(f.data.error) + "</code>");
-			}
-		}
-	} catch (err) {
-		console.error(TAG, err);
-	}
-
-	// Process a Speech Object
-	try {
-		const speech = f.speech || f.data.speech;
-		if (speech) {
-			await sendMessage(chat_id, speech, bot_opt);
+		if (f.fulfillmentText) {
+			await sendMessage(chat_id, f.fulfillmentText, bot_opt);
 		}
 	} catch (err) {
 		console.error(TAG, err);
@@ -123,8 +115,8 @@ exports.output = async function (f, session) {
 
 	// Process a URL Object
 	try {
-		if (f.data.url) {
-			await bot.sendMessage(chat_id, f.data.url, bot_opt);
+		if (f.payload.url) {
+			await bot.sendMessage(chat_id, f.payload.url, bot_opt);
 		}
 	} catch (err) {
 		console.error(TAG, err);
@@ -132,22 +124,38 @@ exports.output = async function (f, session) {
 
 	// Process a Music object
 	try {
-		if (f.data.music) {
-			if (f.data.music.spotify) {
-				if (f.data.music.spotify.track) {
-					await sendMessage(chat_id, f.data.music.spotify.track.share_url, bot_opt);
+		if (f.payload.music) {
+			if (f.payload.music.spotify) {
+				if (f.payload.music.spotify.track) {
+					await sendMessage(
+						chat_id,
+						f.payload.music.spotify.track.share_url,
+						bot_opt
+					);
 				}
-				if (f.data.music.spotify.album) {
-					await sendMessage(chat_id, f.data.music.spotify.album.share_url, bot_opt);
+				if (f.payload.music.spotify.album) {
+					await sendMessage(
+						chat_id,
+						f.payload.music.spotify.album.share_url,
+						bot_opt
+					);
 				}
-				if (f.data.music.spotify.artist) {
-					await sendMessage(chat_id, f.data.music.spotify.artist.share_url, bot_opt);
+				if (f.payload.music.spotify.artist) {
+					await sendMessage(
+						chat_id,
+						f.payload.music.spotify.artist.share_url,
+						bot_opt
+					);
 				}
-				if (f.data.music.spotify.playlist) {
-					await sendMessage(chat_id, f.data.music.spotify.playlist.share_url, bot_opt);
+				if (f.payload.music.spotify.playlist) {
+					await sendMessage(
+						chat_id,
+						f.payload.music.spotify.playlist.share_url,
+						bot_opt
+					);
 				}
-			} else if (f.data.music.uri) {
-				await sendMessage(chat_id, f.data.music.uri, bot_opt);
+			} else if (f.payload.music.uri) {
+				await sendMessage(chat_id, f.payload.music.uri, bot_opt);
 			}
 		}
 	} catch (err) {
@@ -156,12 +164,16 @@ exports.output = async function (f, session) {
 
 	// Process a Video object
 	try {
-		if (f.data.video) {
-			if (f.data.video.uri) {
+		if (f.payload.video) {
+			if (f.payload.video.uri) {
 				await bot.sendSenderAction(chat_id, 'upload_video');
-				await bot.sendVideo(chat_id, f.data.video.uri, bot_opt);
-			} else if (f.data.video.youtube) {
-				await bot.sendMessage(chat_id, 'https://www.youtube.com/watch?v=' + f.data.video.youtube.id, bot_opt);
+				await bot.sendVideo(chat_id, f.payload.video.uri, bot_opt);
+			} else if (f.payload.video.youtube) {
+				await bot.sendMessage(
+					chat_id,
+					'https://www.youtube.com/watch?v=' + f.payload.video.youtube.id,
+					bot_opt
+				);
 			}
 		}
 	} catch (err) {
@@ -170,10 +182,10 @@ exports.output = async function (f, session) {
 
 	// Process an Image Object
 	try {
-		if (f.data.image) {
-			if (f.data.image.uri) {
+		if (f.payload.image) {
+			if (f.payload.image.uri) {
 				await bot.sendSenderAction(chat_id, 'upload_photo');
-				await bot.sendPhoto(chat_id, f.data.image.uri, bot_opt);
+				await bot.sendPhoto(chat_id, f.payload.image.uri, bot_opt);
 			}
 		}
 	} catch (err) {
@@ -182,10 +194,10 @@ exports.output = async function (f, session) {
 
 	// Process an Audio Object
 	try {
-		if (f.data.audio) {
-			if (f.data.audio.uri) {
+		if (f.payload.audio) {
+			if (f.payload.audio.uri) {
 				await bot.sendSenderAction(chat_id, 'upload_audio');
-				await bot.sendAudio(chat_id, f.data.audio.uri, bot_opt);
+				await bot.sendAudio(chat_id, f.payload.audio.uri, bot_opt);
 			}
 		}
 	} catch (err) {
@@ -194,10 +206,10 @@ exports.output = async function (f, session) {
 
 	// Process a Voice Object
 	try {
-		if (f.data.voice) {
-			if (f.data.voice.uri) {
+		if (f.payload.voice) {
+			if (f.payload.voice.uri) {
 				await bot.sendSenderAction(chat_id, 'upload_audio');
-				const voice_file = await Play.playVoiceToTempFile(f.data.voice.uri);
+				const voice_file = await Play.playVoiceToTempFile(f.payload.voice.uri);
 				await bot.sendVoice(chat_id, voice_file, bot_opt);
 			}
 		}
@@ -207,10 +219,10 @@ exports.output = async function (f, session) {
 
 	// Process a Document Object
 	try {
-		if (f.data.document) {
-			if (f.data.document.uri) {
+		if (f.payload.document) {
+			if (f.payload.document.uri) {
 				await bot.sendSenderAction(chat_id, 'upload_document');
-				await bot.sendDocument(chat_id, f.data.document.uri, bot_opt);
+				await bot.sendDocument(chat_id, f.payload.document.uri, bot_opt);
 			}
 		}
 	} catch (err) {
@@ -219,8 +231,8 @@ exports.output = async function (f, session) {
 
 	// Process a Lyrics object
 	try {
-		if (f.data.lyrics) {
-			await sendMessage(chat_id, f.data.lyrics.text, bot_opt);
+		if (f.payload.lyrics) {
+			await sendMessage(chat_id, f.payload.lyrics.text, bot_opt);
 		}
 	} catch (err) {
 		console.error(TAG, err);
@@ -229,11 +241,11 @@ exports.output = async function (f, session) {
 	// ---- Messenger specific options ----
 };
 
-bot.on('error', (err) => {
+bot.on('error', err => {
 	console.error(TAG, 'webhook error', err);
 });
 
-bot.on('message', (e) => {
+bot.on('message', e => {
 	console.info(TAG, 'input');
 	console.dir(e, {
 		depth: 2
@@ -281,7 +293,7 @@ bot.on('message', (e) => {
 				session: session,
 				params: {
 					image: {
-						uri: attach.payload.url,
+						uri: attach.payload.url
 					}
 				}
 			});
@@ -295,5 +307,4 @@ bot.on('message', (e) => {
 			}
 		});
 	});
-
 });

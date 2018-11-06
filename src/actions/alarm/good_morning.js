@@ -1,7 +1,5 @@
 exports.id = 'alarm.good_morning';
 
-const Moment = apprequire('moment');
-
 function handleMathProduct(question) {
 	const a = 1 + Math.floor(Math.random() * 9);
 	const b = 1 + Math.floor(Math.random() * 9);
@@ -18,23 +16,19 @@ function handleMathSum(question) {
 	return question;
 }
 
-module.exports = async function ({
-	sessionId,
-	result
-}, session) {
-	let {
-		parameters: p,
-		fulfillment
-	} = result;
+module.exports = async function*({ queryResult }, session) {
+	let { parameters: p, fulfillmentText, fulfillmentMessages } = queryResult;
 
-	if (fulfillment.speech) {
-		await IOManager.output({
-			speech: fulfillment.speech
-		}, session);
+	if (fulfillmentText) {
+		yield fulfillmentText;
 	}
 
-	if (fulfillment.payload.questions) {
-		let question = rand(fulfillment.payload.questions);
+	const questions = extractWithPattern(
+		fulfillmentMessages,
+		'[].payload.questions'
+	);
+	if (questions) {
+		let question = rand(questions);
 		switch (question.kind) {
 			case 'math.product':
 				question = handleMathProduct(question);
@@ -48,10 +42,6 @@ module.exports = async function ({
 			good_morning_question: question
 		});
 
-		await IOManager.output({
-			speech: question.text
-		}, session);
+		yield question.text;
 	}
-
-	return false;
 };
