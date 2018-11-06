@@ -13,6 +13,7 @@ global.requireOrNull = function(e) {
 	try {
 		return require(e);
 	} catch (ex) {
+		console.error(`Unable to require: ${e}`);
 		return null;
 	}
 };

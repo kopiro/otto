@@ -9,9 +9,9 @@
 		"build:server": "",
 		"build": "npm run build:client",
 		"dev:client": "cd web-client && npm run start",
-		"dev:server": "nodemon --watch src main.js",
+		"dev:server": "nodemon --harmony --watch src main.js",
 		"dev": "parallelshell 'npm run dev:server' 'npm run dev:client'",
-		"start": "node main.js"
+		"start": "node --harmony main.js"
 	},
 	"repository": {
 		"type": "git",

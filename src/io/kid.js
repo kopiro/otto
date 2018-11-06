@@ -14,7 +14,7 @@ const Rec = apprequire('rec');
 const SR = requireInterface('sr');
 const TTS = requireInterface('tts');
 const Play = apprequire('play');
-const { Detector } = require('snowboy');
+const Snowboy = requireOrNull('snowboy');
 const Hotword = apprequire('hotword');
 const URLManager = apprequire('urlmanager');
 
@@ -335,7 +335,12 @@ function stop() {
  * Create and assign the hotword stream to listen for wake word
  */
 function createHotwordDetectorStream() {
-	hotwordDetectorStream = new Detector({
+	if (Snowboy == null) {
+		console.error(TAG, 'Unable to create hotword detector');
+		return;
+	}
+
+	hotwordDetectorStream = new Snowboy.Detector({
 		resource: __etcdir + '/common.res',
 		models: hotwordModels,
 		audioGain: 1.0

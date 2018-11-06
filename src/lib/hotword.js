@@ -8,10 +8,7 @@ const Play = apprequire('play');
 const Rec = apprequire('rec');
 const SR = requireInterface('sr');
 const Messages = apprequire('messages');
-const {
-	Detector,
-	Models
-} = require('snowboy');
+const Snowboy = requireOrNull('snowboy');
 
 const PMDL_DIR = __etcdir + '/hotwords-pmdl/';
 
@@ -21,23 +18,35 @@ const _config = config.snowboy;
 
 async function getModels(forceTraining = false) {
 	return new Promise(async (resolve, reject) => {
+		if (Snowboy == null) return reject();
+
 		let directories = fs.readdirSync(PMDL_DIR);
-		directories = directories.filter((e) => fs.statSync(PMDL_DIR + e).isDirectory());
+		directories = directories.filter(e =>
+			fs.statSync(PMDL_DIR + e).isDirectory()
+		);
 
 		let pmdls = {};
-		let hotwordModels = new Models();
+		let hotwordModels = new Snowboy.Models();
 
-		directories.forEach((dir) => {
+		directories.forEach(dir => {
 			dir = String(dir);
 			pmdls[dir] = [];
 
 			let files = fs.readdirSync(PMDL_DIR + dir);
-			files = files.filter((file) => /\.pmdl$/.test(file));
+			files = files.filter(file => /\.pmdl$/.test(file));
 
 			const sens = _config.sensitivity[dir];
-			console.debug(TAG, 'added ' + files.length + ' pdml files (' + dir + ') with sensitivity = ' + sens);
+			console.debug(
+				TAG,
+				'added ' +
+					files.length +
+					' pdml files (' +
+					dir +
+					') with sensitivity = ' +
+					sens
+			);
 
-			files.forEach((file) => {
+			files.forEach(file => {
 				pmdls[dir].push(file);
 				hotwordModels.add({
 					file: PMDL_DIR + dir + '/' + String(file),
@@ -76,7 +85,7 @@ async function sendMessage(text) {
 }
 
 function listenForHotwordTraining() {
-	return new Promise((resolve) => {
+	return new Promise(resolve => {
 		const wav_file = __etcdir + '/hotwords-wavs/' + uuid() + '.wav';
 		const wav_stream = fs.createWriteStream(wav_file);
 
@@ -98,50 +107,58 @@ async function recognizeFromMic() {
 
 async function sendWavFiles(opt) {
 	return new Promise((resolve, reject) => {
-		const pmdl_file = __etcdir + '/hotwords-pmdl/' + opt.hotword + '/' + uuid() + '.pmdl';
+		const pmdl_file =
+			__etcdir + '/hotwords-pmdl/' + opt.hotword + '/' + uuid() + '.pmdl';
 
 		console.info(TAG, 'sendWav', opt);
 
-		request.post({
-				url: 'https://snowboy.kitt.ai/api/v1/train/',
-				method: 'POST',
-				headers: {
-					'content-type': 'application/json'
-				},
-				body: JSON.stringify({
-					token: config.snowboy.apiKey,
-					name: opt.hotwordSpeech,
-					language: config.language,
-					gender: opt.gender_id,
-					microphone: "mic",
-					voice_samples: opt.wav_files.map((wav_file) => {
-						return {
-							wave: fs.readFileSync(wav_file).toString('base64')
-						};
+		request
+			.post(
+				{
+					url: 'https://snowboy.kitt.ai/api/v1/train/',
+					method: 'POST',
+					headers: {
+						'content-type': 'application/json'
+					},
+					body: JSON.stringify({
+						token: config.snowboy.apiKey,
+						name: opt.hotwordSpeech,
+						language: config.language,
+						gender: opt.gender_id,
+						microphone: 'mic',
+						voice_samples: opt.wav_files.map(wav_file => {
+							return {
+								wave: fs.readFileSync(wav_file).toString('base64')
+							};
+						})
 					})
-				})
-			}, (err, response, body) => {
-				if (response.statusCode >= 400) {
-					console.error(TAG, body);
+				},
+				(err, response, body) => {
+					if (response.statusCode >= 400) {
+						console.error(TAG, body);
+					}
 				}
-			})
-			.on('response', async (response) => {
+			)
+			.on('response', async response => {
 				if (response.statusCode >= 400) {
-					await sendMessage(Messages.get('io_hotword_training_failed', opt.hotwordSpeech));
+					await sendMessage(
+						Messages.get('io_hotword_training_failed', opt.hotwordSpeech)
+					);
 					return reject();
 				}
 
-				response.pipe(fs.createWriteStream(pmdl_file))
-					.on('close', () => {
-						resolve(pmdl_file);
-					});
+				response.pipe(fs.createWriteStream(pmdl_file)).on('close', () => {
+					resolve(pmdl_file);
+				});
 			});
 	});
 }
 
 async function startTraining(hotword) {
 	let hotwordSpeech = Messages.getRaw('io_hotword_list')[hotword];
-	await sendMessage(Messages.get('io_hotword_training_tutorial', hotwordSpeech));
+	await sendMessage(
+		Messages.get('io_hotword_training_tutorial', hotwordSpeech)
+	);
 
 	if (gender_id == null) {
 		const genders_map = Messages.getRaw('io_hotword_training_genders');

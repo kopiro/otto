@@ -155,11 +155,6 @@ async function textRequestTransformer(text, session) {
  * @param {Object} session Session
  */
 async function eventRequestTransformer(event, session) {
-	if (_.isString(event)) {
-		event = {
-			name: event
-		};
-	}
 	return event;
 }
 
@@ -170,10 +165,13 @@ async function eventRequestTransformer(event, session) {
  */
 async function bodyParser(body, session, fromWebhook = false) {
 	if (body.webhookStatus != null) {
-		return fulfillmentTransformer({
-			fulfillmentText: body.queryResult.fulfillmentText,
-			payload: body.queryResult.payload
-		});
+		return fulfillmentTransformer(
+			{
+				fulfillmentText: body.queryResult.fulfillmentText,
+				payload: body.queryResult.payload
+			},
+			session
+		);
 	}
 
 	// If an intent is returned, could auto resolve or call a promise
@@ -186,13 +184,13 @@ async function bodyParser(body, session, fromWebhook = false) {
 		);
 	}
 
-	if (body.queryResult.action != null) {
+	if (body.queryResult.action) {
 		console.info(TAG, 'Using action resolver');
 		return await actionResolver(body, session);
 	}
 
 	// Otherwise, check if at least an intent is match and direct return that fulfillment
-	if (body.queryResult.intent != null) {
+	if (body.queryResult.intent) {
 		console.info(TAG, 'Using queryResult');
 		return await fulfillmentTransformer(body.queryResult, session);
 	}
@@ -243,7 +241,10 @@ async function eventRequest(event, session) {
 	const responses = await dfSessionClient.detectIntent({
 		session: getDFSessionPath(session._id),
 		queryInput: {
-			event: event
+			event: {
+				name: event,
+				languageCode: session.getTranslateFrom()
+			}
 		}
 	});
 	return await bodyParser(responses[0], session);
