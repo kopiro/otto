@@ -67,12 +67,12 @@ exports.output = async function(f) {
 		fulfillment: f
 	});
 
-	for (let i = 0; i < 50; i++) process.stdout.write('=');
+	for (let i = 0; i < 50; i++) process.stdout.write('+');
 	process.stdout.write('\n');
 	console.dir(f, {
-		depth: 10
+		depth: null
 	});
-	for (let i = 0; i < 50; i++) process.stdout.write('=');
+	for (let i = 0; i < 50; i++) process.stdout.write('+');
 	process.stdout.write('\n');
 
 	setTimeout(() => {

@@ -8,6 +8,11 @@ const _config = config.dialogflow;
 
 const dfSessionClient = new (require('dialogflow')).SessionsClient();
 
+/**
+ * Get the session path suitable for DialogFlow
+ * @param {String} sessionId
+ * @returns
+ */
 function getDFSessionPath(sessionId) {
 	return dfSessionClient.sessionPath(_config.projectId, sessionId);
 }
@@ -28,30 +33,32 @@ async function fulfillmentTransformer(fulfillment, session) {
 	}
 
 	return {
-		fulfillmentText: fulfillment.fulfillmentText || null,
-		outputContexts: fulfillment.outputContexts || [],
-		payload: fulfillment.payload || {},
-		followupEventInput: null
+		fulfillmentText: fulfillment.fulfillmentText,
+		outputContexts: fulfillment.outputContexts,
+		payload: fulfillment.payload
 	};
 }
 
-async function actionErrorTransformer(body, err) {
+/**
+ * Transform an error into a fulfillment
+ * @param {Object} body
+ * @param {Error} err
+ * @returns
+ */
+function actionErrorTransformer(body, err) {
 	let fulfillment = null;
 
 	// If an error occurs, try to intercept this error
 	// in the fulfillmentMessages that comes from DialogFlow
 	if (typeof err === 'string') {
-		console.log(TAG, 'Translating error from action to fulfillmentMessages');
-		const errText = extractWithPattern(
-			body.queryResult.fulfillmentMessages,
-			`[].payload.errors.${err}`
-		);
-		if (errText != null) {
-			fulfillment = errText;
-		}
-	}
-
-	if (fulfillment == null) {
+		fulfillment = {
+			fulfillmentText:
+				extractWithPattern(
+					body.queryResult.fulfillmentMessages,
+					`[].payload.errors.${err}`
+				) || err
+		};
+	} else {
 		fulfillment = {
 			payload: {
 				error: err
@@ -62,23 +69,36 @@ async function actionErrorTransformer(body, err) {
 	return fulfillment;
 }
 
-async function actionTransformer(body, fulfillment) {
-	if (fulfillment == null) {
+/**
+ * Transform the result of an action to a fulfillment.
+ * It merges the input body with the action result
+ * @param {Object} body
+ * @param {Object} actionResult
+ * @returns
+ */
+function actionTransformer(body, actionResult) {
+	if (actionResult == null) {
 		return null;
 	}
 
 	// If an action return a string, wrap into an object
-	if (typeof fulfillment === 'string') {
-		fulfillment = {
-			fulfillmentText: fulfillment
+	if (_.isString(actionResult)) {
+		actionResult = {
+			fulfillmentText: actionResult
 		};
 	}
 
 	// Merge input queryResult to actionFulfillment
 	// This is useful to preserve outputContexts and payload from DialogFlow intent
-	return Object.assign(body.queryResult, fulfillment);
+	return Object.assign(body.queryResult, actionResult);
 }
 
+/**
+ * Accept a Generation action and resolve all outputs
+ * @param {Object} body
+ * @param {AsyncGenerator} generator
+ * @param {Session} session
+ */
 async function generatorResolver(body, generator, session) {
 	try {
 		for await (let fulfillment of generator) {
@@ -117,12 +137,16 @@ async function actionResolver(body, session) {
 		// Now check if this action is a Promise or a Generator
 		if (typeof fulfillment.next === 'function') {
 			generatorResolver(body, fulfillment, session);
-			return {};
+			return {
+				payload: {
+					handledByGenerator: true
+				}
+			};
 		}
 
 		fulfillment = await actionTransformer(body, fulfillment);
 	} catch (err) {
-		console.error(TAG, 'error in action', err);
+		console.error(TAG, 'error while executing action:', err);
 		fulfillment = await actionErrorTransformer(body, err);
 	}
 
@@ -165,13 +189,13 @@ async function eventRequestTransformer(event, session) {
  */
 async function bodyParser(body, session, fromWebhook = false) {
 	if (body.webhookStatus != null) {
-		return fulfillmentTransformer(
-			{
-				fulfillmentText: body.queryResult.fulfillmentText,
-				payload: body.queryResult.payload
-			},
-			session
-		);
+		if (body.webhookStatus.code > 0) {
+			return {
+				error: body.webhookStatus
+			};
+		}
+
+		return body.queryResult;
 	}
 
 	// If an intent is returned, could auto resolve or call a promise

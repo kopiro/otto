@@ -2,20 +2,12 @@ exports.id = 'findmyfriends';
 
 const iCloud = require('apple-icloud');
 
-module.exports = async function ({
-	sessionId,
-	result
-}, session) {
+module.exports = async function({ queryResult }, session) {
 	return new Promise((resolve, reject) => {
-		let {
-			parameters: p,
-			fulfillment
-		} = result;
+		let { parameters: p, fulfillmentText } = queryResult;
 
 		if (session.settings.icloud == null) {
-			return reject({
-				speech: fulfillment.payload.errors.not_configured
-			});
+			return reject('not_configured');
 		}
 
 		const icloud = new iCloud(
@@ -36,19 +28,17 @@ module.exports = async function ({
 				);
 
 			if (person == null) {
-				return reject({
-					speech: fulfillment.payload.errors.person_not_found
-				});
+				return reject('person_not_found');
 			}
 
 			resolve({
-				speech: fulfillment.speech.replace(
+				speech: fulfillmentText.replace(
 					'$_address',
 					person.adress.country +
-					', ' +
-					person.adress.locality +
-					', ' +
-					person.adress.streetAddress
+						', ' +
+						person.adress.locality +
+						', ' +
+						person.adress.streetAddress
 				)
 			});
 		});

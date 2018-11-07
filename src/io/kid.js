@@ -585,6 +585,9 @@ exports.output = async function(f) {
 		depth: 10
 	});
 
+	// Ensure session is present
+	await registerGlobalSession();
+
 	// Just push onto the queue, and let the queue process
 	queueOutput.push(f);
 };

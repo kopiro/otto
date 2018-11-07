@@ -1,15 +1,15 @@
 exports.id = 'draw';
 
-const ImageSearch = apprequire('imagesearch');
+const ImageSearch = requireLibrary('imagesearch');
 
-module.exports = async function({ sessionId, result }) {
-	let { parameters: p, fulfillment } = result;
+module.exports = async function({ queryResult }, session) {
+	let { parameters: p, fulfillmentText, queryText } = queryResult;
 
-	const images = await ImageSearch.search(`disegno "${p.q}"`)
-	let img = rand(images);
+	const images = await ImageSearch.search(`"${p.q}"`);
+	const img = rand(images);
 
 	return {
-		data: {
+		payload: {
 			image: {
 				uri: img.url
 			}

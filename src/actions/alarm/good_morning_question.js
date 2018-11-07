@@ -8,6 +8,7 @@ module.exports = async function({ queryResult }, session) {
 
 	if (question.answers.indexOf(queryText.toLowerCase()) >= 0) {
 		const e = extractWithPattern(fulfillmentMessages, '[].payload.correct');
+		// Zerofy contexts
 		e.outputContexts = [
 			{
 				name: 'good_morning_question',
@@ -18,6 +19,6 @@ module.exports = async function({ queryResult }, session) {
 	}
 
 	const e = extractWithPattern(fulfillmentMessages, '[].payload.wrong');
-	e.fulfillmentText = e.fulfillmentText.replace('$_question', question.text);
+	e.fulfillmentText = e.fulfillmentText.replace('$_question', question);
 	return e;
 };

@@ -183,27 +183,14 @@ Your action parameters are:
 - The API.AI (Dialogflow) object
 - The mongoose _session_ for this request
 
-Every action file must export a _Promise_ or an _Async Function (ES6)_.
-
-#### Promise style
-
-```js
-exports.id = "hello.name";
-module.exports = function({ sessionId, result }, session) {
-  return new Promise((resolve, reject) => {
-    let { parameters: p, fulfillment } = result;
-    if (p.name) return reject("Invalid parameters");
-    resolve(`Hello ${p.name}!`);
-  });
-};
-```
+Every action file must export an _Async Function (ES6)_.
 
 #### Async style
 
 ```js
 exports.id = "hello.name";
-module.exports = async function({ sessionId, result }, session) {
-  let { parameters: p, fulfillment } = result;
+module.exports = async function({ queryResult }, session) {
+  let { parameters: p, fulfillmentText, queryText } = queryResult;
   if (p.name == null) throw "Invalid parameters";
   return {
     speech: `Hello ${p.name}!`

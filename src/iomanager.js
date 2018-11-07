@@ -11,6 +11,93 @@ const emitter = (exports.emitter = new (require('events')).EventEmitter());
 
 exports.SEPARATOR = '-';
 
+function jsonToStructProto(json) {
+	const fields = {};
+	for (const k in json) {
+		fields[k] = jsonValueToProto(json[k]);
+	}
+
+	return { fields };
+}
+
+const JSON_SIMPLE_TYPE_TO_PROTO_KIND_MAP = {
+	[typeof 0]: 'numberValue',
+	[typeof '']: 'stringValue',
+	[typeof false]: 'boolValue'
+};
+
+const JSON_SIMPLE_VALUE_KINDS = new Set([
+	'numberValue',
+	'stringValue',
+	'boolValue'
+]);
+
+function jsonValueToProto(value) {
+	const valueProto = {};
+
+	if (value === null) {
+		valueProto.kind = 'nullValue';
+		valueProto.nullValue = 'NULL_VALUE';
+	} else if (value instanceof Array) {
+		valueProto.kind = 'listValue';
+		valueProto.listValue = { values: value.map(jsonValueToProto) };
+	} else if (typeof value === 'object') {
+		valueProto.kind = 'structValue';
+		valueProto.structValue = jsonToStructProto(value);
+	} else if (typeof value in JSON_SIMPLE_TYPE_TO_PROTO_KIND_MAP) {
+		const kind = JSON_SIMPLE_TYPE_TO_PROTO_KIND_MAP[typeof value];
+		valueProto.kind = kind;
+		valueProto[kind] = value;
+	} else {
+		console.warn('Unsupported value type ', typeof value);
+	}
+	return valueProto;
+}
+
+function structProtoToJson(proto) {
+	if (!proto || !proto.fields) {
+		return {};
+	}
+	const json = {};
+	for (const k in proto.fields) {
+		json[k] = valueProtoToJson(proto.fields[k]);
+	}
+	return json;
+}
+
+function valueProtoToJson(proto) {
+	if (!proto || !proto.kind) {
+		return null;
+	}
+
+	if (JSON_SIMPLE_VALUE_KINDS.has(proto.kind)) {
+		return proto[proto.kind];
+	} else if (proto.kind === 'nullValue') {
+		return null;
+	} else if (proto.kind === 'listValue') {
+		if (!proto.listValue || !proto.listValue.values) {
+			console.warn('Invalid JSON list value proto: ', JSON.stringify(proto));
+		}
+		return proto.listValue.values.map(valueProtoToJson);
+	} else if (proto.kind === 'structValue') {
+		return structProtoToJson(proto.structValue);
+	} else {
+		console.warn('Unsupported JSON value proto kind: ', proto.kind);
+		return null;
+	}
+}
+
+function cleanFulfillmentForOutput(queryResult) {
+	return {
+		queryText: queryResult.queryText,
+		fulfillmentText: queryResult.fulfillmentText,
+		error: queryResult.error,
+		payload: queryResult.webhookPayload
+			? structProtoToJson(queryResult.webhookPayload)
+			: queryResult.payload || {}
+	};
+}
+
 /**
  * Define constants used when forwarding output to an accessory
  */
@@ -90,15 +177,10 @@ exports.handle = async function({ session, params = {}, fulfillment = null }) {
 
 	// Get the driver object
 	const driver = enabledDrivers[driverStr];
-	let input = null;
 
 	// Only one of those can be fulfilled, in this order
 	if (fulfillment) {
 		// Direct fulfillment
-		fulfillment = await AI.fulfillmentTransformer(fulfillment, session);
-		input = {
-			fulfillment: true
-		};
 	} else if (params) {
 		if (params.text) {
 			// Interrogate AI to get fulfillment by textRequest
@@ -110,9 +192,6 @@ exports.handle = async function({ session, params = {}, fulfillment = null }) {
 		} else {
 			console.warn('Neither { text, event } in params is not null');
 		}
-		input = {
-			params: params
-		};
 	}
 
 	if (fulfillment == null) {
@@ -122,8 +201,14 @@ exports.handle = async function({ session, params = {}, fulfillment = null }) {
 		return;
 	}
 
-	// Add informations about input into output
-	fulfillment.__input = input;
+	// Clean
+	fulfillment = cleanFulfillmentForOutput(fulfillment);
+
+	// If this fulfillment has been handled by a generator, simply skip
+	if (fulfillment.payload.handledByGenerator) {
+		console.warn(TAG, 'Skipping output because is handled by generator');
+		return;
+	}
 
 	// Call the output
 	await driver.output(fulfillment, session);
@@ -166,10 +251,7 @@ exports.handle = async function({ session, params = {}, fulfillment = null }) {
  * @param {Object} session Session object
  */
 exports.output = async function(fulfillment, session) {
-	console.info(TAG, 'direct output', {
-		fulfillment,
-		session
-	});
+	console.warn(TAG, 'direct output');
 	return await exports.handle({
 		fulfillment: fulfillment,
 		session: session
