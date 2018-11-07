@@ -183,18 +183,33 @@ Your action parameters are:
 - The API.AI (Dialogflow) object
 - The mongoose _session_ for this request
 
-Every action file must export an _Async Function (ES6)_.
+There is a main difference in actions. 
 
-#### Async style
+If an action has *one* return value, it should be a **Function** or, if you need to do async requests, a **Promise / AsyncFunction**.
+
+Otherwise, if an action return multiple values *over time*, it should be a **Generator**.
+
+#### Promise/Async Function
 
 ```js
 exports.id = "hello.name";
 module.exports = async function({ queryResult }, session) {
-  let { parameters: p, fulfillmentText, queryText } = queryResult;
-  if (p.name == null) throw "Invalid parameters";
-  return {
-    speech: `Hello ${p.name}!`
-  };
+	let { parameters: p, queryText } = queryResult;
+	if (p.name == null) throw "Invalid parameters";
+	return `Hello ${p.name}!`;
+};
+```
+
+#### Generator Function
+
+```js
+exports.id = "count.to";
+module.exports = async function*({ queryResult }, session) {
+	let { parameters: p, queryText } = queryResult;
+	for (let i = 1; i < Number(p.to); i++) {
+		await timeout(1000);
+		yield String(i);
+	}
 };
 ```
 
@@ -205,34 +220,6 @@ The actions must be placed in the `./src/actions` directory.
 If an action name is `hello.name`, the final file must be `./src/actions/hello/name.js`.
 
 If an action name is `hello`, the final must be `./src/actions/hello/index.js`.
-
-If a promise can't be fullfilled in less than 5 seconds (this is the API.AI timeout),
-you have to resolve it immediately with the `feedback: true` key in `data`,
-postponing an eventual output to the `IOManager.handle`.
-
-```js
-exports.id = "hello.postponed";
-
-module.exports = async function({ sessionId, result }, session) {
-  let { parameters: p, fulfillment } = result;
-
-  doSomeLongWork(() => {
-    IOManager.handle({
-      fulfillment: {
-        speech: `Hello ${p.name}! (postponed)`
-      },
-      session: session
-    });
-  });
-
-  return {
-    speech: "Wait for me...",
-    data: {
-      feedback: true
-    }
-  };
-};
-```
 
 ### Action output payload
 

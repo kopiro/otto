@@ -32,11 +32,7 @@ async function fulfillmentTransformer(fulfillment, session) {
 		);
 	}
 
-	return {
-		fulfillmentText: fulfillment.fulfillmentText,
-		outputContexts: fulfillment.outputContexts,
-		payload: fulfillment.payload
-	};
+	return fulfillment;
 }
 
 /**
@@ -102,13 +98,13 @@ function actionTransformer(body, actionResult) {
 async function generatorResolver(body, generator, session) {
 	try {
 		for await (let fulfillment of generator) {
-			fulfillment = await actionTransformer(body, fulfillment);
+			fulfillment = actionTransformer(body, fulfillment);
 			fulfillment = await fulfillmentTransformer(fulfillment, session);
 			await IOManager.output(fulfillment, session);
 		}
 	} catch (err) {
-		console.error(TAG, 'error in generator', err);
-		let fulfillment = await actionErrorTransformer(body, err);
+		console.error(TAG, 'error while executing action generator', err);
+		let fulfillment = actionErrorTransformer(body, err);
 		fulfillment = await fulfillmentTransformer(fulfillment, session);
 		await IOManager.output(fulfillment, session);
 	}
@@ -202,6 +198,11 @@ async function bodyParser(body, session, fromWebhook = false) {
 	if (fromWebhook === false) {
 		// TODO: We should understand why fulfillmentMessages
 		// is different when called by webhook
+		body.queryResult.parameters = structProtoToJson(
+			body.queryResult.parameters
+		);
+		body.queryResult.payload = structProtoToJson(body.queryResult.payload);
+
 		console.warn(
 			TAG,
 			'Parsing body locally, this could be intentional, but check your intent'
