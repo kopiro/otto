@@ -1,12 +1,12 @@
-const TAG = 'Scheduler/GoodNight';
+const TAG = 'Scheduler/GoodMorning';
 
-exports.run = function ({
-	session
-}) {
-	return IOManager.handle({
-		session: session,
-		params: {
-			event: 'good_night'
-		}
-	});
+exports.run = function({ session }) {
+	return IOManager.outputByParams(
+		{
+			event: {
+				name: 'good_night'
+			}
+		},
+		session
+	);
 };

@@ -12,15 +12,16 @@ function returnUser(body, session, user) {
 	});
 
 	// And call the input
-	IOManager.handle({
-		session: session,
-		params: {
-			body: JSON.parse(session.pipe.sessionsearch_body)
-		}
-	});
+	// TODO
+	// IOManager.handle({
+	// 	session: session,
+	// 	params: {
+	// 		body: JSON.parse(session.pipe.sessionsearch_body)
+	// 	}
+	// });
 }
 
-module.exports = async function (body, session, query) {
+module.exports = async function(body, session, query) {
 	if (session.pipe.sessionsearch_user != null) {
 		const user = session.pipe.sessionsearch_user;
 		session.savePipe({
@@ -35,29 +36,32 @@ module.exports = async function (body, session, query) {
 	});
 	if (result_by_id != null) return returnUser(body, session, result_by_id);
 
-	const results = await Data.Session
-		.find({
+	const results = await Data.Session.find(
+		{
 			$text: {
 				$search: query
 			}
-		}, {
+		},
+		{
 			score: {
 				$meta: 'textScore'
 			}
-		})
-		.sort({
-			score: {
-				$meta: 'textScore'
-			}
-		});
+		}
+	).sort({
+		score: {
+			$meta: 'textScore'
+		}
+	});
 
-	if (results.length === 0) throw {
-		speech: "Non riesco a trovarlo nei miei amici"
-	};
+	if (results.length === 0)
+		throw {
+			speech: 'Non riesco a trovarlo nei miei amici'
+		};
 	if (results.length === 1) return returnUser(body, session, results[0]);
 
 	// If the difference from the first to the second is massive, return the first
-	if (results[0].score >= ELIGIBLE_MIN_MUL * results[1].score) return returnUser(body, session, results[0]);
+	if (results[0].score >= ELIGIBLE_MIN_MUL * results[1].score)
+		return returnUser(body, session, results[0]);
 
 	if (body != null) {
 		session.savePipe({
@@ -65,16 +69,19 @@ module.exports = async function (body, session, query) {
 		});
 	}
 
-	let speech = "Ho molti amici che si chiamano così. A chi di questi ti riferisci?\n"
-	speech += (results.map(e => (e.id + ') ' + e.alias))).join("\n");
+	let speech =
+		'Ho molti amici che si chiamano così. A chi di questi ti riferisci?\n';
+	speech += results.map(e => e.id + ') ' + e.alias).join('\n');
 
 	throw {
 		fulfillment: {
 			speech: speech,
-			contextOut: [{
-				name: "_helper_sessionsearch",
-				lifespan: 1
-			}],
+			contextOut: [
+				{
+					name: '_helper_sessionsearch',
+					lifespan: 1
+				}
+			],
 			data: {
 				replies: results.map(e => e.id)
 			}
