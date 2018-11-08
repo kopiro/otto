@@ -19,17 +19,6 @@ RUN apk add --no-cache \
 	sox \
 	opus-tools # Used to decode Telegram Audio notes
 
-# Install dadadodo from source
-RUN cd /tmp && \
-	wget https://www.jwz.org/dadadodo/dadadodo-1.04.tar.gz && \
-	tar -xvf dadadodo-1.04.tar.gz && \
-	cd dadadodo-1.04 && \
-	make && \
-	mv dadadodo /usr/local/bin && \
-	cd .. && \
-	rm -rf dadadodo-1.04 && \
-	rm dadadodo-1.04.tar.gz
-
 # Install imagemagick
 RUN apk add --no-cache imagemagick graphicsmagick
 
