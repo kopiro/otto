@@ -1,20 +1,16 @@
 const TAG = 'Wunderground';
 
 const _config = config.wunderground;
-const request = require('request-promise');
+const rp = require('request-promise');
 
-exports.api = function (opt) {
-	let url = [
-		'http://api.wunderground.com/api/', _config.apiKey,
-		'/', opt.type,
-		'/lang:' + config.language.toUpperCase(),
-		'/q',
-		'/', opt.state,
-		'/', opt.city,
-		'.json'
-	].join('');
+const DOMAIN = 'http://api.wunderground.com/api/' + _config.apiKey;
+const AC_DOMAIN = 'http://autocomplete.wunderground.com/aq';
 
-	return request({
+exports.api = async function(opt) {
+	let url = `${DOMAIN}/${opt.type}/lang:${config.language.toUpperCase()}/q/IT/${
+		opt.location
+	}.json`;
+	return rp({
 		url: url,
 		json: true
 	});

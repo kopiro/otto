@@ -1,28 +1,23 @@
 exports.id = 'lyrics.track';
 
-const MusixMatch = apprequire('musixmatch');
+const MusixMatch = requireLibrary('musixmatch');
+const { promisify } = require('util');
 
-module.exports = function({ sessionId, result }) {
-	return new Promise((resolve, reject) => {
-		let { parameters: p, fulfillment } = result;
-		
-		MusixMatch.searchTrack({
-			q_lyrics: p.q
-		}, (err, body) => {
-			if (err) return reject(err);
-			if (body == null || body.length === 0) {
-				return reject(fulfillment.payload.error);
-			}
+module.exports = async function({ queryResult }, session) {
+	let { parameters: p } = queryResult;
 
-			let speech = [];
-			body.forEach((f, i) => {
-				speech.push(f.track_name + ' di ' + f.artist_name + '.');
-			});
-			speech = speech.join("\n");
-
-			return resolve({
-				speech: speech
-			});
-		});
+	const bodyTrack = await promisify(MusixMatch.searchTrack)({
+		q_lyrics: p.q
 	});
+	if (bodyTrack == null || bodyTrack.length === 0) {
+		throw 'not_found';
+	}
+
+	let speech = [];
+	bodyTrack.forEach(f => {
+		speech.push(f.track_name + ' di ' + f.artist_name + '.');
+	});
+	speech = speech.join('\n');
+
+	return speech;
 };

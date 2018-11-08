@@ -1,42 +1,32 @@
 exports.id = 'lyrics.search';
 
-const MusixMatch = apprequire('musixmatch');
+const MusixMatch = requireLibrary('musixmatch');
+const { promisify } = require('util');
 
-module.exports = function({ sessionId, result }) {
-	return new Promise((resolve, reject) => {
-		let { parameters: p, fulfillment } = result;
-		
-		MusixMatch.searchTrack({
-			q_track: p.track,
-			q_artist: p.artist
-		}, (err, body) => {
-			if (err) return reject(err);
-			if (body == null || body.length === 0) {
-				return reject(fulfillment.payload.error);
-			}
+module.exports = async function({ queryResult }, session) {
+	let { parameters: p } = queryResult;
 
-			MusixMatch.trackLyrics({
-				track_id: body[0].track_id
-			}, (err, body) => {
-				console.log(body);
-				if (err) {
-					return reject(fulfillment.payload.error);
-				}
-
-
-				let text = body.lyrics_body.split("\n");
-				text = text.join(". ");
-				text = text.replace(/\*\*\*.*/, ''); // remove copyright
-
-				resolve({
-					data: {
-						lyrics: {
-							language: body.lyrics_language,
-							text: text
-						}
-					}
-				});
-			});
-		});
+	const bodyTracks = await promisify(MusixMatch.searchTrack)({
+		q_track: p.track,
+		q_artist: p.artist
 	});
+	if (bodyTracks == null || bodyTracks.length === 0) {
+		throw 'not_found';
+	}
+
+	const bodyLyrics = await promisify(MusixMatch.trackLyrics)({
+		track_id: bodyTracks[0].track_id
+	});
+	let text = bodyLyrics.lyrics_body.split('\n');
+	text = text.join('. ');
+	text = text.replace(/\*\*\*.*/, ''); // remove copyright
+
+	return {
+		payload: {
+			lyrics: {
+				language: bodyLyrics.lyrics_language,
+				text: text
+			}
+		}
+	};
 };

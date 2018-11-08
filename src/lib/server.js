@@ -18,8 +18,15 @@ const io = socketio(server);
 
 app.set('title', __package.name);
 
-exports.getAbsoluteURIByRelativeURI = function (link) {
+exports.getAbsoluteURIByRelativeURI = function(link) {
 	return _config.domain + link;
+};
+
+exports.getURIFromFSFilePath = function(file) {
+	if (file.indexOf(__tmpdir) !== -1) {
+		file = file.replace(__tmpdir, '/tmp');
+	}
+	return _config.domain + file;
 };
 
 // Routers
@@ -34,9 +41,11 @@ exports.routerListeners = express.Router();
 // API Router
 
 exports.routerApi.use(bodyParser.json());
-exports.routerApi.use(bodyParser.urlencoded({
-	extended: true
-}));
+exports.routerApi.use(
+	bodyParser.urlencoded({
+		extended: true
+	})
+);
 
 exports.routerApi.get('/', (req, res) => {
 	res.json({
@@ -48,9 +57,11 @@ exports.routerApi.get('/', (req, res) => {
 // Listeners
 
 exports.routerListeners.use(bodyParser.json());
-exports.routerListeners.use(bodyParser.urlencoded({
-	extended: true
-}));
+exports.routerListeners.use(
+	bodyParser.urlencoded({
+		extended: true
+	})
+);
 
 // web-client public
 app.use(express.static(__basedir + '/web-client/build'));
@@ -67,11 +78,14 @@ app.use('/listeners', exports.routerListeners);
 exports.io = io;
 exports.app = app;
 
-exports.start = function () {
-	server.listen({
-		port: _config.port,
-		server: '0.0.0.0'
-	}, () => {
-		console.info(`HTTP Server has started: http://0.0.0.0:${_config.port}`);
-	});
+exports.start = function() {
+	server.listen(
+		{
+			port: _config.port,
+			server: '0.0.0.0'
+		},
+		() => {
+			console.info(`HTTP Server has started: http://0.0.0.0:${_config.port}`);
+		}
+	);
 };

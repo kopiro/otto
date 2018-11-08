@@ -1,1 +1,1 @@
-module.exports = apprequire('polly');
+module.exports = requireLibrary('polly');

@@ -2,15 +2,9 @@ exports.id = 'icloud.configure';
 
 const iCloud = require('apple-icloud');
 
-module.exports = async function ({
-	sessionId,
-	result
-}, session) {
+module.exports = async function({ queryResult }, session) {
 	return new Promise((resolve, reject) => {
-		let {
-			parameters: p,
-			fulfillment
-		} = result;
+		let { parameters: p, fulfillmentText } = queryResult;
 
 		const icloud = new iCloud({}, p.username, p.password);
 
@@ -30,9 +24,7 @@ module.exports = async function ({
 				icloud: icloud.exportSession()
 			});
 
-			resolve({
-				speech: fulfillment.speech
-			});
+			resolve(fulfillmentText);
 		});
 	});
 };

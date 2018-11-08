@@ -2,13 +2,11 @@ exports.id = 'lights.poweron';
 
 const MIIO = apprequire('miio');
 
-module.exports = function({ sessionId, result }, session) {
-	return new Promise(async(resolve, reject) => {
-		let { parameters: p, fulfillment } = result;
-		resolve({
-			speech: fulfillment.speech
-		});
+module.exports = async function({ queryResult }, session) {
+	let { parameters: p, fulfillmentText } = queryResult;
+	setTimeout(async () => {
 		const device = await MIIO.retrieveDefaultDevice();
 		await device.setPower(true);
-	});
+	}, 0);
+	return fulfillmentText;
 };

@@ -183,31 +183,33 @@ Your action parameters are:
 - The API.AI (Dialogflow) object
 - The mongoose _session_ for this request
 
-Every action file must export a _Promise_ or an _Async Function (ES6)_.
+There is a main difference in actions. 
 
-#### Promise style
+If an action has *one* return value, it should be a **Function** or, if you need to do async requests, a **Promise / AsyncFunction**.
+
+Otherwise, if an action return multiple values *over time*, it should be a **Generator**.
+
+#### Promise/Async Function
 
 ```js
 exports.id = "hello.name";
-module.exports = function({ sessionId, result }, session) {
-  return new Promise((resolve, reject) => {
-    let { parameters: p, fulfillment } = result;
-    if (p.name) return reject("Invalid parameters");
-    resolve(`Hello ${p.name}!`);
-  });
+module.exports = async function({ queryResult }, session) {
+	let { parameters: p, queryText } = queryResult;
+	if (p.name == null) throw "Invalid parameters";
+	return `Hello ${p.name}!`;
 };
 ```
 
-#### Async style
+#### Generator Function
 
 ```js
-exports.id = "hello.name";
-module.exports = async function({ sessionId, result }, session) {
-  let { parameters: p, fulfillment } = result;
-  if (p.name == null) throw "Invalid parameters";
-  return {
-    speech: `Hello ${p.name}!`
-  };
+exports.id = "count.to";
+module.exports = async function*({ queryResult }, session) {
+	let { parameters: p, queryText } = queryResult;
+	for (let i = 1; i < Number(p.to); i++) {
+		await timeout(1000);
+		yield String(i);
+	}
 };
 ```
 
@@ -219,99 +221,65 @@ If an action name is `hello.name`, the final file must be `./src/actions/hello/n
 
 If an action name is `hello`, the final must be `./src/actions/hello/index.js`.
 
-If a promise can't be fullfilled in less than 5 seconds (this is the API.AI timeout),
-you have to resolve it immediately with the `feedback: true` key in `data`,
-postponing an eventual output to the `IOManager.handle`.
-
-```js
-exports.id = "hello.postponed";
-
-module.exports = async function({ sessionId, result }, session) {
-  let { parameters: p, fulfillment } = result;
-
-  doSomeLongWork(() => {
-    IOManager.handle({
-      fulfillment: {
-        speech: `Hello ${p.name}! (postponed)`
-      },
-      session: session
-    });
-  });
-
-  return {
-    speech: "Wait for me...",
-    data: {
-      feedback: true
-    }
-  };
-};
-```
-
 ### Action output payload
 
 The output payload of an action could have these attributes:
 
-| Attribute        | Description                                                                                   |
-| ---------------- | --------------------------------------------------------------------------------------------- |
-| `speech`         | String that could be spoken or written                                                        |
-| `data.error`     | Error object to send. See below for the structure                                             |
-| `data.language`  | Language override for speech. Default `session.getTranslateTo()`                              |
-| `data.replies[]` | List of choices that the user can select. See below for the structure                         |
-| `data.feedback`  | Boolean value indicating that this is temporary feedback until the real response will be sent |
-| `data.url`       | URL to send or to open                                                                        |
-| `data.music`     | Music to send or to play                                                                      |
-| `data.game`      | Game that can be handled via Telegram                                                         |
-| `data.video`     | Video to send or to show                                                                      |
-| `data.audio`     | Audio to send or to show                                                                      |
-| `data.image`     | Image to send or to show                                                                      |
-| `data.lyrics`    | Lyrics object of a song                                                                       |
-| `data.voice`     | Audio file to send or play via voice middlewares                                              |
+| Attribute              | Description                                                                                   |
+| ---------------------- | --------------------------------------------------------------------------------------------- |
+| `speech`               | String that could be spoken or written                                                        |
+| `payload.language`     | Language override for speech. Default `session.getTranslateTo()`                              |
+| `payload.replies[]`    | List of choices that the user can select. See below for the structure                         |
+| `payload.feedback`     | Boolean value indicating that this is temporary feedback until the real response will be sent |
+| `payload.includeVoice` | Boolean value indicating that an additional voice note along text should be sent              |
+| `payload.url`          | URL to send or to open                                                                        |
+| `payload.music`        | Music to send or to play                                                                      |
+| `payload.game`         | Game that can be handled via Telegram                                                         |
+| `payload.video`        | Video to send or to show                                                                      |
+| `payload.audio`        | Audio to send or to show                                                                      |
+| `payload.image`        | Image to send or to show                                                                      |
+| `payload.lyrics`       | Lyrics object of a song                                                                       |
+| `payload.voice`        | Audio file to send or play via voice middlewares                                              |
 
-#### `data.error`
-
-| Attribute | Description                                         |
-| --------- | --------------------------------------------------- |
-| `speech`  | String representing a speechable error for the user |
-
-#### `data.replies[]`
+#### `payload.replies[]`
 
 | Attribute | Description             |
 | --------- | ----------------------- |
 | `id`      | Unique ID of the choice |
 | `text`    | String for the choice   |
 
-#### `data.video`
+#### `payload.video`
 
 | Attribute | Description                    |
 | --------- | ------------------------------ |
 | `uri`     | Absolute URI of the media      |
 | `youtube` | Object containing Youtube data |
 
-#### `data.image`
+#### `payload.image`
 
 | Attribute | Description               |
 | --------- | ------------------------- |
 | `uri`     | Absolute URI of the media |
 
-#### `data.audio`
+#### `payload.audio`
 
 | Attribute | Description               |
 | --------- | ------------------------- |
 | `uri`     | Absolute URI of the media |
 
-#### `data.voice`
+#### `payload.voice`
 
 | Attribute | Description               |
 | --------- | ------------------------- |
 | `uri`     | Absolute URI of the media |
 
-#### `data.lyrics`
+#### `payload.lyrics`
 
 | Attribute | Description                 |
 | --------- | --------------------------- |
 | `text`    | Lyrics (string) of the song |
 
-#### `data.music`
+#### `payload.music`
 
 | Attribute          | Description                                                                           |
 | ------------------ | ------------------------------------------------------------------------------------- |

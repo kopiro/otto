@@ -1,1 +1,1 @@
-module.exports = apprequire('gcsr');
+module.exports = requireLibrary('gcsr');

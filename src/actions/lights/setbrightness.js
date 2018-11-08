@@ -2,14 +2,12 @@ exports.id = 'lights.setbrightness';
 
 const MIIO = apprequire('miio');
 
-module.exports = function({ sessionId, result }, session) {
-	return new Promise(async(resolve, reject) => {
-		let { parameters: p, fulfillment } = result;
-		resolve({
-			speech: fulfillment.fulfillment
-		});
+module.exports = async function({ queryResult }, session) {
+	let { parameters: p, fulfillmentText } = queryResult;
+	setTimeout(async () => {
 		const device = await MIIO.retrieveDefaultDevice();
 		if (!device.power) await device.setPower(true);
 		await device.setBrightness(parseInt(p.value, 10));
-	});
+	}, 0);
+	return fulfillmentText;
 };

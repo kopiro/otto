@@ -8,15 +8,13 @@ exports.config = {
 const _config = config.kid;
 
 const md5 = require('md5');
-const emitter = exports.emitter = new(require('events').EventEmitter)();
+const emitter = (exports.emitter = new (require('events')).EventEmitter());
 
 const Rec = apprequire('rec');
 const SR = requireInterface('sr');
 const TTS = requireInterface('tts');
 const Play = apprequire('play');
-const {
-	Detector
-} = require('snowboy');
+const Snowboy = requireOrNull('snowboy');
 const Hotword = apprequire('hotword');
 const URLManager = apprequire('urlmanager');
 
@@ -51,7 +49,7 @@ let queueIntv;
 let queueProcessingItem;
 
 /**
- * When the wake word has been detected, 
+ * When the wake word has been detected,
  * wait an amount of ticks defined by this constant
  * after that user should be prompted by voice
  */
@@ -63,7 +61,7 @@ const WAKE_WORD_TICKS = 6;
 let wakeWordTick = -1;
 
 /**
- * Number of seconds of silence after that 
+ * Number of seconds of silence after that
  * user should proununce wake word again to activate te SR
  */
 const EOR_MAX = 8;
@@ -105,9 +103,10 @@ function bindEvents() {
  * @param {string} text String to speak
  * @param {string} language Language of text
  */
-async function sendMessage(text, {
-	language = IOManager.session.getTranslateTo()
-}) {
+async function sendMessage(
+	text,
+	{ language = IOManager.session.getTranslateTo() }
+) {
 	const key = md5(text);
 	currentSendMessageKey = key;
 
@@ -127,7 +126,7 @@ async function sendMessage(text, {
 
 /**
  * Map event strings to procedures and process them
- * @param {string} event 
+ * @param {string} event
  */
 async function processEvent(event) {
 	switch (event) {
@@ -140,7 +139,7 @@ async function processEvent(event) {
 
 /**
  * Send an audio directly to the speaker
- * @param {Object} e 
+ * @param {Object} e
  */
 async function sendAudio(e) {
 	if (e.uri) {
@@ -150,7 +149,7 @@ async function sendAudio(e) {
 
 /**
  * Send an audio directly to the speaker
- * @param {Object} e 
+ * @param {Object} e
  */
 async function sendVoice(e) {
 	if (e.uri) {
@@ -160,7 +159,7 @@ async function sendVoice(e) {
 
 /**
  * Send a URL
- * @param {String} e 
+ * @param {String} e
  */
 async function sendURL(e) {
 	await URLManager.open(e);
@@ -182,43 +181,48 @@ function stopOutput() {
 }
 
 /**
- * Create and assign the SR stream by attaching 
+ * Create and assign the SR stream by attaching
  * the microphone input to GCP-SR stream
  */
-function createRecognizeStream(language = IOManager.session.getTranslateFrom()) {
+function createRecognizeStream(
+	language = IOManager.session.getTranslateFrom()
+) {
 	console.log(TAG, 'recognizing microphone stream');
 
-	recognizeStream = SR.createRecognizeStream({
-		language: language
-	}, (err, text) => {
-		destroyRecognizeStream();
+	recognizeStream = SR.createRecognizeStream(
+		{
+			language: language
+		},
+		(err, text) => {
+			destroyRecognizeStream();
 
-		// If erred, emit an error and exit
-		if (err) {
-			if (err.unrecognized) {
-				return;
-				// Do not re-enable, it causes continue loops
-				// return emitter.emit('input', {
-				// 	params: {
-				// 		event: 'io_SR_unrecognized'
-				// 	}
-				// });
+			// If erred, emit an error and exit
+			if (err) {
+				if (err.unrecognized) {
+					return;
+					// Do not re-enable, it causes continue loops
+					// return emitter.emit('input', {
+					// 	params: {
+					// 		event: 'io_SR_unrecognized'
+					// 	}
+					// });
+				}
+				return emitter.emit('input', {
+					error: err
+				});
 			}
-			return emitter.emit('input', {
-				error: err
+
+			// Otherwise, emit an INPUT message with the recognized text
+			emitter.emit('input', {
+				params: {
+					text: text
+				}
 			});
 		}
-
-		// Otherwise, emit an INPUT message with the recognized text
-		emitter.emit('input', {
-			params: {
-				text: text
-			}
-		});
-	});
+	);
 
 	// Every time user speaks, reset the EOR timer to the max
-	recognizeStream.on('data', (data) => {
+	recognizeStream.on('data', data => {
 		if (data.results.length > 0) {
 			eorTick = EOR_MAX;
 		}
@@ -257,7 +261,7 @@ async function registerGlobalSession() {
 }
 
 /**
- * Register the EOR setInterval ID 
+ * Register the EOR setInterval ID
  */
 function registerEORInterval() {
 	if (eorInterval) clearInterval(eorInterval);
@@ -331,7 +335,12 @@ function stop() {
  * Create and assign the hotword stream to listen for wake word
  */
 function createHotwordDetectorStream() {
-	hotwordDetectorStream = new Detector({
+	if (Snowboy == null) {
+		console.error(TAG, 'Unable to create hotword detector');
+		return;
+	}
+
+	hotwordDetectorStream = new Snowboy.Detector({
 		resource: __etcdir + '/common.res',
 		models: hotwordModels,
 		audioGain: 1.0
@@ -343,9 +352,9 @@ function createHotwordDetectorStream() {
 			case 'wake':
 				wake();
 				break;
-				// case 'stop':
-				// stop();
-				// break;
+			// case 'stop':
+			// stop();
+			// break;
 		}
 	});
 
@@ -356,7 +365,10 @@ function createHotwordDetectorStream() {
 		wakeWordTick--;
 		if (wakeWordTick === 0) {
 			wakeWordTick = -1;
-			console.info(TAG, `detected ${WAKE_WORD_TICKS} ticks of consecutive silence, prompt user`);
+			console.info(
+				TAG,
+				`detected ${WAKE_WORD_TICKS} ticks of consecutive silence, prompt user`
+			);
 			destroyRecognizeStream();
 			emitter.emit('input', {
 				params: {
@@ -367,11 +379,11 @@ function createHotwordDetectorStream() {
 	});
 
 	// When user shout, reset the wakeWordTick to restart the count
-	hotwordDetectorStream.on('sound', (buffer) => {
+	hotwordDetectorStream.on('sound', buffer => {
 		wakeWordTick = -1;
 	});
 
-	hotwordDetectorStream.on('error', (err) => {
+	hotwordDetectorStream.on('error', err => {
 		console.error(TAG, 'Hotword error', err);
 	});
 
@@ -397,7 +409,7 @@ function processEOR() {
 /**
  * Process the item in the output queue
  */
-async function processOutputQueue() {	
+async function processOutputQueue() {
 	// Do not process if no item in the queue
 	if (queueOutput.length === 0) return;
 
@@ -417,7 +429,7 @@ async function processOutputQueue() {
 	// Set the current queue item to process
 	queueProcessingItem = f;
 
-	// If there was a recognizer listener, stop it 
+	// If there was a recognizer listener, stop it
 	// to avoid that the bot listens to itself
 	destroyRecognizeStream();
 
@@ -426,39 +438,11 @@ async function processOutputQueue() {
 		fulfillment: f
 	});
 
-	// Process an event that have to occur before any other type
+	// Process a Text
 	try {
-		if (f.data.eventBeforeSpeech) {
-			await processEvent(f.data.eventBeforeSpeech);
-		}
-	} catch (err) {
-		console.error(TAG, err);
-	}
-
-	// Process an error
-	try {
-		if (f.data.error) {
-			if (f.data.error.speech) {
-				await sendMessage(f.data.error.speech, {
-					language: f.data.language
-				});
-			}
-			// If this is an admin session, 
-			// send further explation about the error to debug
-			if (session.is_admin === true) {
-				await sendMessage(String(f.data.error), 'en');
-			}
-		}
-	} catch (err) {
-		console.error(TAG, err);
-	}
-
-	// Process a speech
-	try {
-		const speech = f.speech || f.data.speech;
-		if (speech) {
-			await sendMessage(speech, {
-				language: f.data.language
+		if (f.fulfillmentText) {
+			await sendMessage(f.fulfillmentText, {
+				language: f.payload.language
 			});
 		}
 	} catch (err) {
@@ -467,8 +451,8 @@ async function processOutputQueue() {
 
 	// Process a URL
 	try {
-		if (f.data.url) {
-			await sendURL(f.data.url);
+		if (f.payload.url) {
+			await sendURL(f.payload.url);
 		}
 	} catch (err) {
 		console.error(TAG, err);
@@ -476,7 +460,7 @@ async function processOutputQueue() {
 
 	// Process a Music object
 	try {
-		if (f.data.music) {
+		if (f.payload.music) {
 			// TODO
 		}
 	} catch (err) {
@@ -485,7 +469,7 @@ async function processOutputQueue() {
 
 	// Process a Video object
 	try {
-		if (f.data.video) {
+		if (f.payload.video) {
 			// TODO
 		}
 	} catch (err) {
@@ -494,8 +478,8 @@ async function processOutputQueue() {
 
 	// Process an Audio Object
 	try {
-		if (f.data.audio) {
-			await sendAudio(f.data.audio);
+		if (f.payload.audio) {
+			await sendAudio(f.payload.audio);
 		}
 	} catch (err) {
 		console.error(TAG, err);
@@ -503,8 +487,8 @@ async function processOutputQueue() {
 
 	// Process a Voice object
 	try {
-		if (f.data.voice) {
-			await sendVoice(f.data.voice);
+		if (f.payload.voice) {
+			await sendVoice(f.payload.voice);
 		}
 	} catch (err) {
 		console.error(TAG, err);
@@ -512,7 +496,7 @@ async function processOutputQueue() {
 
 	// Process a Document Object
 	try {
-		if (f.data.document) {
+		if (f.payload.document) {
 			// TODO
 		}
 	} catch (err) {
@@ -521,17 +505,8 @@ async function processOutputQueue() {
 
 	// Process a Lyrics object
 	try {
-		if (f.data.lyrics) {
-			await sendMessage(f.data.lyrics.text, f.data.lyrics.language);
-		}
-	} catch (err) {
-		console.error(TAG, err);
-	}
-
-	// Process any final event
-	try {
-		if (f.data.eventAfterSpeech) {
-			await processEvent(f.data.eventAfterSpeech);
+		if (f.payload.lyrics) {
+			await sendMessage(f.payload.lyrics.text, f.payload.lyrics.language);
 		}
 	} catch (err) {
 		console.error(TAG, err);
@@ -541,16 +516,16 @@ async function processOutputQueue() {
 	queueProcessingItem = null;
 	queueOutput.shift();
 
-	if (f.data.feedback) {
+	if (f.payload.feedback) {
 		emitter.emit('thinking');
 	}
 
-	if (f.data.welcome) {
+	if (f.payload.welcome) {
 		emitter.emit('stop');
 	}
 
 	// If that item is not a feedback|welcome, start the recognizer phase again
-	if (!f.data.feedback && !f.data.welcome && queueOutput.length === 0) {
+	if (!f.payload.feedback && !f.payload.welcome && queueOutput.length === 0) {
 		eorTick = EOR_MAX;
 		createRecognizeStream();
 	}
@@ -559,7 +534,7 @@ async function processOutputQueue() {
 /**
  * Start the session
  */
-exports.startInput = async function () {
+exports.startInput = async function() {
 	console.debug(TAG, 'start input');
 
 	// Ensure session is present
@@ -568,7 +543,7 @@ exports.startInput = async function () {
 	// Preventive stop any other output
 	stopOutput();
 
-	// Emit the initial event to inform 
+	// Emit the initial event to inform
 	// the user that the bot is ready
 	// emitter.emit('input', {
 	// 	params: {
@@ -596,19 +571,22 @@ exports.startInput = async function () {
 /**
  * Stop the mic
  */
-exports.stopInput = async function () {
+exports.stopInput = async function() {
 	Rec.stop();
 };
 
 /**
  * Output an item
- * @param {Object} f 
+ * @param {Object} f
  */
-exports.output = async function (f) {
+exports.output = async function(f) {
 	console.debug(TAG, 'output');
 	console.dir(f, {
 		depth: 10
 	});
+
+	// Ensure session is present
+	await registerGlobalSession();
 
 	// Just push onto the queue, and let the queue process
 	queueOutput.push(f);

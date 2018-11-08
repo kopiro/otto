@@ -1,82 +1,165 @@
-const TAG = "AI";
+const TAG = 'AI';
 
-const _ = require("underscore");
-const deepExtend = require("deep-extend");
-const Translator = apprequire("translator");
-const Server = apprequire("server");
+const _ = require('underscore');
+const Server = apprequire('server');
+const Translator = apprequire('translator');
 
-const _config = config.apiai;
+const _config = config.dialogflow;
+const dialogflow = require('dialogflow');
 
-const client = require("apiai")(_config.token);
-
-// TODO: remember what this shit does
-function getEntities(session) {
-	let entities = [];
-	entities = entities.concat([{
-		name: "chromecast",
-		entries: _.map(session.settings.chromecasts || [], (value, key) => {
-			return {
-				value: key,
-				synonyms: [value.name]
-			};
-		})
-	}]);
-	return entities;
-}
+const dfSessionClient = new dialogflow.SessionsClient();
+const dfContextsClient = new dialogflow.ContextsClient();
 
 /**
- * Sanitize a fulfillment by ensuring that it could be sent to a parser without errors
+ * Clean fulfillment to be suitable for webhook
  * @param {Object} fulfillment
+ * @returns
  */
-function fulfillmentSanitizer(fulfillment) {
-	if (fulfillment == null) return null;
-
-	// Even if is a string
-	if (_.isString(fulfillment)) {
-		fulfillment = {
-			speech: fulfillment
-		};
+function cleanFulfillmentForWebhook(fulfillment, session) {
+	if (fulfillment.outputContexts) {
+		fulfillment.outputContexts = fulfillment.outputContexts.map(c => {
+			if (!/projects/.test(c.name)) {
+				c.name = dfContextsClient.contextPath(
+					_config.projectId,
+					session.id,
+					c.name
+				);
+			}
+			return c;
+		});
 	}
-	// Ensure .data
-	fulfillment.data = fulfillment.data || {};
 	return fulfillment;
 }
 
 /**
- * Transform a Fulfillment by making some edits based on the current session settings
- * @param  {Object} fulfillment Fulfillment object
- * @param  {Object} session Session
- * @return {Object}
+ * Get the session path suitable for DialogFlow
+ * @param {String} sessionId
+ * @returns
  */
-async function fulfillmentTransformer(fulfillment, session) {
-	if (fulfillment == null) return null;
+function getDFSessionPath(sessionId) {
+	return dfSessionClient.sessionPath(_config.projectId, sessionId);
+}
 
-	fulfillment = fulfillmentSanitizer(fulfillment);
+/**
+ * Set DialogFlow Context
+ *
+ * @param {*} sessionId
+ */
+function setDFContext(sessionId, context) {
+	context.name = dfContextsClient.contextPath(
+		_config.projectId,
+		sessionId,
+		context.name
+	);
 
-	// Here, merge data with payload in case
-	// fulfillment is direct without an action resolution
-	_.defaults(fulfillment.data, fulfillment.payload);
-	fulfillment.localTransform = true;
+	return dfContextsClient.createContext({
+		parent: getDFSessionPath(sessionId),
+		context: context
+	});
+}
 
-	// Always translate fulfillment speech in the user language
-	if (!_.isEmpty(fulfillment.speech)) {
-		fulfillment.speech = await Translator.translate(
-			fulfillment.speech,
-			session.getTranslateTo()
-		);
+/**
+ * Transform an error into a fulfillment
+ * @param {Object} body
+ * @param {Error} err
+ * @returns
+ */
+function actionErrorTransformer(body, err) {
+	let fulfillment = {};
+
+	if (typeof err === 'string') {
+		// If an error occurs, try to intercept this error
+		// in the fulfillmentMessages that comes from DialogFlow
+		fulfillment.fulfillmentText =
+			extractWithPattern(
+				body.queryResult.fulfillmentMessages,
+				`[].payload.errors.${err}`
+			) ||
+			extractWithPattern(
+				body.queryResult.fulfillmentMessages,
+				`[].payload.error.${err}`
+			) ||
+			err;
+	} else if (err.message) {
+		// Only used for debugging purposes, TODO remove
+		fulfillment.fulfillmentText = 'ERROR: ' + err.message;
 	}
 
-	// Always translate fulfillment error in the user language
-	if (fulfillment.data != null && fulfillment.data.error != null) {
-		if (!_.isEmpty(fulfillment.data.error.speech)) {
-			fulfillment.data.error.speech = await Translator.translate(
-				fulfillment.data.error.speech,
-				session.getTranslateTo()
-			);
+	// Add anyway the complete error
+	fulfillment.payload = { error: err };
+
+	return fulfillment;
+}
+
+/**
+ * Transform the result of an action to a fulfillment.
+ * It merges the input body with the action result
+ * @param {Object} body
+ * @param {Object} actionResult
+ * @param {Object} session
+ * @param {Boolean} fromWebhook
+ * @returns
+ */
+async function actionResultToFulfillment(
+	body,
+	actionResult,
+	session,
+	fromWebhook = false
+) {
+	let fulfillment = null;
+
+	// If an action return a string, wrap into an object
+	if (_.isString(actionResult)) {
+		actionResult = {
+			fulfillmentText: actionResult
+		};
+	}
+
+	fulfillment = actionResult;
+
+	// Set context if not coming from webhooks
+	if (fromWebhook === false) {
+		if (fulfillment.outputContexts != null) {
+			for (let c of fulfillment.outputContexts) {
+				console.info(
+					TAG,
+					'Setting context manually because we are not in a webhook',
+					session.id,
+					c
+				);
+				try {
+					await setDFContext(session.id, c);
+				} catch (err) {}
+			}
 		}
 	}
 
 	return fulfillment;
+}
+
+/**
+ * Accept a Generation action and resolve all outputs
+ * @param {Object} body
+ * @param {AsyncGenerator} generator
+ * @param {Session} session
+ */
+async function generatorResolver(body, generator, session) {
+	console.info(TAG, 'Using generator resolver');
+	try {
+		for await (let fulfillment of generator) {
+			fulfillment = await actionResultToFulfillment(
+				body,
+				fulfillment,
+				session,
+				false
+			);
+			await IOManager.output(fulfillment, session);
+		}
+	} catch (err) {
+		console.error(TAG, 'error while executing action generator', err);
+		let fulfillment = actionErrorTransformer(body, err);
+		await IOManager.output(fulfillment, session);
+	}
 }
 
 /**
@@ -84,71 +167,61 @@ async function fulfillmentTransformer(fulfillment, session) {
  * @param {Object} body Payload from DialogFlow
  * @param {*} session  Session
  */
-async function fulfillmentFromBody(body, session) {
-	return new Promise(async resolve => {
-		let fulfillment = null;
+async function actionResolver(body, session, fromWebhook = false) {
+	const actionName = body.queryResult.action;
+	console.info(TAG, `calling action <${actionName}>`);
 
-		// Start a timeout to ensure that the promise
-		// will be anyway triggered, also with an error
-		let action_timeout = setTimeout(async () => {
-			resolve(
-				await fulfillmentTransformer({
-						data: {
-							error: {
-								timeout: true
-							}
-						}
-					},
-					session
-				)
-			);
-		}, 1000 * _config.actionTimeout);
+	let fulfillment = null;
 
-		try {
-			console.info(TAG, `calling action ${body.result.action}`);
-
-			// Actual call to the Action
-			const foo = Actions.list[body.result.action];
-			if (foo == null) {
-				throw new Error("Invalid action name");
-			}
-
-			fulfillment = await foo()(body, session);
-		} catch (err) {
-			if (err.fulfillment) {
-				// Here is a bit of an hack to intercept a fulfillment that is into an error,
-				// maybe thrown from an actions_helper
-				fulfillment = err.fulfillment;
-			} else {
-				// instead, if only a simple error is thrown,
-				// just wrap into a standard structure
-				fulfillment = {
-					data: {
-						error: err
-					}
-				};
-			}
+	try {
+		// Actual call to the Action
+		const actionToCall = Actions.list[actionName];
+		if (actionToCall == null) {
+			throw new Error(`Invalid action name: ${actionName}`);
 		}
 
-		clearTimeout(action_timeout);
+		fulfillment = await actionToCall()(body, session);
 
-		// Pass the fulfillment to the transformer in final instance
-		resolve(await fulfillmentTransformer(fulfillment, session));
-	});
+		// Now check if this action is a Promise or a Generator
+		if (typeof fulfillment.next === 'function') {
+			generatorResolver(body, fulfillment, session);
+			return {
+				payload: {
+					handledByGenerator: true
+				}
+			};
+		}
+
+		fulfillment = await actionResultToFulfillment(
+			body,
+			fulfillment,
+			session,
+			fromWebhook
+		);
+	} catch (err) {
+		console.error(TAG, 'error while executing action:', err);
+		fulfillment = await actionErrorTransformer(body, err);
+	}
+
+	return fulfillment;
 }
 
 /**
  * Transform a text request to make it compatible and translating it
- * @param {String} text Sentemce
+ * @param {String} text Sentence
  * @param {Object} session Session
  */
 async function textRequestTransformer(text, session) {
-	text = text.replace(config.aiNameRegex, ""); // Remove the AI name in the text
-	text = await Translator.translate(
-		text,
-		config.language,
-		session.getTranslateTo()
-	);
+	// Remove the AI name in the text
+	text = text.replace(config.aiNameRegex, '');
+	// Translate if needed
+	if (config.language != session.getTranslateTo()) {
+		text = await Translator.translate(
+			text,
+			config.language,
+			session.getTranslateTo()
+		);
+	}
 	return text;
 }
 
@@ -158,97 +231,86 @@ async function textRequestTransformer(text, session) {
  * @param {Object} session Session
  */
 async function eventRequestTransformer(event, session) {
-	if (_.isString(event)) {
-		event = {
-			name: event
-		};
-	}
 	return event;
 }
 
 /**
- * Parse the Dialogflow body and decide what to do
+ * Parse the DialogFlow body and decide what to do
  * @param {Object} body Payload
  * @param {Object} session Session
  */
-async function bodyParser(body, session) {
-	let f = {
-		payload: {}
-	};
-
-	// Parse messages of the body and deep extend every message in the fulfillment
-	for (let m of body.result.fulfillment.messages || []) {
-		delete m.type;
-		deepExtend(f, m);
-	}
-
-	// If payload contains __random__, pick one of this array
-	if (f.payload.__random__) f.payload = rand(f.payload.__random__);
-
-	// Assign to body
-	body.result.fulfillment = f;
-
-	// If an intentId is returned, could auto resolve or call a promise
-	if (body.result.metadata.intentId != null) {
-		if (
-			_.isEmpty(body.result.action) === false &&
-			body.result.actionIncomplete !== true
-		) {
-			// If the action is incomplete, call the action resolver
-			// that will also transform the fulfillment
-			body.result.fulfillment = await fulfillmentFromBody(body, session);
-		} else {
-			// Otherwise, just transform the fulfillment
-			body.result.fulfillment = await fulfillmentTransformer(
-				body.result.fulfillment,
-				session
-			);
+async function bodyParser(body, session, fromWebhook = false) {
+	if (body.webhookStatus != null) {
+		if (body.webhookStatus.code > 0) {
+			return {
+				error: body.webhookStatus
+			};
 		}
 
-		return body.result.fulfillment;
+		// console.error('Body :', JSON.stringify(body, null, 10));
+
+		// When coming from webhook, unwrap everything
+		body.queryResult.parameters = structProtoToJson(
+			body.queryResult.parameters
+		);
+		if (body.queryResult.webhookPayload != null) {
+			body.queryResult.payload = structProtoToJson(
+				body.queryResult.webhookPayload
+			);
+			delete body.queryResult.webhookPayload;
+		}
+		body.queryResult.payload = body.queryResult.payload || {};
+
+		return body.queryResult;
+	}
+
+	// If an intent is returned, could auto resolve or call a promise
+	if (fromWebhook === false) {
+		// When coming NOT from webhook,
+		// parameters, fulfillmentMessages and payload are wrapped
+		// in a very complicated STRUCT_PROTO
+		// that is pretty unusable, so we just un-wrap
+		body.queryResult.parameters = structProtoToJson(
+			body.queryResult.parameters
+		);
+		body.queryResult.fulfillmentMessages = body.queryResult.fulfillmentMessages.map(
+			e => {
+				return {
+					payload: structProtoToJson(e.payload)
+				};
+			}
+		);
+		body.queryResult.payload = structProtoToJson(body.queryResult.payload);
+
+		console.warn(
+			TAG,
+			'Parsing body locally, this could be intentional, but check your intent'
+		);
+	}
+
+	if (body.queryResult.action) {
+		console.info(TAG, 'Using action resolver');
+		return await actionResolver(body, session, fromWebhook);
+	}
+
+	// Otherwise, check if at least an intent is match and direct return that fulfillment
+	if (body.queryResult.intent) {
+		console.info(TAG, 'Using queryResult');
+		return {
+			fulfillmentText: body.queryResult.fulfillmentText,
+			outputContexts: body.queryResult.outputContexts,
+			payload: body.queryResult.payload
+		};
 	}
 
 	// If not intentId is returned, this is a unhandled DialogFlow intent
 	// So make another event request to inform user (ai_unhandled)
-	return await eventRequest("ai_unhandled", session);
-}
-
-/**
- * Function to call when Dialogflow respond
- * @param {Object} body Body from DialogFlow
- * @param {Object} session Session
- */
-async function onRequestComplete(body, session) {
-	console.info(TAG, "response");
-	console.dir(body, {
-		depth: 3
-	});
-
-	let fulfillment = null;
-
-	// If this response is already fullfilld by webhook, do not call action locally but just resolve
-	if (
-		body.result.metadata.webhookUsed === "true" &&
-		body.status.errorType !== "partial_content"
-	) {
-		delete body.result.fulfillment.messages;
-		return fulfillmentSanitizer(body.result.fulfillment);
-	}
-
-	// Othwerwise, call the action locally
-	console.warn(TAG, "webhook not used or failed, solving locally");
-	fulfillment = await bodyParser(body, session);
-	return fulfillment;
-}
-
-/**
- * Get the arguments for Dialogflow request
- * @param {Object} session Session
- */
-function getRequestArgs(session) {
+	console.info(TAG, 'Using ai_unhandled followupEventInput');
 	return {
-		sessionId: session._id,
-		entities: getEntities(session)
+		followupEventInput: {
+			name: 'ai_unhandled',
+			languageCode: session.getTranslateTo()
+		}
 	};
 }
 
@@ -258,65 +320,67 @@ function getRequestArgs(session) {
  * @param {Object} session Session
  */
 async function textRequest(text, session) {
-	return new Promise(async (resolve, reject) => {
-		console.info(TAG, "text request:", text);
+	console.info(TAG, 'text request:', text);
 
-		// Transform the text to eventually translate it
-		text = await textRequestTransformer(text, session);
+	// Transform the text to eventually translate it
+	text = await textRequestTransformer(text, session);
 
-		// Instantiate the Dialogflow request
-		const request = client.textRequest(text, getRequestArgs(session));
-		request.on("response", async body => {
-			let r = await onRequestComplete(body, session);
-			resolve(r);
-		});
-		request.on("error", reject);
-		request.end();
+	// Instantiate the DialogFlow request
+	const responses = await dfSessionClient.detectIntent({
+		session: getDFSessionPath(session.id),
+		queryInput: {
+			text: {
+				text: text,
+				languageCode: session.getTranslateFrom()
+			}
+		}
 	});
+	return bodyParser(responses[0], session);
 }
 
 /**
- * Make an event request to Dialogflow and let the flow begin
- * @param {String} event Event name
+ * Make an event request to DialogFlow and let the flow begin
+ * @param {String} text Sentence
  * @param {Object} session Session
  */
 async function eventRequest(event, session) {
-	return new Promise(async (resolve, reject) => {
-		console.info(TAG, "event request:", event);
+	console.info(TAG, 'event request:', event);
 
-		event = await eventRequestTransformer(event, session);
+	// Transform the text to eventually translate it
+	event = await eventRequestTransformer(event, session);
 
-		// Instantiate the Dialogflow request
-		const request = client.eventRequest(event, getRequestArgs(session));
-		request.on("response", async body => {
-			let r = await onRequestComplete(body, session);
-			resolve(r);
-		});
-		request.on("error", reject);
-		request.end();
+	// Instantiate the DialogFlow request
+	const responses = await dfSessionClient.detectIntent({
+		session: getDFSessionPath(session.id),
+		queryInput: {
+			event: {
+				name: event,
+				languageCode: session.getTranslateFrom()
+			}
+		}
 	});
+	return bodyParser(responses[0], session);
 }
 
 /**
  * Attach the AI to the Server
  */
-function attachToServer() {
-	Server.routerApi.post("/fulfillment", async (req, res) => {
+exports.attachToServer = function() {
+	Server.routerApi.post('/fulfillment', async (req, res) => {
 		if (req.body == null) {
 			return res.json({
 				data: {
-					error: "Empty body"
+					error: 'Empty body'
 				}
 			});
 		}
 
-		console.info(TAG, "webhook request");
+		console.info(TAG, '[WEBHOOK] received request');
 		console.dir(req.body, {
-			depth: 3
+			depth: 10
 		});
 
-		const body = req.body;
-		const sessionId = body.sessionId;
+		const sessionId = req.body.session.split('/').pop();
 
 		// From AWH can came any session ID, so ensure it exists on our DB
 		let session = await IOManager.getSession(sessionId);
@@ -325,31 +389,19 @@ function attachToServer() {
 			session = new Data.Session({
 				_id: sessionId
 			});
-			session.save();
+			await session.save();
 		}
 
-		try {
-			const fulfillment = await bodyParser(body, session);
-			fulfillment.data.remoteTransform = true;
+		let fulfillment = await bodyParser(req.body, session, true);
+		fulfillment = await IOManager.fulfillmentTransformer(fulfillment, session);
+		fulfillment = cleanFulfillmentForWebhook(fulfillment, session);
 
-			console.info(TAG, "webhook fulfillment");
-			console.dir(fulfillment, {
-				depth: 3
-			});
+		console.info(TAG, '[WEBHOOK] output fulfillment');
+		console.log(JSON.stringify(fulfillment));
 
-			res.json(fulfillment);
-		} catch (ex) {
-			res.json({
-				data: {
-					error: ex
-				}
-			});
-		}
+		res.json(fulfillment);
 	});
-}
+};
 
-exports.fulfillmentTransformer = fulfillmentTransformer;
-exports.fulfillmentFromBody = fulfillmentFromBody;
 exports.textRequest = textRequest;
 exports.eventRequest = eventRequest;
-exports.attachToServer = attachToServer;
