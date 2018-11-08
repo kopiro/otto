@@ -496,7 +496,7 @@ async function processQueue() {
 	qitem.remove();
 
 	// Handle this item
-	exports.handle(qitem);
+	exports.output(qitem.fulfillment, qitem.session);
 
 	return qitem;
 }

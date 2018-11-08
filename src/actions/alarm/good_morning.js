@@ -46,7 +46,7 @@ module.exports = async function*({ queryResult }, session) {
 
 		yield {
 			fulfillmentText: question.text,
-			outputContext: [
+			outputContexts: [
 				{
 					name: CONTEXT_QUESTION,
 					lifespanCount: 1
