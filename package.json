@@ -4,7 +4,6 @@
 	"description": "Simple AI for Otto",
 	"main": "index.js",
 	"scripts": {
-		"env": "export GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/keys/gcloud.json",
 		"build:client": "cd web-client && npm run build",
 		"build:server": "",
 		"build": "npm run build:client",
