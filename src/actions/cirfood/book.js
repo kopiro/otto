@@ -151,11 +151,6 @@ module.exports = async function({ queryResult }, session) {
 	// We reached booking.length > COURSES_MAX, then finalize booking
 	await e.client.submitCurrentBooking();
 
-	session.settings.cirfood_bookings = session.settings.cirfood_bookings || {};
-	session.settings.cirfood_bookings[e.date] = e.booking;
-	session.markModified('settings');
-	session.save();
-
 	delete pendingQueue[session.id];
 
 	return fulfillmentText;
