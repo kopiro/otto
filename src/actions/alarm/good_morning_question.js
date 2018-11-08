@@ -1,5 +1,7 @@
 exports.id = 'alarm.good_morning_question';
 
+const CONTEXT_QUESTION = 'good_morning_question';
+
 module.exports = async function({ queryResult }, session) {
 	let { parameters: p, fulfillmentMessages, queryText } = queryResult;
 
@@ -11,7 +13,7 @@ module.exports = async function({ queryResult }, session) {
 		// Zerofy contexts
 		e.outputContexts = [
 			{
-				name: 'good_morning_question',
+				name: CONTEXT_QUESTION,
 				lifespanCount: 0
 			}
 		];
@@ -20,5 +22,11 @@ module.exports = async function({ queryResult }, session) {
 
 	const e = extractWithPattern(fulfillmentMessages, '[].payload.wrong');
 	e.fulfillmentText = e.fulfillmentText.replace('$_question', question);
+	e.outputContexts = [
+		{
+			name: CONTEXT_QUESTION,
+			lifespanCount: 1
+		}
+	];
 	return e;
 };
