@@ -129,28 +129,28 @@ exports.output = async function(f, session) {
 				if (f.payload.music.spotify.track) {
 					await sendMessage(
 						chat_id,
-						f.payload.music.spotify.track.share_url,
+						f.payload.music.spotify.track.external_urls.spotify,
 						bot_opt
 					);
 				}
 				if (f.payload.music.spotify.album) {
 					await sendMessage(
 						chat_id,
-						f.payload.music.spotify.album.share_url,
+						f.payload.music.spotify.album.external_urls.spotify,
 						bot_opt
 					);
 				}
 				if (f.payload.music.spotify.artist) {
 					await sendMessage(
 						chat_id,
-						f.payload.music.spotify.artist.share_url,
+						f.payload.music.spotify.artist.external_urls.spotify,
 						bot_opt
 					);
 				}
 				if (f.payload.music.spotify.playlist) {
 					await sendMessage(
 						chat_id,
-						f.payload.music.spotify.playlist.share_url,
+						f.payload.music.spotify.playlist.external_urls.spotify,
 						bot_opt
 					);
 				}

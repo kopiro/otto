@@ -1,4 +1,10 @@
-require('../boot.js');
+require('../boot');
+const { promisify } = require('util');
+const SE = requireLibrary('torrent/se');
+const Transmission = requireLibrary('torrent/transmission');
 
-const se = require('../src/lib/torrent/se/tntvillage');
-se.search('chuck s01');
+(async () => {
+	const elements = await SE.query('chuck s01');
+	console.log('elements :', elements);
+	Transmission.addUrl(elements[0].magnet);
+})();

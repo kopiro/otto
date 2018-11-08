@@ -1,6 +1,6 @@
 const TAG = 'IOManager';
 
-const _ = require('underscore');
+const Translator = apprequire('translator');
 
 const configuredDriversId = [];
 const enabledDrivers = {};
@@ -11,14 +11,50 @@ const emitter = (exports.emitter = new (require('events')).EventEmitter());
 
 exports.SESSION_SEPARATOR = '-';
 
-function cleanFulfillmentForOutput(queryResult) {
+/**
+ * Transform a Fulfillment by making some edits based on the current session settings
+ * @param  {Object} fulfillment Fulfillment object
+ * @param  {Object} session Session
+ * @return {Object}
+ */
+async function fulfillmentTransformer(fulfillment, session) {
+	fulfillment.payload = fulfillment.payload || {};
+	if (fulfillment.payload.transformed) {
+		return fulfillment;
+	}
+
+	// Always translate fulfillment speech in the user language
+	if (fulfillment.fulfillmentText) {
+		if (session.getTranslateTo() !== config.language) {
+			console.log(
+				TAG,
+				`Translating text (${
+					fulfillment.fulfillmentText
+				}) to language: ${session.getTranslateTo()}`
+			);
+			fulfillment.fulfillmentText = await Translator.translate(
+				fulfillment.fulfillmentText,
+				session.getTranslateTo()
+			);
+			fulfillment.payload.translatedTo = session.getTranslateTo();
+		}
+	}
+
+	fulfillment.payload.transformed = true;
+	return fulfillment;
+}
+
+/**
+ * Clean fulfillment for output
+ * @param {*} fulfillment
+ * @returns
+ */
+function cleanFulfillmentForOutput(fulfillment) {
 	return {
-		queryText: queryResult.queryText,
-		fulfillmentText: queryResult.fulfillmentText,
-		error: queryResult.error,
-		payload: queryResult.webhookPayload
-			? structProtoToJson(queryResult.webhookPayload)
-			: queryResult.payload || {}
+		queryText: fulfillment.queryText,
+		fulfillmentText: fulfillment.fulfillmentText,
+		error: fulfillment.error,
+		payload: fulfillment.payload
 	};
 }
 
@@ -52,36 +88,47 @@ exports.eventToAllIO = function(name, data) {
  * @param {Object} e
  * @param {Object} e.session Session object
  * @param {Object} e.params Input params object
- * @param {Object} e.fulfillment A Dialogflow direct fulfillment
- * @param {String} e.params.text A text query to parse over Dialogflow
- * @param {Object} e.params.event An event query to parse over Dialogflow
+ * @param {Object} e.fulfillment A DialogFlow direct fulfillment
+ * @param {String} e.params.text A text query to parse over DialogFlow
+ * @param {Object} e.params.event An event query to parse over DialogFlow
  */
-exports.handle = async function({ session, params = {}, fulfillment = null }) {
+exports.output = async function(fulfillment, session) {
 	session = session || IOManager.session;
 	let driverStr = session.io_driver;
 
-	console.info(TAG, 'handle');
-	console.dir({
-		session,
-		params,
-		fulfillment
-	});
+	if (fulfillment == null) {
+		console.warn(
+			'Do not output to driver because fulfillment is null - this could be intentional, but check your action'
+		);
+		return;
+	}
+
+	// Transform and Clean fulfillment
+	fulfillment = await fulfillmentTransformer(fulfillment, session);
+	fulfillment = cleanFulfillmentForOutput(fulfillment);
+
+	// If this fulfillment has been handled by a generator, simply skip
+	if (fulfillment.payload.handledByGenerator) {
+		console.warn(TAG, 'Skipping output because is handled by generator');
+		return;
+	}
+
+	console.info(TAG, 'output');
+	console.dir(fulfillment);
 
 	// If this driver is not up & running for this configuration,
 	// the item could be handled by another platform that has that driver configured,
 	// so we'll enqueue it.
 	if (false === isIdDriverUp(session.io_id)) {
-		console.info(TAG, 'putting in IO queue', {
+		console.info(TAG, 'putting in IO queue because driver is not UP', {
 			session,
-			params,
 			fulfillment
 		});
 
 		await new Data.IOQueue({
 			io_id: session.io_id,
 			session: session._id,
-			fulfillment: fulfillment,
-			params: params
+			fulfillment: fulfillment
 		}).save();
 
 		return {
@@ -99,74 +146,37 @@ exports.handle = async function({ session, params = {}, fulfillment = null }) {
 		);
 	}
 
-	// Get the driver object
-	const driver = enabledDrivers[driverStr];
-
-	// Only one of those can be fulfilled, in this order
-	if (fulfillment) {
-		// Direct fulfillment
-	} else if (params) {
-		if (params.text) {
-			// Interrogate AI to get fulfillment by textRequest
-			exports.writeLogForSession(params.text, session);
-			fulfillment = await AI.textRequest(params.text, session);
-		} else if (params.event) {
-			// Interrogate AI to get fulfillment by eventRequest
-			fulfillment = await AI.eventRequest(params.event, session);
-		} else {
-			console.warn('Neither { text, event } in params is not null');
-		}
-	}
-
-	if (fulfillment == null) {
-		console.warn(
-			'Do not output to driver because fulfillment is null - this could be intentional'
-		);
-		return;
-	}
-
-	// Clean
-	fulfillment = cleanFulfillmentForOutput(fulfillment);
-
-	// If this fulfillment has been handled by a generator, simply skip
-	if (fulfillment.payload.handledByGenerator) {
-		console.warn(TAG, 'Skipping output because is handled by generator');
-		return;
-	}
-
 	// Call the output
-	await driver.output(fulfillment, session);
+	await enabledDrivers[driverStr].output(fulfillment, session);
 
 	// Process output accessories:
 	// An accessory can:
 	// - handle a kind of output, process it and blocking the next accessory
 	// - handle a kind of output, process it but don't block the next accessory
 	// - do not handle and forward to next accessory
-	(async () => {
-		for (let accessory of enabledAccesories[driverStr] || []) {
-			let handleType = accessory.canHandleOutput(fulfillment, session);
+	for (let accessory of enabledAccesories[driverStr] || []) {
+		let handleType = accessory.canHandleOutput(fulfillment, session);
 
-			switch (handleType) {
-				case IOManager.CAN_HANDLE_OUTPUT.YES_AND_BREAK:
-					console.info(
-						TAG,
-						`forwarding output to <${accessory.id}> with YES_AND_BREAK`
-					);
-					await accessory.output(fulfillment, session);
-					return;
-				case IOManager.CAN_HANDLE_OUTPUT.YES_AND_CONTINUE:
-					console.info(
-						TAG,
-						`forwarding output to <${accessory.id}> with YES_AND_CONTINUE`
-					);
-					await accessory.output(fulfillment, session);
-					break;
-				case IOManager.CAN_HANDLE_OUTPUT.NO:
-				default:
-					break;
-			}
+		switch (handleType) {
+			case exports.CAN_HANDLE_OUTPUT.YES_AND_BREAK:
+				console.info(
+					TAG,
+					`forwarding output to <${accessory.id}> with YES_AND_BREAK`
+				);
+				await accessory.output(fulfillment, session);
+				return;
+			case exports.CAN_HANDLE_OUTPUT.YES_AND_CONTINUE:
+				console.info(
+					TAG,
+					`forwarding output to <${accessory.id}> with YES_AND_CONTINUE`
+				);
+				await accessory.output(fulfillment, session);
+				break;
+			case exports.CAN_HANDLE_OUTPUT.NO:
+			default:
+				break;
 		}
-	})();
+	}
 };
 
 /**
@@ -174,12 +184,23 @@ exports.handle = async function({ session, params = {}, fulfillment = null }) {
  * @param {Object} fulfillment Fulfillment payload
  * @param {Object} session Session object
  */
-exports.output = async function(fulfillment, session) {
-	console.warn(TAG, 'direct output');
-	return await exports.handle({
-		fulfillment: fulfillment,
-		session: session
-	});
+exports.outputByInputParams = async function(params, session) {
+	let fulfillment = null;
+
+	console.info(TAG, 'output by input params', params);
+
+	if (params.text) {
+		// Interrogate AI to get fulfillment by textRequest
+		exports.writeLogForSession(params.text, session);
+		fulfillment = await AI.textRequest(params.text, session);
+	} else if (params.event) {
+		// Interrogate AI to get fulfillment by eventRequest
+		fulfillment = await AI.eventRequest(params.event, session);
+	} else {
+		console.warn('Neither { text, event } in params is not null');
+	}
+
+	return exports.output(fulfillment, session);
 };
 
 /**
@@ -208,24 +229,9 @@ function configureDriver(driverStr) {
 
 	const driver = enabledDrivers[driverStr];
 
-	// Link Driver.Input to IOManager.Handle --> Driver.Output
-	driver.emitter.on('input', async e => {
-		console.info(TAG, `received input from driver <${driverStr}>`);
-		console.dir(e);
-
-		try {
-			// If input has the error key, throw again to handle in the catch
-			if (e.error) throw e.error;
-			await exports.handle(e);
-		} catch (ex) {
-			console.error(TAG, 'driver handle error', ex);
-			e.fulfillment = {
-				data: {
-					error: ex
-				}
-			};
-			await exports.handle(e);
-		}
+	driver.emitter.on('input', e => {
+		console.info(TAG, `received input from session <${e.session._id}>`);
+		exports.outputByInputParams(e.params, e.session);
 	});
 
 	configureAccessories(driverStr);
@@ -515,3 +521,5 @@ exports.start = function() {
 	}
 	loadListeners();
 };
+
+exports.fulfillmentTransformer = fulfillmentTransformer;

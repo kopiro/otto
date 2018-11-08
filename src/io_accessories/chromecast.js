@@ -1,8 +1,8 @@
 exports.id = 'chromecast';
 
-const ChromeCast = apprequire('chromecast');
+const ChromeCast = requireLibrary('chromecast');
 
-const Spotify = apprequire('spotify');
+const Spotify = requireLibrary('spotify');
 
 const YoutubeCastClient = require('youtube-castv2-client').Youtube;
 const SpotifyCastClient = require('spotify-castv2-client').Spotify;

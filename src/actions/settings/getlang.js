@@ -3,16 +3,13 @@ exports.id = 'settings.switchlang';
 const _ = require('underscore');
 const Translator = apprequire('translator');
 
-module.exports = function({ sessionId, result }, session) {
-	return new Promise((resolve, reject) => {
-		let { parameters: p, fulfillment } = result;
+module.exports = async function({ queryResult }, session) {
+	let { parameters: p, fulfillmentText } = queryResult;
 
-		const languages = await Translator.getLanguages(config.language);
-		const from = _.findWhere(languages, { code: session.getTranslateFrom() }).name;
-		const to = _.findWhere(languages, { code: session.getTranslateTo() }).name;
+	const languages = await Translator.getLanguages(config.language);
+	const from = _.findWhere(languages, { code: session.getTranslateFrom() })
+		.name;
+	const to = _.findWhere(languages, { code: session.getTranslateTo() }).name;
 
-		resolve({
-			speech: `Ti sto parlando in ${to}, tu mi parli in ${from}`
-		});
-	});
+	return fulfillmentText.replace('$_from', from).replace('$_to', to);
 };

@@ -12,7 +12,7 @@ module.exports = async function({ queryResult }, session) {
 		e.outputContexts = [
 			{
 				name: 'good_morning_question',
-				lifespan: 0
+				lifespanCount: 0
 			}
 		];
 		return e;

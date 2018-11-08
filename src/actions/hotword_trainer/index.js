@@ -2,16 +2,13 @@ exports.id = 'hotword_trainer';
 
 const Hotword = apprequire('hotword');
 
-module.exports = function({ sessionId, result }) {
-	return new Promise(async(resolve, reject) => {
-		let { parameters: p, fulfillment } = result;
+module.exports = async function({ queryResult }, session) {
+	let { parameters: p } = queryResult;
 
-		let io = IOManager.getDriver('kid');
-		if (io == null) return reject();
+	let ioDriver = IOManager.getDriver('kid');
+	if (ioDriver == null) throw 'driver_unavailable';
 
-		resolve({});
-		await io.stopInput();
-		await Hotword.getModels(true);
-		await io.startInput();
-	});
+	await ioDriver.stopInput();
+	await Hotword.getModels(true);
+	await ioDriver.startInput();
 };

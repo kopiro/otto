@@ -1,153 +1,162 @@
-exports.id = 'cirfood.book';
+exports.id = 'e.book';
 
 const CirFood = require('cir-food');
-const CirFoodMem = {};
+const pendingQueue = {};
 
 const _ = require('underscore');
 const stringSimilarity = require('string-similarity');
+const moment = requireLibrary('moment');
 
-module.exports = async function ({
-	sessionId,
-	result
-}, session) {
+const CONTEXT_CONFIGURE = 'cirfood_configure';
+const CONTEXT_BOOK_YES = 'cirfood_book_yes';
+const CONTEXT_BOOK_RESPONSE = 'cirfood_book_response';
+const COURSES_MAX = 3;
+
+module.exports = async function({ queryResult }, session) {
 	let {
 		parameters: p,
-		fulfillment
-	} = result;
+		fulfillmentText,
+		queryText,
+		fulfillmentMessages
+	} = queryResult;
 
 	if (session.settings.cirfood == null) {
-		return await AI.eventRequest('cirfood_configure', session);
+		return {
+			followupEventInput: {
+				name: CONTEXT_CONFIGURE
+			}
+		};
 	}
 
-	const context_response = _.findWhere(result.contexts, {
-		name: 'cirfood_book_response'
-	});
-
-	if (context_response == null || CirFoodMem[session.id] == null) {
-		let cirfood = {};
-
-		cirfood.client = new CirFood(session.settings.cirfood.username, session.settings.cirfood.password);
-		cirfood.date = p.date;
-		cirfood.state = -1;
-		cirfood.booking = [];
-
-		await cirfood.client.startBooking(new Date(cirfood.date));
-
-		// Exit from this intent
-		// bacause we don't have enough data in this intent
-		// to process speechs, switch to cirfood_book_response instead
-		IOManager.handle({
-			session: session,
-			params: {
-				event: 'cirfood_book_response'
+	if (p.startBooking) {
+		return {
+			followupEventInput: {
+				name: CONTEXT_BOOK_RESPONSE
 			}
-		});
+		};
+	}
 
-		let text = "";
-		for (let c of cirfood.client.booking.courses) {
-			text += "---" + c.kind + "---\n";
+	const e = pendingQueue[session.id] || {};
+	let text = '';
+	let selectedCourse;
+
+	if (p.bookingInProcess == null) {
+		e.client = new CirFood(
+			session.settings.cirfood.username,
+			session.settings.cirfood.password
+		);
+		e.date = p.date;
+		e.menu = null;
+		e.booking = [];
+
+		await e.client.startBooking(new Date(e.date));
+		pendingQueue[session.id] = e;
+
+		text = fulfillmentText + '\n\n';
+		for (let c of e.client.booking.courses) {
+			text += '+++++++++ ' + c.kind + ' +++++++++\n';
 			for (let e of c.data) {
-				text += e.text + "\n";
+				text += e.text + '\n';
 			}
+			text += '\n';
 		}
 
-		CirFoodMem[session.id] = cirfood;
-
 		return {
-			speech: text
+			fulfillmentText: text,
+			outputContexts: [
+				{
+					name: CONTEXT_BOOK_YES,
+					lifespanCount: 1
+				}
+			]
 		};
 	}
 
-	let cirfood = CirFoodMem[session.id];
-	let do_course_parsing = true;
-	let selected_course;
-	let again = false;
+	if (e.booking.length < COURSES_MAX) {
+		// Find the answer into replies
+		const courses = e.client.booking.courses[e.booking.length].data;
 
-	if (cirfood.state === -1) {
-		do_course_parsing = false;
-		cirfood.state = 0;
-	}
+		if (e.menu) {
+			// If we are in a state > 0, check queryText to match
+			selectedCourse = courses.find(e => {
+				return e.hid === queryText;
+			});
 
-	// Find the answer into replies
-	const courses = cirfood.client.booking.courses[cirfood.state].data;
-
-	if (do_course_parsing) {
-		selected_course = courses.find(e => {
-			return e.hid === result.resolvedQuery;
-		});
-
-		// If we didn't found a course by ID, use levenshtein
-		if (selected_course == null) {
-			console.debug(exports.id, 'Unable to identify a course by ID, use best match');
-			const matches = stringSimilarity.findBestMatch(result.resolvedQuery, courses.map(e => e.text));
-			if (matches.bestMatch != null) {
-				selected_course = courses.find(e => (e.text === matches.bestMatch.target));
-			}
-		}
-
-		if (selected_course != null) {
-
-			try {
-				await cirfood.client.addCourseToCurrentBooking(selected_course.id);
-			} catch (err) {
-				console.error(exports.id, err);
-				return fulfillment.payload.error;
+			// If we didn't found a course by ID, use levenshtein
+			if (selectedCourse == null) {
+				console.debug(
+					exports.id,
+					'Unable to identify a course by ID, use best match'
+				);
+				const matches = stringSimilarity.findBestMatch(
+					queryText,
+					courses.map(e => e.text)
+				);
+				if (matches.bestMatch != null) {
+					selectedCourse = courses.find(
+						e => e.text === matches.bestMatch.target
+					);
+				}
 			}
 
-			cirfood.state++;
-			cirfood.booking.push(selected_course);
-
+			if (selectedCourse != null) {
+				// Add course to booking because we found it
+				await e.client.addCourseToCurrentBooking(selectedCourse.id);
+				// Increment state to go to next course
+				e.booking.push(selectedCourse);
+				text += extractWithPattern(
+					fulfillmentMessages,
+					'[].payload.text.available_courses'
+				);
+				text = text.replace('$_course', selectedCourse.text);
+			} else {
+				text += extractWithPattern(
+					fulfillmentMessages,
+					'[].payload.text.available_courses_again'
+				);
+			}
 		} else {
-			again = true;
+			text += extractWithPattern(
+				fulfillmentMessages,
+				'[].payload.text.available_courses'
+			);
+		}
+
+		text = text.replace('$_state', 1 + e.booking.length);
+		text = text.replace('$_date', e.date);
+
+		if (e.booking.length < COURSES_MAX) {
+			e.menu = e.client.booking.courses[e.booking.length].data;
+			// Add current menu
+			text += '\n\n';
+			text += e.menu.map(e => e.hid + '. ' + e.text).join('\n');
+
+			// Return to WH by passing outputContexts to CONTEXT_BOOK_RESPONSE
+			return {
+				fulfillmentText: text,
+				payload: {
+					forceText: true,
+					replies: e.menu ? e.menu.map(e => e.hid) : []
+				},
+				outputContexts: [
+					{
+						name: CONTEXT_BOOK_RESPONSE,
+						lifespanCount: 1
+					}
+				]
+			};
 		}
 	}
 
-	if (cirfood.state <= 2) {
-
-		let speech = "";
-
-		if (selected_course != null) {
-			speech = fulfillment.payload.speechs.available_courses_step_done;
-			speech = speech.replace('$_course', selected_course.text);
-		} else {
-			speech = fulfillment.payload.speechs[again ? "available_courses_again" : "available_courses"];
-		}
-
-		speech = speech
-			.replace('$_state', (1 + cirfood.state))
-			.replace('$_date', cirfood.date);
-
-		speech += "\n" + cirfood.client.booking.courses[cirfood.state].data.map(e => (e.hid + '. ' + e.text)).join("\n");
-
-		return {
-			speech: speech,
-			data: {
-				forceText: true,
-				replies: cirfood.client.booking.courses[cirfood.state].data.map(e => e.hid)
-			},
-			contextOut: [{
-				name: "cirfood_book_response",
-				lifespan: 1
-			}]
-		};
-	}
-
-	// Book here
-	try {
-		await cirfood.client.submitCurrentBooking();
-	} catch (err) {
-		console.error(exports.id, err);
-		return fulfillment.payload.error;
-	}
+	// We reached booking.length > COURSES_MAX, then finalize booking
+	await e.client.submitCurrentBooking();
 
 	session.settings.cirfood_bookings = session.settings.cirfood_bookings || {};
-	session.settings.cirfood_bookings[cirfood.date] = cirfood.booking;
+	session.settings.cirfood_bookings[e.date] = e.booking;
 	session.markModified('settings');
 	session.save();
 
-	delete CirFoodMem[session.id];
+	delete pendingQueue[session.id];
 
-	return {
-		speech: fulfillment.payload.speechs.done
-	};
+	return fulfillmentText;
 };

@@ -2,23 +2,13 @@ exports.id = 'cirfood.configure';
 
 const CirFood = require('cir-food');
 
-module.exports = async function({ sessionId, result }, session) {
-	let { parameters: p, fulfillment } = result;
+module.exports = async function({ queryResult }, session) {
+	let { parameters: p, fulfillmentText } = queryResult;
 
 	const c = new CirFood(p.username, p.password);
 
-	try {		
-		await c.login();
-	} catch (ex) {
-		throw fulfillment.payload.error;
-	}
+	await c.login();
+	await session.saveSettings({ cirfood: p });
 
-	session.settings.cirfood = p;
-	session.markModified('settings');
-	session.save();
-
-	return {
-		speech: fulfillment.speech
-	};
-	
+	return fulfillmentText;
 };

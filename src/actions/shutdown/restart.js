@@ -1,20 +1,9 @@
-exports.id = 'shutdown.restart';
+exports.id = 'shutdown.now';
 
 const exec = require('child_process').exec;
 
-module.exports = function({ sessionId, result }, session) {
-	return new Promise(async(resolve, reject) => {
-		let { parameters: p, fulfillment } = result;
-
-		exec('shutdown -r now', (err, stdout, stderr) => {
-			if (err) return reject(stderr);
-			resolve({
-				speech: fulfillment.speech,
-				data: {
-					stdout: stdout,
-					feedback: true
-				}
-			});
-		});
-	});
+module.exports = function({ queryResult }, session) {
+	let { parameters: p, fulfillmentText } = queryResult;
+	exec('shutdown -r now', (err, stdout, stderr) => {});
+	return fulfillmentText;
 };

@@ -1,10 +1,10 @@
 exports.id = 'alarm.set';
 
 const _ = require('underscore');
-const Moment = apprequire('moment');
+const Moment = requireLibrary('moment');
 
-module.exports = async function({ resultQuery }, session) {
-	let { parameters: p, fulfillmentText } = resultQuery;
+module.exports = async function({ queryResult }, session) {
+	let { parameters: p, fulfillmentText } = queryResult;
 
 	let when = null;
 	let now = Moment();

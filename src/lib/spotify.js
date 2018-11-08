@@ -12,7 +12,7 @@ $.getCredentialsForChromecast = async function() {
 	return SpotifyWAT.getCredentials();
 };
 
-$.connect = async function() {
+$.connect = $.init = async function() {
 	const e = await $.clientCredentialsGrant();
 	$.setAccessToken(e.body.access_token);
 };

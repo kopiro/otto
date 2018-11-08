@@ -1,14 +1,18 @@
 exports.id = 'selfie.shoot';
 
-const Selfie = apprequire('selfie');
+const Selfie = requireLibrary('selfie');
+const Server = requireLibrary('server');
 
-module.exports = async function({ sessionId, result }, session) {
-	let { parameters: p, fulfillment } = result;
-	const file = await Selfie.create(p.location);
+module.exports = async function({ queryResult }, session) {
+	let { parameters: p, fulfillmentText } = queryResult;
+
+	const file = await Selfie.create(p.location || 'Iceland');
+	const fileUrl = Server.getURIFromFSFilePath(file);
+
 	return {
-		data: {
+		payload: {
 			image: {
-				file: file
+				uri: fileUrl
 			}
 		}
 	};

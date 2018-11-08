@@ -162,13 +162,16 @@ exports.output = async function(f, session) {
 	// Process a Text Object
 	try {
 		if (f.fulfillmentText) {
-			if (session.pipe.next_with_voice) {
+			await sendMessage(chat_id, f.fulfillmentText, bot_opt);
+
+			if (session.pipe.nextWithVoice) {
 				session.savePipe({
-					next_with_voice: false
+					nextWithVoice: false
 				});
 				await sendVoiceMessage(chat_id, f.fulfillmentText, language, bot_opt);
-			} else {
-				await sendMessage(chat_id, f.fulfillmentText, bot_opt);
+			}
+			if (f.payload.includeVoice) {
+				await sendVoiceMessage(chat_id, f.fulfillmentText, language, bot_opt);
 			}
 		}
 	} catch (err) {
@@ -191,28 +194,28 @@ exports.output = async function(f, session) {
 				if (f.payload.music.spotify.track) {
 					await sendMessage(
 						chat_id,
-						f.payload.music.spotify.track.share_url,
+						f.payload.music.spotify.track.external_urls.spotify,
 						bot_opt
 					);
 				}
 				if (f.payload.music.spotify.album) {
 					await sendMessage(
 						chat_id,
-						f.payload.music.spotify.album.share_url,
+						f.payload.music.spotify.album.external_urls.spotify,
 						bot_opt
 					);
 				}
 				if (f.payload.music.spotify.artist) {
 					await sendMessage(
 						chat_id,
-						f.payload.music.spotify.artist.share_url,
+						f.payload.music.spotify.artist.external_urls.spotify,
 						bot_opt
 					);
 				}
 				if (f.payload.music.spotify.playlist) {
 					await sendMessage(
 						chat_id,
-						f.payload.music.spotify.playlist.share_url,
+						f.payload.music.spotify.playlist.external_urls.spotify,
 						bot_opt
 					);
 				}
@@ -384,7 +387,7 @@ bot.on('message', async e => {
 
 			// User sent a voice note, respond with a voice note :)
 			session.savePipe({
-				next_with_voice: true
+				nextWithVoice: true
 			});
 			emitter.emit('input', {
 				session: session,

@@ -3,7 +3,7 @@ exports.id = 'draw';
 const ImageSearch = requireLibrary('imagesearch');
 
 module.exports = async function({ queryResult }, session) {
-	let { parameters: p, fulfillmentText, queryText } = queryResult;
+	let { parameters: p } = queryResult;
 
 	const images = await ImageSearch.search(`"${p.q}"`);
 	const img = rand(images);

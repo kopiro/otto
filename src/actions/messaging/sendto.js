@@ -3,14 +3,18 @@ exports.id = 'messaging.sendto';
 const SessionSearch = requireHelper('sessionsearch');
 
 module.exports = async function(body, session) {
-	const { sessionId, result } = body;
-	const { parameters: p, fulfillment } = result;
+	const { parameters: p, fulfillmentText } = body.queryResult;
 
 	const user = await SessionSearch(body, session, p.to);
 
-	await IOManager.output({
-		speech: `Hey! ${session.alias} mi ha detto di riferirti questo: ${p.text}`
-	}, user);
+	await IOManager.output(
+		{
+			fulfillmentText: fulfillmentText
+				.replace('$_user', session.alias)
+				.replace('$_text', p.text)
+		},
+		user
+	);
 
-	return fulfillment.speech;
+	return fulfillmentText;
 };
