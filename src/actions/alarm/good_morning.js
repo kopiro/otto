@@ -1,5 +1,7 @@
 exports.id = 'alarm.good_morning';
 
+const CONTEXT_QUESTION = 'good_morning_question';
+
 function handleMathProduct(question) {
 	const a = 1 + Math.floor(Math.random() * 9);
 	const b = 1 + Math.floor(Math.random() * 9);
@@ -42,6 +44,14 @@ module.exports = async function*({ queryResult }, session) {
 			good_morning_question: question
 		});
 
-		yield question.text;
+		yield {
+			fulfillmentText: question.text,
+			outputContext: [
+				{
+					name: CONTEXT_QUESTION,
+					lifespanCount: 1
+				}
+			]
+		};
 	}
 };
