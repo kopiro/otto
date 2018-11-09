@@ -2,5 +2,5 @@
 if [ "$DEV" = "1" ]; then
    npm run dev
 else
-   npm run prod
+   npm run start
 fi
