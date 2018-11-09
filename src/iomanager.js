@@ -185,6 +185,7 @@ exports.output = async function(fulfillment, session) {
  * @param {Object} session Session object
  */
 exports.outputByInputParams = async function(params, session) {
+	session = session || IOManager.session;
 	let fulfillment = null;
 
 	console.info(TAG, 'output by input params', params);
