@@ -41,7 +41,7 @@ module.exports = async function*({ queryResult }, session) {
 		}
 
 		await session.savePipe({
-			good_morning_question: question.text
+			good_morning_question: question
 		});
 
 		yield {
