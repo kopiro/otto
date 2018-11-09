@@ -75,6 +75,14 @@ app.use('/api', exports.routerApi);
 app.use('/actions', exports.routerActions);
 app.use('/listeners', exports.routerListeners);
 
+// Adding policy URL
+app.get('/policy', (req, res) => {
+	res.end(
+		`This bot is used only for fun, it's our monkey plush.
+		It only answers to basic questions.`
+	);
+});
+
 exports.io = io;
 exports.app = app;
 
