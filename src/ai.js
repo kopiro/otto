@@ -10,6 +10,13 @@ const dialogflow = require('dialogflow');
 const dfSessionClient = new dialogflow.SessionsClient();
 const dfContextsClient = new dialogflow.ContextsClient();
 
+function parseContext(c, sessionId) {
+	if (!/projects/.test(c.name)) {
+		c.name = dfContextsClient.contextPath(_config.projectId, sessionId, c.name);
+	}
+	return c;
+}
+
 /**
  * Clean fulfillment to be suitable for webhook
  * @param {Object} fulfillment
@@ -17,16 +24,9 @@ const dfContextsClient = new dialogflow.ContextsClient();
  */
 function cleanFulfillmentForWebhook(fulfillment, session) {
 	if (fulfillment.outputContexts) {
-		fulfillment.outputContexts = fulfillment.outputContexts.map(c => {
-			if (!/projects/.test(c.name)) {
-				c.name = dfContextsClient.contextPath(
-					_config.projectId,
-					session.id,
-					c.name
-				);
-			}
-			return c;
-		});
+		fulfillment.outputContexts = fulfillment.outputContexts.map(c =>
+			parseContext(c, session.id)
+		);
 	}
 	return fulfillment;
 }
@@ -46,12 +46,7 @@ function getDFSessionPath(sessionId) {
  * @param {*} sessionId
  */
 function setDFContext(sessionId, context) {
-	context.name = dfContextsClient.contextPath(
-		_config.projectId,
-		sessionId,
-		context.name
-	);
-
+	context = parseContext(context, sessionId);
 	return dfContextsClient.createContext({
 		parent: getDFSessionPath(sessionId),
 		context: context
@@ -127,9 +122,7 @@ async function actionResultToFulfillment(
 					session.id,
 					c
 				);
-				try {
-					await setDFContext(session.id, c);
-				} catch (err) {}
+				await setDFContext(session.id, c);
 			}
 		}
 	}
