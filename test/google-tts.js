@@ -4,14 +4,11 @@ const fs = require('fs');
 const textToSpeech = require('@google-cloud/text-to-speech');
 
 // Creates a client
-const client = new textToSpeech.TextToSpeechClient({
-	options: {
-		keyFilename: '../keys/gcloud.json'
-	}
-});
+const client = new textToSpeech.TextToSpeechClient();
 
 // The text to synthesize
-const text = 'Risposta sbagliata! ti metto un po\' di musica per svegliarti allora... ma prima ti ripeto la domanda, quanto fa nove per nove?';
+const text =
+	'Risposta sbagliata! ti metto un po\' di musica per svegliarti allora... ma prima ti ripeto la domanda, quanto fa nove per nove?';
 
 // Construct the request
 const request = {
@@ -27,7 +24,7 @@ const request = {
 	// Select the type of audio encoding
 	audioConfig: {
 		audioEncoding: 'MP3'
-	},
+	}
 };
 
 // Performs the Text-to-Speech request

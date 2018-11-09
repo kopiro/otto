@@ -1,12 +1,9 @@
-version: "3"
+version: '3'
 
 services:
   app:
     image: kopiro/otto
     build: .
-    command: /app/docker/entrypoint.sh
-    stdin_open: true
-    tty: true
     environment:
       - DEV=1
     volumes:

@@ -1,4 +1,2 @@
-const $ = require('@google-cloud/vision')({
-	keyFilename: __basedir + '/keys/gcloud.json'
-});
+const $ = require('@google-cloud/vision')();
 module.exports = $;

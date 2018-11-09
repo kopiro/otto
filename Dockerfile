@@ -40,5 +40,5 @@ COPY . .
 # Do the build
 RUN npm run build
 
-ENTRYPOINT /app/docker/entrypoint.sh
+ENTRYPOINT /app/entrypoint.sh
 EXPOSE 80

@@ -1,8 +1,6 @@
 const TAG = 'GCSR';
 
-const speech = require('@google-cloud/speech')({
-	keyFilename: __basedir + '/keys/gcloud.json'
-});
+const speech = require('@google-cloud/speech')();
 
 const _ = require('underscore');
 const fs = require('fs');

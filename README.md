@@ -4,11 +4,11 @@
 
 ![Logo](image.png?raw=true "Logo")
 
-Otto was my monkey plush, now is my personal AI.
+Otto was my monkey plush, now is my personal AI assistant.
 
 ## Modes
 
-Otto is a monolitich (by design) server and a client app with the same codebase.
+The app is a monolitich (by design) server and a client app with the same codebase.
 
 It could run as a server to listen via webhook the incoming requests,
 or it could run as a client to interact with the user via voice.
@@ -19,37 +19,35 @@ The flow is the following:
 Request (client) --> [[ Dialogflow --> Server --> Fulfillment ]] --> Response (client)
 ```
 
-## Build
+## Development
 
-### Build for production
+#### Run server with docker
 
-```
-npm run build
-```
-
-## Develop
-
-### Run locally in server mode
-
-Must have docker and docker-compose installed.
-
-Just type:
-
-```
+```sh
 docker-compose up
 ```
 
-### Run locally in client mode
+#### Run server with NodeJS
 
-When running in client mode, you have to satisfy some dependencies that can be installed via a script based on your platform.
+```sh
+npm run dev
+```
+
+#### Run client
+
+When running in client mode, you have to satisfy some dependencies 
+that can be installed via a script based on your platform.
 
 - _client_deps/macos.sh_ if you run on macOS
 - _client_deps/raspberry.sh_ if you run on a Raspberry (2/3/Zero)
 
-After that, just type:
+You can't run in client mode with Docker because some drivers require access
+to microphone, speaker or other hardware peripherals.
 
-```
-npm run start
+Then:
+
+```sh
+npm run dev
 ```
 
 ### I/O Drivers
@@ -74,7 +72,7 @@ using the `ioDrivers` keyword.
 You can temporary use a driver without altering your configuration by setting an environment var:
 
 ```
-export OTTO_IO_DRIVERS=telegram,test
+export OTTO_IO_DRIVERS="telegram,test"
 ```
 
 There are 4 I/O drivers available at the moment:
@@ -185,9 +183,10 @@ Your action parameters are:
 
 There is a main difference in actions. 
 
-If an action has *one* return value, it should be a **Function** or, if you need to do async requests, a **Promise / AsyncFunction**.
+If an action has *one* return value, it should be a **Function** or, 
+if you need to do async requests, a **Promise / AsyncFunction**.
 
-Otherwise, if an action return multiple values *over time*, it should be a **Generator**.
+Otherwise, if an action return multiple values *over time*, it should be a **Generator / AsyncGenerator**.
 
 #### Promise/Async Function
 
@@ -452,9 +451,3 @@ The output payload of an action could have these attributes:
 | transmission.ssl      | On/Off SSL to connect                  | false         | no       | Bool   |
 
 yes\* = (yes if you use that service)
-
-### Customize messages
-
-The file `messages.json` specifies the messages used for certain actions.
-
-To override some messages, place a `messages-custom.json` in the root directory.

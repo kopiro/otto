@@ -1,11 +1,10 @@
 .git
 .env
 config.json
-node_modules/
-cache/
-tmp/
-public/
-keys/
-log/
-*.sublime-workspace
+**node_modules
+/cache
+/tmp
+/tmp-secret
+/keys
+/log
 npm-debug.log
