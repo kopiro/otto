@@ -126,8 +126,8 @@ exports.output = async function(fulfillment, session) {
 		});
 
 		await new Data.IOQueue({
+			session: session.id,
 			io_id: session.io_id,
-			session: session._id,
 			fulfillment: fulfillment
 		}).save();
 
@@ -230,7 +230,6 @@ function configureDriver(driverStr) {
 	const driver = enabledDrivers[driverStr];
 
 	driver.emitter.on('input', e => {
-		console.info(TAG, `received input from session <${e.session._id}>`);
 		exports.outputByInputParams(e.params, e.session);
 	});
 
@@ -401,7 +400,7 @@ exports.writeLog = async function(text) {
  */
 exports.writeLogForSession = async function(text, session = {}) {
 	return new Data.SessionInput({
-		session: session._id,
+		session: session.id,
 		text: text
 	}).save();
 };
