@@ -21,7 +21,7 @@ module.exports = async function({ queryResult }, session) {
 	}
 
 	const e = extractWithPattern(fulfillmentMessages, '[].payload.wrong');
-	e.fulfillmentText = e.fulfillmentText.replace('$_question', question);
+	e.fulfillmentText = e.fulfillmentText.replace('$_question', question.text);
 	e.outputContexts = [
 		{
 			name: CONTEXT_QUESTION,
