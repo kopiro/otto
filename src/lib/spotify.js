@@ -30,7 +30,12 @@ $.getAuthorizeUrl = function(session) {
 			'user-read-birthdate',
 			'user-read-email',
 			'user-read-private',
-			'user-modify-playback-state'
+			'user-read-playback-state',
+			'user-modify-playback-state',
+			'user-top-read',
+			'user-read-recently-played',
+			'user-library-read',
+			'user-read-currently-playing'
 		],
 		session._id
 	);
@@ -45,6 +50,7 @@ $.initWithClientCredentials = async function() {
 
 $.initWithSession = async function(session) {
 	if (session.settings.spotify == null) throw 'spotify_not_configured';
+
 	const api = new spotifyWebApi(_config);
 	api.setAccessToken(session.settings.spotify.access_token);
 	api.setRefreshToken(session.settings.spotify.refresh_token);

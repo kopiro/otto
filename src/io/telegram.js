@@ -197,22 +197,27 @@ exports.output = async function(f, session) {
 						f.payload.music.spotify.track.external_urls.spotify,
 						bot_opt
 					);
-				}
-				if (f.payload.music.spotify.album) {
+				} else if (f.payload.music.spotify.tracks) {
+					await sendMessage(
+						chat_id,
+						f.payload.music.spotify.tracks
+							.map(e => e.external_urls.spotify)
+							.join('\n'),
+						bot_opt
+					);
+				} else if (f.payload.music.spotify.album) {
 					await sendMessage(
 						chat_id,
 						f.payload.music.spotify.album.external_urls.spotify,
 						bot_opt
 					);
-				}
-				if (f.payload.music.spotify.artist) {
+				} else if (f.payload.music.spotify.artist) {
 					await sendMessage(
 						chat_id,
 						f.payload.music.spotify.artist.external_urls.spotify,
 						bot_opt
 					);
-				}
-				if (f.payload.music.spotify.playlist) {
+				} else if (f.payload.music.spotify.playlist) {
 					await sendMessage(
 						chat_id,
 						f.payload.music.spotify.playlist.external_urls.spotify,

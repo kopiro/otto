@@ -7,6 +7,25 @@ module.exports = async function({ queryResult }, session) {
 
 	const api = await spotify.initWithSession(session);
 
+	if (p.myLibrary) {
+		const data = await api.getMySavedTracks({
+			limit: 10
+		});
+		console.log(data);
+		const items = data.body.items;
+		if (items.length === 0) throw 'not_found';
+
+		return {
+			payload: {
+				music: {
+					spotify: {
+						tracks: items.map(e => e.track)
+					}
+				}
+			}
+		};
+	}
+
 	if (p.track) {
 		const data = await api.searchTracks(`${p.track} ${p.artist}`);
 		const items = data.body.tracks.items;

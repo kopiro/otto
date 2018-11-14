@@ -24,6 +24,10 @@ exports.output = async function(e, session) {
 			await api.play({
 				uris: [e.payload.music.spotify.track.uri]
 			});
+		} else if (e.payload.music.spotify.tracks != null) {
+			await api.play({
+				uris: e.payload.music.spotify.tracks.map(e => e.uri)
+			});
 		} else if (e.payload.music.spotify.artist != null) {
 			await api.play({
 				context_uri: e.payload.music.spotify.artist.uri
@@ -31,6 +35,10 @@ exports.output = async function(e, session) {
 		} else if (e.payload.music.spotify.album != null) {
 			await api.play({
 				context_uri: e.payload.music.spotify.album.uri
+			});
+		} else if (e.payload.music.spotify.playlist != null) {
+			await api.play({
+				context_uri: e.payload.music.spotify.playlist.uri
 			});
 		}
 	}
