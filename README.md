@@ -30,7 +30,7 @@ docker-compose up
 #### Run server with NodeJS
 
 ```sh
-npm run dev
+npm run dev:server
 ```
 
 #### Run client
@@ -106,7 +106,6 @@ Dependencies:
 - **Snowboy** - for the hotword service
 - **Google Cloud Speech Recognizer** - for the speech recognizer
 - **AWS Polly** - for the TTS
-- **Mopidy** - for the music playback
 
 #### IO.Telegram
 
@@ -216,9 +215,8 @@ module.exports = async function*({ queryResult }, session) {
 
 The actions must be placed in the `./src/actions` directory.
 
-If an action name is `hello.name`, the final file must be `./src/actions/hello/name.js`.
-
-If an action name is `hello`, the final must be `./src/actions/hello/index.js`.
+If an action name is `hello.name`, the final file must be `./src/actions/hello/name.js`; 
+shorter, if an action name is `hello`, the final must be `./src/actions/hello/index.js`.
 
 ### Action output payload
 
@@ -289,6 +287,7 @@ The output payload of an action could have these attributes:
 | `spotify.album`    | Spotify Album object                                                                  |
 | `spotify.artist`   | Spotify Artist object                                                                 |
 | `spotify.playlist` | Spotify Playlist object                                                               |
+| `spotify.tracks`   | List of Spotify tracks                                                                |
 
 ### Configuration keys
 
@@ -359,7 +358,6 @@ The output payload of an action could have these attributes:
 | Key | Description | Default value | Required | Type |
 | --- | ----------- | ------------- | -------- | ---- |
 
-
 #### Messenger (IO Driver)
 
 | Key                 | Description                                          | Default value | Required | Type   |
@@ -396,11 +394,10 @@ The output payload of an action could have these attributes:
 
 #### Spotify (Library)
 
-| Key                  | Description                           | Default value | Required | Type   |
-| -------------------- | ------------------------------------- | ------------- | -------- | ------ |
-| spotify.clientId     | Application ID                        | null          | yes\*    | String |
-| spotify.clientSecret | Application key                       | null          | yes\*    | String |
-| spotify.cookies      | User cookies to use Chromecast sender | null          | yes\*    | String |
+| Key                  | Description     | Default value | Required | Type   |
+| -------------------- | --------------- | ------------- | -------- | ------ |
+| spotify.clientId     | Application ID  | null          | yes\*    | String |
+| spotify.clientSecret | Application key | null          | yes\*    | String |
 
 #### Wolfram (Library)
 
@@ -425,20 +422,6 @@ The output payload of an action could have these attributes:
 | Key                 | Description     | Default value | Required | Type   |
 | ------------------- | --------------- | ------------- | -------- | ------ |
 | wunderground.apiKey | Application key | null          | yes\*    | String |
-
-#### Cognitive (Library)
-
-| Key                     | Description                            | Default value | Required | Type   |
-| ----------------------- | -------------------------------------- | ------------- | -------- | ------ |
-| cognitive.face.apiKey   | Application key for Face recognition   | null          | yes\*    | String |
-| cognitive.vision.apiKey | Application key for Vision recognition | null          | yes\*    | String |
-
-#### Gitlab (Library)
-
-| Key          | Description               | Default value | Required | Type   |
-| ------------ | ------------------------- | ------------- | -------- | ------ |
-| gitlab.url   | URL of your GitLab server | null          | yes\*    | String |
-| gitlab.token | Application token         | null          | yes\*    | String |
 
 #### Transmission (Library)
 
