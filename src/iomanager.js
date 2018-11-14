@@ -62,9 +62,9 @@ function cleanFulfillmentForOutput(fulfillment) {
  * Define constants used when forwarding output to an accessory
  */
 exports.CAN_HANDLE_OUTPUT = {
-	YES_AND_BREAK: true,
-	YES_AND_CONTINUE: true,
-	NO: false
+	YES_AND_BREAK: 'yes_and_break',
+	YES_AND_CONTINUE: 'yes_and_continue',
+	NO: 'no'
 };
 
 /**
@@ -146,35 +146,47 @@ exports.output = async function(fulfillment, session) {
 		);
 	}
 
+	const driver = enabledDrivers[driverStr];
+	if (driver == null) throw `Driver ${driverStr} is not enabled`;
+
 	// Call the output
-	await enabledDrivers[driverStr].output(fulfillment, session);
+	try {
+		await driver.output(fulfillment, session);
+	} catch (err) {
+		console.error(TAG, 'driver output error', err);
+	}
 
 	// Process output accessories:
 	// An accessory can:
 	// - handle a kind of output, process it and blocking the next accessory
 	// - handle a kind of output, process it but don't block the next accessory
 	// - do not handle and forward to next accessory
-	for (let accessory of enabledAccesories[driverStr] || []) {
+	const accessories = enabledAccesories[driverStr] || [];
+	for (let accessory of accessories) {
 		let handleType = accessory.canHandleOutput(fulfillment, session);
 
-		switch (handleType) {
-			case exports.CAN_HANDLE_OUTPUT.YES_AND_BREAK:
-				console.info(
-					TAG,
-					`forwarding output to <${accessory.id}> with YES_AND_BREAK`
-				);
-				await accessory.output(fulfillment, session);
-				return;
-			case exports.CAN_HANDLE_OUTPUT.YES_AND_CONTINUE:
-				console.info(
-					TAG,
-					`forwarding output to <${accessory.id}> with YES_AND_CONTINUE`
-				);
-				await accessory.output(fulfillment, session);
-				break;
-			case exports.CAN_HANDLE_OUTPUT.NO:
-			default:
-				break;
+		try {
+			switch (handleType) {
+				case exports.CAN_HANDLE_OUTPUT.YES_AND_BREAK:
+					console.info(
+						TAG,
+						`forwarding output to <${accessory.id}> with YES_AND_BREAK`
+					);
+					await accessory.output(fulfillment, session);
+					return;
+				case exports.CAN_HANDLE_OUTPUT.YES_AND_CONTINUE:
+					console.info(
+						TAG,
+						`forwarding output to <${accessory.id}> with YES_AND_CONTINUE`
+					);
+					await accessory.output(fulfillment, session);
+					break;
+				case exports.CAN_HANDLE_OUTPUT.NO:
+					// ....
+					break;
+			}
+		} catch (err) {
+			console.error(TAG, 'accessory output error', err);
 		}
 	}
 };

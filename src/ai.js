@@ -5,7 +5,7 @@ const Server = apprequire('server');
 const Translator = apprequire('translator');
 
 const _config = config.dialogflow;
-const dialogflow = require('dialogflow');
+const dialogflow = require('dialogflow').v2beta1;
 
 const dfSessionClient = new dialogflow.SessionsClient();
 const dfContextsClient = new dialogflow.ContextsClient();
@@ -37,7 +37,16 @@ function cleanFulfillmentForWebhook(fulfillment, session) {
  * @returns
  */
 function getDFSessionPath(sessionId) {
-	return dfSessionClient.sessionPath(_config.projectId, sessionId);
+	if (_config.environment == null) {
+		return dfSessionClient.sessionPath(_config.projectId, sessionId);
+	} else {
+		return dfSessionClient.environmentSessionPath(
+			_config.projectId,
+			_config.environment,
+			'-',
+			sessionId
+		);
+	}
 }
 
 /**

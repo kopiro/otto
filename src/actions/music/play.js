@@ -1,14 +1,14 @@
 exports.id = 'music.play';
 
-const Spotify = requireLibrary('spotify');
+const spotify = requireLibrary('spotify');
 
-module.exports = async function({ queryResult }) {
+module.exports = async function({ queryResult }, session) {
 	let { parameters: p } = queryResult;
 
-	await Spotify.init();
+	const api = await spotify.initWithSession(session);
 
 	if (p.track) {
-		const data = await Spotify.searchTracks(`${p.track} ${p.artist}`);
+		const data = await api.searchTracks(`${p.track} ${p.artist}`);
 		const items = data.body.tracks.items;
 		if (items.length === 0) throw 'not_found';
 
@@ -24,7 +24,7 @@ module.exports = async function({ queryResult }) {
 	}
 
 	if (p.artist) {
-		const data = await Spotify.searchArtists(p.artist);
+		const data = await api.searchArtists(p.artist);
 		let items = data.body.artists.items;
 		if (items.length === 0) throw 'not_found';
 
@@ -40,7 +40,7 @@ module.exports = async function({ queryResult }) {
 	}
 
 	if (p.playlist) {
-		const data = await Spotify.searchPlaylists(p.playlist);
+		const data = await api.searchPlaylists(p.playlist);
 		let items = data.body.playlists.items;
 		if (items.length === 0) throw 'not_found';
 
