@@ -37,7 +37,7 @@ export default class VoiceChat extends Component {
     console.log("Message received :", e);
     this.setState({
       isTyping: false,
-      speech: e.speech
+      speech: e.fulfillmentText
     });
     if (e.voice) {
       await this.playAudio(e.voice);

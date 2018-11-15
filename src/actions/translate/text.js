@@ -9,7 +9,12 @@ module.exports = async function({ queryResult }, session) {
 	const languages = await Translator.getLanguages(config.language);
 	const language = _.findWhere(languages, { name: p.language });
 	if (language == null) {
-		throw 'unknown_language';
+		throw {
+			message: 'unknown_language',
+			data: {
+				language: p.language
+			}
+		};
 	}
 
 	const text = await Translator.translate(p.q, language.code);

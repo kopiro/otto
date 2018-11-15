@@ -71,20 +71,28 @@ function setDFContext(sessionId, context) {
 function actionErrorTransformer(body, err) {
 	let fulfillment = {};
 
-	if (typeof err === 'string') {
+	if (typeof err === 'string' || err.message != null) {
+		const errMessage = typeof err === 'string' ? err : err.message;
+
 		// If an error occurs, try to intercept this error
 		// in the fulfillmentMessages that comes from DialogFlow
 		fulfillment.fulfillmentText =
 			extractWithPattern(
 				body.queryResult.fulfillmentMessages,
-				`[].payload.errors.${err}`
-			) ||
-			extractWithPattern(
-				body.queryResult.fulfillmentMessages,
-				`[].payload.error.${err}`
-			) ||
-			err;
-	} else if (err.message) {
+				`[].payload.error.${errMessage}`
+			) || errMessage;
+
+		if (err.data != null) {
+			let _var = null;
+			const re = /\$\_(\w+)/g;
+			while ((_var = re.exec(fulfillment.fulfillmentText)) != null) {
+				fulfillment.fulfillmentText = fulfillment.fulfillmentText.replace(
+					`\$\_${_var[1]}`,
+					err.data[_var[1]] || ''
+				);
+			}
+		}
+	} else if (err instanceof Error) {
 		// Only used for debugging purposes, TODO remove
 		fulfillment.fulfillmentText = 'ERROR: ' + err.message;
 	}
