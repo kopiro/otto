@@ -23,9 +23,3 @@ jobs:
         - docker build . -t $DOCKER_USERNAME/otto:$TRAVIS_COMMIT --cache-from $DOCKER_USERNAME/otto:latest
         - docker tag $DOCKER_USERNAME/otto:$TRAVIS_COMMIT $DOCKER_USERNAME/otto:latest
         - docker push $DOCKER_USERNAME/otto:latest
-    - stage: deploy
-      script:
-        - echo $SSH_KEY > key64
-        - base64 --decode key64 > key
-        - chmod 400 key
-        - ssh -o "StrictHostKeyChecking no" -i key $SSH_USERNAME@$SSH_HOST "$SSH_COMMAND"
