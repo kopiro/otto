@@ -11,6 +11,8 @@ if (config.serverMode) {
 }
 
 IOManager.start();
+
+console.info('Connecting to Database...');
 mongoose.connectDefault();
 
 mongoose.connection.on('error', async (err) => {
