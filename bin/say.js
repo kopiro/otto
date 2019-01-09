@@ -7,15 +7,12 @@ const TAG = "Say";
 const TTS = requireInterface("tts");
 const Play = apprequire("play");
 
-async function sendMessage(text, language = "en") {
-  const sentences = mimicHumanMessage(text);
-
-  for (let sentence of sentences) {
-    let polly_file = await TTS.getAudioFile(sentence, {
+async function sendMessage(text, language = "it") {
+    let polly_file = await TTS.getAudioFile(text, {
       language: language
     });
+    console.log(polly_file);
     await Play.playVoice(polly_file);
-  }
 }
 
 if (process.argv[2] == null) {

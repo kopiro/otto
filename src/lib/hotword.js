@@ -39,11 +39,11 @@ async function getModels(forceTraining = false) {
 			console.debug(
 				TAG,
 				'added ' +
-					files.length +
-					' pdml files (' +
-					dir +
-					') with sensitivity = ' +
-					sens
+				files.length +
+				' pdml files (' +
+				dir +
+				') with sensitivity = ' +
+				sens
 			);
 
 			files.forEach(file => {
@@ -81,7 +81,7 @@ async function getModels(forceTraining = false) {
 }
 
 async function sendMessage(text) {
-	return Play.voiceToSpeaker(await TTS.getAudioFile(text));
+	return Play.playVoice(await TTS.getAudioFile(text));
 }
 
 function listenForHotwordTraining() {
@@ -113,8 +113,7 @@ async function sendWavFiles(opt) {
 		console.info(TAG, 'sendWav', opt);
 
 		request
-			.post(
-				{
+			.post({
 					url: 'https://snowboy.kitt.ai/api/v1/train/',
 					method: 'POST',
 					headers: {
