@@ -1,10 +1,11 @@
 .git
 .env
 config.json
-**node_modules
-/cache
-/tmp
-/tmp-secret
-/keys
-/log
+node_modules
+cache
+tmp
+tmp-secret
+keys
+log
 npm-debug.log
+.DS_Store

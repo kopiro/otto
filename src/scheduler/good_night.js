@@ -6,7 +6,5 @@ exports.run = function({ session }) {
 			event: {
 				name: 'good_night'
 			}
-		},
-		session
-	);
+		}, session);
 };
