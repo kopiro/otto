@@ -236,7 +236,7 @@ function configureAccessories(driverStr) {
  * parsing it and re-calling the output method of the driver
  * @param {String} driverStr
  */
-function configureDriver(driverStr) {
+async function configureDriver(driverStr) {
 	console.info(TAG, `configuring IO Driver <${driverStr}>`);
 
 	const driver = enabledDrivers[driverStr];
@@ -246,7 +246,8 @@ function configureDriver(driverStr) {
 	});
 
 	configureAccessories(driverStr);
-	driver.startInput();
+
+	await driver.startInput();
 }
 
 /**
@@ -524,11 +525,15 @@ exports.startQueuePolling = async function() {
 /**
  * Start drivers, accessories and listeners
  */
-exports.start = function() {
+exports.start = async function() {
 	loadDrivers();
 	loadAccessories();
 	for (let driverStr of Object.keys(enabledDrivers)) {
-		configureDriver(driverStr);
+    try {
+      await configureDriver(driverStr);
+    } catch (err) {
+    	console.error(TAG, `Unable to activate driver <${driverStr}>: ${err}`);
+		}
 	}
 	loadListeners();
 };

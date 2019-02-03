@@ -277,13 +277,6 @@ function registerOutputQueueInterval() {
 }
 
 /**
- * Load the trained models
- */
-async function registerHotwordModels() {
-	hotwordModels = await Hotword.getModels();
-}
-
-/**
  * Wake the bot and listen for intents
  */
 function wake() {
@@ -538,10 +531,10 @@ exports.startInput = async function() {
 	console.debug(TAG, 'start input');
 
 	// Ensure session is present
-	await registerGlobalSession();
+	const session = await registerGlobalSession();
 
 	// Preventive stop any other output
-	stopOutput();
+	await stopOutput();
 
 	// Emit the initial event to inform
 	// the user that the bot is ready
@@ -557,7 +550,7 @@ exports.startInput = async function() {
 	// });
 
 	// Start all timers
-	await registerHotwordModels();
+  hotwordModels = await Hotword.getModels();
 
 	// Power on the mic
 	Rec.start();

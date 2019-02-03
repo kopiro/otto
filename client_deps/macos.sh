@@ -1,8 +1,9 @@
 #!/bin/sh
 
 brew install lame
-brew install sox --with-lame
-brew install opus-tools 
-brew install mopidy
-brew install node
+brew install sox
+brew install opus-tools
+
+nvm install 8
+nvm use 8
 npm install

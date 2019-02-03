@@ -18,7 +18,7 @@ const _config = config.snowboy;
 
 async function getModels(forceTraining = false) {
 	return new Promise(async (resolve, reject) => {
-		if (Snowboy == null) return reject();
+		if (Snowboy == null) return reject("Snowboy not installed");
 
 		let directories = fs.readdirSync(PMDL_DIR);
 		directories = directories.filter(e =>
