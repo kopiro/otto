@@ -11,6 +11,18 @@ const emitter = (exports.emitter = new (require('events')).EventEmitter());
 
 exports.SESSION_SEPARATOR = '-';
 
+function guessSession(session) {
+	if (!session) {
+		if (!exports.session) {
+			throw new Error('Null session during outputByInputParams');
+		} else {
+			console.warn('Using global session for output');
+			return exports.session;
+		}
+	}
+	return session;
+}
+
 /**
  * Transform a Fulfillment by making some edits based on the current session settings
  * @param  {Object} fulfillment Fulfillment object
@@ -92,9 +104,8 @@ exports.eventToAllIO = function(name, data) {
  * @param {String} e.params.text A text query to parse over DialogFlow
  * @param {Object} e.params.event An event query to parse over DialogFlow
  */
-exports.output = async function(fulfillment, session) {
-	session = session || IOManager.session;
-	let driverStr = session.io_driver;
+exports.output = async function(fulfillment, session = null) {
+	session = guessSession(session);
 
 	if (fulfillment == null) {
 		console.warn(
@@ -119,7 +130,7 @@ exports.output = async function(fulfillment, session) {
 	// If this driver is not up & running for this configuration,
 	// the item could be handled by another platform that has that driver configured,
 	// so we'll enqueue it.
-	if (false === isIdDriverUp(session.io_id)) {
+	if (!isIdDriverUp(session.io_id)) {
 		console.info(TAG, 'putting in IO queue because driver is not UP', {
 			session,
 			fulfillment
@@ -138,16 +149,16 @@ exports.output = async function(fulfillment, session) {
 
 	// Redirect to another driver if is configured to do that
 	// by simplying replacing the driver
-	if (config.ioRedirectMap[driverStr] != null) {
-		driverStr = config.ioRedirectMap[driverStr];
+	if (config.ioRedirectMap[session.io_driver] != null) {
+		session.io_driver = config.ioRedirectMap[session.io_driver];
 		console.info(
 			TAG,
-			`<${session.io_driver}> redirect output to <${driverStr}>`
+			`<${session.io_driver}> redirect output to <${session.io_driver}>`
 		);
 	}
 
-	const driver = enabledDrivers[driverStr];
-	if (driver == null) throw `Driver ${driverStr} is not enabled`;
+	const driver = enabledDrivers[session.io_driver];
+	if (driver == null) throw `Driver ${session.io_driver} is not enabled`;
 
 	// Call the output
 	try {
@@ -161,7 +172,7 @@ exports.output = async function(fulfillment, session) {
 	// - handle a kind of output, process it and blocking the next accessory
 	// - handle a kind of output, process it but don't block the next accessory
 	// - do not handle and forward to next accessory
-	const accessories = enabledAccesories[driverStr] || [];
+	const accessories = enabledAccesories[session.io_driver] || [];
 	for (let accessory of accessories) {
 		let handleType = accessory.canHandleOutput(fulfillment, session);
 
@@ -197,16 +208,8 @@ exports.output = async function(fulfillment, session) {
  * @param {Object} session Session object
  */
 exports.outputByInputParams = async function(params = {}, session = null) {
+	session = guessSession(session);
 	let fulfillment = null;
-
-	if (!session) {
-		if (!exports.session) {
-			throw new Error('Null session during outputByInputParams');
-		} else {
-			console.warn('Using global session for output');
-			session = exports.session;
-		}
-	}
 
 	console.info(TAG, 'output by input params', params);
 
@@ -312,7 +315,7 @@ function loadDrivers() {
 
 		const driverId = config.uid + exports.SESSION_SEPARATOR + driver.config.id;
 		configuredDriversId.push(driverId);
-		console.info(TAG, `${driverId} loaded`);
+		console.info(TAG, `<${driverId}> loaded`);
 
 		driver.emitter.emit('loaded');
 	}
