@@ -4,11 +4,7 @@
 	"description": "Simple AI for Otto",
 	"main": "index.js",
 	"scripts": {
-		"build:client": "cd web-client && npm run build",
-		"build": "npm run build:client",
-		"dev:client": "cd web-client && npm run start",
-		"dev:server": "GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/keys/gcloud.json nodemon --harmony --watch src main.js",
-		"dev": "parallelshell 'npm run dev:server' 'npm run dev:client'",
+		"dev": "GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/keys/gcloud.json nodemon --harmony --watch src main.js",
 		"start": "GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/keys/gcloud.json node --harmony main.js"
 	},
 	"repository": {

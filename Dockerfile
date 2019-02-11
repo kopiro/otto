@@ -37,8 +37,8 @@ RUN cd web-client && npm install
 # Copy my code
 COPY . .
 
-# Do the build
-RUN npm run build
+# Do the build of client
+RUN cd web-client && npm run build
 
 ENTRYPOINT /app/entrypoint.sh
 EXPOSE 80

@@ -4,8 +4,6 @@ services:
 stages:
   - name: build
     if: branch != master
-  - name: push
-    if: branch = master
   - name: deploy
     if: branch = master
 
@@ -16,7 +14,7 @@ jobs:
         - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
         - docker pull $DOCKER_USERNAME/otto:latest
         - docker build . -t $DOCKER_USERNAME/otto:$TRAVIS_COMMIT --cache-from $DOCKER_USERNAME/otto:latest
-    - stage: push
+    - stage: deploy
       script:
         - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
         - docker pull $DOCKER_USERNAME/otto:latest

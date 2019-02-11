@@ -200,12 +200,6 @@ function createRecognizeStream(
 			if (err) {
 				if (err.unrecognized) {
 					return;
-					// Do not re-enable, it causes continue loops
-					// return emitter.emit('input', {
-					// 	params: {
-					// 		event: 'io_SR_unrecognized'
-					// 	}
-					// });
 				}
 				return emitter.emit('input', {
 					error: err
