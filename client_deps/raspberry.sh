@@ -21,4 +21,6 @@ else
 	wget -O - https://raw.githubusercontent.com/audstanley/NodeJs-Raspberry-Pi/master/Install-Node.sh | bash
 fi
 
+npm -g install yarn
+
 yarn install --production
