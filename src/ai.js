@@ -241,6 +241,8 @@ async function textRequestTransformer(text, session) {
  * @param {Object} session Session
  */
 async function eventRequestTransformer(event, session) {
+	if (typeof event === 'string') event = { name: event };
+	event.languageCode = session.getTranslateFrom();
 	return event;
 }
 
@@ -363,10 +365,7 @@ async function eventRequest(event, session) {
 	const responses = await dfSessionClient.detectIntent({
 		session: getDFSessionPath(session.id),
 		queryInput: {
-			event: {
-				name: event,
-				languageCode: session.getTranslateFrom()
-			}
+			event: event
 		}
 	});
 	return bodyParser(responses[0], session);

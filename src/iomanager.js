@@ -196,8 +196,17 @@ exports.output = async function(fulfillment, session) {
  * @param {Object} fulfillment Fulfillment payload
  * @param {Object} session Session object
  */
-exports.outputByInputParams = async function(params = {}, session = IOManager.session) {
+exports.outputByInputParams = async function(params = {}, session = null) {
 	let fulfillment = null;
+
+	if (!session) {
+		if (!exports.session) {
+			throw new Error('Null session during outputByInputParams');
+		} else {
+			console.warn('Using global session for output');
+			session = exports.session;
+		}
+	}
 
 	console.info(TAG, 'output by input params', params);
 
@@ -223,10 +232,6 @@ function configureAccessories(driverStr) {
 	const driver = enabledDrivers[driverStr];
 
 	for (let accessory of enabledAccesories[driverStr] || []) {
-		console.info(
-			TAG,
-			`attaching accessory <${accessory.id}> to <${driverStr}>`
-		);
 		accessory.attach(driver);
 	}
 }
@@ -237,8 +242,6 @@ function configureAccessories(driverStr) {
  * @param {String} driverStr
  */
 async function configureDriver(driverStr) {
-	console.info(TAG, `configuring IO Driver <${driverStr}>`);
-
 	const driver = enabledDrivers[driverStr];
 
 	driver.emitter.on('input', e => {
@@ -296,22 +299,12 @@ function loadDrivers() {
 		let driver = exports.getDriver(driverStr);
 
 		if (config.serverMode == true && driver.config.onlyClientMode == true) {
-			console.error(
-				TAG,
-				'unable to load <' +
-					driverStr +
-					'> because this IO is not compatible with server mode'
-			);
+			console.error(TAG, `unable to load <${driverStr}> because this IO is not compatible with SERVER mode`);
 			continue;
 		}
 
 		if (config.serverMode == false && driver.config.onlyServerMode == true) {
-			console.error(
-				TAG,
-				'unable to load <' +
-					driverStr +
-					'> because this IO is not compatible with client mode'
-			);
+			console.error(TAG, `unable to load <${driverStr}> because this IO is not compatible with CLIENT mode`);
 			continue;
 		}
 
@@ -319,7 +312,7 @@ function loadDrivers() {
 
 		const driverId = config.uid + exports.SESSION_SEPARATOR + driver.config.id;
 		configuredDriversId.push(driverId);
-		console.info(TAG, 'enabled driver', driverId);
+		console.info(TAG, `${driverId} loaded`);
 
 		driver.emitter.emit('loaded');
 	}
@@ -333,7 +326,6 @@ function loadAccessories() {
 	for (let driverStr of driversToLoad) {
 		enabledAccesories[driverStr] = [];
 		const accessoriesToLoad = getAccessoriesToLoad(driverStr);
-		console.info(TAG, 'accesories to load', driverStr, accessoriesToLoad);
 		for (let accessory of accessoriesToLoad) {
 			enabledAccesories[driverStr].push(exports.getAccessory(accessory));
 		}
@@ -345,7 +337,6 @@ function loadAccessories() {
  */
 function loadListeners() {
 	const listenersToLoad = getListenersToLoad();
-	console.info(TAG, 'listeners to load', listenersToLoad);
 
 	for (let listenerStr of listenersToLoad) {
 		const listener = exports.getListener(listenerStr);

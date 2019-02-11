@@ -32,7 +32,7 @@ async function getJobsOnBoot() {
 function runJobs(jobs) {
 	if (jobs.length === 0) return;
 
-	console.log(TAG, 'Jobs to run', jobs);
+	console.log(TAG, Date.now(), 'Jobs to run', jobs);
 	for (let job of jobs) {
 		const program = require(__basedir + '/src/scheduler/' + job.program);
 		program
