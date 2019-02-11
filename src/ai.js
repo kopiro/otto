@@ -37,6 +37,7 @@ function cleanFulfillmentForWebhook(fulfillment, session) {
  * @returns
  */
 function getDFSessionPath(sessionId) {
+	sessionId = sessionId.replace(/\//g, '_');
 	if (_config.environment == null) {
 		return dfSessionClient.sessionPath(_config.projectId, sessionId);
 	} else {
