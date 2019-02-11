@@ -21,4 +21,4 @@ else
 	wget -O - https://raw.githubusercontent.com/audstanley/NodeJs-Raspberry-Pi/master/Install-Node.sh | bash
 fi
 
-npm install --only=prod --unsafe-perm
+yarn install --production

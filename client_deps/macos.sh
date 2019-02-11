@@ -6,4 +6,5 @@ brew install opus-tools
 
 nvm install 8
 nvm use 8
-npm install
+
+yarn install

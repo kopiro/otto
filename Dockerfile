@@ -28,11 +28,11 @@ RUN rm -rf /var/cache/apk/*
 # Install node modules
 COPY package.json package.json
 COPY package-lock.json package-lock.json
-RUN npm install --unsafe-perm
+RUN yarn install
 
 COPY web-client/package.json web-client/package.json
 COPY web-client/package-lock.json web-client/package-lock.json
-RUN cd web-client && npm install
+RUN cd web-client && yarn install
 
 # Copy my code
 COPY . .
