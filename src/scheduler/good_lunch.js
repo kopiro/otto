@@ -1,10 +1,6 @@
 const TAG = 'Scheduler/GoodLunch';
 
 exports.run = function({ session }) {
-	return IOManager.outputByInputParams(
-		{
-			event: {
-				name: 'good_lunch'
-			}
-		}, session);
+	return IOManager.outputByInputParams({ event: 'good_lunch' }, session);
+
 };
