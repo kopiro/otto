@@ -36,7 +36,7 @@ RUN cd web-client && yarn install
 COPY . .
 
 # Do the build of client
-RUN cd web-client && npm run build
+RUN cd web-client && yarn run build
 
 ENTRYPOINT /app/entrypoint.sh
 EXPOSE 80
