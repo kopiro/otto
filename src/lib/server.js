@@ -64,9 +64,6 @@ exports.routerListeners.use(
   }),
 );
 
-// web-client public
-app.use(express.static(`${__basedir}/web-client/build`));
-
 // public
 app.use('/tmp', express.static(__tmpdir));
 
@@ -78,16 +75,13 @@ app.use('/listeners', exports.routerListeners);
 
 // Adding policy URL
 app.get('/policy', (req, res) => {
-  res.end(
-    `This bot is used only for fun, it's our monkey plush.
-		It only answers to basic questions.`,
-  );
+  res.end('This bot is used only for fun, it\'s our monkey plush. It only answers to basic questions.');
 });
 
 exports.io = io;
 exports.app = app;
 
-exports.start = function () {
+exports.start = () => {
   server.listen(
     {
       port: _config.port,
