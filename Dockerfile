@@ -35,8 +35,5 @@ RUN cd web-client && yarn install
 # Copy my code
 COPY . .
 
-# Do the build of client
-RUN cd web-client && yarn run build
-
 ENTRYPOINT /app/entrypoint.sh
 EXPOSE 80
