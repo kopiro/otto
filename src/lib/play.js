@@ -23,28 +23,26 @@ exports.kill = function () {
  * @param {String} uri	URI or file
  * @param {Array} addArgs	Eventual voice effects
  */
-exports.playURI = async function (uri, addArgs = [], program = 'play') {
-  return new Promise(async (resolve, reject) => {
-    const localUri = await getLocalObjectFromURI(uri);
+exports.playURI = async (uri, addArgs = [], program = 'play') => new Promise(async (resolve, reject) => {
+  const localUri = await getLocalObjectFromURI(uri);
 
-    const proc = spawn(program, [localUri].concat(addArgs));
-    processes[proc.pid] = true;
+  const proc = spawn(program, [localUri].concat(addArgs));
+  processes[proc.pid] = true;
 
-    let stderr = '';
-    proc.stderr.on('data', (buf) => {
-      stderr += buf;
-    });
-
-    proc.on('close', (err) => {
-      delete processes[proc.pid];
-      if (err) {
-        return reject(stderr);
-      }
-
-      resolve(localUri);
-    });
+  let stderr = '';
+  proc.stderr.on('data', (buf) => {
+    stderr += buf;
   });
-};
+
+  proc.on('close', (err) => {
+    delete processes[proc.pid];
+    if (err) {
+      return reject(stderr);
+    }
+
+    resolve(localUri);
+  });
+});
 
 /**
  * Play an item using voice effects

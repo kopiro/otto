@@ -103,10 +103,7 @@ function bindEvents() {
  * @param {string} text String to speak
  * @param {string} language Language of text
  */
-async function sendMessage(
-  text,
-  { language = IOManager.session.getTranslateTo() },
-) {
+async function sendMessage(text, { language = IOManager.session.getTranslateTo() }) {
   const key = md5(text);
   currentSendMessageKey = key;
 
@@ -430,8 +427,10 @@ async function processOutputQueue() {
 
   // Process a Text
   try {
-    if (f.fulfillmentText) {
-      await sendMessage(f.fulfillmentText, {
+    if (f.audio) {
+      await Play.playVoice(f.audio);
+    } else if (f.text) {
+      await sendMessage(f.text, {
         language: f.payload.language,
       });
     }

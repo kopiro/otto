@@ -1,4 +1,4 @@
-const uuid = require('uuid');
+const uuidMod = require('uuid');
 const _ = require('underscore');
 const diacriticsRemove = require('diacritics').remove;
 const request = require('request');
@@ -62,7 +62,7 @@ global.timeout = function (ms) {
  * Generate a UUID v4
  */
 global.uuid = function () {
-  return uuid.v4();
+  return uuidMod.v4();
 };
 
 /**
@@ -133,26 +133,31 @@ global.getLocaleFromLanguageCode = function (language = null) {
  * Get the local URI of a remote object by downloading it
  * @param {String} uri
  */
-global.getLocalObjectFromURI = function (uri) {
-  return new Promise((resolve, reject) => {
-    if (/^https?\:\/\//.test(uri)) {
-      const extension = uri.split('.').pop() || 'unknown';
-      const local_file = `${__cachedir}/${md5(uri)}.${extension}`;
-      if (fs.existsSync(local_file)) {
-        return resolve(local_file);
-      }
+global.getLocalObjectFromURI = uri => new Promise((resolve, reject) => {
+  if (Buffer.isBuffer(uri)) {
+    const localFile = `${__tmpdir}/${uuid()}.wav`;
+    fs.writeFileSync(localFile, uri);
+    console.log('localFile', localFile);
+    return resolve(localFile);
+  }
 
-      return request(uri)
-        .pipe(fs.createWriteStream(local_file))
-        .on('close', () => {
-          if (!fs.existsSync(local_file)) return reject();
-          resolve(local_file);
-        });
+  if (/^https?\:\/\//.test(uri)) {
+    const extension = uri.split('.').pop() || 'unknown';
+    const localFile = `${__cachedir}/${md5(uri)}.${extension}`;
+    if (fs.existsSync(localFile)) {
+      return resolve(localFile);
     }
 
-    return resolve(uri);
-  });
-};
+    return request(uri)
+      .pipe(fs.createWriteStream(localFile))
+      .on('close', () => {
+        if (!fs.existsSync(localFile)) return reject();
+        resolve(localFile);
+      });
+  }
+
+  return resolve(uri);
+});
 
 global.extractWithPattern = function extractWithPattern(input, pattern) {
   if (input == null) return null;

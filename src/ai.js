@@ -290,12 +290,11 @@ async function bodyParser(body, session, fromWebhook = false) {
     );
     body.queryResult.payload = structProtoToJson(body.queryResult.payload);
 
-    console.dir(body);
-
     console.warn(
       TAG,
       'Parsing body locally, this could be intentional, but check your intent',
     );
+    console.dir(body);
   }
 
   if (body.queryResult.action) {
@@ -307,6 +306,7 @@ async function bodyParser(body, session, fromWebhook = false) {
   if (body.queryResult.intent) {
     console.info(TAG, 'Using queryResult');
     return {
+      outputAudio: body.outputAudio,
       fulfillmentText: body.queryResult.fulfillmentText,
       fulfillmentMessages: body.queryResult.fulfillmentMessages,
       outputContexts: body.queryResult.outputContexts,

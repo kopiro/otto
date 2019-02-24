@@ -40,6 +40,8 @@ async function fulfillmentTransformer(fulfillment, session) {
     fulfillment.payload.language = overrideLanguage;
   }
 
+  console.error(fulfillment);
+
   // Always translate fulfillment speech in the user language
   if (fulfillment.fulfillmentText) {
     if (session.getTranslateTo() !== config.language) {
@@ -69,7 +71,9 @@ async function fulfillmentTransformer(fulfillment, session) {
 function cleanFulfillmentForOutput(fulfillment) {
   return {
     queryText: fulfillment.queryText,
-    fulfillmentText: fulfillment.fulfillmentText,
+    text: fulfillment.fulfillmentText,
+    // Re-enable to pass audio directly from DialogFlow
+    // audio: fulfillment.outputAudio,
     error: fulfillment.error,
     payload: fulfillment.payload,
   };
@@ -109,7 +113,7 @@ exports.eventToAllIO = function (name, data) {
  * @param {String} e.params.text A text query to parse over DialogFlow
  * @param {Object} e.params.event An event query to parse over DialogFlow
  */
-exports.output = async function (fulfillment, session = null) {
+exports.output = async (fulfillment, session = null) => {
   session = guessSession(session);
 
   if (fulfillment == null) {

@@ -94,7 +94,7 @@ async function sendVoiceMessage(chat_id, text, language, bot_opt = {}) {
 /**
  * Start the polling/webhook cycle
  */
-exports.startInput = function () {
+exports.startInput = () => {
   if (started) return;
   started = true;
 
@@ -120,7 +120,7 @@ exports.startInput = function () {
  * @param {Object} f	The item
  * @param {*} session The user session
  */
-exports.output = async function (f, session) {
+exports.output = async (f, session) => {
   console.info(TAG, 'output');
   console.dir(
     {
@@ -162,17 +162,17 @@ exports.output = async function (f, session) {
 
   // Process a Text Object
   try {
-    if (f.fulfillmentText) {
-      await sendMessage(chat_id, f.fulfillmentText, bot_opt);
+    if (f.text) {
+      await sendMessage(chat_id, f.text, bot_opt);
 
       if (session.pipe.nextWithVoice) {
         session.savePipe({
           nextWithVoice: false,
         });
-        await sendVoiceMessage(chat_id, f.fulfillmentText, language, bot_opt);
+        await sendVoiceMessage(chat_id, f.text, language, bot_opt);
       }
       if (f.payload.includeVoice) {
-        await sendVoiceMessage(chat_id, f.fulfillmentText, language, bot_opt);
+        await sendVoiceMessage(chat_id, f.text, language, bot_opt);
       }
     }
   } catch (err) {
