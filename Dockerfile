@@ -29,9 +29,6 @@ RUN rm -rf /var/cache/apk/*
 COPY package.json yarn.lock ./
 RUN yarn install
 
-COPY web-client/package.json web-client/yarn.lock web-client/
-RUN cd web-client && yarn install
-
 # Copy my code
 COPY . .
 
