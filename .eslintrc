@@ -12,10 +12,6 @@
 	},
 	"plugins": [],
 	"rules": {
-		"linebreak-style": ["error", "unix"],
-		"quotes": ["warn", "single"],
-		"semi": ["error", "always"],
-		"no-unused-vars": ["warn"],
 		"no-console": "off"
 	},
 	"globals": {

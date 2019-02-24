@@ -1,86 +1,83 @@
-const Schema = mongoose.Schema;
+const { Schema } = mongoose;
 const _ = require('underscore');
 
 const Session = new Schema({
-	_id: String,
-	io_driver: String,
-	io_id: String,
-	io_data: Schema.Types.Mixed,
-	server_settings: {
-		type: String,
-		ref: 'server_settings',
-		autopopulate: true
-	},
-	settings: Schema.Types.Mixed,
-	translate_from: String,
-	translate_to: String,
-	alias: String,
-	is_admin: Boolean,
-	pipe: Schema.Types.Mixed
+  _id: String,
+  io_driver: String,
+  io_id: String,
+  io_data: Schema.Types.Mixed,
+  server_settings: {
+    type: String,
+    ref: 'server_settings',
+    autopopulate: true,
+  },
+  settings: Schema.Types.Mixed,
+  translate_from: String,
+  translate_to: String,
+  alias: String,
+  is_admin: Boolean,
+  pipe: Schema.Types.Mixed,
 });
 
 Session.plugin(require('mongoose-autopopulate'));
 
 /**
  * Save new settings in DB
- * @param {Object} data 
+ * @param {Object} data
  */
 Session.methods.saveServerSettings = async function (data) {
-	let s = this.server_settings;
-	if (s == null) {
-		s = new exports.ServerSettings({
-			_id: (this.populated('server_settings') || this._id)
-		});
-	}
-	s.data = _.extend({}, s.data, data);
-	s.markModified('data');
-	s.save();
-	return;
+  let s = this.server_settings;
+  if (s == null) {
+    s = new exports.ServerSettings({
+      _id: (this.populated('server_settings') || this._id),
+    });
+  }
+  s.data = _.extend({}, s.data, data);
+  s.markModified('data');
+  s.save();
 };
 
 /**
  * Retrieve the IO driver module
  */
 Session.methods.getIODriver = function () {
-	return IOManager.getDriver(this.io_driver);
+  return IOManager.getDriver(this.io_driver);
 };
 
 /**
  * Save new data in pipe in DB
- * @param {Object} data 
+ * @param {Object} data
  */
 Session.methods.savePipe = async function (data) {
-	this.pipe = _.extend(this.pipe || {}, data);
-	this.pipe.updated_at = Date.now();
-	this.markModified('pipe');
-	await this.save();
-	return;
+  this.pipe = _.extend(this.pipe || {}, data);
+  this.pipe.updated_at = Date.now();
+  this.markModified('pipe');
+  await this.save();
 };
 
 /**
  * Save new settings in DB
- * @param {Object} data 
+ * @param {Object} data
  */
 Session.methods.saveSettings = async function (data) {
-	this.settings = _.extend(this.settings || {}, data);
-	this.settings.updated_at = Date.now();
-	this.markModified('settings');
-	await this.save();
-	return;
+  this.settings = _.extend(this.settings || {}, data);
+  this.settings.updated_at = Date.now();
+  this.markModified('settings');
+  await this.save();
 };
 
 /**
  * Get the language to translate from
  */
 Session.methods.getTranslateFrom = function () {
-	return this.translate_from || config.language;
+  return this.translate_from || config.language;
 };
 
 /**
  * Get the language to translate to
  */
 Session.methods.getTranslateTo = function () {
-	return this.translate_to || config.language;
+  return this.translate_to || config.language;
 };
 
 module.exports = Session;

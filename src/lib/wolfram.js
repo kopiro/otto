@@ -6,16 +6,17 @@ const _ = require('underscore');
 const { promisify } = require('util');
 
 const Wolfram = require('node-wolfram');
+
 const $ = new Wolfram(_config.appId);
 
 $._query = $.query;
-$.query = function(q) {
-	return new Promise((resolve, reject) => {
-		$._query(q, (err, res) => {
-			if (err) return reject(err);
-			return resolve(res);
-		});
-	});
+$.query = function (q) {
+  return new Promise((resolve, reject) => {
+    $._query(q, (err, res) => {
+      if (err) return reject(err);
+      return resolve(res);
+    });
+  });
 };
 
 // $.complexQuery = async function(q) {

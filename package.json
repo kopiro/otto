@@ -5,7 +5,8 @@
 	"main": "index.js",
 	"scripts": {
 		"dev": "GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/keys/gcloud.json nodemon --harmony --watch src main.js",
-		"start": "GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/keys/gcloud.json node --harmony main.js"
+        "start": "GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/keys/gcloud.json node --harmony main.js",
+        "fix": "eslint --fix ./src"
 	},
 	"repository": {
 		"type": "git",
