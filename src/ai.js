@@ -36,14 +36,15 @@ function cleanFulfillmentForWebhook(fulfillment, session) {
  * @returns
  */
 function getDFSessionPath(sessionId) {
+  const dfSessionId = sessionId.replace(/\//g, '_');
   if (_config.environment == null) {
-    return dfSessionClient.sessionPath(_config.projectId, sessionId);
+    return dfSessionClient.sessionPath(_config.projectId, dfSessionId);
   }
   return dfSessionClient.environmentSessionPath(
     _config.projectId,
     _config.environment,
     '-',
-    sessionId,
+    dfSessionId,
   );
 }
 
@@ -238,6 +239,8 @@ async function textRequestTransformer(text, session) {
  * @param {Object} session Session
  */
 async function eventRequestTransformer(event, session) {
+  if (typeof event === 'string') event = { name: event };
+  event.languageCode = session.getTranslateFrom();
   return event;
 }
 
@@ -361,10 +364,7 @@ async function eventRequest(event, session) {
   const responses = await dfSessionClient.detectIntent({
     session: getDFSessionPath(session.id),
     queryInput: {
-      event: {
-        name: event,
-        languageCode: session.getTranslateFrom(),
-      },
+      event,
     },
   });
   return bodyParser(responses[0], session);
