@@ -1,18 +1,14 @@
 {
-	"env": {
+	"extends": ["eslint:recommended","airbnb"],
+	"parserOptions": {
+		"ecmaVersion": 2017,
+		"sourceType": "module"
+    },
+    "env": {
 		"commonjs": true,
 		"es6": true,
 		"node": true,
 		"browser": true
-	},
-	"extends": "eslint:recommended",
-	"parserOptions": {
-		"ecmaVersion": 2017,
-		"ecmaFeatures": {
-			"experimentalObjectRestSpread": true,
-			"jsx": true
-		},
-		"sourceType": "module"
 	},
 	"plugins": [],
 	"rules": {

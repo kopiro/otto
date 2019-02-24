@@ -5,24 +5,24 @@ db.createCollection('schedulers');
 db.createCollection('stories');
 
 db.sessions.createIndex(
-	{
-		alias: 'text'
-	},
-	{ default_language: 'it', language_override: 'it' }
+  {
+    alias: 'text',
+  },
+  { default_language: 'it', language_override: 'it' },
 );
 
 db.music.createIndex(
-	{
-		name: 'text'
-	},
-	{ default_language: 'it', language_override: 'it' }
+  {
+    name: 'text',
+  },
+  { default_language: 'it', language_override: 'it' },
 );
 
 db.stories.createIndex(
-	{
-		title: 'text',
-		text: 'text',
-		tags: 'text'
-	},
-	{ default_language: 'it', language_override: 'it' }
+  {
+    title: 'text',
+    text: 'text',
+    tags: 'text',
+  },
+  { default_language: 'it', language_override: 'it' },
 );
