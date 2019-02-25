@@ -5,7 +5,7 @@
 
 const TAG = 'URLManager';
 
-const Proc = apprequire('proc');
+const Proc = requireLibrary('proc');
 
 exports.open = function (url) {
   // TODO: handle errors

@@ -10,10 +10,10 @@ const _config = config.web;
 const emitter = (exports.emitter = new (require('events')).EventEmitter());
 const path = require('path');
 
-const Play = apprequire('play');
+const Play = requireLibrary('play');
 const SR = requireInterface('sr');
 const TTS = requireInterface('tts');
-const Server = apprequire('server');
+const Server = requireLibrary('server');
 
 /**
  * True when startInput has been called

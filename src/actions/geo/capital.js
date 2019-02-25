@@ -2,7 +2,7 @@ exports.id = 'geo.capital';
 
 const rp = require('request-promise');
 
-const Translator = apprequire('translator');
+const Translator = requireLibrary('translator');
 
 module.exports = async function ({ queryResult }, session) {
   const { parameters: p, fulfillmentText } = queryResult;

@@ -1,5 +1,5 @@
 require("../boot");
-const Camera = apprequire("camera");
+const Camera = requireLibrary("camera");
 async function main() {
   const video_file = await Camera.recordVideo({
     time: 3

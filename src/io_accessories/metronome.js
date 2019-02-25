@@ -1,6 +1,6 @@
 exports.id = 'metronome';
 
-const Metronome = apprequire('metronome');
+const Metronome = requireLibrary('metronome');
 
 exports.canHandleOutput = function (e, session) {
   if (e.payload.metronome) return IOManager.CAN_HANDLE_OUTPUT.YES_AND_BREAK;

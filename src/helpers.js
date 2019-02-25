@@ -9,7 +9,7 @@ const md5 = require('md5');
  * Require a module or return null if not found
  * @param {String} e
  */
-global.requireOrNull = function (e) {
+global.requireOrNull = function requireOrNull(e) {
   try {
     return require(e);
   } catch (ex) {
@@ -22,7 +22,7 @@ global.requireOrNull = function (e) {
  * Pick a random element in an array
  * @param {Array} e
  */
-global.rand = function (e) {
+global.rand = function rand(e) {
   return _.isArray(e) ? e[_.random(0, e.length - 1)] : e;
 };
 
@@ -30,7 +30,7 @@ global.rand = function (e) {
  * Require a module from our internal library
  * @param {String} e
  */
-global.apprequire = global.requireLibrary = function (e) {
+global.requireLibrary = function requireLibrary(e) {
   return require(`${__basedir}/src/lib/${e}`);
 };
 
@@ -38,7 +38,7 @@ global.apprequire = global.requireLibrary = function (e) {
  * Require an interface
  * @param {String} e
  */
-global.requireInterface = function (e) {
+global.requireInterface = function requireInterface(e) {
   return require(`${__basedir}/src/interfaces/${e}`);
 };
 
@@ -46,7 +46,7 @@ global.requireInterface = function (e) {
  * Require a module from our helpers library
  * @param {String} e
  */
-global.requireHelper = function (e) {
+global.requireHelper = function requireHelper(e) {
   return require(`${__basedir}/src/helpers/${e}`);
 };
 
@@ -54,14 +54,14 @@ global.requireHelper = function (e) {
  * Timeout using promises
  * @param {Number} ms
  */
-global.timeout = function (ms) {
+global.timeout = function timeout(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 };
 
 /**
  * Generate a UUID v4
  */
-global.uuid = function () {
+global.uuid = function uuid() {
   return uuidMod.v4();
 };
 
@@ -69,7 +69,7 @@ global.uuid = function () {
  * Clean text by removing diacritics and lowering its case
  * @param {String} t
  */
-global.cleanText = function (t) {
+global.cleanText = function cleanText(t) {
   return diacriticsRemove(t).toLowerCase();
 };
 
@@ -77,7 +77,7 @@ global.cleanText = function (t) {
  * Split a text using a pattern to mimic a message sent by a human
  * @param {String} text
  */
-global.mimicHumanMessage = function (text) {
+global.mimicHumanMessage = function mimicHumanMessage(text) {
   const splitted = text.split(/\\n|\n|\.(?=\s+|[A-Z])/);
   return _.compact(splitted);
 };
@@ -88,11 +88,7 @@ global.mimicHumanMessage = function (text) {
  * @param {String} language
  * @returns {String}
  */
-global.getLocaleFromLanguageCode = function (language = null) {
-  if (language == null) {
-    return getLocaleFromLanguageCode(config.language);
-  }
-
+global.getLocaleFromLanguageCode = function getLocaleFromLanguageCode(language = null) {
   switch (language) {
     case 'de':
       return 'de-DE';
@@ -126,6 +122,8 @@ global.getLocaleFromLanguageCode = function (language = null) {
       return 'nb-NO';
     case 'sv':
       return 'sv-SE';
+    default:
+      return getLocaleFromLanguageCode(config.language);
   }
 };
 
@@ -133,31 +131,33 @@ global.getLocaleFromLanguageCode = function (language = null) {
  * Get the local URI of a remote object by downloading it
  * @param {String} uri
  */
-global.getLocalObjectFromURI = uri => new Promise((resolve, reject) => {
-  if (Buffer.isBuffer(uri)) {
-    const localFile = `${__tmpdir}/${uuid()}.wav`;
-    fs.writeFileSync(localFile, uri);
-    console.log('localFile', localFile);
-    return resolve(localFile);
-  }
-
-  if (/^https?\:\/\//.test(uri)) {
-    const extension = uri.split('.').pop() || 'unknown';
-    const localFile = `${__cachedir}/${md5(uri)}.${extension}`;
-    if (fs.existsSync(localFile)) {
+global.getLocalObjectFromURI = function getLocalObjectFromURI(uri) {
+  return new Promise((resolve, reject) => {
+    if (Buffer.isBuffer(uri)) {
+      const localFile = `${__tmpdir}/${uuid()}.wav`;
+      fs.writeFileSync(localFile, uri);
+      console.log('localFile', localFile);
       return resolve(localFile);
     }
 
-    return request(uri)
-      .pipe(fs.createWriteStream(localFile))
-      .on('close', () => {
-        if (!fs.existsSync(localFile)) return reject();
-        resolve(localFile);
-      });
-  }
+    if (/^https?\:\/\//.test(uri)) {
+      const extension = uri.split('.').pop() || 'unknown';
+      const localFile = `${__cachedir}/${md5(uri)}.${extension}`;
+      if (fs.existsSync(localFile)) {
+        return resolve(localFile);
+      }
 
-  return resolve(uri);
-});
+      return request(uri)
+        .pipe(fs.createWriteStream(localFile))
+        .on('close', () => {
+          if (!fs.existsSync(localFile)) return reject();
+          resolve(localFile);
+        });
+    }
+
+    return resolve(uri);
+  });
+};
 
 global.extractWithPattern = function extractWithPattern(input, pattern) {
   if (input == null) return null;
@@ -189,27 +189,6 @@ global.timeout = function timeout(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 };
 
-function jsonToStructProto(json) {
-  const fields = {};
-  for (const k in json) {
-    fields[k] = jsonValueToProto(json[k]);
-  }
-
-  return { fields };
-}
-
-const JSON_SIMPLE_TYPE_TO_PROTO_KIND_MAP = {
-  [typeof 0]: 'numberValue',
-  [typeof '']: 'stringValue',
-  [typeof false]: 'boolValue',
-};
-
-const JSON_SIMPLE_VALUE_KINDS = new Set([
-  'numberValue',
-  'stringValue',
-  'boolValue',
-]);
-
 function jsonValueToProto(value) {
   const valueProto = {};
 
@@ -232,12 +211,32 @@ function jsonValueToProto(value) {
   return valueProto;
 }
 
+function jsonToStructProto(json) {
+  const fields = {};
+  for (const k of Object.keys(json)) {
+    fields[k] = jsonValueToProto(json[k]);
+  }
+  return { fields };
+}
+
+const JSON_SIMPLE_TYPE_TO_PROTO_KIND_MAP = {
+  [typeof 0]: 'numberValue',
+  [typeof '']: 'stringValue',
+  [typeof false]: 'boolValue',
+};
+
+const JSON_SIMPLE_VALUE_KINDS = new Set([
+  'numberValue',
+  'stringValue',
+  'boolValue',
+]);
+
 function structProtoToJson(proto) {
   if (!proto || !proto.fields) {
     return {};
   }
   const json = {};
-  for (const k in proto.fields) {
+  for (const k of Object.keys(proto.fields)) {
     json[k] = valueProtoToJson(proto.fields[k]);
   }
   return json;

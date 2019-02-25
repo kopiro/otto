@@ -1,6 +1,6 @@
 const TAG = 'Scheduler/HourAnnunce';
 
-const Moment = apprequire('moment');
+const Moment = requireLibrary('moment');
 
 exports.run = function ({ session }) {
   const now = Moment();

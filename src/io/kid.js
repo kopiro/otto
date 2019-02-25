@@ -10,13 +10,13 @@ const _config = config.kid;
 const md5 = require('md5');
 const emitter = (exports.emitter = new (require('events')).EventEmitter());
 
-const Rec = apprequire('rec');
+const Rec = requireLibrary('rec');
 const SR = requireInterface('sr');
 const TTS = requireInterface('tts');
-const Play = apprequire('play');
+const Play = requireLibrary('play');
 const Snowboy = requireOrNull('snowboy');
-const Hotword = apprequire('hotword');
-const URLManager = apprequire('urlmanager');
+const Hotword = requireLibrary('hotword');
+const URLManager = requireLibrary('urlmanager');
 
 /**
  * TRUE when the audio is recording and it's submitting to GCP-SR

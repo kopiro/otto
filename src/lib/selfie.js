@@ -5,7 +5,7 @@ const path = require('path');
 const md5 = require('md5');
 const download = require('download');
 
-const ImageSearch = apprequire('imagesearch');
+const ImageSearch = requireLibrary('imagesearch');
 
 // TODO: get dynamic
 const AVATAR_URL =	'https://storage.googleapis.com/otto-ai/selfies/avatars/maglioncino.png';

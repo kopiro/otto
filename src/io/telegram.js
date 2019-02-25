@@ -11,13 +11,13 @@ const request = require('request');
 
 const emitter = (exports.emitter = new (require('events')).EventEmitter());
 
-const Server = apprequire('server');
+const Server = requireLibrary('server');
 const TelegramBot = require('node-telegram-bot-api');
 
 const SR = requireInterface('sr');
 const TTS = requireInterface('tts');
-const Play = apprequire('play');
-const Proc = apprequire('proc');
+const Play = requireLibrary('play');
+const Proc = requireLibrary('proc');
 
 /**
  * Telegram bot Client

@@ -1,6 +1,6 @@
 const TAG = 'news';
 
-const Server = apprequire('server');
+const Server = requireLibrary('server');
 
 exports.listen = function () {
   Server.routerListeners.post('/news', async (req, res) => {

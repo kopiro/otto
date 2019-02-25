@@ -1,11 +1,9 @@
 const TAG = 'AI';
 
-const _ = require('underscore');
+const Server = requireLibrary('server');
+const Translator = requireLibrary('translator');
 
-const Server = apprequire('server');
-const Translator = apprequire('translator');
-
-const _config = config.dialogflow;
+const aiConfig = config.dialogflow;
 const dialogflow = require('dialogflow').v2beta1;
 
 const dfSessionClient = new dialogflow.SessionsClient();
@@ -13,7 +11,7 @@ const dfContextsClient = new dialogflow.ContextsClient();
 
 function parseContext(c, sessionId) {
   if (!/projects/.test(c.name)) {
-    c.name = dfContextsClient.contextPath(_config.projectId, sessionId, c.name);
+    c.name = dfContextsClient.contextPath(aiConfig.projectId, sessionId, c.name);
   }
   return c;
 }
@@ -23,11 +21,11 @@ function parseContext(c, sessionId) {
  * @param {Object} fulfillment
  * @returns
  */
-function cleanFulfillmentForWebhook(fulfillment, session) {
-  if (fulfillment.outputContexts) {
-    fulfillment.outputContexts = fulfillment.outputContexts.map(c => parseContext(c, session.id));
+async function fulfillmentTransformerForWebhookOutput(f, session) {
+  if (f.outputContexts) {
+    f.outputContexts = f.outputContexts.map(c => parseContext(c, session.id));
   }
-  return fulfillment;
+  return f;
 }
 
 /**
@@ -37,12 +35,12 @@ function cleanFulfillmentForWebhook(fulfillment, session) {
  */
 function getDFSessionPath(sessionId) {
   const dfSessionId = sessionId.replace(/\//g, '_');
-  if (_config.environment == null) {
-    return dfSessionClient.sessionPath(_config.projectId, dfSessionId);
+  if (aiConfig.environment == null) {
+    return dfSessionClient.sessionPath(aiConfig.projectId, dfSessionId);
   }
   return dfSessionClient.environmentSessionPath(
-    _config.projectId,
-    _config.environment,
+    aiConfig.projectId,
+    aiConfig.environment,
     '-',
     dfSessionId,
   );
@@ -67,38 +65,35 @@ function setDFContext(sessionId, context) {
  * @returns
  */
 function actionErrorTransformer(body, err) {
-  const fulfillment = {};
+  const f = {};
 
-  if (typeof err === 'string' || err.message != null) {
+  if (typeof err === 'string' || err.message) {
     const errMessage = typeof err === 'string' ? err : err.message;
 
     // If an error occurs, try to intercept this error
     // in the fulfillmentMessages that comes from DialogFlow
-    fulfillment.fulfillmentText = extractWithPattern(
+    f.fulfillmentText = extractWithPattern(
       body.queryResult.fulfillmentMessages,
       `[].payload.error.${errMessage}`,
     ) || errMessage;
 
-    if (err.data != null) {
+    if (err.data) {
       let theVar = null;
-      const re = /\$\_(\w+)/g;
+      const re = /$_(\w+)/g;
       // eslint-disable-next-line no-cond-assign
-      while ((theVar = re.exec(fulfillment.fulfillmentText)) != null) {
-        fulfillment.fulfillmentText = fulfillment.fulfillmentText.replace(
-          `\$\_${theVar[1]}`,
-          err.data[theVar[1]] || '',
-        );
+      while ((theVar = re.exec(f.fulfillmentText))) {
+        f.fulfillmentText = f.fulfillmentText.replace(`$_${theVar[1]}`, err.data[theVar[1]] || '');
       }
     }
   } else if (err instanceof Error) {
     // Only used for debugging purposes, TODO remove
-    fulfillment.fulfillmentText = `ERROR: ${err.message}`;
+    f.fulfillmentText = `ERROR: ${err.message}`;
   }
 
   // Add anyway the complete error
-  fulfillment.payload = { error: err };
+  f.payload = { error: err };
 
-  return fulfillment;
+  return f;
 }
 
 /**
@@ -110,39 +105,29 @@ function actionErrorTransformer(body, err) {
  * @param {Boolean} fromWebhook
  * @returns
  */
-async function actionResultToFulfillment(
-  body,
-  actionResult,
-  session,
-  fromWebhook = false,
-) {
-  let fulfillment = null;
+async function actionResultToFulfillment(body, actionResult, session, fromWebhook = false) {
+  let f = null;
 
   // If an action return a string, wrap into an object
-  if (_.isString(actionResult)) {
+  if (typeof actionResult === 'string') {
     actionResult = {
       fulfillmentText: actionResult,
     };
   }
 
-  fulfillment = actionResult;
+  f = actionResult;
 
   // Set context if not coming from webhooks
-  if (fromWebhook === false) {
-    if (fulfillment.outputContexts != null) {
-      for (const c of fulfillment.outputContexts) {
-        console.info(
-          TAG,
-          'Setting context manually because we are not in a webhook',
-          session.id,
-          c,
-        );
+  if (!fromWebhook) {
+    if (f.outputContexts) {
+      for (const c of f.outputContexts) {
+        console.info(TAG, 'Setting context manually because we are not in a webhook', session.id, c);
         await setDFContext(session.id, c);
       }
     }
   }
 
-  return fulfillment;
+  return f;
 }
 
 /**
@@ -154,19 +139,19 @@ async function actionResultToFulfillment(
 async function generatorResolver(body, generator, session) {
   console.info(TAG, 'Using generator resolver');
   try {
-    for (let fulfillment of generator) {
-      fulfillment = await actionResultToFulfillment(
+    for (let f of generator) {
+      f = await actionResultToFulfillment(
         body,
-        fulfillment,
+        f,
         session,
         false,
       );
-      await IOManager.output(fulfillment, session);
+      await IOManager.output(f, session);
     }
   } catch (err) {
     console.error(TAG, 'error while executing action generator', err);
-    const fulfillment = actionErrorTransformer(body, err);
-    await IOManager.output(fulfillment, session);
+    const f = actionErrorTransformer(body, err);
+    await IOManager.output(f, session);
   }
 }
 
@@ -179,7 +164,7 @@ async function actionResolver(body, session, fromWebhook = false) {
   const actionName = body.queryResult.action;
   console.info(TAG, `calling action <${actionName}>`);
 
-  let fulfillment = null;
+  let f = null;
 
   try {
     // Actual call to the Action
@@ -188,11 +173,11 @@ async function actionResolver(body, session, fromWebhook = false) {
       throw new Error(`Invalid action name: ${actionName}`);
     }
 
-    fulfillment = await actionToCall()(body, session);
+    f = await actionToCall()(body, session);
 
     // Now check if this action is a Promise or a Generator
-    if (typeof fulfillment.next === 'function') {
-      generatorResolver(body, fulfillment, session);
+    if (typeof f.next === 'function') {
+      generatorResolver(body, f, session);
       return {
         payload: {
           handledByGenerator: true,
@@ -200,18 +185,13 @@ async function actionResolver(body, session, fromWebhook = false) {
       };
     }
 
-    fulfillment = await actionResultToFulfillment(
-      body,
-      fulfillment,
-      session,
-      fromWebhook,
-    );
+    f = await actionResultToFulfillment(body, f, session, fromWebhook);
   } catch (err) {
     console.error(TAG, 'error while executing action:', err);
-    fulfillment = await actionErrorTransformer(body, err);
+    f = await actionErrorTransformer(body, err);
   }
 
-  return fulfillment;
+  return f;
 }
 
 /**
@@ -221,14 +201,9 @@ async function actionResolver(body, session, fromWebhook = false) {
  */
 async function textRequestTransformer(text, session) {
   // Remove the AI name in the text
-  text = text.replace(config.aiNameRegex, '');
-  // Translate if needed
-  if (config.language != session.getTranslateTo()) {
-    text = await Translator.translate(
-      text,
-      config.language,
-      session.getTranslateTo(),
-    );
+  // text = text.replace(config.aiNameRegex, '');
+  if (config.language !== session.getTranslateTo()) {
+    text = await Translator.translate(text, config.language, session.getTranslateTo());
   }
   return text;
 }
@@ -239,7 +214,9 @@ async function textRequestTransformer(text, session) {
  * @param {Object} session Session
  */
 async function eventRequestTransformer(event, session) {
-  if (typeof event === 'string') event = { name: event };
+  if (typeof event === 'string') {
+    event = { name: event };
+  }
   event.languageCode = session.getTranslateFrom();
   return event;
 }
@@ -250,20 +227,18 @@ async function eventRequestTransformer(event, session) {
  * @param {Object} session Session
  */
 async function bodyParser(body, session, fromWebhook = false) {
-  if (body.webhookStatus != null) {
+  if (body.webhookStatus) {
     if (body.webhookStatus.code > 0) {
       return {
         error: body.webhookStatus,
       };
     }
 
-    // console.error('Body :', JSON.stringify(body, null, 10));
-
     // When coming from webhook, unwrap everything
     body.queryResult.parameters = structProtoToJson(
       body.queryResult.parameters,
     );
-    if (body.queryResult.webhookPayload != null) {
+    if (body.queryResult.webhookPayload) {
       body.queryResult.payload = structProtoToJson(
         body.queryResult.webhookPayload,
       );
@@ -271,11 +246,12 @@ async function bodyParser(body, session, fromWebhook = false) {
     }
     body.queryResult.payload = body.queryResult.payload || {};
 
+    console.debug(TAG, 'Body parsed remotely by webhook');
     return body.queryResult;
   }
 
   // If an intent is returned, could auto resolve or call a promise
-  if (fromWebhook === false) {
+  if (!fromWebhook) {
     // When coming NOT from webhook,
     // parameters, fulfillmentMessages and payload are wrapped
     // in a very complicated STRUCT_PROTO
@@ -289,22 +265,16 @@ async function bodyParser(body, session, fromWebhook = false) {
       }),
     );
     body.queryResult.payload = structProtoToJson(body.queryResult.payload);
-
-    console.warn(
-      TAG,
-      'Parsing body locally, this could be intentional, but check your intent',
-    );
-    console.dir(body);
   }
 
   if (body.queryResult.action) {
-    console.info(TAG, 'Using action resolver');
-    return await actionResolver(body, session, fromWebhook);
+    console.warn(TAG, 'Using action resolver locally');
+    return actionResolver(body, session, fromWebhook);
   }
 
   // Otherwise, check if at least an intent is match and direct return that fulfillment
   if (body.queryResult.intent) {
-    console.info(TAG, 'Using queryResult');
+    console.warn(TAG, 'Using queryResult object (matched from intent) locally');
     return {
       outputAudio: body.outputAudio,
       fulfillmentText: body.queryResult.fulfillmentText,
@@ -400,14 +370,14 @@ exports.attachToServer = () => {
       await session.save();
     }
 
-    let fulfillment = await bodyParser(req.body, session, true);
-    fulfillment = await IOManager.fulfillmentTransformer(fulfillment, session);
-    fulfillment = cleanFulfillmentForWebhook(fulfillment, session);
+    let f = await bodyParser(req.body, session, true);
+    f = await IOManager.fulfillmentTransformer(f, session);
+    f = await fulfillmentTransformerForWebhookOutput(f, session);
 
     console.info(TAG, '[WEBHOOK] output fulfillment');
-    console.log(JSON.stringify(fulfillment));
+    console.log(JSON.stringify(f));
 
-    return res.json(fulfillment);
+    return res.json(f);
   });
 };
 

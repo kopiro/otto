@@ -1,6 +1,6 @@
 exports.id = 'datetime.now';
 
-const Moment = apprequire('moment');
+const Moment = requireLibrary('moment');
 
 module.exports = async function ({ queryResult }, session) {
   const { parameters: p, fulfillmentText } = queryResult;

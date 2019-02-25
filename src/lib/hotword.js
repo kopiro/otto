@@ -4,10 +4,10 @@ const request = require('request');
 const fs = require('fs');
 
 const TTS = requireInterface('tts');
-const Play = apprequire('play');
-const Rec = apprequire('rec');
+const Play = requireLibrary('play');
+const Rec = requireLibrary('rec');
 const SR = requireInterface('sr');
-const Messages = apprequire('messages');
+const Messages = requireLibrary('messages');
 const Snowboy = requireOrNull('snowboy');
 
 const PMDL_DIR = `${__etcdir}/hotwords-pmdl/`;

@@ -1,8 +1,11 @@
 {
-	"extends": ["eslint:recommended","airbnb"],
+	"extends": ["airbnb"],
 	"parserOptions": {
 		"ecmaVersion": 2017,
-		"sourceType": "module"
+        "sourceType": "module",
+        "ecmaFeatures": {
+            "experimentalObjectRestSpread": true
+        }
     },
     "env": {
 		"commonjs": true,
@@ -12,7 +15,16 @@
 	},
 	"plugins": [],
 	"rules": {
-		"no-console": "off"
+        "no-console": "off",
+        "no-param-reassign": "off",
+        "no-restricted-syntax": "off",
+        "no-await-in-loop": "off",
+        "global-require": "off",
+        "no-continue": "off",
+        "import/no-dynamic-require": "off",
+        "no-underscore-dangle": "off",
+        "camelcase": "warn",
+        "no-use-before-define": "off"
 	},
 	"globals": {
 		"__basedir": true,
@@ -26,7 +38,6 @@
 		"config": true,
 		"cleanText": true,
 		"requireOrNull": true,
-		"apprequire": true,
 		"extractWithPattern": true,
 		"requireLibrary": true,
 		"requireInterface": true,

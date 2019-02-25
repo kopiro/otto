@@ -2,7 +2,7 @@ const TAG = 'Scheduler';
 
 const _ = require('underscore');
 
-const Moment = apprequire('moment');
+const Moment = requireLibrary('moment');
 const FORMAT = 'YYYY-MM-DD HH:mm:ss';
 
 let started = false;

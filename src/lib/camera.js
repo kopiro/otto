@@ -5,7 +5,7 @@ const fs = require('fs');
 const { spawn } = require('child_process');
 const { exec } = require('child_process');
 
-const Proc = apprequire('proc');
+const Proc = requireLibrary('proc');
 
 const IS_RPI = (() => {
   try {

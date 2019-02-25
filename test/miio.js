@@ -1,5 +1,5 @@
 require('../boot');
-const miio = apprequire('miio');
+const miio = requireLibrary('miio');
 async function main() {
 	const devices = miio.devices({
 		cacheTime: 300

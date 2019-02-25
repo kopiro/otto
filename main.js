@@ -1,6 +1,6 @@
 require('./boot');
 
-const Server = apprequire('server');
+const Server = requireLibrary('server');
 
 if (config.serverMode) {
   console.info('Running in SERVER mode');

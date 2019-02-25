@@ -1,3 +1,3 @@
 require('../boot');
-const Selfie = apprequire('selfie');
+const Selfie = requireLibrary('selfie');
 Selfie.create('venezia');

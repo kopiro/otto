@@ -1,5 +1,5 @@
 require('../boot');
-const GoogleMaps = apprequire('googlemaps');
+const GoogleMaps = requireLibrary('googlemaps');
 GoogleMaps.directions(
 	{
 		origin: 'Parma',

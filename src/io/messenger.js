@@ -12,10 +12,10 @@ const request = require('request');
 
 const emitter = (exports.emitter = new (require('events')).EventEmitter());
 
-const Server = apprequire('server');
+const Server = requireLibrary('server');
 const MessengerBot = require('messenger-bot');
 
-const Play = apprequire('play');
+const Play = requireLibrary('play');
 
 /**
  * Messenger bot Client

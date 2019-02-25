@@ -1,6 +1,6 @@
 const TAG = 'gitlab';
 
-const Server = apprequire('server');
+const Server = requireLibrary('server');
 
 exports.listen = function () {
   Server.routerListeners.post('/gitlab', async (req, res) => {

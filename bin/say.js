@@ -5,7 +5,7 @@ require("../boot");
 const TAG = "Say";
 
 const TTS = requireInterface("tts");
-const Play = apprequire("play");
+const Play = requireLibrary("play");
 
 async function sendMessage(text, language = "it") {
     let polly_file = await TTS.getAudioFile(text, {

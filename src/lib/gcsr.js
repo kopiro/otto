@@ -5,7 +5,7 @@ const speech = require('@google-cloud/speech')();
 const _ = require('underscore');
 const fs = require('fs');
 
-const Proc = apprequire('proc');
+const Proc = requireLibrary('proc');
 const { promisify } = require('util');
 
 exports.SAMPLE_RATE = 16000;

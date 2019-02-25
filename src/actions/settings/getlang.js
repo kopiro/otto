@@ -2,7 +2,7 @@ exports.id = 'settings.switchlang';
 
 const _ = require('underscore');
 
-const Translator = apprequire('translator');
+const Translator = requireLibrary('translator');
 
 module.exports = async function ({ queryResult }, session) {
   const { parameters: p, fulfillmentText } = queryResult;

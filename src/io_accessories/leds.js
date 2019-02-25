@@ -2,7 +2,7 @@ const TAG = 'Leds';
 
 exports.id = 'leds';
 
-const RaspiLeds = apprequire('raspi/leds');
+const RaspiLeds = requireLibrary('raspi/leds');
 
 const colorForRecognizing = [0, 255, 0];
 const colorForOutput = [255, 0, 0];

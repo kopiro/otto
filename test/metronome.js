@@ -1,3 +1,3 @@
 require('../boot');
-const Metronome = apprequire('metronome');
+const Metronome = requireLibrary('metronome');
 Metronome.start();

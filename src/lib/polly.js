@@ -3,7 +3,7 @@ const TAG = 'Polly';
 const _ = require('underscore');
 const md5 = require('md5');
 
-const aws = apprequire('aws');
+const aws = requireLibrary('aws');
 const fs = require('fs');
 
 const _config = config.aws.polly;

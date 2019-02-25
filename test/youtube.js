@@ -1,5 +1,5 @@
 require('../boot');
-const Youtube = apprequire('youtube');
+const Youtube = requireLibrary('youtube');
 
 Youtube.searchVideos('Centuries', 4)
 .then(results => {
