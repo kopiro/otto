@@ -32,8 +32,8 @@ Drivers.raspi = {
     return new Promise((resolve, reject) => {
       const raspivid_time = opt.time * 1000;
 
-      const file_h264 = `${__tmpdir}/${uuid()}.h264`;
-      const file_wav = `${__tmpdir}/${uuid()}.wav`;
+      const file_h264 = `${tmpDir}/${uuid()}.h264`;
+      const file_wav = `${tmpDir}/${uuid()}.wav`;
 
       exec([
         `raspivid -t ${raspivid_time} -w ${opt.width} -h ${opt.height} -b 2000000 -fps ${opt.fps} -n -o "${file_h264}" | `
@@ -80,7 +80,7 @@ exports.takePhoto = function (opt = {}) {
   _.defaults(opt, {
     width: 640,
     height: 480,
-    file: `${__tmpdir}/cam_${uuid()}.jpg`,
+    file: `${tmpDir}/cam_${uuid()}.jpg`,
   });
 
   return driver.takePhoto(opt);
@@ -92,7 +92,7 @@ exports.recordVideo = function (opt = {}) {
     height: 480,
     fps: 30,
     time: 10,
-    file: `${__tmpdir}/cam_${uuid()}.mkv`,
+    file: `${tmpDir}/cam_${uuid()}.mkv`,
   });
 
   return driver.recordVideo(opt);

@@ -4,8 +4,8 @@
 	"description": "Simple AI for Otto",
 	"main": "index.js",
 	"scripts": {
-		"dev": "GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/keys/gcloud.json nodemon --harmony --watch src main.js",
-        "start": "GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/keys/gcloud.json node --harmony main.js",
+		"dev": "GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/keys/gcloud.json AWS_KEY_PATH=$(pwd)/keys/aws.json nodemon --harmony --watch src src/main.js",
+        "start": "GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/keys/gcloud.json AWS_KEY_PATH=$(pwd)/keys/aws.json node --harmony src/main.js",
         "fix": "eslint --fix ./src"
 	},
 	"repository": {

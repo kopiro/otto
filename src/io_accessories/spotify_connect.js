@@ -1,8 +1,7 @@
-exports.id = 'spotify_connect';
+const Spotify = require('../lib/spotify');
+const IOManager = require('../stdlib/iomanager');
 
-const spotify = requireLibrary('spotify');
-
-exports.canHandleOutput = function (e, session) {
+function canHandleOutput(e, session) {
   if (session.settings.spotify == null) {
     return IOManager.CAN_HANDLE_OUTPUT.NO;
   }
@@ -14,10 +13,12 @@ exports.canHandleOutput = function (e, session) {
   if (e.payload.media) {
     return IOManager.CAN_HANDLE_OUTPUT.YES_AND_BREAK;
   }
-};
 
-exports.output = async function (e, session) {
-  const api = await spotify.initWithSession(session);
+  return IOManager.CAN_HANDLE_OUTPUT.NO;
+}
+
+async function output(e, session) {
+  const api = await Spotify.initWithSession(session);
 
   if (e.payload.music != null && e.payload.music.spotify != null) {
     if (e.payload.music.spotify.track != null) {
@@ -57,8 +58,15 @@ exports.output = async function (e, session) {
       case 'previous':
         await api.skipToPrevious();
         break;
+      default:
     }
   }
-};
+}
 
-exports.attach = function (io) {};
+function attach() {}
+
+module.exports = {
+  output,
+  canHandleOutput,
+  attach,
+};

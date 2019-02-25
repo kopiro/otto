@@ -3,7 +3,7 @@ const TAG = 'Messages';
 const _ = require('underscore');
 const util = require('util');
 
-const library = requireOrNull(`${__basedir}/messages.json`) || {};
+const library = requireOrNull(`${baseDir}/messages.json`) || {};
 
 exports.getRaw = function (key) {
   const str = library[key];

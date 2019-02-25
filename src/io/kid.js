@@ -103,7 +103,7 @@ function bindEvents() {
  * @param {string} text String to speak
  * @param {string} language Language of text
  */
-async function sendMessage(text, { language = IOManager.session.getTranslateTo() }) {
+async function sendMessage(text, { language = IOManager.globalSession.getTranslateTo() }) {
   const key = md5(text);
   currentSendMessageKey = key;
 
@@ -195,7 +195,7 @@ function destroyRecognizeStream() {
  * the microphone input to GCP-SR stream
  */
 function createRecognizeStream(
-  language = IOManager.session.getTranslateFrom(),
+  language = IOManager.globalSession.getTranslateFrom(),
 ) {
   console.log(TAG, 'recognizing microphone stream');
 
@@ -272,7 +272,7 @@ function registerOutputQueueInterval() {
  * Wake the bot and listen for intents
  */
 function wake() {
-  if (IOManager.session == null) {
+  if (IOManager.globalSession == null) {
     console.error(TAG, 'called wake prematurely');
     return;
   }
@@ -299,7 +299,7 @@ function wake() {
  * Stop the recognizer
  */
 function stop() {
-  if (IOManager.session == null) {
+  if (IOManager.globalSession == null) {
     console.error(TAG, 'called stop prematurely');
     return;
   }
@@ -404,7 +404,7 @@ async function processOutputQueue() {
   if (queueProcessingItem != null) return;
 
   // Always ensure that there is the session
-  if (IOManager.session == null) return;
+  if (IOManager.globalSession == null) return;
   const { session } = IOManager;
 
   // Grab the first item in the queue

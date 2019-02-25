@@ -22,13 +22,13 @@ exports.create = async function (keyword) {
     ));
 
     const panorama_url = rand(panoramas).url;
-    const avatar_file = `${__tmpdir}/${md5(AVATAR_URL)}.png`;
-    const panorama_file = `${__tmpdir}/${md5(panorama_url)}.jpg`;
+    const avatar_file = `${tmpDir}/${md5(AVATAR_URL)}.png`;
+    const panorama_file = `${tmpDir}/${md5(panorama_url)}.jpg`;
 
-    await download(AVATAR_URL, __tmpdir, {
+    await download(AVATAR_URL, tmpDir, {
       filename: path.basename(avatar_file),
     });
-    await download(panorama_url, __tmpdir, {
+    await download(panorama_url, tmpDir, {
       filename: path.basename(panorama_file),
     });
 
@@ -49,7 +49,7 @@ exports.create = async function (keyword) {
               )
               .write(avatar_file, () => {
                 const final_file = `/${uuid()}.jpg`;
-                const file_file_disk = path.join(__tmpdir, final_file);
+                const file_file_disk = path.join(tmpDir, final_file);
 
                 gm(panorama_file)
                   .composite(avatar_file)

@@ -1,8 +1,8 @@
+const Moment = require('../lib/moment');
+const Data = require('../data');
+const config = require('../config');
+
 const TAG = 'Scheduler';
-
-const _ = require('underscore');
-
-const Moment = requireLibrary('moment');
 const FORMAT = 'YYYY-MM-DD HH:mm:ss';
 
 let started = false;
@@ -30,20 +30,18 @@ async function getJobsOnBoot() {
   });
 }
 
-function runJobs(jobs) {
+async function runJobs(jobs) {
   if (jobs.length === 0) return;
 
   console.log(TAG, Date.now(), 'Jobs to run', jobs);
   for (const job of jobs) {
-    const program = require(`${__basedir}/src/scheduler/${job.program}`);
-    program
-      .run(job)
-      .then((result) => {
-        console.debug(TAG, 'processed', job, result);
-      })
-      .catch((err) => {
-        console.error(TAG, 'error', job, err);
-      });
+    const program = require(`../scheduler/${job.program}`);
+    try {
+      const result = await program.run(job);
+      console.debug(TAG, 'processed', job, result);
+    } catch (err) {
+      console.error(TAG, 'error', job, err);
+    }
   }
 }
 
@@ -53,7 +51,7 @@ async function tick() {
   runJobs(jobs);
 }
 
-exports.startPolling = async function () {
+async function startPolling() {
   if (started) return;
   started = true;
 
@@ -62,4 +60,8 @@ exports.startPolling = async function () {
 
   console.info(TAG, 'polling started');
   setInterval(tick, 1000);
+}
+
+module.exports = {
+  startPolling,
 };

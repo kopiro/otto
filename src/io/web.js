@@ -137,7 +137,7 @@ exports.output = async function (f, session) {
     const language = f.payload.language || session.getTranslateTo();
 
     if (speech != null) {
-      const output_file = path.join(__tmpdir, `${uuid()}.mp3`);
+      const output_file = path.join(tmpDir, `${uuid()}.mp3`);
       await Play.playVoiceToFile(
         await TTS.getAudioFile(speech, {
           language,

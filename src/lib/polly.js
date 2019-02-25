@@ -1,33 +1,46 @@
-const TAG = 'Polly';
-
 const _ = require('underscore');
 const md5 = require('md5');
-
-const aws = requireLibrary('aws');
 const fs = require('fs');
+const aws = require('../lib/aws');
+const config = require('../config');
+const { cacheDir } = require('../paths');
+const { getLocaleFromLanguageCode, uuid } = require('../helpers');
+const { promisify } = require('util');
+
+const TAG = 'Polly';
 
 const _config = config.aws.polly;
-const CACHE_REGISTRY_FILE = `${__cachedir}/${TAG}.json`;
+const CACHE_REGISTRY_FILE = `${cacheDir}/${TAG}.json`;
 
 const client = new aws.Polly({
   signatureVersion: 'v4',
   region: 'eu-west-1',
 });
 
-let cache = {
-  audio: {},
-  voices: {},
-};
+let cache = null;
 
 /**
  * Load the cache registry from file
  */
-function loadCacheRegistry() {
+function getCacheRegistry() {
+  if (cache) return cache;
+
   try {
     const registry = JSON.parse(fs.readFileSync(CACHE_REGISTRY_FILE).toString());
-    if (registry.audio == null || registry.voices == null) throw 'Invalid format';
+    if (registry.audio == null || registry.voices == null) {
+      throw new Error(`Invalid registry format for ${CACHE_REGISTRY_FILE} file`);
+    }
     cache = registry;
-  } catch (ex) {}
+  } catch (ex) {
+    cache = {
+      audio: {},
+      voices: {},
+    };
+  }
+  return cache;
+}
+async function saveCacheRegistry() {
+  return promisify(fs.writeFile)(CACHE_REGISTRY_FILE, JSON.stringify(getCacheRegistry()));
 }
 
 /**
@@ -36,10 +49,8 @@ function loadCacheRegistry() {
  * @param {String} voice
  */
 async function setCacheForVoice(opt, voice) {
-  return new Promise((resolve) => {
-    cache.voices[JSON.stringify(opt)] = voice;
-    fs.writeFile(CACHE_REGISTRY_FILE, JSON.stringify(cache), resolve);
-  });
+  getCacheRegistry().voices[JSON.stringify(opt)] = voice;
+  return saveCacheRegistry();
 }
 
 /**
@@ -47,21 +58,19 @@ async function setCacheForVoice(opt, voice) {
  * @param {Object} opt
  */
 function getCacheForVoice(opt) {
-  return cache.voices[JSON.stringify(opt)];
+  return getCacheRegistry().voices[JSON.stringify(opt)];
 }
 
 /**
  * Set the cache item for the audio
- * @param {String} text	The spoken text
+ * @param {String} text The spoken text
  * @param {Object} opt
  * @param {String} file File containing the audio
  */
 async function setCacheForAudio(text, opt, file) {
-  return new Promise((resolve) => {
-    const key = md5(text + JSON.stringify(opt));
-    cache.audio[key] = file;
-    fs.writeFile(CACHE_REGISTRY_FILE, JSON.stringify(cache), resolve);
-  });
+  const key = md5(text + JSON.stringify(opt));
+  getCacheRegistry().audio[key] = file;
+  return saveCacheRegistry();
 }
 
 /**
@@ -72,15 +81,16 @@ async function setCacheForAudio(text, opt, file) {
  */
 function getCacheForAudio(text, opt) {
   const key = md5(text + JSON.stringify(opt));
-  const file = cache.audio[key];
+  const file = getCacheRegistry().audio[key];
   if (file != null && fs.existsSync(file)) {
     return file;
   }
+  return null;
 }
 
 /**
  * Retrieve the voice title based on language and gender
- * @param {*} opt
+ * @param {Object} opt
  */
 function getVoice(opt) {
   return new Promise((resolve, reject) => {
@@ -91,37 +101,45 @@ function getVoice(opt) {
     }
 
     // Call the API to retrieve all voices in that locale
-    client.describeVoices({
-      LanguageCode: locale,
-    }, async (err, data) => {
-      if (err != null) {
-        return reject(err);
-      }
+    client.describeVoices(
+      {
+        LanguageCode: locale,
+      },
+      async (err, data) => {
+        if (err != null) {
+          return reject(err);
+        }
 
-      // Filter voice by selected gender
-      voice = data.Voices.find(v => (v.Gender == opt.gender));
+        // Filter voice by selected gender
+        voice = data.Voices.find(v => v.Gender == opt.gender);
 
-      if (voice == null) {
-        console.debug(TAG, `falling back to language ${config.language} instead of ${opt.language}`);
-        voice = await getVoice(_.extend({}, opt, {
-          language: config.language,
-        }));
+        if (voice == null) {
+          console.debug(
+            TAG,
+            `falling back to language ${config.language} instead of ${opt.language}`,
+          );
+          voice = await getVoice(
+            _.extend({}, opt, {
+              language: config.language,
+            }),
+          );
+          return resolve(voice);
+        }
+
+        // Save for later uses
+        setCacheForVoice(opt, voice);
         return resolve(voice);
-      }
-
-      // Save for later uses
-      setCacheForVoice(opt, voice);
-      return resolve(voice);
-    });
+      },
+    );
   });
 }
 
 /**
  * Download the audio file for that sentence and options
- * @param {String} text	Sentence
+ * @param {String} text Sentence
  * @param {Object} opt
  */
-exports.getAudioFile = function (text, opt = {}) {
+function getAudioFile(text, opt = {}) {
   return new Promise(async (resolve, reject) => {
     _.defaults(opt, {
       gender: _config.gender,
@@ -129,7 +147,7 @@ exports.getAudioFile = function (text, opt = {}) {
     });
 
     // If file has been downloaded, just serve it
-    let file = getCacheForAudio(text, opt);
+    const file = getCacheForAudio(text, opt);
     if (file) {
       return resolve(file);
     }
@@ -146,23 +164,23 @@ exports.getAudioFile = function (text, opt = {}) {
       Text: text,
       TextType: isSSML ? 'ssml' : 'text',
       OutputFormat: 'mp3',
-    }, (err, data) => {
+    }, async (err, data) => {
       if (err) {
         return reject(err);
       }
 
-      file = `${__cachedir}/${TAG}_${uuid()}.mp3`;
-      fs.writeFile(file, data.AudioStream, (err) => {
-        if (err) {
-          return reject(err);
-        }
-
-        // Save this entry onto cache
-        setCacheForAudio(text, opt, file);
-        resolve(file);
-      });
+      const cachedFile = `${cacheDir}/${TAG}_${uuid()}.mp3`;
+      try {
+        await promisify(fs.writeFile)(file, data.AudioStream);
+        setCacheForAudio(text, opt, cachedFile);
+        resolve(cachedFile);
+      } catch (writeErr) {
+        reject(writeErr);
+      }
     });
   });
-};
+}
 
-loadCacheRegistry();
+module.exports = {
+  getAudioFile,
+};

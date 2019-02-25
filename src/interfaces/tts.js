@@ -1,1 +1,1 @@
-module.exports = requireLibrary('polly');
+../lib/polly.js

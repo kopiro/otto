@@ -43,7 +43,7 @@ exports.startInput = async function () {
     for (let i = 0; i < 50; i++) process.stdout.write('+');
     process.stdout.write('\n');
     return emitter.emit('input', {
-      session: IOManager.session,
+      session: IOManager.globalSession,
       params: {
         text: msg,
       },
@@ -52,7 +52,7 @@ exports.startInput = async function () {
 
   rl.question('> ', (answer) => {
     emitter.emit('input', {
-      session: IOManager.session,
+      session: IOManager.globalSession,
       params: {
         text: answer,
       },
@@ -63,7 +63,7 @@ exports.startInput = async function () {
 exports.output = async function (f) {
   console.info(TAG, 'output');
   emitter.emit('output', {
-    session: IOManager.session,
+    session: IOManager.globalSession,
     fulfillment: f,
   });
 

@@ -1,1 +1,1 @@
-module.exports = requireLibrary('gcsr');
+../lib/gcsr.js

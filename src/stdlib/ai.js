@@ -1,17 +1,35 @@
-const TAG = 'AI';
 
-const Server = requireLibrary('server');
-const Translator = requireLibrary('translator');
+module.exports = {
+  eventRequest,
+  textRequest,
+  attachToServer,
+};
 
-const aiConfig = config.dialogflow;
-const dialogflow = require('dialogflow').v2beta1;
+const DialogFlow = require('dialogflow');
+const Server = require('./server');
+const IOManager = require('./iomanager');
+const Translator = require('../lib/translator');
+const Actions = require('../actions');
+const Data = require('../data');
+const config = require('../config');
+const { structProtoToJson, extractWithPattern } = require('../helpers');
+
+const dialogflow = DialogFlow.v2beta1;
+const _config = config.dialogflow;
 
 const dfSessionClient = new dialogflow.SessionsClient();
 const dfContextsClient = new dialogflow.ContextsClient();
 
+const TAG = 'AI';
+
+/**
+ * Parse the context
+ * @param {Object} c
+ * @param {Object} sessionId
+ */
 function parseContext(c, sessionId) {
   if (!/projects/.test(c.name)) {
-    c.name = dfContextsClient.contextPath(aiConfig.projectId, sessionId, c.name);
+    c.name = dfContextsClient.contextPath(_config.projectId, sessionId, c.name);
   }
   return c;
 }
@@ -35,12 +53,12 @@ async function fulfillmentTransformerForWebhookOutput(f, session) {
  */
 function getDFSessionPath(sessionId) {
   const dfSessionId = sessionId.replace(/\//g, '_');
-  if (aiConfig.environment == null) {
-    return dfSessionClient.sessionPath(aiConfig.projectId, dfSessionId);
+  if (_config.environment == null) {
+    return dfSessionClient.sessionPath(_config.projectId, dfSessionId);
   }
   return dfSessionClient.environmentSessionPath(
-    aiConfig.projectId,
-    aiConfig.environment,
+    _config.projectId,
+    _config.environment,
     '-',
     dfSessionId,
   );
@@ -72,10 +90,8 @@ function actionErrorTransformer(body, err) {
 
     // If an error occurs, try to intercept this error
     // in the fulfillmentMessages that comes from DialogFlow
-    f.fulfillmentText = extractWithPattern(
-      body.queryResult.fulfillmentMessages,
-      `[].payload.error.${errMessage}`,
-    ) || errMessage;
+    f.fulfillmentText = extractWithPattern(body.queryResult.fulfillmentMessages, `[].payload.error.${errMessage}`)
+      || errMessage;
 
     if (err.data) {
       let theVar = null;
@@ -121,7 +137,12 @@ async function actionResultToFulfillment(body, actionResult, session, fromWebhoo
   if (!fromWebhook) {
     if (f.outputContexts) {
       for (const c of f.outputContexts) {
-        console.info(TAG, 'Setting context manually because we are not in a webhook', session.id, c);
+        console.info(
+          TAG,
+          'Setting context manually because we are not in a webhook',
+          session.id,
+          c,
+        );
         await setDFContext(session.id, c);
       }
     }
@@ -140,12 +161,7 @@ async function generatorResolver(body, generator, session) {
   console.info(TAG, 'Using generator resolver');
   try {
     for (let f of generator) {
-      f = await actionResultToFulfillment(
-        body,
-        f,
-        session,
-        false,
-      );
+      f = await actionResultToFulfillment(body, f, session, false);
       await IOManager.output(f, session);
     }
   } catch (err) {
@@ -158,7 +174,7 @@ async function generatorResolver(body, generator, session) {
 /**
  * Transform a body from DialogFlow into a Fulfillment by calling the internal action
  * @param {Object} body Payload from DialogFlow
- * @param {*} session  Session
+ * @param {Object} session Session
  */
 async function actionResolver(body, session, fromWebhook = false) {
   const actionName = body.queryResult.action;
@@ -235,13 +251,9 @@ async function bodyParser(body, session, fromWebhook = false) {
     }
 
     // When coming from webhook, unwrap everything
-    body.queryResult.parameters = structProtoToJson(
-      body.queryResult.parameters,
-    );
+    body.queryResult.parameters = structProtoToJson(body.queryResult.parameters);
     if (body.queryResult.webhookPayload) {
-      body.queryResult.payload = structProtoToJson(
-        body.queryResult.webhookPayload,
-      );
+      body.queryResult.payload = structProtoToJson(body.queryResult.webhookPayload);
       delete body.queryResult.webhookPayload;
     }
     body.queryResult.payload = body.queryResult.payload || {};
@@ -256,14 +268,10 @@ async function bodyParser(body, session, fromWebhook = false) {
     // parameters, fulfillmentMessages and payload are wrapped
     // in a very complicated STRUCT_PROTO
     // that is pretty unusable, so we just un-wrap
-    body.queryResult.parameters = structProtoToJson(
-      body.queryResult.parameters,
-    );
-    body.queryResult.fulfillmentMessages = body.queryResult.fulfillmentMessages.map(
-      e => ({
-        payload: structProtoToJson(e.payload),
-      }),
-    );
+    body.queryResult.parameters = structProtoToJson(body.queryResult.parameters);
+    body.queryResult.fulfillmentMessages = body.queryResult.fulfillmentMessages.map(e => ({
+      payload: structProtoToJson(e.payload),
+    }));
     body.queryResult.payload = structProtoToJson(body.queryResult.payload);
   }
 
@@ -343,7 +351,7 @@ async function eventRequest(event, session) {
 /**
  * Attach the AI to the Server
  */
-exports.attachToServer = () => {
+function attachToServer() {
   Server.routerApi.post('/fulfillment', async (req, res) => {
     if (req.body == null) {
       return res.json({
@@ -354,9 +362,7 @@ exports.attachToServer = () => {
     }
 
     console.info(TAG, '[WEBHOOK] received request');
-    console.dir(req.body, {
-      depth: 10,
-    });
+    console.dir(req.body);
 
     const sessionId = req.body.session.split('/').pop();
 
@@ -379,7 +385,4 @@ exports.attachToServer = () => {
 
     return res.json(f);
   });
-};
-
-exports.textRequest = textRequest;
-exports.eventRequest = eventRequest;
+}
