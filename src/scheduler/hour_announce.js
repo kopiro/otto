@@ -1,10 +1,14 @@
-const TAG = 'Scheduler/HourAnnunce';
+const AI = require('../stdlib/ai');
+const Moment = require('../lib/moment');
 
-const Moment = requireLibrary('moment');
-
-exports.run = function ({ session }) {
+function run({ session }) {
   const now = Moment();
   if (now.hours() >= 10 && now.hours() <= 23) {
-    return IOManager.outputByInputParams({ event: 'hour_announce' }, session);
+    return AI.processInput({ event: 'hour_announce', session });
   }
+  return null;
+}
+
+module.exports = {
+  run,
 };

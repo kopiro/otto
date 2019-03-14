@@ -1,7 +1,6 @@
 const Events = require('events');
 const Translator = require('../lib/translator');
 const Data = require('../data');
-const AI = require('./ai');
 const config = require('../config');
 const { timeout } = require('../helpers');
 
@@ -123,7 +122,7 @@ async function output(f, session) {
 
   if (!f) {
     console.warn('Do not output to driver because f is null - this could be intentional, but check your action');
-    return { emptyFulfillment: true };
+    return null;
   }
 
   // Transform and Clean fulfillment
@@ -133,7 +132,7 @@ async function output(f, session) {
   // If this fulfillment has been handled by a generator, simply skip
   if (f.payload.handledByGenerator) {
     console.warn(TAG, 'Skipping output because is handled by generator');
-    return { handledByGenerator: true };
+    return null;
   }
 
   console.info(TAG, 'output');
@@ -154,9 +153,7 @@ async function output(f, session) {
       fulfillment: f,
     }).save();
 
-    return {
-      inQueue: true,
-    };
+    return null;
   }
 
   // Redirect to another driver if is configured to do that
@@ -205,30 +202,7 @@ async function output(f, session) {
     }
   }
 
-  return {};
-}
-
-/**
- * Process a fulfillment to a session
- * @param {Object} fulfillment Fulfillment payload
- * @param {Object} session Session object
- */
-async function outputByInputParams(params = {}, session = null) {
-  let f = null;
-  session = guessSession(session);
-
-  console.info(TAG, 'output by input params', params);
-
-  if (params.text) {
-    writeLogForSession(params.text, session);
-    f = await AI.textRequest(params.text, session);
-  } else if (params.event) {
-    f = await AI.eventRequest(params.event, session);
-  } else {
-    console.warn('Neither { text, event } in params is not null');
-  }
-
-  return output(f, session);
+  return true;
 }
 
 /**
@@ -247,12 +221,10 @@ async function configureAccessories(driverStr) {
  * parsing it and re-calling the output method of the driver
  * @param {String} driverStr
  */
-async function configureDriver(driverStr) {
+async function configureDriver(driverStr, callback) {
   const driver = enabledDrivers[driverStr];
 
-  driver.emitter.on('input', (e) => {
-    outputByInputParams(e.params, e.session);
-  });
+  driver.emitter.on('input', callback);
 
   await configureAccessories(driverStr);
   return driver.startInput();
@@ -505,13 +477,13 @@ async function startQueuePolling() {
 /**
  * Start drivers, accessories and listeners
  */
-async function start() {
+async function start(callback) {
   await loadDrivers();
   await loadAccessories();
 
   for (const driverStr of Object.keys(enabledDrivers)) {
     try {
-      await configureDriver(driverStr);
+      await configureDriver(driverStr, callback);
     } catch (err) {
       console.error(TAG, `Unable to activate driver <${driverStr}>: ${err}`);
     }
@@ -526,7 +498,6 @@ module.exports = {
   CAN_HANDLE_OUTPUT,
   eventToAllIO,
   output,
-  outputByInputParams,
   registerSession,
   encodeBody,
   decodeBody,

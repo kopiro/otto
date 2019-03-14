@@ -37,7 +37,7 @@ mongoose.connection.once('open', async () => {
     console.info('Running in CLIENT mode');
   }
 
-  IOManager.start();
+  IOManager.start(AI.processInput);
   IOManager.startQueuePolling();
 
   if (config.scheduler) {

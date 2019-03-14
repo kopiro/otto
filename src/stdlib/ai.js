@@ -1,10 +1,3 @@
-
-module.exports = {
-  eventRequest,
-  textRequest,
-  attachToServer,
-};
-
 const DialogFlow = require('dialogflow');
 const Server = require('./server');
 const IOManager = require('./iomanager');
@@ -386,3 +379,34 @@ function attachToServer() {
     return res.json(f);
   });
 }
+
+
+/**
+ * Process a fulfillment to a session
+ * @param {Object} e.fulfillment Fulfillment payload
+ * @param {Object} e.session Session object
+ */
+async function processInput({ params = {}, session = null }) {
+  let f = null;
+  session = IOManager.guessSession(session);
+
+  console.info(TAG, 'output by input params', params);
+
+  if (params.text) {
+    IOManager.writeLogForSession(params.text, session);
+    f = await textRequest(params.text, session);
+  } else if (params.event) {
+    f = await eventRequest(params.event, session);
+  } else {
+    console.warn('Neither { text, event } in params is not null');
+  }
+
+  return IOManager.output(f, session);
+}
+
+module.exports = {
+  eventRequest,
+  textRequest,
+  processInput,
+  attachToServer,
+};
