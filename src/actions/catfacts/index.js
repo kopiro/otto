@@ -4,6 +4,7 @@ const API_EP = 'https://cat-fact.herokuapp.com/facts';
 const rp = require('request-promise');
 
 const Translator = require('../../lib/translator');
+const { rand } = require('../../helpers');
 
 module.exports = async function main(body, session) {
   const facts = await rp(API_EP, {

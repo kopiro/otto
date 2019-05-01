@@ -12,15 +12,15 @@ const actionList = {};
       iterate(file);
     } else if (stat.isFile()) {
       if (/\.js$/.test(file)) {
-        const action_name = file
+        const actionName = file
           .replace('/index.js', '')
           .replace(__dirname, '')
           .replace(/^./, '')
           .replace(/\//g, '.')
           .replace('.js', '');
 
-        if (action_name) {
-          actionList[action_name] = () => require(file);
+        if (actionName) {
+          actionList[actionName] = () => require(file);
         }
       }
     }

@@ -1,5 +1,7 @@
 exports.id = 'alarm.good_morning';
 
+const { extractWithPattern, rand } = require('../../helpers');
+
 const CONTEXT_QUESTION = 'good_morning_question';
 
 function handleMathProduct(question) {
@@ -18,17 +20,14 @@ function handleMathSum(question) {
   return question;
 }
 
-module.exports = async function* ({ queryResult }, session) {
-  const { parameters: p, fulfillmentText, fulfillmentMessages } = queryResult;
+module.exports = async function* main({ queryResult }, session) {
+  const { fulfillmentText, fulfillmentMessages } = queryResult;
 
   if (fulfillmentText) {
     yield fulfillmentText;
   }
 
-  const questions = extractWithPattern(
-    fulfillmentMessages,
-    '[].payload.questions',
-  );
+  const questions = extractWithPattern(fulfillmentMessages, '[].payload.questions');
   if (questions) {
     let question = rand(questions);
     switch (question.kind) {
@@ -38,6 +37,8 @@ module.exports = async function* ({ queryResult }, session) {
       case 'math.sum':
         question = handleMathSum(question);
         break;
+      default:
+        return;
     }
 
     await session.savePipe({

@@ -1,13 +1,10 @@
 exports.id = 'e.book';
 
 const CirFood = require('cir-food');
+const stringSimilarity = require('string-similarity');
+const { extractWithPattern } = require('../helpers');
 
 const pendingQueue = {};
-
-const _ = require('underscore');
-const stringSimilarity = require('string-similarity');
-
-const moment = require('../../lib/moment');
 
 const CONTEXT_CONFIGURE = 'cirfood_configure';
 const CONTEXT_BOOK_YES = 'cirfood_book_yes';
@@ -106,14 +103,14 @@ module.exports = async function main({ queryResult }, session) {
       e.menu = e.client.booking.courses[e.booking.length].data;
       // Add current menu
       text += '\n\n';
-      text += e.menu.map(e => `${e.hid}. ${e.text}`).join('\n');
+      text += e.menu.map(_ => `${_.hid}. ${_.text}`).join('\n');
 
       // Return to WH by passing outputContexts to CONTEXT_BOOK_RESPONSE
       return {
         fulfillmentText: text,
         payload: {
           forceText: true,
-          replies: e.menu ? e.menu.map(e => e.hid) : [],
+          replies: e.menu ? e.menu.map(_ => _.hid) : [],
         },
         outputContexts: [
           {

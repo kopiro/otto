@@ -2,8 +2,9 @@ exports.id = 'settings.switchlang';
 
 const _ = require('underscore');
 const levenshtein = require('fast-levenshtein');
-
+const config = require('../../config');
 const Translator = require('../../lib/translator');
+const { extractWithPattern } = require('../../helpers');
 
 module.exports = async function main({ queryResult }, session) {
   const { parameters: p, fulfillmentMessages } = queryResult;
@@ -21,19 +22,19 @@ module.exports = async function main({ queryResult }, session) {
   const languages = await Translator.getLanguages(config.language);
 
   for (const x of ['from', 'to']) {
-    const language_request = p[`translate_${x}`];
-    if (language_request == null) continue;
+    const langReq = p[`translate_${x}`];
+    if (langReq == null) continue;
 
-    let preferred_lang = {
+    let prefLang = {
       distance: 999,
       code: null,
       name: null,
     };
 
     for (const l of languages) {
-      const lev = levenshtein.get(l.name.toUpperCase(), language_request.toUpperCase());
-      if (lev < 4 && preferred_lang.distance > lev) {
-        preferred_lang = {
+      const lev = levenshtein.get(l.name.toUpperCase(), langReq.toUpperCase());
+      if (lev < 4 && prefLang.distance > lev) {
+        prefLang = {
           distance: lev,
           code: l.code,
           name: l.name,
@@ -41,13 +42,13 @@ module.exports = async function main({ queryResult }, session) {
       }
     }
 
-    if (preferred_lang.code == null) {
-      throw 'unkown_language';
+    if (prefLang.code == null) {
+      throw new Error('unkown_language');
     }
 
-    let language_to_set = preferred_lang.code;
-    if (language_to_set == config.language) language_to_set = null;
-    session[`translate_${x}`] = language_to_set;
+    let langToSet = prefLang.code;
+    if (langToSet === config.language) langToSet = null;
+    session[`translate_${x}`] = langToSet;
   }
 
   await session.save();
@@ -61,6 +62,7 @@ module.exports = async function main({ queryResult }, session) {
       from,
     );
   }
+
   return extractWithPattern(fulfillmentMessages, '[].payload.text.plural')
     .replace('$_from', from)
     .replace('$_to', to);

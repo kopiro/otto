@@ -1,11 +1,11 @@
 exports.id = 'settings.switchlang';
 
 const _ = require('underscore');
-
+const config = require('../../config');
 const Translator = require('../../lib/translator');
 
 module.exports = async function main({ queryResult }, session) {
-  const { parameters: p, fulfillmentText } = queryResult;
+  const { fulfillmentText } = queryResult;
 
   const languages = await Translator.getLanguages(config.language);
   const from = _.findWhere(languages, { code: session.getTranslateFrom() }).name;
