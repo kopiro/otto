@@ -1,5 +1,9 @@
-const TAG = 'Scheduler/GoodMorning';
+const AI = require('../stdlib/ai');
 
-exports.run = function ({ session }) {
-  return IOManager.outputByInputParams({ event: 'good_morning' }, session);
+function run({ session }) {
+  return AI.processInput({ event: 'good_morning', session });
+}
+
+module.exports = {
+  run,
 };

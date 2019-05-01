@@ -1,21 +1,20 @@
-const TAG = 'GCTTS';
-
+const GCTTS = require('@google-cloud/text-to-speech');
 const _ = require('underscore');
 const md5 = require('md5');
 const fs = require('fs');
+const config = require('../config');
+const { cacheDir } = require('../paths');
+const { uuid, getLocaleFromLanguageCode } = require('../helpers');
 
 const _config = config.gcloud.tts;
-const CACHE_REGISTRY_FILE = `${__cachedir}/${TAG}.json`;
+const TAG = 'GCTTS';
+const CACHE_REGISTRY_FILE = `${cacheDir}/${TAG}.json`;
 
 // Creates a client
-const GCTTS = require('@google-cloud/text-to-speech');
 
 const client = new GCTTS.TextToSpeechClient();
 
-let cache = {
-  audio: {},
-  voices: {},
-};
+let cache = {};
 
 /**
  * Load the cache registry from file
@@ -23,34 +22,21 @@ let cache = {
 function loadCacheRegistry() {
   try {
     const registry = JSON.parse(fs.readFileSync(CACHE_REGISTRY_FILE).toString());
-    if (registry.audio == null || registry.voices == null) throw 'Invalid format';
+    if (registry.audio == null || registry.voices == null) {
+      throw new Error('Invalid registry format');
+    }
     cache = registry;
-  } catch (ex) {}
-}
-
-/**
- * Set the cache item for the voice
- * @param {Object} opt
- * @param {String} voice
- */
-async function setCacheForVoice(opt, voice) {
-  return new Promise((resolve) => {
-    cache.voices[JSON.stringify(opt)] = voice;
-    fs.writeFile(CACHE_REGISTRY_FILE, JSON.stringify(cache), resolve);
-  });
-}
-
-/**
- * Get the cache for a voice
- * @param {Object} opt
- */
-function getCacheForVoice(opt) {
-  return cache.voices[JSON.stringify(opt)];
+  } catch (ex) {
+    cache = {
+      audio: {},
+      voices: {},
+    };
+  }
 }
 
 /**
  * Set the cache item for the audio
- * @param {String} text	The spoken text
+ * @param {String} text The spoken text
  * @param {Object} opt
  * @param {String} file File containing the audio
  */
@@ -74,6 +60,7 @@ function getCacheForAudio(text, opt) {
   if (file != null && fs.existsSync(file)) {
     return file;
   }
+  return null;
 }
 
 /**
@@ -91,10 +78,10 @@ async function getVoice(opt) {
 
 /**
  * Download the audio file for that sentence and options
- * @param {String} text	Sentence
+ * @param {String} text Sentence
  * @param {Object} opt
  */
-exports.getAudioFile = function (text, opt = {}) {
+function getAudioFile(text, opt = {}) {
   return new Promise(async (resolve, reject) => {
     _.defaults(opt, {
       gender: _config.gender,
@@ -116,7 +103,7 @@ exports.getAudioFile = function (text, opt = {}) {
     else input.text = text;
 
     // Call the API
-    client.synthesizeSpeech(
+    return client.synthesizeSpeech(
       {
         input,
         voice,
@@ -129,19 +116,23 @@ exports.getAudioFile = function (text, opt = {}) {
           return reject(err);
         }
 
-        file = `${__cachedir}/${TAG}_${uuid()}.mp3`;
-        fs.writeFile(file, data.audioContent, 'binary', (err) => {
-          if (err) {
-            return reject(err);
+        file = `${cacheDir}/${TAG}_${uuid()}.mp3`;
+        return fs.writeFile(file, data.audioContent, 'binary', (err2) => {
+          if (err2) {
+            return reject(err2);
           }
 
           // Save this entry onto cache
           setCacheForAudio(text, opt, file);
-          resolve(file);
+          return resolve(file);
         });
       },
     );
   });
-};
+}
 
 loadCacheRegistry();
+
+module.exports = {
+  getAudioFile,
+};

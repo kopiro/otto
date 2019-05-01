@@ -1,52 +1,44 @@
-const TAG = 'IO.Telegram';
-exports.config = {
-  id: 'telegram',
-};
-
-const _config = config.telegram;
-
-const _ = require('underscore');
 const fs = require('fs');
 const request = require('request');
-
-const emitter = (exports.emitter = new (require('events')).EventEmitter());
-
-const Server = requireLibrary('server');
 const TelegramBot = require('node-telegram-bot-api');
+const Events = require('events');
+const bodyParser = require('body-parser');
+const config = require('../config');
+const Server = require('../stdlib/server');
+const IOManager = require('../stdlib/iomanager');
+const SR = require('../interfaces/sr');
+const TTS = require('../interfaces/tts');
+const Play = require('../lib/play');
+const Proc = require('../lib/proc');
+const {
+  mimicHumanMessage, getAiNameRegex, uuid, rand,
+} = require('../helpers');
+const { tmpDir } = require('../paths');
 
-const SR = requireInterface('sr');
-const TTS = requireInterface('tts');
-const Play = requireLibrary('play');
-const Proc = requireLibrary('proc');
+const _config = config.telegram;
+const TAG = 'IO.Telegram';
+const emitter = new Events.EventEmitter();
 
-/**
- * Telegram bot Client
- */
 const bot = new TelegramBot(_config.token, _config.options);
 
 let started = false;
-const callback_queries = {};
+const callbackQuery = {};
 
 /**
  * Handle a voice input by recognizing the text
- * @param {Object} session	Current session
+ * @param {Object} session Current session
  * @param {Object} e Telegram object
  */
 async function handleInputVoice(session, e) {
   return new Promise(async (resolve) => {
-    const file_link = await bot.getFileLink(e.voice.file_id);
-    const voice_file = `${__tmpdir}/${uuid()}.ogg`;
+    const fileLink = await bot.getFileLink(e.voice.file_id);
+    const voiceFile = `${tmpDir}/${uuid()}.ogg`;
 
-    request(file_link)
-      .pipe(fs.createWriteStream(voice_file))
+    request(fileLink)
+      .pipe(fs.createWriteStream(voiceFile))
       .on('close', async () => {
-        await Proc.spawn('opusdec', [
-          voice_file,
-          `${voice_file}.wav`,
-          '--rate',
-          SR.SAMPLE_RATE,
-        ]);
-        const text = await SR.recognizeFile(`${voice_file}.wav`, {
+        await Proc.spawn('opusdec', [voiceFile, `${voiceFile}.wav`, '--rate', SR.SAMPLE_RATE]);
+        const text = await SR.recognizeFile(`${voiceFile}.wav`, {
           convertFile: false,
           language: session.getTranslateFrom(),
         });
@@ -57,70 +49,65 @@ async function handleInputVoice(session, e) {
 
 /**
  * Send a message to the user
- * @param {String} chat_id	Chat ID
+ * @param {String} chatId Chat ID
  * @param {*} text Text to send
  * @param {*} opt Additional bot options
  */
-async function sendMessage(chat_id, text, opt = {}) {
-  await bot.sendChatAction(chat_id, 'typing');
-
-  _.defaults(opt, {
+async function sendMessage(
+  chatId,
+  text,
+  opt = {
     parse_mode: 'html',
-  });
-
-  bot.sendMessage(chat_id, text, opt);
+  },
+) {
+  await bot.sendChatAction(chatId, 'typing');
+  return bot.sendMessage(chatId, text, opt);
 }
 
 /**
  * Send a voice message to the user
- * @param {*} chat_id Telegram Chat ID
+ * @param {*} chatId Telegram Chat ID
  * @param {*} text Text to send
  * @param {*} language Language of sentence
- * @param {*} bot_opt Additional Telegram options
+ * @param {*} botOpt Additional Telegram options
  */
-async function sendVoiceMessage(chat_id, text, language, bot_opt = {}) {
+async function sendVoiceMessage(chatId, text, language, botOpt = {}) {
   const sentences = mimicHumanMessage(text);
-  await bot.sendChatAction(chat_id, 'record_audio');
+  await bot.sendChatAction(chatId, 'record_audio');
 
   for (const sentence of sentences) {
-    const audio_file = await TTS.getAudioFile(sentence, {
-      language,
-    });
-    const voice_file = await Play.playVoiceToTempFile(audio_file);
-    await bot.sendVoice(chat_id, voice_file, bot_opt);
+    const audioFile = await TTS.getAudioFile(sentence, { language });
+    const voiceFile = await Play.playVoiceToTempFile(audioFile);
+    await bot.sendVoice(chatId, voiceFile, botOpt);
   }
 }
 
 /**
  * Start the polling/webhook cycle
  */
-exports.startInput = () => {
+function startInput() {
   if (started) return;
   started = true;
 
   // We could attach the webhook to the Router API or via polling
-  if (_config.useRouter && config.serverMode == true) {
+  if (_config.useRouter && config.serverMode) {
     bot.setWebHook(`${config.server.domain}/io/telegram/bot${_config.token}`);
-    Server.routerIO.use(
-      '/telegram',
-      require('body-parser').json(),
-      (req, res) => {
-        bot.processUpdate(req.body);
-        res.sendStatus(200);
-      },
-    );
-    console.info(TAG, 'started');
+    Server.routerIO.use('/telegram', bodyParser.json(), (req, res) => {
+      bot.processUpdate(req.body);
+      res.sendStatus(200);
+    });
+    console.info(TAG, 'started', _config);
   } else {
-    console.info(TAG, 'started via polling');
+    console.info(TAG, 'started via polling', _config);
   }
-};
+}
 
 /**
  * Output an object to the user
- * @param {Object} f	The item
+ * @param {Object} f The item
  * @param {*} session The user session
  */
-exports.output = async (f, session) => {
+async function output(f, session) {
   console.info(TAG, 'output');
   console.dir(
     {
@@ -139,21 +126,21 @@ exports.output = async (f, session) => {
   });
 
   // This is the Telegram Chat ID used to respond to the user
-  const chat_id = session.io_data.id;
+  const chatId = session.io_data.id;
   const language = f.payload.language || session.getTranslateTo();
 
-  let bot_opt = {};
+  let botOpt = {};
 
   // If we have replies, set the bot opt to reflect the keyboard
   if (f.payload.replies != null) {
-    bot_opt = {
+    botOpt = {
       reply_markup: {
         resize_keyboard: true,
         one_time_keyboard: true,
         keyboard: [
           f.payload.replies.map((r) => {
-            if (_.isObject(r)) return r.text;
-            if (_.isString(r)) return r;
+            if (typeof r === 'string') return r;
+            return r.text;
           }),
         ],
       },
@@ -163,16 +150,16 @@ exports.output = async (f, session) => {
   // Process a Text Object
   try {
     if (f.text) {
-      await sendMessage(chat_id, f.text, bot_opt);
+      await sendMessage(chatId, f.text, botOpt);
 
       if (session.pipe.nextWithVoice) {
         session.savePipe({
           nextWithVoice: false,
         });
-        await sendVoiceMessage(chat_id, f.text, language, bot_opt);
+        await sendVoiceMessage(chatId, f.text, language, botOpt);
       }
       if (f.payload.includeVoice) {
-        await sendVoiceMessage(chat_id, f.text, language, bot_opt);
+        await sendVoiceMessage(chatId, f.text, language, botOpt);
       }
     }
   } catch (err) {
@@ -182,7 +169,7 @@ exports.output = async (f, session) => {
   // Process a URL Object
   try {
     if (f.payload.url) {
-      await bot.sendMessage(chat_id, f.payload.url, bot_opt);
+      await bot.sendMessage(chatId, f.payload.url, botOpt);
     }
   } catch (err) {
     console.error(TAG, err);
@@ -193,40 +180,22 @@ exports.output = async (f, session) => {
     if (f.payload.music) {
       if (f.payload.music.spotify) {
         if (f.payload.music.spotify.track) {
-          await sendMessage(
-            chat_id,
-            f.payload.music.spotify.track.external_urls.spotify,
-            bot_opt,
-          );
+          await sendMessage(chatId, f.payload.music.spotify.track.external_urls.spotify, botOpt);
         } else if (f.payload.music.spotify.tracks) {
           await sendMessage(
-            chat_id,
-            f.payload.music.spotify.tracks
-              .map(e => e.external_urls.spotify)
-              .join('\n'),
-            bot_opt,
+            chatId,
+            f.payload.music.spotify.tracks.map(e => e.external_urls.spotify).join('\n'),
+            botOpt,
           );
         } else if (f.payload.music.spotify.album) {
-          await sendMessage(
-            chat_id,
-            f.payload.music.spotify.album.external_urls.spotify,
-            bot_opt,
-          );
+          await sendMessage(chatId, f.payload.music.spotify.album.external_urls.spotify, botOpt);
         } else if (f.payload.music.spotify.artist) {
-          await sendMessage(
-            chat_id,
-            f.payload.music.spotify.artist.external_urls.spotify,
-            bot_opt,
-          );
+          await sendMessage(chatId, f.payload.music.spotify.artist.external_urls.spotify, botOpt);
         } else if (f.payload.music.spotify.playlist) {
-          await sendMessage(
-            chat_id,
-            f.payload.music.spotify.playlist.external_urls.spotify,
-            bot_opt,
-          );
+          await sendMessage(chatId, f.payload.music.spotify.playlist.external_urls.spotify, botOpt);
         }
       } else if (f.payload.music.uri) {
-        await sendMessage(chat_id, f.payload.music.uri, bot_opt);
+        await sendMessage(chatId, f.payload.music.uri, botOpt);
       }
     }
   } catch (err) {
@@ -237,13 +206,13 @@ exports.output = async (f, session) => {
   try {
     if (f.payload.video) {
       if (f.payload.video.uri) {
-        await bot.sendChatAction(chat_id, 'upload_video');
-        await bot.sendVideo(chat_id, f.payload.video.uri, bot_opt);
+        await bot.sendChatAction(chatId, 'upload_video');
+        await bot.sendVideo(chatId, f.payload.video.uri, botOpt);
       } else if (f.payload.video.youtube) {
         await bot.sendMessage(
-          chat_id,
+          chatId,
           `https://www.youtube.com/watch?v=${f.payload.video.youtube.id}`,
-          bot_opt,
+          botOpt,
         );
       }
     }
@@ -255,8 +224,8 @@ exports.output = async (f, session) => {
   try {
     if (f.payload.image) {
       if (f.payload.image.uri) {
-        await bot.sendChatAction(chat_id, 'upload_photo');
-        await bot.sendPhoto(chat_id, f.payload.image.uri, bot_opt);
+        await bot.sendChatAction(chatId, 'upload_photo');
+        await bot.sendPhoto(chatId, f.payload.image.uri, botOpt);
       }
     }
   } catch (err) {
@@ -267,8 +236,8 @@ exports.output = async (f, session) => {
   try {
     if (f.payload.audio) {
       if (f.payload.audio.uri) {
-        await bot.sendChatAction(chat_id, 'upload_audio');
-        await bot.sendAudio(chat_id, f.payload.audio.uri, bot_opt);
+        await bot.sendChatAction(chatId, 'upload_audio');
+        await bot.sendAudio(chatId, f.payload.audio.uri, botOpt);
       }
     }
   } catch (err) {
@@ -279,9 +248,9 @@ exports.output = async (f, session) => {
   try {
     if (f.payload.voice) {
       if (f.payload.voice.uri) {
-        await bot.sendChatAction(chat_id, 'upload_audio');
-        const voice_file = await Play.playVoiceToTempFile(f.payload.voice.uri);
-        await bot.sendVoice(chat_id, voice_file, bot_opt);
+        await bot.sendChatAction(chatId, 'upload_audio');
+        const voiceFile = await Play.playVoiceToTempFile(f.payload.voice.uri);
+        await bot.sendVoice(chatId, voiceFile, botOpt);
       }
     }
   } catch (err) {
@@ -292,8 +261,8 @@ exports.output = async (f, session) => {
   try {
     if (f.payload.document) {
       if (f.payload.document.uri) {
-        await bot.sendChatAction(chat_id, 'upload_document');
-        await bot.sendDocument(chat_id, f.payload.document.uri, bot_opt);
+        await bot.sendChatAction(chatId, 'upload_document');
+        await bot.sendDocument(chatId, f.payload.document.uri, botOpt);
       }
     }
   } catch (err) {
@@ -303,7 +272,7 @@ exports.output = async (f, session) => {
   // Process a Lyrics object
   try {
     if (f.payload.lyrics) {
-      await sendMessage(chat_id, f.payload.lyrics.text, bot_opt);
+      await sendMessage(chatId, f.payload.lyrics.text, botOpt);
     }
   } catch (err) {
     console.error(TAG, err);
@@ -314,9 +283,9 @@ exports.output = async (f, session) => {
   // Process a Game Object
   try {
     if (f.payload.game) {
-      callback_queries[chat_id] = callback_queries[chat_id] || {};
-      callback_queries[chat_id][f.payload.game.id] = f.payload.game;
-      await bot.sendGame(chat_id, f.payload.game.id);
+      callbackQuery[chatId] = callbackQuery[chatId] || {};
+      callbackQuery[chatId][f.payload.game.id] = f.payload.game;
+      await bot.sendGame(chatId, f.payload.game.id);
     }
   } catch (err) {
     console.error(TAG, err);
@@ -325,12 +294,12 @@ exports.output = async (f, session) => {
   // Process a Sticker Object
   try {
     if (f.payload.sticker) {
-      await bot.sendSticker(chat_id, rand(f.payload.sticker), bot_opt);
+      await bot.sendSticker(chatId, rand(f.payload.sticker), botOpt);
     }
   } catch (err) {
     console.error(TAG, err);
   }
-};
+}
 
 bot.on('webhook_error', (err) => {
   console.error(TAG, 'webhook error', err);
@@ -343,7 +312,7 @@ bot.on('message', async (e) => {
   });
 
   const sessionId = e.chat.id;
-  const chat_is_group = e.chat.type === 'group';
+  const chatIsGroup = e.chat.type === 'group';
 
   let alias;
   switch (e.chat.type) {
@@ -366,17 +335,17 @@ bot.on('message', async (e) => {
   // Process a Text object
   if (e.text) {
     // If we are in a group, only listen for activators
-    if (chat_is_group && !AI_NAME_REGEX.test(e.text)) {
+    if (chatIsGroup && !getAiNameRegex().test(e.text)) {
       console.debug(TAG, 'skipping input for missing activator', e.text);
       return false;
     }
+
     emitter.emit('input', {
       session,
       params: {
         text: e.text,
       },
     });
-
     return true;
   }
 
@@ -386,7 +355,7 @@ bot.on('message', async (e) => {
       const text = await handleInputVoice(session, e);
 
       // If we are in a group, only listen for activators
-      if (chat_is_group && !AI_NAME_REGEX.test(e.text)) {
+      if (chatIsGroup && !getAiNameRegex().test(e.text)) {
         console.debug(TAG, 'skipping input for missing activator', e.text);
         return false;
       }
@@ -402,19 +371,19 @@ bot.on('message', async (e) => {
         },
       });
     } catch (err) {
-      if (chat_is_group === false) {
+      if (chatIsGroup === false) {
         return false;
       }
       if (err.unrecognized) {
         return emitter.emit('input', {
-          session: IOManager.session,
+          session: IOManager.globalSession,
           params: {
             event: 'io_SR_unrecognized',
           },
         });
       }
       return emitter.emit('input', {
-        session: IOManager.session,
+        session: IOManager.globalSession,
         error: err,
       });
     }
@@ -424,14 +393,14 @@ bot.on('message', async (e) => {
 
   // Process a Photo Object
   if (e.photo) {
-    const photo_link = bot.getFileLink(_.last(e.photo).file_id);
-    if (chat_is_group) return false;
+    const photoLink = bot.getFileLink(e.photo[e.photo.length - 1].file_id);
+    if (chatIsGroup) return false;
 
     emitter.emit('input', {
       session,
       params: {
         image: {
-          uri: photo_link,
+          uri: photoLink,
         },
       },
     });
@@ -445,20 +414,23 @@ bot.on('message', async (e) => {
       unkownInputType: true,
     },
   });
+  return true;
 });
 
 bot.on('callback_query', (e) => {
   if (e.game_short_name) {
-    const user = callback_queries[e.from.id];
+    const user = callbackQuery[e.from.id];
     if (user) {
       if (user[e.game_short_name]) {
-        bot.answerCallbackQuery(
-          e.id,
-          undefined,
-          false,
-          user[e.game_short_name],
-        );
+        bot.answerCallbackQuery(e.id, undefined, false, user[e.game_short_name]);
       }
     }
   }
 });
+
+module.exports = {
+  id: 'telegram',
+  startInput,
+  output,
+  emitter,
+};

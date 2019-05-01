@@ -1,18 +1,16 @@
-const TAG = 'Leds';
-
 exports.id = 'leds';
 
-const RaspiLeds = requireLibrary('raspi/leds');
+const RaspiLeds = require('../lib/raspi/leds');
+
+const TAG = 'Leds';
 
 const colorForRecognizing = [0, 255, 0];
 const colorForOutput = [255, 0, 0];
 const colorForThinking = [255, 255, 0];
 
-exports.canHandleOutput = function (e) {
-  return false;
-};
+exports.canHandleOutput = () => false;
 
-exports.attach = function (io) {
+exports.attach = (io) => {
   RaspiLeds.off();
 
   io.emitter.on('input', () => {

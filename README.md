@@ -30,7 +30,7 @@ docker-compose up
 #### Run server with NodeJS
 
 ```sh
-npm run dev:server
+yarn dev:server
 ```
 
 #### Run client
@@ -47,7 +47,7 @@ to microphone, speaker or other hardware peripherals.
 Then:
 
 ```sh
-npm run dev
+yarn dev
 ```
 
 ### I/O Drivers
@@ -78,7 +78,7 @@ export OTTO_IO_DRIVERS="telegram,test"
 There are 4 I/O drivers available at the moment:
 
 - **Test**: handle I/O using the CLI (used for test purposes)
-- **Kid**: handle input using microphone and speech recognizer and output using a TTS via a speaker
+- **Human**: handle input using microphone and speech recognizer and output using a TTS via a speaker
 - **Telegram**: handle I/O for a Telegram bot
 - **Messenger**: handle I/O for a Facebook Messenger bot
 - **Web**: handle I/O via Socket.IO
@@ -90,7 +90,7 @@ This driver spawn an Interactive CLI where you can write to test your AI.
 To automate tests, you can put your messages in the `./etc/test.txt` file
 separated by EOL. The CLI will send the lines on boot.
 
-#### IO.Kid
+#### IO.Human
 
 This is the main I/O driver.
 
@@ -353,7 +353,7 @@ The output payload of an action could have these attributes:
 | telegram.token   | Token used to instantiate Telegram bot | null             | yes\*    | String |
 | telegram.options | Options passed to TelegramBot library  | { polling: true} | yes\*    | Object |
 
-#### Kid (IO Driver)
+#### Human (IO Driver)
 
 | Key | Description | Default value | Required | Type |
 | --- | ----------- | ------------- | -------- | ---- |

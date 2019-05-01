@@ -1,9 +1,9 @@
 exports.id = 'shutdown.now';
 
-const { exec } = require('child_process');
+const Proc = require('../../lib/proc');
 
-module.exports = function ({ queryResult }, session) {
-  const { parameters: p, fulfillmentText } = queryResult;
-  exec('shutdown now', (err, stdout, stderr) => {});
+module.exports = function main({ queryResult }) {
+  const { fulfillmentText } = queryResult;
+  Proc.spawn('shutdown now');
   return fulfillmentText;
 };

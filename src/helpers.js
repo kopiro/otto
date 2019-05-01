@@ -4,91 +4,55 @@ const diacriticsRemove = require('diacritics').remove;
 const request = require('request');
 const fs = require('fs');
 const md5 = require('md5');
-
-/**
- * Require a module or return null if not found
- * @param {String} e
- */
-global.requireOrNull = function requireOrNull(e) {
-  try {
-    return require(e);
-  } catch (ex) {
-    console.error(`Unable to require: ${e}`);
-    return null;
-  }
-};
+const config = require('./config');
+const { tmpDir, __cachedir } = require('./paths');
 
 /**
  * Pick a random element in an array
  * @param {Array} e
  */
-global.rand = function rand(e) {
+function rand(e) {
   return _.isArray(e) ? e[_.random(0, e.length - 1)] : e;
-};
-
-/**
- * Require a module from our internal library
- * @param {String} e
- */
-global.requireLibrary = function requireLibrary(e) {
-  return require(`${__basedir}/src/lib/${e}`);
-};
-
-/**
- * Require an interface
- * @param {String} e
- */
-global.requireInterface = function requireInterface(e) {
-  return require(`${__basedir}/src/interfaces/${e}`);
-};
-
-/**
- * Require a module from our helpers library
- * @param {String} e
- */
-global.requireHelper = function requireHelper(e) {
-  return require(`${__basedir}/src/helpers/${e}`);
-};
+}
 
 /**
  * Timeout using promises
  * @param {Number} ms
  */
-global.timeout = function timeout(ms) {
+function timeout(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
-};
+}
 
 /**
  * Generate a UUID v4
  */
-global.uuid = function uuid() {
+function uuid() {
   return uuidMod.v4();
-};
+}
 
 /**
  * Clean text by removing diacritics and lowering its case
  * @param {String} t
  */
-global.cleanText = function cleanText(t) {
+function cleanText(t) {
   return diacriticsRemove(t).toLowerCase();
-};
+}
 
 /**
  * Split a text using a pattern to mimic a message sent by a human
  * @param {String} text
  */
-global.mimicHumanMessage = function mimicHumanMessage(text) {
+function mimicHumanMessage(text) {
   const splitted = text.split(/\\n|\n|\.(?=\s+|[A-Z])/);
   return _.compact(splitted);
-};
+}
 
 /**
  * Get the locale string from a language
- * Valid return values: cy-GB | da-DK | de-DE | en-AU | en-GB | en-GB-WLS | en-IN | en-US | es-ES | es-US | fr-CA | fr-FR | is-IS | it-IT | ja-JP | nb-NO | nl-NL | pl-PL | pt-BR | pt-PT | ro-RO | ru-RU | sv-SE | tr-TR
  * @param {String} language
  * @returns {String}
  */
-global.getLocaleFromLanguageCode = function getLocaleFromLanguageCode(language = null) {
+function getLocaleFromLanguageCode(language = null) {
   switch (language) {
     case 'de':
       return 'de-DE';
@@ -125,22 +89,22 @@ global.getLocaleFromLanguageCode = function getLocaleFromLanguageCode(language =
     default:
       return getLocaleFromLanguageCode(config.language);
   }
-};
+}
 
 /**
  * Get the local URI of a remote object by downloading it
  * @param {String} uri
  */
-global.getLocalObjectFromURI = function getLocalObjectFromURI(uri) {
+function getLocalObjectFromURI(uri) {
   return new Promise((resolve, reject) => {
     if (Buffer.isBuffer(uri)) {
-      const localFile = `${__tmpdir}/${uuid()}.wav`;
+      const localFile = `${tmpDir}/${uuid()}.wav`;
       fs.writeFileSync(localFile, uri);
       console.log('localFile', localFile);
       return resolve(localFile);
     }
 
-    if (/^https?\:\/\//.test(uri)) {
+    if (/^https?:\/\//.test(uri)) {
       const extension = uri.split('.').pop() || 'unknown';
       const localFile = `${__cachedir}/${md5(uri)}.${extension}`;
       if (fs.existsSync(localFile)) {
@@ -151,17 +115,17 @@ global.getLocalObjectFromURI = function getLocalObjectFromURI(uri) {
         .pipe(fs.createWriteStream(localFile))
         .on('close', () => {
           if (!fs.existsSync(localFile)) return reject();
-          resolve(localFile);
+          return resolve(localFile);
         });
     }
 
     return resolve(uri);
   });
-};
+}
 
-global.extractWithPattern = function extractWithPattern(input, pattern) {
+function extractWithPattern(input, pattern) {
   if (input == null) return null;
-  if (pattern == '') return input;
+  if (pattern === '') return input;
 
   const p = pattern.split('.');
   let _p = p.shift();
@@ -183,11 +147,7 @@ global.extractWithPattern = function extractWithPattern(input, pattern) {
   }
 
   return extractWithPattern(input[_p], p.join('.'));
-};
-
-global.timeout = function timeout(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-};
+}
 
 function jsonValueToProto(value) {
   const valueProto = {};
@@ -225,11 +185,7 @@ const JSON_SIMPLE_TYPE_TO_PROTO_KIND_MAP = {
   [typeof false]: 'boolValue',
 };
 
-const JSON_SIMPLE_VALUE_KINDS = new Set([
-  'numberValue',
-  'stringValue',
-  'boolValue',
-]);
+const JSON_SIMPLE_VALUE_KINDS = new Set(['numberValue', 'stringValue', 'boolValue']);
 
 function structProtoToJson(proto) {
   if (!proto || !proto.fields) {
@@ -249,18 +205,39 @@ function valueProtoToJson(proto) {
 
   if (JSON_SIMPLE_VALUE_KINDS.has(proto.kind)) {
     return proto[proto.kind];
-  } if (proto.kind === 'nullValue') {
+  }
+  if (proto.kind === 'nullValue') {
     return null;
-  } if (proto.kind === 'listValue') {
+  }
+  if (proto.kind === 'listValue') {
     if (!proto.listValue || !proto.listValue.values) {
       console.warn('Invalid JSON list value proto: ', JSON.stringify(proto));
     }
     return proto.listValue.values.map(valueProtoToJson);
-  } if (proto.kind === 'structValue') {
+  }
+  if (proto.kind === 'structValue') {
     return structProtoToJson(proto.structValue);
   }
   console.warn('Unsupported JSON value proto kind: ', proto.kind);
   return null;
 }
 
-global.structProtoToJson = structProtoToJson;
+function getAiNameRegex() {
+  return new RegExp(config.aiNameRegex, 'g');
+}
+
+module.exports = {
+  getAiNameRegex,
+  valueProtoToJson,
+  structProtoToJson,
+  jsonToStructProto,
+  jsonValueToProto,
+  extractWithPattern,
+  getLocalObjectFromURI,
+  getLocaleFromLanguageCode,
+  mimicHumanMessage,
+  cleanText,
+  uuid,
+  timeout,
+  rand,
+};

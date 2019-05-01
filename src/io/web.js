@@ -1,19 +1,17 @@
-const TAG = 'IO.Web';
-
-exports.config = {
-  id: 'web',
-  onlyServerMode: true,
-};
+const path = require('path');
+const Events = require('events');
+const config = require('../config');
+const Play = require('../lib/play');
+const SR = require('../interfaces/sr');
+const TTS = require('../interfaces/tts');
+const Server = require('../stdlib/server');
+const IOManager = require('../stdlib/iomanager');
+const { tmpDir } = require('../paths');
+const { uuid } = require('../helpers');
 
 const _config = config.web;
-
-const emitter = (exports.emitter = new (require('events')).EventEmitter());
-const path = require('path');
-
-const Play = requireLibrary('play');
-const SR = requireInterface('sr');
-const TTS = requireInterface('tts');
-const Server = requireLibrary('server');
+const TAG = 'IO.Web';
+const emitter = new Events.EventEmitter();
 
 /**
  * True when startInput has been called
@@ -91,7 +89,7 @@ function configureSocket(socket) {
 /**
  * Start the polling/webhook cycle
  */
-exports.startInput = function () {
+function startInput() {
   if (started) return;
   started = true;
 
@@ -101,14 +99,14 @@ exports.startInput = function () {
   });
 
   console.info(TAG, 'started');
-};
+}
 
 /**
  * Output an object to the user
- * @param {Object} f	The item
+ * @param {Object} f The item
  * @param {*} session The user session
  */
-exports.output = async function (f, session) {
+async function output(f, session) {
   const request = session.io_data_web;
   if (request == null) {
     throw new Error('Invalid data found in session');
@@ -137,18 +135,24 @@ exports.output = async function (f, session) {
     const language = f.payload.language || session.getTranslateTo();
 
     if (speech != null) {
-      const output_file = path.join(__tmpdir, `${uuid()}.mp3`);
+      const outputFile = path.join(tmpDir, `${uuid()}.mp3`);
       await Play.playVoiceToFile(
         await TTS.getAudioFile(speech, {
           language,
         }),
-        output_file,
+        outputFile,
       );
-      f.voice = Server.getAbsoluteURIByRelativeURI(
-        `/tmp/${path.basename(output_file)}`,
-      );
+      f.voice = Server.getAbsoluteURIByRelativeURI(`/tmp/${path.basename(outputFile)}`);
     }
   }
 
   return request.socket.emit('output', f);
+}
+
+module.exports = {
+  id: 'web',
+  onlyServerMode: true,
+  startInput,
+  output,
+  emitter,
 };

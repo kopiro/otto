@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 
 services:
   app:
@@ -6,7 +6,8 @@ services:
     container_name: otto
     build: .
     environment:
-      - DEV=1
+      - NODE_ENV=development
+    entrypoint: ["npm", "run", "dev"]
     volumes:
       - ./cache:/app/cache
       - ./storage:/app/storage
@@ -15,10 +16,12 @@ services:
       - ./keys:/app/keys
       - ./tmp-secret:/app/tmp-secret
       - ./config.json:/app/config.json
+      - ./default-config.json:/app/default-config.json
       - ./package.json:/app/package.json
-      - ./package-lock.json:/app/package-lock.json
+      - ./yarn.lock:/app/yarn.lock
       - ./src:/app/src
     ports:
       - 8880:8880
       - 8881:8881
       - 8882:8882
+      - 9229:9229

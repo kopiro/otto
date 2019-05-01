@@ -1,60 +1,30 @@
 {
-	"extends": ["airbnb"],
-	"parserOptions": {
-		"ecmaVersion": 2017,
-        "sourceType": "module",
-        "ecmaFeatures": {
-            "experimentalObjectRestSpread": true
-        }
-    },
-    "env": {
-		"commonjs": true,
-		"es6": true,
-		"node": true,
-		"browser": true
-	},
-	"plugins": [],
-	"rules": {
-        "no-console": "off",
-        "no-param-reassign": "off",
-        "no-restricted-syntax": "off",
-        "no-await-in-loop": "off",
-        "global-require": "off",
-        "no-continue": "off",
-        "import/no-dynamic-require": "off",
-        "no-underscore-dangle": "off",
-        "camelcase": "warn",
-        "no-use-before-define": "off"
-	},
-	"globals": {
-		"__basedir": true,
-		"__tmpdir": true,
-		"__cachedir": true,
-		"__etcdir": true,
-		"__keysdir": true,
-		"__tmpsecretdir": true,
-		"__package": true,
-		"AI_NAME_REGEX": true,
-		"config": true,
-		"cleanText": true,
-		"requireOrNull": true,
-		"extractWithPattern": true,
-		"requireLibrary": true,
-		"requireInterface": true,
-		"requireHelper": true,
-		"structProtoToJson": true,
-		"mongoose": true,
-		"Data": true,
-		"AI": true,
-		"Util": true,
-		"IOManager": true,
-		"Scheduler": true,
-		"Actions": true,
-		"timeout": true,
-		"uuid": true,
-		"rand": true,
-		"getLocaleFromLanguageCode": true,
-		"mimicHumanMessage": true,
-		"getLocalObjectFromURI": true
-	}
+  "extends": ["airbnb"],
+  "parserOptions": {
+    "ecmaVersion": 2017,
+    "sourceType": "module",
+    "ecmaFeatures": {
+      "experimentalObjectRestSpread": true
+    }
+  },
+  "env": {
+    "commonjs": true,
+    "es6": true,
+    "node": true,
+    "browser": true
+  },
+  "plugins": [],
+  "rules": {
+    "no-console": "off",
+    "no-param-reassign": "off",
+    "no-restricted-syntax": "off",
+    "no-await-in-loop": "off",
+    "global-require": "off",
+    "no-continue": "off",
+    "import/no-dynamic-require": "off",
+    "no-underscore-dangle": "off",
+    "camelcase": "warn",
+    "no-use-before-define": "off",
+    "no-plusplus": "off"
+  }
 }

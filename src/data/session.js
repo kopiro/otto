@@ -1,5 +1,10 @@
+const mongoose = require('mongoose');
+const autopopulate = require('mongoose-autopopulate');
+const IOManager = require('../stdlib/iomanager');
+const { ServerSettings } = require('./index');
+const config = require('../config');
+
 const { Schema } = mongoose;
-const _ = require('underscore');
 
 const Session = new Schema({
   _id: String,
@@ -19,20 +24,20 @@ const Session = new Schema({
   pipe: Schema.Types.Mixed,
 });
 
-Session.plugin(require('mongoose-autopopulate'));
+Session.plugin(autopopulate);
 
 /**
  * Save new settings in DB
  * @param {Object} data
  */
-Session.methods.saveServerSettings = async function (data) {
+Session.methods.saveServerSettings = async function saveServerSettings(data) {
   let s = this.server_settings;
   if (s == null) {
-    s = new exports.ServerSettings({
+    s = new ServerSettings({
       _id: (this.populated('server_settings') || this._id),
     });
   }
-  s.data = _.extend({}, s.data, data);
+  s.data = { ...s.data, ...data };
   s.markModified('data');
   s.save();
 };
@@ -40,7 +45,7 @@ Session.methods.saveServerSettings = async function (data) {
 /**
  * Retrieve the IO driver module
  */
-Session.methods.getIODriver = function () {
+Session.methods.getIODriver = function getIODriver() {
   return IOManager.getDriver(this.io_driver);
 };
 
@@ -48,8 +53,8 @@ Session.methods.getIODriver = function () {
  * Save new data in pipe in DB
  * @param {Object} data
  */
-Session.methods.savePipe = async function (data) {
-  this.pipe = _.extend(this.pipe || {}, data);
+Session.methods.savePipe = async function savePipe(data) {
+  this.pipe = { ...(this.pipe || {}), ...data };
   this.pipe.updated_at = Date.now();
   this.markModified('pipe');
   await this.save();
@@ -59,8 +64,8 @@ Session.methods.savePipe = async function (data) {
  * Save new settings in DB
  * @param {Object} data
  */
-Session.methods.saveSettings = async function (data) {
-  this.settings = _.extend(this.settings || {}, data);
+Session.methods.saveSettings = async function saveSettings(data) {
+  this.settings = { ...(this.settings || {}), ...data };
   this.settings.updated_at = Date.now();
   this.markModified('settings');
   await this.save();
@@ -69,14 +74,14 @@ Session.methods.saveSettings = async function (data) {
 /**
  * Get the language to translate from
  */
-Session.methods.getTranslateFrom = function () {
+Session.methods.getTranslateFrom = function getTranslateFrom() {
   return this.translate_from || config.language;
 };
 
 /**
  * Get the language to translate to
  */
-Session.methods.getTranslateTo = function () {
+Session.methods.getTranslateTo = function getTranslateTo() {
   return this.translate_to || config.language;
 };
 

@@ -1,0 +1,4 @@
+{
+  "restartable": "rs",
+  "watch": ["package.json", "config.json", "src"]
+}
