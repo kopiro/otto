@@ -78,7 +78,7 @@ function setDFContext(sessionId, context) {
 function actionErrorTransformer(body, err) {
   const f = {};
 
-  if (typeof err === 'string' || err.message) {
+  if (err.message) {
     const errMessage = typeof err === 'string' ? err : err.message;
 
     // If an error occurs, try to intercept this error
@@ -94,9 +94,6 @@ function actionErrorTransformer(body, err) {
         f.fulfillmentText = f.fulfillmentText.replace(`$_${theVar[1]}`, err.data[theVar[1]] || '');
       }
     }
-  } else if (err instanceof Error) {
-    // Only used for debugging purposes, TODO remove
-    f.fulfillmentText = `ERROR: ${err.message}`;
   }
 
   // Add anyway the complete error

@@ -48,7 +48,7 @@ async function fulfillmentTransformer(f, session) {
 
   // Merge all objects from fulfillmentMessages into payload
   f.payload = f.payload || {};
-  for (const msg of f.fulfillmentMessages) {
+  for (const msg of (f.fulfillmentMessages || [])) {
     if (!Array.isArray(msg)) {
       f.payload = { ...f.payload, ...msg.payload };
     }

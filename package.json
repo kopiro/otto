@@ -3,8 +3,8 @@
   "version": "2.0.0",
   "description": "Simple AI for Otto",
   "scripts": {
-    "dev": "GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/keys/gcloud.json AWS_KEY_PATH=$(pwd)/keys/aws.json nodemon --harmony --config nodemon.json ./src/main.js",
-    "start": "GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/keys/gcloud.json AWS_KEY_PATH=$(pwd)/keys/aws.json node --harmony ./src/main.js",
+    "dev": "./run-dev.sh",
+    "start": "./run.sh",
     "fix": "eslint --fix ./src"
   },
   "engines": {

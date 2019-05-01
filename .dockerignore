@@ -7,5 +7,6 @@ tmp
 tmp-secret
 keys
 log
+storage
 npm-debug.log
 .DS_Store
