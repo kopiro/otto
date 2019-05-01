@@ -5,7 +5,7 @@ const request = require('request');
 const fs = require('fs');
 const md5 = require('md5');
 const config = require('./config');
-const { tmpDir, __cachedir } = require('./paths');
+const { tmpDir, cacheDir } = require('./paths');
 
 /**
  * Pick a random element in an array
@@ -106,7 +106,7 @@ function getLocalObjectFromURI(uri) {
 
     if (/^https?:\/\//.test(uri)) {
       const extension = uri.split('.').pop() || 'unknown';
-      const localFile = `${__cachedir}/${md5(uri)}.${extension}`;
+      const localFile = `${cacheDir}/${md5(uri)}.${extension}`;
       if (fs.existsSync(localFile)) {
         return resolve(localFile);
       }
