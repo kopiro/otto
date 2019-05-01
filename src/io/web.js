@@ -6,6 +6,8 @@ const SR = require('../interfaces/sr');
 const TTS = require('../interfaces/tts');
 const Server = require('../stdlib/server');
 const IOManager = require('../stdlib/iomanager');
+const { tmpDir } = require('../paths');
+const { uuid } = require('../helpers');
 
 const _config = config.web;
 const TAG = 'IO.Web';
@@ -133,14 +135,14 @@ async function output(f, session) {
     const language = f.payload.language || session.getTranslateTo();
 
     if (speech != null) {
-      const output_file = path.join(tmpDir, `${uuid()}.mp3`);
+      const outputFile = path.join(tmpDir, `${uuid()}.mp3`);
       await Play.playVoiceToFile(
         await TTS.getAudioFile(speech, {
           language,
         }),
-        output_file,
+        outputFile,
       );
-      f.voice = Server.getAbsoluteURIByRelativeURI(`/tmp/${path.basename(output_file)}`);
+      f.voice = Server.getAbsoluteURIByRelativeURI(`/tmp/${path.basename(outputFile)}`);
     }
   }
 

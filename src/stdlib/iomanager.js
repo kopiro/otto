@@ -318,7 +318,7 @@ async function loadListeners() {
  */
 function encodeBody(b) {
   return {
-    body: new Buffer(JSON.stringify(b)).toString('base64'),
+    body: Buffer.alloc(JSON.stringify(b)).toString('base64'),
   };
 }
 
@@ -327,7 +327,7 @@ function encodeBody(b) {
  * @param {Object} fulfillment
  */
 function decodeBody(fulfillment) {
-  return JSON.parse(new Buffer(fulfillment.payload.body, 'base64').toString('ascii'));
+  return JSON.parse(Buffer.alloc(fulfillment.payload.body, 'base64').toString('ascii'));
 }
 
 /**

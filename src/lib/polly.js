@@ -101,7 +101,7 @@ function getVoice(opt) {
     }
 
     // Call the API to retrieve all voices in that locale
-    client.describeVoices(
+    return client.describeVoices(
       {
         LanguageCode: locale,
       },
@@ -111,7 +111,7 @@ function getVoice(opt) {
         }
 
         // Filter voice by selected gender
-        voice = data.Voices.find(v => v.Gender == opt.gender);
+        voice = data.Voices.find(v => v.Gender === opt.gender);
 
         if (voice == null) {
           console.debug(
@@ -159,7 +159,7 @@ function getAudioFile(text, opt = {}) {
     // TODO: split by text length so that Polly can process
 
     // Call the API
-    client.synthesizeSpeech(
+    return client.synthesizeSpeech(
       {
         VoiceId: voice.Id,
         Text: text,
@@ -175,9 +175,9 @@ function getAudioFile(text, opt = {}) {
         try {
           await promisify(fs.writeFile)(cacheFilePath, data.AudioStream);
           setCacheForAudio(text, opt, cacheFilePath);
-          resolve(cacheFilePath);
+          return resolve(cacheFilePath);
         } catch (writeErr) {
-          reject(writeErr);
+          return reject(writeErr);
         }
       },
     );

@@ -48,8 +48,8 @@ module.exports = async function main({ queryResult }, session) {
     text = `${fulfillmentText}\n\n`;
     for (const c of e.client.booking.courses) {
       text += `+++++++++ ${c.kind} +++++++++\n`;
-      for (const e of c.data) {
-        text += `${e.text}\n`;
+      for (const _ of c.data) {
+        text += `${_.text}\n`;
       }
       text += '\n';
     }
@@ -71,14 +71,14 @@ module.exports = async function main({ queryResult }, session) {
 
     if (e.menu) {
       // If we are in a state > 0, check queryText to match
-      selectedCourse = courses.find(e => e.hid === queryText);
+      selectedCourse = courses.find(_ => _.hid === queryText);
 
       // If we didn't found a course by ID, use levenshtein
       if (selectedCourse == null) {
         console.debug(exports.id, 'Unable to identify a course by ID, use best match');
         const matches = stringSimilarity.findBestMatch(queryText, courses.map(e => e.text));
         if (matches.bestMatch != null) {
-          selectedCourse = courses.find(e => e.text === matches.bestMatch.target);
+          selectedCourse = courses.find(_ => _.text === matches.bestMatch.target);
         }
       }
 

@@ -70,7 +70,7 @@ async function getModels(forceTraining = false) {
     }
 
     // Recall scanForHotword to rescan pmdls
-    resolve(await getModels());
+    return resolve(await getModels());
   });
 }
 
@@ -136,9 +136,7 @@ async function sendWavFiles(opt) {
           return reject();
         }
 
-        response.pipe(fs.createWriteStream(pmdlFile)).on('close', () => {
-          resolve(pmdlFile);
-        });
+        return response.pipe(fs.createWriteStream(pmdlFile)).on('close', () => resolve(pmdlFile));
       });
   });
 }
