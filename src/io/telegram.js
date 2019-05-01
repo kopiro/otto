@@ -269,15 +269,6 @@ async function output(f, session) {
     console.error(TAG, err);
   }
 
-  // Process a Lyrics object
-  try {
-    if (f.payload.lyrics) {
-      await sendMessage(chatId, f.payload.lyrics.text, botOpt);
-    }
-  } catch (err) {
-    console.error(TAG, err);
-  }
-
   // ---- Telegram specific Objects ----
 
   // Process a Game Object

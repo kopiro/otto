@@ -21,16 +21,16 @@ Request (client) --> [[ Dialogflow --> Server --> Fulfillment ]] --> Response (c
 
 ## Development
 
-#### Run server with docker
+#### Run with docker
 
 ```sh
 docker-compose up
 ```
 
-#### Run server with NodeJS
+#### Run with naked NodeJS
 
 ```sh
-yarn dev:server
+yarn dev
 ```
 
 #### Run client
@@ -77,18 +77,9 @@ export OTTO_IO_DRIVERS="telegram,test"
 
 There are 4 I/O drivers available at the moment:
 
-- **Test**: handle I/O using the CLI (used for test purposes)
 - **Human**: handle input using microphone and speech recognizer and output using a TTS via a speaker
 - **Telegram**: handle I/O for a Telegram bot
-- **Messenger**: handle I/O for a Facebook Messenger bot
 - **Web**: handle I/O via Socket.IO
-
-#### IO.Test
-
-This driver spawn an Interactive CLI where you can write to test your AI.
-
-To automate tests, you can put your messages in the `./etc/test.txt` file
-separated by EOL. The CLI will send the lines on boot.
 
 #### IO.Human
 
@@ -101,11 +92,9 @@ it sends the stream through an online speech recognizer and return the speeech.
 When you finish to talk, it sends the recognized speech over AI that could return
 a output speech; it is sent over an online TTS to get an audio file that is played over the speaker.
 
-Dependencies:
+Optional dependencies:
 
 - **Snowboy** - for the hotword service
-- **Google Cloud Speech Recognizer** - for the speech recognizer
-- **AWS Polly** - for the TTS
 
 #### IO.Telegram
 
@@ -114,31 +103,9 @@ send the text over AI that return an output.
 
 The output is used to respond to the user request via Telegram.
 
-Dependencies:
-
-- **Google Cloud Speech Recognizer** - for the speech recognizer if the user send a voice message
-- **AWS Polly** - for the TTS if we want to send a voice
-
-#### IO.Messenger
-
-It listens via webhook the chat events of your Facebook Messeger bot,
-send the text over AI that return an output.
-
-The output is used to respond to the user request via Facebook Messenger.
-
-Dependencies:
-
-- **Google Cloud Speech Recognizer** - for the speech recognizer if the user send a voice message
-- **AWS Polly** - for the TTS if we want to send a voice
-
 #### IO.Web
 
 It provides a clean Socket.IO interface to interact with the bot.
-
-Dependencies:
-
-- **Google Cloud Speech Recognizer** - for the speech recognizer
-- **AWS Polly** - for the TTS
 
 For every request, you must provide a unique session ID.
 
@@ -191,7 +158,7 @@ Otherwise, if an action return multiple values *over time*, it should be a **Gen
 
 ```js
 exports.id = "hello.name";
-module.exports = async function({ queryResult }, session) {
+module.exports = async function main({ queryResult }, session) {
 	let { parameters: p, queryText } = queryResult;
 	if (p.name == null) throw "Invalid parameters";
 	return `Hello ${p.name}!`;
@@ -202,7 +169,7 @@ module.exports = async function({ queryResult }, session) {
 
 ```js
 exports.id = "count.to";
-module.exports = async function*({ queryResult }, session) {
+module.exports = async function* main({ queryResult }, session) {
 	let { parameters: p, queryText } = queryResult;
 	for (let i = 1; i < Number(p.to); i++) {
 		await timeout(1000);
@@ -231,12 +198,11 @@ The output payload of an action could have these attributes:
 | `payload.includeVoice` | Boolean value indicating that an additional voice note along text should be sent              |
 | `payload.url`          | URL to send or to open                                                                        |
 | `payload.music`        | Music to send or to play                                                                      |
-| `payload.game`         | Game that can be handled via Telegram                                                         |
 | `payload.video`        | Video to send or to show                                                                      |
 | `payload.audio`        | Audio to send or to show                                                                      |
 | `payload.image`        | Image to send or to show                                                                      |
-| `payload.lyrics`       | Lyrics object of a song                                                                       |
 | `payload.voice`        | Audio file to send or play via voice middlewares                                              |
+| `payload.game`         | Game that can be handled via Telegram                                                         |
 
 #### `payload.replies[]`
 
@@ -269,12 +235,6 @@ The output payload of an action could have these attributes:
 | Attribute | Description               |
 | --------- | ------------------------- |
 | `uri`     | Absolute URI of the media |
-
-#### `payload.lyrics`
-
-| Attribute | Description                 |
-| --------- | --------------------------- |
-| `text`    | Lyrics (string) of the song |
 
 #### `payload.music`
 
@@ -358,16 +318,6 @@ The output payload of an action could have these attributes:
 | Key | Description | Default value | Required | Type |
 | --- | ----------- | ------------- | -------- | ---- |
 
-#### Messenger (IO Driver)
-
-| Key                 | Description                                          | Default value | Required | Type   |
-| ------------------- | ---------------------------------------------------- | ------------- | -------- | ------ |
-| messenger.token     | Token used to instantiate Facebook bot               | null          | yes\*    | String |
-| messenger.verify    | Verify signature used to instantiate Facebook bot    | null          | yes\*    | String |
-| messenger.appId     | Applcation ID to instantiate Facebook bot            | null          | yes\*    | String |
-| messenger.appSecret | Applcation secret to instantiate Facebook bot        | null          | yes\*    | String |
-| messenger.port      | Port where webhook for Facebook bot should listen to | null          | yes\*    | Number |
-
 #### Facebook (Library)
 
 | Key                  | Description                        | Default value | Required | Type   |
@@ -391,37 +341,6 @@ The output payload of an action could have these attributes:
 | gcloud.apiKey         | Application key                  | null          | yes\*    | String      |
 | gcloud.storage.bucket | Google Cloud Storage bucket name | null          | yes\*    | String      |
 | gcloud.tts.gender     | Gender used for TTS              | Female        | no       | Male/Female |
-
-#### Spotify (Library)
-
-| Key                  | Description     | Default value | Required | Type   |
-| -------------------- | --------------- | ------------- | -------- | ------ |
-| spotify.clientId     | Application ID  | null          | yes\*    | String |
-| spotify.clientSecret | Application key | null          | yes\*    | String |
-
-#### Wolfram (Library)
-
-| Key           | Description    | Default value | Required | Type   |
-| ------------- | -------------- | ------------- | -------- | ------ |
-| wolfram.appId | Application ID | null          | yes\*    | String |
-
-#### Youtube (Library)
-
-| Key            | Description     | Default value | Required | Type   |
-| -------------- | --------------- | ------------- | -------- | ------ |
-| youtube.apiKey | Application key | null          | yes\*    | String |
-
-#### Musixmatch (Library)
-
-| Key               | Description     | Default value | Required | Type   |
-| ----------------- | --------------- | ------------- | -------- | ------ |
-| musixmatch.apiKey | Application key | null          | yes\*    | String |
-
-#### Wunderground (Library)
-
-| Key                 | Description     | Default value | Required | Type   |
-| ------------------- | --------------- | ------------- | -------- | ------ |
-| wunderground.apiKey | Application key | null          | yes\*    | String |
 
 #### Transmission (Library)
 

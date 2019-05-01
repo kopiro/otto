@@ -469,15 +469,6 @@ async function processOutputQueue() {
     console.error(TAG, err);
   }
 
-  // Process a Lyrics object
-  try {
-    if (f.payload.lyrics) {
-      await sendMessage(f.payload.lyrics.text, f.payload.lyrics.language);
-    }
-  } catch (err) {
-    console.error(TAG, err);
-  }
-
   // Reset current processed item and shift that item in the queue
   queueProcessingItem = null;
   queueOutput.shift();
