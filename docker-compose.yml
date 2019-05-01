@@ -18,7 +18,7 @@ services:
       - ./config.json:/app/config.json
       - ./default-config.json:/app/default-config.json
       - ./package.json:/app/package.json
-      - ./package-lock.json:/app/package-lock.json
+      - ./yarn.lock:/app/yarn.lock
       - ./src:/app/src
     ports:
       - 8880:8880

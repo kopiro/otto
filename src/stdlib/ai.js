@@ -343,7 +343,7 @@ async function eventRequest(event, session) {
  */
 function attachToServer() {
   Server.routerApi.post('/fulfillment', async (req, res) => {
-    if (req.body == null) {
+    if (!req.body || Object.keys(req.body).length === 0) {
       return res.json({
         data: {
           error: 'Empty body',

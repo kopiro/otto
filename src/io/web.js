@@ -152,4 +152,5 @@ module.exports = {
   onlyServerMode: true,
   startInput,
   output,
+  emitter,
 };

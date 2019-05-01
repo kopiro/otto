@@ -2,7 +2,7 @@ exports.id = 'e.book';
 
 const CirFood = require('cir-food');
 const stringSimilarity = require('string-similarity');
-const { extractWithPattern } = require('../helpers');
+const { extractWithPattern } = require('../../helpers');
 
 const pendingQueue = {};
 

@@ -48,7 +48,7 @@ async function fulfillmentTransformer(f, session) {
 
   // Merge all objects from fulfillmentMessages into payload
   f.payload = f.payload || {};
-  for (const msg of (f.fulfillmentMessages || [])) {
+  for (const msg of f.fulfillmentMessages || []) {
     if (!Array.isArray(msg)) {
       f.payload = { ...f.payload, ...msg.payload };
     }
@@ -251,32 +251,35 @@ async function loadDrivers() {
   const driversToLoad = getDriversToLoad();
 
   for (const driverStr of driversToLoad) {
-    console.info(TAG, `loading driver <${driverStr}>`);
-    const driver = getDriver(driverStr);
+    try {
+      const driver = getDriver(driverStr);
 
-    if (config.serverMode && driver.onlyClientMode) {
-      console.error(
-        TAG,
-        `unable to load <${driverStr}> because this IO is not compatible with SERVER mode`,
-      );
-      continue;
+      if (config.serverMode && driver.onlyClientMode) {
+        console.error(
+          TAG,
+          `unable to load <${driverStr}> because this IO is not compatible with SERVER mode`,
+        );
+        continue;
+      }
+
+      if (!config.serverMode && driver.onlyServerMode) {
+        console.error(
+          TAG,
+          `unable to load <${driverStr}> because this IO is not compatible with CLIENT mode`,
+        );
+        continue;
+      }
+
+      enabledDrivers[driverStr] = driver;
+
+      const driverId = `${config.uid}${SESSION_SEPARATOR}${driverStr}`;
+      configuredDriversId.push(driverId);
+      driver.emitter.emit('loaded');
+
+      console.log(TAG, `driver loaded with id: <${driverId}>`);
+    } catch (err) {
+      console.error(TAG, `driver <${driverStr}> caused error`, err);
     }
-
-    if (!config.serverMode && driver.onlyServerMode) {
-      console.error(
-        TAG,
-        `unable to load <${driverStr}> because this IO is not compatible with CLIENT mode`,
-      );
-      continue;
-    }
-
-    enabledDrivers[driverStr] = driver;
-
-    const driverId = `${config.uid}${SESSION_SEPARATOR}${driverStr}`;
-    configuredDriversId.push(driverId);
-    driver.emitter.emit('loaded');
-
-    console.log(TAG, `driver id: <${driverId}>`);
   }
 }
 
