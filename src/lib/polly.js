@@ -1,11 +1,11 @@
 const _ = require('underscore');
 const md5 = require('md5');
 const fs = require('fs');
+const { promisify } = require('util');
 const aws = require('../lib/aws');
 const config = require('../config');
 const { cacheDir } = require('../paths');
 const { getLocaleFromLanguageCode, uuid } = require('../helpers');
-const { promisify } = require('util');
 
 const TAG = 'Polly';
 
@@ -159,25 +159,28 @@ function getAudioFile(text, opt = {}) {
     // TODO: split by text length so that Polly can process
 
     // Call the API
-    client.synthesizeSpeech({
-      VoiceId: voice.Id,
-      Text: text,
-      TextType: isSSML ? 'ssml' : 'text',
-      OutputFormat: 'mp3',
-    }, async (err, data) => {
-      if (err) {
-        return reject(err);
-      }
+    client.synthesizeSpeech(
+      {
+        VoiceId: voice.Id,
+        Text: text,
+        TextType: isSSML ? 'ssml' : 'text',
+        OutputFormat: 'mp3',
+      },
+      async (err, data) => {
+        if (err) {
+          return reject(err);
+        }
 
-      const cachedFile = `${cacheDir}/${TAG}_${uuid()}.mp3`;
-      try {
-        await promisify(fs.writeFile)(file, data.AudioStream);
-        setCacheForAudio(text, opt, cachedFile);
-        resolve(cachedFile);
-      } catch (writeErr) {
-        reject(writeErr);
-      }
-    });
+        const cacheFilePath = `${cacheDir}/${TAG}_${uuid()}.mp3`;
+        try {
+          await promisify(fs.writeFile)(cacheFilePath, data.AudioStream);
+          setCacheForAudio(text, opt, cacheFilePath);
+          resolve(cacheFilePath);
+        } catch (writeErr) {
+          reject(writeErr);
+        }
+      },
+    );
   });
 }
 

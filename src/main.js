@@ -5,6 +5,7 @@ const Server = require('./stdlib/server');
 const IOManager = require('./stdlib/iomanager');
 const Scheduler = require('./stdlib/scheduler');
 
+// Replace normal console with a better colorful console
 require('console-ultimate/global').replace();
 
 if (!config.uid) {
@@ -13,11 +14,18 @@ if (!config.uid) {
 }
 
 if (config.raven && process.env.NODE_ENV === 'production') {
-  require('raven').config(config.raven).install();
+  require('raven')
+    .config(config.raven)
+    .install();
 }
 
 console.info('Connecting to database...');
-mongoose.connect(`mongodb://${config.mongo.user}:${config.mongo.password}@${config.mongo.host}:${config.mongo.port}/${config.mongo.database}`, { useNewUrlParser: true });
+mongoose.connect(
+  `mongodb://${config.mongo.user}:${config.mongo.password}@${config.mongo.host}:${
+    config.mongo.port
+  }/${config.mongo.database}`,
+  { useNewUrlParser: true },
+);
 
 mongoose.connection.on('error', async (err) => {
   console.error('Database connection error', err);
@@ -27,8 +35,6 @@ mongoose.connection.on('error', async (err) => {
 mongoose.connection.once('open', async () => {
   console.info('Database connection succeded');
 
-  console.log('AI, IOManager', AI, IOManager);
-
   if (config.serverMode) {
     console.info('Running in SERVER mode');
     Server.start();
@@ -37,8 +43,9 @@ mongoose.connection.once('open', async () => {
     console.info('Running in CLIENT mode');
   }
 
-  IOManager.start(AI.processInput);
-  IOManager.startQueuePolling();
+  IOManager.start({
+    onDriverInput: AI.processInput,
+  });
 
   if (config.scheduler) {
     Scheduler.startPolling();

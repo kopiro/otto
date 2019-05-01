@@ -16,10 +16,9 @@ const {
 const { tmpDir } = require('../paths');
 
 const _config = config.telegram;
-
 const TAG = 'IO.Telegram';
-
 const emitter = new Events.EventEmitter();
+
 const bot = new TelegramBot(_config.token, _config.options);
 
 let started = false;
@@ -38,12 +37,7 @@ async function handleInputVoice(session, e) {
     request(fileLink)
       .pipe(fs.createWriteStream(voiceFile))
       .on('close', async () => {
-        await Proc.spawn('opusdec', [
-          voiceFile,
-          `${voiceFile}.wav`,
-          '--rate',
-          SR.SAMPLE_RATE,
-        ]);
+        await Proc.spawn('opusdec', [voiceFile, `${voiceFile}.wav`, '--rate', SR.SAMPLE_RATE]);
         const text = await SR.recognizeFile(`${voiceFile}.wav`, {
           convertFile: false,
           language: session.getTranslateFrom(),
@@ -59,9 +53,13 @@ async function handleInputVoice(session, e) {
  * @param {*} text Text to send
  * @param {*} opt Additional bot options
  */
-async function sendMessage(chatId, text, opt = {
-  parse_mode: 'html',
-}) {
+async function sendMessage(
+  chatId,
+  text,
+  opt = {
+    parse_mode: 'html',
+  },
+) {
   await bot.sendChatAction(chatId, 'typing');
   return bot.sendMessage(chatId, text, opt);
 }
@@ -94,17 +92,13 @@ function startInput() {
   // We could attach the webhook to the Router API or via polling
   if (_config.useRouter && config.serverMode) {
     bot.setWebHook(`${config.server.domain}/io/telegram/bot${_config.token}`);
-    Server.routerIO.use(
-      '/telegram',
-      bodyParser.json(),
-      (req, res) => {
-        bot.processUpdate(req.body);
-        res.sendStatus(200);
-      },
-    );
-    console.info(TAG, 'started');
+    Server.routerIO.use('/telegram', bodyParser.json(), (req, res) => {
+      bot.processUpdate(req.body);
+      res.sendStatus(200);
+    });
+    console.info(TAG, 'started', _config);
   } else {
-    console.info(TAG, 'started via polling');
+    console.info(TAG, 'started via polling', _config);
   }
 }
 
@@ -186,37 +180,19 @@ async function output(f, session) {
     if (f.payload.music) {
       if (f.payload.music.spotify) {
         if (f.payload.music.spotify.track) {
-          await sendMessage(
-            chatId,
-            f.payload.music.spotify.track.external_urls.spotify,
-            botOpt,
-          );
+          await sendMessage(chatId, f.payload.music.spotify.track.external_urls.spotify, botOpt);
         } else if (f.payload.music.spotify.tracks) {
           await sendMessage(
             chatId,
-            f.payload.music.spotify.tracks
-              .map(e => e.external_urls.spotify)
-              .join('\n'),
+            f.payload.music.spotify.tracks.map(e => e.external_urls.spotify).join('\n'),
             botOpt,
           );
         } else if (f.payload.music.spotify.album) {
-          await sendMessage(
-            chatId,
-            f.payload.music.spotify.album.external_urls.spotify,
-            botOpt,
-          );
+          await sendMessage(chatId, f.payload.music.spotify.album.external_urls.spotify, botOpt);
         } else if (f.payload.music.spotify.artist) {
-          await sendMessage(
-            chatId,
-            f.payload.music.spotify.artist.external_urls.spotify,
-            botOpt,
-          );
+          await sendMessage(chatId, f.payload.music.spotify.artist.external_urls.spotify, botOpt);
         } else if (f.payload.music.spotify.playlist) {
-          await sendMessage(
-            chatId,
-            f.payload.music.spotify.playlist.external_urls.spotify,
-            botOpt,
-          );
+          await sendMessage(chatId, f.payload.music.spotify.playlist.external_urls.spotify, botOpt);
         }
       } else if (f.payload.music.uri) {
         await sendMessage(chatId, f.payload.music.uri, botOpt);
@@ -446,18 +422,14 @@ bot.on('callback_query', (e) => {
     const user = callbackQuery[e.from.id];
     if (user) {
       if (user[e.game_short_name]) {
-        bot.answerCallbackQuery(
-          e.id,
-          undefined,
-          false,
-          user[e.game_short_name],
-        );
+        bot.answerCallbackQuery(e.id, undefined, false, user[e.game_short_name]);
       }
     }
   }
 });
 
 module.exports = {
+  id: 'telegram',
   startInput,
   output,
   emitter,

@@ -1,17 +1,9 @@
-/**
- * URLManager
- * Handle incomings URLs and present to the user based on platform
- */
+const Proc = require('./proc');
 
-const TAG = 'URLManager';
-
-const Proc = requireLibrary('proc');
-
-exports.open = function (url) {
+async function open(url) {
   // TODO: handle errors
   // TODO: handle multiplatform
-  return new Promise((resolve, reject) => {
-    Proc.spawn('open', [url]);
-    resolve();
-  });
-};
+  return Proc.spawn('open', [url]);
+}
+
+module.exports = { open };

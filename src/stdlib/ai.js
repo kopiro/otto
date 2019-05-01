@@ -380,15 +380,13 @@ function attachToServer() {
   });
 }
 
-
 /**
  * Process a fulfillment to a session
  * @param {Object} e.fulfillment Fulfillment payload
  * @param {Object} e.session Session object
  */
-async function processInput({ params = {}, session = null }) {
+async function processInput({ params, session }) {
   let f = null;
-  session = IOManager.guessSession(session);
 
   console.info(TAG, 'output by input params', params);
 
