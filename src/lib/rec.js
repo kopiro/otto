@@ -6,7 +6,7 @@ const { spawn } = require('child_process');
 let proc = null;
 
 // returns a Readable stream
-exports.start = function (opt = {}) {
+function start(opt = {}) {
   if (proc) proc.kill();
 
   _.defaults(opt, {
@@ -19,11 +19,16 @@ exports.start = function (opt = {}) {
 
   let args = [
     '-q',
-    '-r', opt.sampleRate,
-    '-c', '1',
-    '-e', 'signed-integer',
-    '-b', '16',
-    '-t', 'wav',
+    '-r',
+    opt.sampleRate,
+    '-c',
+    '1',
+    '-e',
+    'signed-integer',
+    '-b',
+    '16',
+    '-t',
+    'wav',
     '-',
   ];
 
@@ -46,16 +51,18 @@ exports.start = function (opt = {}) {
   });
 
   return proc.stdout;
-};
+}
 
-exports.getStream = function () {
-  if (proc == null) return;
+function getStream() {
+  if (proc == null) return null;
   return proc.stdout;
-};
+}
 
-exports.stop = function () {
+function stop() {
   if (proc == null) return;
 
   console.log(TAG, 'stop');
   proc.kill();
-};
+}
+
+module.exports = { start, stop, getStream };

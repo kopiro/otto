@@ -1,10 +1,10 @@
 exports.id = 'maps.distance';
 
-const GoogleMaps = requireLibrary('googlemaps');
-const Moment = requireLibrary('moment');
+const GoogleMaps = require('../../lib/googlemaps');
+const Moment = require('../../lib/moment');
 const { promisify } = require('util');
 
-module.exports = async function ({ queryResult }, session) {
+module.exports = async function main({ queryResult }, session) {
   const { parameters: p, fulfillmentText } = queryResult;
 
   const response = await promisify(GoogleMaps.directions)(p);
@@ -13,7 +13,5 @@ module.exports = async function ({ queryResult }, session) {
   const duration = response.json.routes[0].legs[0].duration.value;
   const duration_human = Moment.duration(duration * 1000).humanize();
 
-  return fulfillmentText
-    .replace('$_distance', distance)
-    .replace('$_duration', duration_human);
+  return fulfillmentText.replace('$_distance', distance).replace('$_duration', duration_human);
 };

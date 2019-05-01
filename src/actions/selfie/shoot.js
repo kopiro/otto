@@ -1,9 +1,9 @@
 exports.id = 'selfie.shoot';
 
-const Selfie = requireLibrary('selfie');
-const Server = requireLibrary('server');
+const Selfie = require('../../lib/selfie');
+const Server = require('../../lib/server');
 
-module.exports = async function ({ queryResult }, session) {
+module.exports = async function main({ queryResult }, session) {
   const { parameters: p, fulfillmentText } = queryResult;
 
   const file = await Selfie.create(p.location || 'Iceland');

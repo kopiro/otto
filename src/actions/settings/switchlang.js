@@ -3,9 +3,9 @@ exports.id = 'settings.switchlang';
 const _ = require('underscore');
 const levenshtein = require('fast-levenshtein');
 
-const Translator = requireLibrary('translator');
+const Translator = require('../../lib/translator');
 
-module.exports = async function ({ queryResult }, session) {
+module.exports = async function main({ queryResult }, session) {
   const { parameters: p, fulfillmentMessages } = queryResult;
 
   // Handle special parameter
@@ -31,10 +31,7 @@ module.exports = async function ({ queryResult }, session) {
     };
 
     for (const l of languages) {
-      const lev = levenshtein.get(
-        l.name.toUpperCase(),
-        language_request.toUpperCase(),
-      );
+      const lev = levenshtein.get(l.name.toUpperCase(), language_request.toUpperCase());
       if (lev < 4 && preferred_lang.distance > lev) {
         preferred_lang = {
           distance: lev,
@@ -55,15 +52,14 @@ module.exports = async function ({ queryResult }, session) {
 
   await session.save();
 
-  const from = _.findWhere(languages, { code: session.getTranslateFrom() })
-    .name;
+  const from = _.findWhere(languages, { code: session.getTranslateFrom() }).name;
   const to = _.findWhere(languages, { code: session.getTranslateTo() }).name;
 
   if (session.getTranslateFrom() === session.getTranslateTo()) {
-    return extractWithPattern(
-      fulfillmentMessages,
-      '[].payload.text.single',
-    ).replace('$_language', from);
+    return extractWithPattern(fulfillmentMessages, '[].payload.text.single').replace(
+      '$_language',
+      from,
+    );
   }
   return extractWithPattern(fulfillmentMessages, '[].payload.text.plural')
     .replace('$_from', from)

@@ -1,8 +1,8 @@
 exports.id = 'draw';
 
-const ImageSearch = requireLibrary('imagesearch');
+const ImageSearch = require('../../lib/imagesearch');
 
-module.exports = async function ({ queryResult }, session) {
+module.exports = async function main({ queryResult }, session) {
   const { parameters: p } = queryResult;
 
   const images = await ImageSearch.search(`"${p.q}"`);

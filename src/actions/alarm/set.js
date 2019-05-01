@@ -2,9 +2,9 @@ exports.id = 'alarm.set';
 
 const _ = require('underscore');
 
-const Moment = requireLibrary('moment');
+const Moment = require('../../lib/moment');
 
-module.exports = async function ({ queryResult }, session) {
+module.exports = async function main ({ queryResult }, session) {
   const { parameters: p, fulfillmentText } = queryResult;
 
   let when = null;
@@ -15,10 +15,7 @@ module.exports = async function ({ queryResult }, session) {
   } else if (_.isEmpty(p.date) && !_.isEmpty(p.time)) {
     // If date is null, try to parse only the time
     // But if the time today is before now, postpone to tomorrow
-    const time = Moment(
-      `${now.format('YYYY-MM-DD')} ${p.time}`,
-      'YYYY-MM-DD HH:mm:ss',
-    );
+    const time = Moment(`${now.format('YYYY-MM-DD')} ${p.time}`, 'YYYY-MM-DD HH:mm:ss');
     if (time.isAfter(now)) {
       when = time;
     } else {

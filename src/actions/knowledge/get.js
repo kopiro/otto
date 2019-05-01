@@ -1,7 +1,7 @@
 exports.id = 'knowledge.get';
 
-const Wolfram = requireLibrary('wolfram');
-const Translator = requireLibrary('translator');
+const Wolfram = require('../../lib/wolfram');
+const Translator = require('../../lib/translator');
 const { promisify } = require('util');
 
 module.exports = async function* ({ queryResult }, session) {
@@ -26,18 +26,10 @@ module.exports = async function* ({ queryResult }, session) {
     if (pod.$.error === 'true') continue;
     if (pod.$.id === 'Input') continue;
 
-    yield await Translator.translate(
-      pod.$.title,
-      session.getTranslateTo(),
-      'en',
-    );
+    yield await Translator.translate(pod.$.title, session.getTranslateTo(), 'en');
 
     for (const subpod of pod.subpod) {
-      if (
-        subpod.plaintext
-				&& subpod.plaintext.length > 0
-				&& subpod.plaintext[0] != ''
-      ) {
+      if (subpod.plaintext && subpod.plaintext.length > 0 && subpod.plaintext[0] != '') {
         yield await Translator.translate(
           subpod.plaintext.join('\n'),
           session.getTranslateTo(),

@@ -2,7 +2,7 @@ exports.id = 'icloud.configure';
 
 const iCloud = require('apple-icloud');
 
-module.exports = async function ({ queryResult }, session) {
+module.exports = async function main({ queryResult }, session) {
   return new Promise((resolve, reject) => {
     const { parameters: p, fulfillmentText } = queryResult;
 

@@ -2,9 +2,9 @@ exports.id = 'translate.text';
 
 const _ = require('underscore');
 
-const Translator = requireLibrary('translator');
+const Translator = require('../../lib/translator');
 
-module.exports = async function ({ queryResult }, session) {
+module.exports = async function main({ queryResult }, session) {
   const { parameters: p } = queryResult;
 
   const languages = await Translator.getLanguages(config.language);

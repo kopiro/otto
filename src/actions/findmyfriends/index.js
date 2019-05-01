@@ -2,7 +2,7 @@ exports.id = 'findmyfriends';
 
 const iCloud = require('apple-icloud');
 
-module.exports = async function ({ queryResult }, session) {
+module.exports = async function main({ queryResult }, session) {
   return new Promise((resolve, reject) => {
     const { parameters: p, fulfillmentText } = queryResult;
 
@@ -32,11 +32,7 @@ module.exports = async function ({ queryResult }, session) {
       resolve({
         speech: fulfillmentText.replace(
           '$_address',
-          `${person.adress.country
-						 }, ${
-						 person.adress.locality
-						 }, ${
-						 person.adress.streetAddress}`,
+          `${person.adress.country}, ${person.adress.locality}, ${person.adress.streetAddress}`,
         ),
       });
     });

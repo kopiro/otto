@@ -2,7 +2,7 @@ exports.id = 'alarm.good_morning_question';
 
 const CONTEXT_QUESTION = 'good_morning_question';
 
-module.exports = async function ({ queryResult }, session) {
+module.exports = async function main({ queryResult }, session) {
   const { parameters: p, fulfillmentMessages, queryText } = queryResult;
 
   const question = session.pipe.good_morning_question;

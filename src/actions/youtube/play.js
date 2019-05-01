@@ -1,8 +1,8 @@
 exports.id = 'youtube.play';
 
-const Youtube = requireLibrary('youtube');
+const Youtube = require('../../lib/youtube');
 
-module.exports = async function* ({ queryResult }, session) {
+module.exports = async function* main({ queryResult }) {
   const { parameters: p, fulfillmentText } = queryResult;
 
   yield {

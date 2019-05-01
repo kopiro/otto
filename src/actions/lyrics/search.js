@@ -1,9 +1,9 @@
 exports.id = 'lyrics.search';
 
-const MusixMatch = requireLibrary('musixmatch');
+const MusixMatch = require('../../lib/musixmatch');
 const { promisify } = require('util');
 
-module.exports = async function ({ queryResult }, session) {
+module.exports = async function main({ queryResult }, session) {
   const { parameters: p } = queryResult;
 
   const bodyTracks = await promisify(MusixMatch.searchTrack)({

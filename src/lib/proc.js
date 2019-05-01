@@ -1,11 +1,11 @@
 const TAG = 'Proc';
-const { spawn } = require('child_process');
+const { spawn: systemSpawn } = require('child_process');
 
-exports.spawn = function (program, args) {
+function spawn(program, args) {
   return new Promise((resolve, reject) => {
     console.log(TAG, program, args.join(' '));
 
-    const spawned = spawn(program, args);
+    const spawned = systemSpawn(program, args);
 
     let stdout = '';
     let stderr = '';
@@ -19,8 +19,13 @@ exports.spawn = function (program, args) {
     });
 
     spawned.on('close', (err) => {
-      if (err) return reject(stderr);
-      resolve(stdout);
+      if (err) {
+        reject(stderr);
+      } else {
+        resolve(stdout);
+      }
     });
   });
-};
+}
+
+module.exports = { spawn };

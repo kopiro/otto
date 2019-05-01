@@ -2,8 +2,8 @@ exports.id = 'torrent.download';
 
 const _ = require('underscore');
 
-const TorrentSE = requireLibrary('torrent/se');
-const Transmission = requireLibrary('torrent/transmission');
+const TorrentSE = require('../../lib/torrent/se');
+const Transmission = require('../../lib/transmission');
 const { promisify } = require('util');
 
 const pendingQueue = {};
@@ -11,10 +11,7 @@ const CONTEXT_MULTIPLE_ITEMS = 'torrent_multipleitems';
 
 module.exports = async function* ({ queryResult }, session) {
   const {
-    parameters: p,
-    queryText,
-    fulfillmentText,
-    fulfillmentMessages,
+    parameters: p, queryText, fulfillmentText, fulfillmentMessages,
   } = queryResult;
 
   let torrents;
@@ -22,16 +19,15 @@ module.exports = async function* ({ queryResult }, session) {
   if (p.multipleItems != null) {
     // If we have a multi-choice, extract from previous queue
     let index = 1;
-    const answer = pendingQueue[session._id].find(torrent => torrent.title === queryText || String(index++) == queryText);
+    const answer = pendingQueue[session._id].find(
+      torrent => torrent.title === queryText || String(index++) == queryText,
+    );
     if (answer == null) throw 'not_found';
     torrents = [answer];
   } else {
     // Do a full search
     yield {
-      fulfillmentText: extractWithPattern(
-        fulfillmentMessages,
-        '[].payload.text.loading',
-      ),
+      fulfillmentText: extractWithPattern(fulfillmentMessages, '[].payload.text.loading'),
       payload: {
         feedback: true,
       },
@@ -55,9 +51,7 @@ module.exports = async function* ({ queryResult }, session) {
   } else {
     pendingQueue[session._id] = torrents;
     yield {
-      fulfillmentText: torrents
-        .map((e, i) => `${i + 1} - ${e.title}`)
-        .join('\n'),
+      fulfillmentText: torrents.map((e, i) => `${i + 1} - ${e.title}`).join('\n'),
       outputContexts: [{ name: CONTEXT_MULTIPLE_ITEMS, lifespanCount: 1 }],
       payload: {
         replies: torrents.map((e, i) => String(i + 1)),

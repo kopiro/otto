@@ -7,19 +7,16 @@ const pendingQueue = {};
 const _ = require('underscore');
 const stringSimilarity = require('string-similarity');
 
-const moment = requireLibrary('moment');
+const moment = require('../../lib/moment');
 
 const CONTEXT_CONFIGURE = 'cirfood_configure';
 const CONTEXT_BOOK_YES = 'cirfood_book_yes';
 const CONTEXT_BOOK_RESPONSE = 'cirfood_book_response';
 const COURSES_MAX = 3;
 
-module.exports = async function ({ queryResult }, session) {
+module.exports = async function main({ queryResult }, session) {
   const {
-    parameters: p,
-    fulfillmentText,
-    queryText,
-    fulfillmentMessages,
+    parameters: p, fulfillmentText, queryText, fulfillmentMessages,
   } = queryResult;
 
   if (session.settings.cirfood == null) {
@@ -43,10 +40,7 @@ module.exports = async function ({ queryResult }, session) {
   let selectedCourse;
 
   if (p.bookingInProcess == null) {
-    e.client = new CirFood(
-      session.settings.cirfood.username,
-      session.settings.cirfood.password,
-    );
+    e.client = new CirFood(session.settings.cirfood.username, session.settings.cirfood.password);
     e.date = p.date;
     e.menu = null;
     e.booking = [];
@@ -84,18 +78,10 @@ module.exports = async function ({ queryResult }, session) {
 
       // If we didn't found a course by ID, use levenshtein
       if (selectedCourse == null) {
-        console.debug(
-          exports.id,
-          'Unable to identify a course by ID, use best match',
-        );
-        const matches = stringSimilarity.findBestMatch(
-          queryText,
-          courses.map(e => e.text),
-        );
+        console.debug(exports.id, 'Unable to identify a course by ID, use best match');
+        const matches = stringSimilarity.findBestMatch(queryText, courses.map(e => e.text));
         if (matches.bestMatch != null) {
-          selectedCourse = courses.find(
-            e => e.text === matches.bestMatch.target,
-          );
+          selectedCourse = courses.find(e => e.text === matches.bestMatch.target);
         }
       }
 
@@ -104,22 +90,13 @@ module.exports = async function ({ queryResult }, session) {
         await e.client.addCourseToCurrentBooking(selectedCourse.id);
         // Increment state to go to next course
         e.booking.push(selectedCourse);
-        text += extractWithPattern(
-          fulfillmentMessages,
-          '[].payload.text.available_courses',
-        );
+        text += extractWithPattern(fulfillmentMessages, '[].payload.text.available_courses');
         text = text.replace('$_course', selectedCourse.text);
       } else {
-        text += extractWithPattern(
-          fulfillmentMessages,
-          '[].payload.text.available_courses_again',
-        );
+        text += extractWithPattern(fulfillmentMessages, '[].payload.text.available_courses_again');
       }
     } else {
-      text += extractWithPattern(
-        fulfillmentMessages,
-        '[].payload.text.available_courses',
-      );
+      text += extractWithPattern(fulfillmentMessages, '[].payload.text.available_courses');
     }
 
     text = text.replace('$_state', 1 + e.booking.length);

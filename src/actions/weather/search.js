@@ -2,8 +2,8 @@ exports.id = 'weather.search';
 
 const _ = require('underscore');
 
-const Moment = requireLibrary('moment');
-const Wunderground = requireLibrary('wunderground');
+const Moment = require('../../lib/moment');
+const Wunderground = require('../../lib/wunderground');
 
 const WG_QUALIFIERS = ['chance', 'mostly', 'partly'];
 
@@ -17,7 +17,7 @@ const INTENT_TO_WG = {
   wind: ['flurries', 'chanceflurries'],
 };
 
-module.exports = async function ({ queryResult }, session) {
+module.exports = async function main({ queryResult }, session) {
   const { parameters: p, fulfillmentText, fulfillmentMessages } = queryResult;
 
   const now = Moment();
@@ -27,10 +27,7 @@ module.exports = async function ({ queryResult }, session) {
   } else if (!_.isEmpty(p.date)) {
     date = Moment(p.date + now.format('HH:mm:ss'), 'YYYY-MM-DD HH:mm:ss');
   } else if (!_.isEmpty(p.time)) {
-    date = Moment(
-      `${now.format('YYYY-MM-DD')} ${p.time}`,
-      'YYYY-MM-DD HH:mm:ss',
-    );
+    date = Moment(`${now.format('YYYY-MM-DD')} ${p.time}`, 'YYYY-MM-DD HH:mm:ss');
   } else {
     date = now;
   }
@@ -44,11 +41,7 @@ module.exports = async function ({ queryResult }, session) {
     sameElse: 'L',
   });
 
-  const tempo = date.isSame(now)
-    ? 'present'
-    : date.isAfter(now)
-      ? 'future'
-      : 'past';
+  const tempo = date.isSame(now) ? 'present' : date.isAfter(now) ? 'future' : 'past';
 
   const data = await Wunderground.api({
     type: 'forecast',
@@ -67,10 +60,7 @@ module.exports = async function ({ queryResult }, session) {
 
   if (p.request_type === 'condition') {
     const c = p.condition_description;
-    const condition = extractWithPattern(
-      fulfillmentMessages,
-      `[].payload.conditions.${c}`,
-    );
+    const condition = extractWithPattern(fulfillmentMessages, `[].payload.conditions.${c}`);
 
     console.log('INTENT_TO_WG, c :', INTENT_TO_WG, c);
     const e = INTENT_TO_WG[c];
@@ -80,29 +70,22 @@ module.exports = async function ({ queryResult }, session) {
         fulfillmentMessages,
         `[].payload.qualifiers.${_qualifier}`,
       );
-      return extractWithPattern(
-        fulfillmentMessages,
-        `[].payload.text.yes_${tempo}`,
-      )
+      return extractWithPattern(fulfillmentMessages, `[].payload.text.yes_${tempo}`)
         .replace('$_condition', condition)
         .replace('$_qualifier', qualifier)
         .replace('$_location', p.location)
         .replace('$_date', humanDate);
     }
-    return extractWithPattern(
-      fulfillmentMessages,
-      `[].payload.text.no_${tempo}`,
-    )
+    return extractWithPattern(fulfillmentMessages, `[].payload.text.no_${tempo}`)
       .replace('$_condition', condition)
       .replace('$_location', p.location)
       .replace('$_date', humanDate);
   }
 
   if (p.request_type === 'explicit') {
-    const avg_temp = (
-      (parseInt(obs.high.celsius, 10) + parseInt(obs.low.celsius, 10))
-			/ 2
-    ).toFixed(0);
+    const avg_temp = ((parseInt(obs.high.celsius, 10) + parseInt(obs.low.celsius, 10)) / 2).toFixed(
+      0,
+    );
     return fulfillmentText
       .replace('$_location', p.location)
       .replace('$_conditions', obs.conditions)
