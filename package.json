@@ -29,7 +29,7 @@
     "@google-cloud/storage": "^1.7.0",
     "@google-cloud/text-to-speech": "^0.3.0",
     "@google-cloud/translate": "^1.0.0",
-    "assign-deep": "^1.0.0",
+    "assign-deep": "^1.0.1",
     "aws-sdk": "^2.349.0",
     "body-parser": "^1.18.3",
     "cir-food": "^1.1.0",
