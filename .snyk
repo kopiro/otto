@@ -1,0 +1,34 @@
+# Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
+version: v1.13.5
+ignore: {}
+# patches apply the minimum changes required to fix a vulnerability
+patch:
+  SNYK-JS-LODASH-450202:
+    - node-telegram-bot-api > request-promise > request-promise-core > lodash:
+        patched: '2019-07-04T06:02:49.992Z'
+    - '@google-cloud/speech > google-gax > lodash':
+        patched: '2019-07-04T06:02:49.992Z'
+    - dialogflow > google-gax > lodash:
+        patched: '2019-07-04T06:02:49.992Z'
+    - request-promise > request-promise-core > lodash:
+        patched: '2019-07-04T06:02:49.992Z'
+    - '@google-cloud/storage > async > lodash':
+        patched: '2019-07-04T06:02:49.992Z'
+    - transmission > async > lodash:
+        patched: '2019-07-04T06:02:49.992Z'
+    - cir-food > request-promise-native > request-promise-core > lodash:
+        patched: '2019-07-04T06:02:49.992Z'
+    - mongoose > async > lodash:
+        patched: '2019-07-04T06:02:49.992Z'
+    - dialogflow > google-gax > @grpc/proto-loader > lodash:
+        patched: '2019-07-04T06:02:49.992Z'
+    - '@google-cloud/translate > @google-cloud/common > split-array-stream > async > lodash':
+        patched: '2019-07-04T06:02:49.992Z'
+    - '@google-cloud/translate > @google-cloud/common > google-auto-auth > async > lodash':
+        patched: '2019-07-04T06:02:49.992Z'
+    - cir-food > jsdom > request-promise-native > request-promise-core > lodash:
+        patched: '2019-07-04T06:02:49.992Z'
+    - '@google-cloud/storage > gcs-resumable-upload > google-auto-auth > async > lodash':
+        patched: '2019-07-04T06:02:49.992Z'
+    - '@google-cloud/speech > google-gax > google-auto-auth > async > lodash':
+        patched: '2019-07-04T06:02:49.992Z'
