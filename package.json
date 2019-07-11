@@ -33,7 +33,7 @@
     "aws-sdk": "^2.349.0",
     "body-parser": "^1.18.3",
     "cir-food": "^1.1.0",
-    "console-ultimate": "^2.9.0",
+    "console-ultimate": "^3.0.0",
     "deep-extend": "^0.5.1",
     "diacritics": "^1.3.0",
     "dialogflow": "^0.7.0",
