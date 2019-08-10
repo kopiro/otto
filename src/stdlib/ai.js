@@ -2,8 +2,8 @@ const DialogFlow = require('dialogflow');
 const Server = require('./server');
 const IOManager = require('./iomanager');
 const Translator = require('../lib/translator');
-const Actions = require('../actions');
-const Data = require('../data');
+const Actions = require('../actions/index');
+const Data = require('../data/index');
 const config = require('../config');
 const { structProtoToJson, extractWithPattern } = require('../helpers');
 
@@ -17,8 +17,8 @@ const TAG = 'AI';
 
 /**
  * Parse the context
- * @param {Object} c
- * @param {Object} sessionId
+ * @param {Object} c Context
+ * @param {String} sessionId SessionID
  */
 function parseContext(c, sessionId) {
   if (!/projects/.test(c.name)) {
@@ -29,7 +29,8 @@ function parseContext(c, sessionId) {
 
 /**
  * Clean fulfillment to be suitable for webhook
- * @param {Object} fulfillment
+ * @param {Object} f Fulfillment
+ * @param {Session} session Session
  * @returns
  */
 async function fulfillmentTransformerForWebhookOutput(f, session) {
@@ -53,7 +54,7 @@ function getDFSessionPath(sessionId) {
     _config.projectId,
     _config.environment,
     '-',
-    dfSessionId,
+    dfSessionId
   );
 }
 
@@ -65,7 +66,7 @@ function getDFSessionPath(sessionId) {
 function setDFContext(sessionId, context) {
   return dfContextsClient.createContext({
     parent: getDFSessionPath(sessionId),
-    context: parseContext(context, sessionId),
+    context: parseContext(context, sessionId)
   });
 }
 
@@ -83,15 +84,21 @@ function actionErrorTransformer(body, err) {
 
     // If an error occurs, try to intercept this error
     // in the fulfillmentMessages that comes from DialogFlow
-    f.fulfillmentText = extractWithPattern(body.queryResult.fulfillmentMessages, `[].payload.error.${errMessage}`)
-      || errMessage;
+    f.fulfillmentText =
+      extractWithPattern(
+        body.queryResult.fulfillmentMessages,
+        `[].payload.error.${errMessage}`
+      ) || errMessage;
 
     if (err.data) {
       let theVar = null;
       const re = /$_(\w+)/g;
       // eslint-disable-next-line no-cond-assign
       while ((theVar = re.exec(f.fulfillmentText))) {
-        f.fulfillmentText = f.fulfillmentText.replace(`$_${theVar[1]}`, err.data[theVar[1]] || '');
+        f.fulfillmentText = f.fulfillmentText.replace(
+          `$_${theVar[1]}`,
+          err.data[theVar[1]] || ''
+        );
       }
     }
   }
@@ -111,13 +118,18 @@ function actionErrorTransformer(body, err) {
  * @param {Boolean} fromWebhook
  * @returns
  */
-async function actionResultToFulfillment(body, actionResult, session, fromWebhook = false) {
+async function actionResultToFulfillment(
+  body,
+  actionResult,
+  session,
+  fromWebhook = false
+) {
   let f = null;
 
   // If an action return a string, wrap into an object
   if (typeof actionResult === 'string') {
     actionResult = {
-      fulfillmentText: actionResult,
+      fulfillmentText: actionResult
     };
   }
 
@@ -131,7 +143,7 @@ async function actionResultToFulfillment(body, actionResult, session, fromWebhoo
           TAG,
           'Setting context manually because we are not in a webhook',
           session.id,
-          c,
+          c
         );
         await setDFContext(session.id, c);
       }
@@ -148,9 +160,9 @@ async function actionResultToFulfillment(body, actionResult, session, fromWebhoo
  * @param {Session} session
  */
 async function generatorResolver(body, generator, session) {
-  console.info(TAG, 'Using generator resolver');
+  console.info(TAG, 'Using generator resolver', generator);
   try {
-    for (let f of generator) {
+    for await (let f of generator) {
       f = await actionResultToFulfillment(body, f, session, false);
       await IOManager.output(f, session);
     }
@@ -165,6 +177,7 @@ async function generatorResolver(body, generator, session) {
  * Transform a body from DialogFlow into a Fulfillment by calling the internal action
  * @param {Object} body Payload from DialogFlow
  * @param {Object} session Session
+ * @returns {Promise<Object>}
  */
 async function actionResolver(body, session, fromWebhook = false) {
   const actionName = body.queryResult.action;
@@ -183,11 +196,14 @@ async function actionResolver(body, session, fromWebhook = false) {
 
     // Now check if this action is a Promise or a Generator
     if (typeof f.next === 'function') {
+      console.log('f', f);
+      // Call the generator
       generatorResolver(body, f, session);
+      // And immediately resolve
       return {
         payload: {
-          handledByGenerator: true,
-        },
+          handledByGenerator: true
+        }
       };
     }
 
@@ -204,12 +220,17 @@ async function actionResolver(body, session, fromWebhook = false) {
  * Transform a text request to make it compatible and translating it
  * @param {String} text Sentence
  * @param {Object} session Session
+ * @returns {Promise<Object>}
  */
 async function textRequestTransformer(text, session) {
   // Remove the AI name in the text
   // text = text.replace(config.aiNameRegex, '');
   if (config.language !== session.getTranslateTo()) {
-    text = await Translator.translate(text, config.language, session.getTranslateTo());
+    text = await Translator.translate(
+      text,
+      config.language,
+      session.getTranslateTo()
+    );
   }
   return text;
 }
@@ -218,6 +239,7 @@ async function textRequestTransformer(text, session) {
  * Transform an event by making compatible
  * @param {Object} event Event string or object
  * @param {Object} session Session
+ * @returns {Promise<Object>}
  */
 async function eventRequestTransformer(event, session) {
   if (typeof event === 'string') {
@@ -231,19 +253,28 @@ async function eventRequestTransformer(event, session) {
  * Parse the DialogFlow body and decide what to do
  * @param {Object} body Payload
  * @param {Object} session Session
+ * @returns {Promise<Object>}
  */
 async function bodyParser(body, session, fromWebhook = false) {
+  if (config.mimicOfflineServer) {
+    body.webhookStatus = null;
+  }
+
   if (body.webhookStatus) {
     if (body.webhookStatus.code > 0) {
       return {
-        error: body.webhookStatus,
+        error: body.webhookStatus
       };
     }
 
     // When coming from webhook, unwrap everything
-    body.queryResult.parameters = structProtoToJson(body.queryResult.parameters);
+    body.queryResult.parameters = structProtoToJson(
+      body.queryResult.parameters
+    );
     if (body.queryResult.webhookPayload) {
-      body.queryResult.payload = structProtoToJson(body.queryResult.webhookPayload);
+      body.queryResult.payload = structProtoToJson(
+        body.queryResult.webhookPayload
+      );
       delete body.queryResult.webhookPayload;
     }
     body.queryResult.payload = body.queryResult.payload || {};
@@ -258,10 +289,14 @@ async function bodyParser(body, session, fromWebhook = false) {
     // parameters, fulfillmentMessages and payload are wrapped
     // in a very complicated STRUCT_PROTO
     // that is pretty unusable, so we just un-wrap
-    body.queryResult.parameters = structProtoToJson(body.queryResult.parameters);
-    body.queryResult.fulfillmentMessages = body.queryResult.fulfillmentMessages.map(e => ({
-      payload: structProtoToJson(e.payload),
-    }));
+    body.queryResult.parameters = structProtoToJson(
+      body.queryResult.parameters
+    );
+    body.queryResult.fulfillmentMessages = body.queryResult.fulfillmentMessages.map(
+      e => ({
+        payload: structProtoToJson(e.payload)
+      })
+    );
     body.queryResult.payload = structProtoToJson(body.queryResult.payload);
   }
 
@@ -278,7 +313,7 @@ async function bodyParser(body, session, fromWebhook = false) {
       fulfillmentText: body.queryResult.fulfillmentText,
       fulfillmentMessages: body.queryResult.fulfillmentMessages,
       outputContexts: body.queryResult.outputContexts,
-      payload: body.queryResult.payload,
+      payload: body.queryResult.payload
     };
   }
 
@@ -288,8 +323,8 @@ async function bodyParser(body, session, fromWebhook = false) {
   return {
     followupEventInput: {
       name: 'ai_unhandled',
-      languageCode: session.getTranslateTo(),
-    },
+      languageCode: session.getTranslateTo()
+    }
   };
 }
 
@@ -297,6 +332,7 @@ async function bodyParser(body, session, fromWebhook = false) {
  * Make a text request to DialogFlow and let the flow begin
  * @param {String} text Sentence
  * @param {Object} session Session
+ * @returns {Promise<Object>}
  */
 async function textRequest(text, session) {
   console.info(TAG, 'text request:', text);
@@ -310,16 +346,16 @@ async function textRequest(text, session) {
     queryInput: {
       text: {
         text,
-        languageCode: session.getTranslateFrom(),
-      },
-    },
+        languageCode: session.getTranslateFrom()
+      }
+    }
   });
   return bodyParser(responses[0], session);
 }
 
 /**
  * Make an event request to DialogFlow and let the flow begin
- * @param {String} text Sentence
+ * @param {Object} event Event object
  * @param {Object} session Session
  */
 async function eventRequest(event, session) {
@@ -332,8 +368,8 @@ async function eventRequest(event, session) {
   const responses = await dfSessionClient.detectIntent({
     session: getDFSessionPath(session.id),
     queryInput: {
-      event,
-    },
+      event
+    }
   });
   return bodyParser(responses[0], session);
 }
@@ -346,8 +382,8 @@ function attachToServer() {
     if (!req.body || Object.keys(req.body).length === 0) {
       return res.json({
         data: {
-          error: 'Empty body',
-        },
+          error: 'Empty body'
+        }
       });
     }
 
@@ -361,7 +397,7 @@ function attachToServer() {
     if (session == null) {
       console.error(TAG, `creating a missing session ID with ${sessionId}`);
       session = new Data.Session({
-        _id: sessionId,
+        _id: sessionId
       });
       await session.save();
     }
@@ -379,6 +415,7 @@ function attachToServer() {
 
 /**
  * Process a fulfillment to a session
+ * @param {Object} e
  * @param {Object} e.fulfillment Fulfillment payload
  * @param {Object} e.session Session object
  */
@@ -403,5 +440,5 @@ module.exports = {
   eventRequest,
   textRequest,
   processInput,
-  attachToServer,
+  attachToServer
 };

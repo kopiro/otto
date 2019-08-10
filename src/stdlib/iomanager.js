@@ -103,12 +103,8 @@ function eventToAllIO(name, data) {
 
 /**
  * Process an input to a specific IO driver based on the session
- * @param {Object} e
- * @param {Object} e.session Session object
- * @param {Object} e.params Input params object
- * @param {Object} e.fulfillment A DialogFlow direct fulfillment
- * @param {String} e.params.text A text query to parse over DialogFlow
- * @param {Object} e.params.event An event query to parse over DialogFlow
+ * @param {Object} f Input object
+ * @param {Object} session Session object
  */
 async function output(f, session) {
   if (!f) {

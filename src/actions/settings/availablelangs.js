@@ -1,7 +1,7 @@
 exports.id = 'settings.availablelangs';
 
 const _ = require('underscore');
-const { config } = require('../../helpers');
+const config = require('../../config');
 const Translator = require('../../lib/translator');
 
 module.exports = async function main() {
