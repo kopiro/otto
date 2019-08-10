@@ -15,7 +15,6 @@ const queueProcessing = {};
 const emitter = new Events.EventEmitter();
 
 const SESSION_SEPARATOR = '-';
-let globalSession = null;
 
 /**
  * Define constants used when forwarding output to an accessory
@@ -23,7 +22,7 @@ let globalSession = null;
 const CAN_HANDLE_OUTPUT = {
   YES_AND_BREAK: 'yes_and_break',
   YES_AND_CONTINUE: 'yes_and_continue',
-  NO: 'no',
+  NO: 'no'
 };
 
 /**
@@ -59,9 +58,14 @@ async function fulfillmentTransformer(f, session) {
     if (session.getTranslateTo() !== config.language) {
       console.log(
         TAG,
-        `Translating text (${f.fulfillmentText}) to language: ${session.getTranslateTo()}`,
+        `Translating text (${
+          f.fulfillmentText
+        }) to language: ${session.getTranslateTo()}`
       );
-      f.fulfillmentText = await Translator.translate(f.fulfillmentText, session.getTranslateTo());
+      f.fulfillmentText = await Translator.translate(
+        f.fulfillmentText,
+        session.getTranslateTo()
+      );
       f.payload.translatedTo = session.getTranslateTo();
     }
   }
@@ -82,7 +86,7 @@ async function fulfillmentTransformerForOutput(f) {
     // Re-enable to pass audio directly from DialogFlow
     // audio: f.outputAudio,
     error: f.error,
-    payload: f.payload,
+    payload: f.payload
   };
 }
 
@@ -109,7 +113,7 @@ function eventToAllIO(name, data) {
 async function output(f, session) {
   if (!f) {
     console.warn(
-      'Do not output to driver because f is null - this could be intentional, but check your action',
+      'Do not output to driver because f is null - this could be intentional, but check your action'
     );
     return null;
   }
@@ -133,13 +137,13 @@ async function output(f, session) {
   if (!isIdDriverUp(session.io_id)) {
     console.info(TAG, 'putting in IO queue because driver is not UP', {
       session,
-      f,
+      f
     });
 
     await new Data.IOQueue({
       session: session.id,
       io_id: session.io_id,
-      fulfillment: f,
+      fulfillment: f
     }).save();
 
     return null;
@@ -149,7 +153,10 @@ async function output(f, session) {
   // by simplying replacing the driver
   if (config.ioRedirectMap[session.io_driver] != null) {
     session.io_driver = config.ioRedirectMap[session.io_driver];
-    console.info(TAG, `<${session.io_driver}> redirect output to <${session.io_driver}>`);
+    console.info(
+      TAG,
+      `<${session.io_driver}> redirect output to <${session.io_driver}>`
+    );
   }
 
   const driver = enabledDrivers[session.io_driver];
@@ -223,7 +230,8 @@ async function configureDriver(driverStr, onDriverInput) {
  * Return an array of drivers strings to load
  */
 function getDriversToLoad() {
-  if (process.env.OTTO_IO_DRIVERS) return process.env.OTTO_IO_DRIVERS.split(',');
+  if (process.env.OTTO_IO_DRIVERS)
+    return process.env.OTTO_IO_DRIVERS.split(',');
   return config.ioDrivers || [];
 }
 
@@ -232,7 +240,8 @@ function getDriversToLoad() {
  * @param {String} driver
  */
 function getAccessoriesToLoad(driver) {
-  if (process.env.OTTO_IO_ACCESSORIES) return process.env.OTTO_IO_ACCESSORIES.split(',');
+  if (process.env.OTTO_IO_ACCESSORIES)
+    return process.env.OTTO_IO_ACCESSORIES.split(',');
   return config.ioAccessoriesMap[driver] || [];
 }
 
@@ -240,7 +249,8 @@ function getAccessoriesToLoad(driver) {
  * Return an array of listeners strings to load
  */
 function getListenersToLoad() {
-  if (process.env.OTTO_IO_LISTENERS) return process.env.OTTO_IO_LISTENERS.split(',');
+  if (process.env.OTTO_IO_LISTENERS)
+    return process.env.OTTO_IO_LISTENERS.split(',');
   return config.listeners || [];
 }
 
@@ -257,7 +267,7 @@ async function loadDrivers() {
       if (config.serverMode && driver.onlyClientMode) {
         console.error(
           TAG,
-          `unable to load <${driverStr}> because this IO is not compatible with SERVER mode`,
+          `unable to load <${driverStr}> because this IO is not compatible with SERVER mode`
         );
         continue;
       }
@@ -265,7 +275,7 @@ async function loadDrivers() {
       if (!config.serverMode && driver.onlyServerMode) {
         console.error(
           TAG,
-          `unable to load <${driverStr}> because this IO is not compatible with CLIENT mode`,
+          `unable to load <${driverStr}> because this IO is not compatible with CLIENT mode`
         );
         continue;
       }
@@ -318,7 +328,7 @@ async function loadListeners() {
  */
 function encodeBody(b) {
   return {
-    body: Buffer.alloc(JSON.stringify(b)).toString('base64'),
+    body: Buffer.alloc(JSON.stringify(b)).toString('base64')
   };
 }
 
@@ -327,7 +337,9 @@ function encodeBody(b) {
  * @param {Object} fulfillment
  */
 function decodeBody(fulfillment) {
-  return JSON.parse(Buffer.alloc(fulfillment.payload.body, 'base64').toString('ascii'));
+  return JSON.parse(
+    Buffer.alloc(fulfillment.payload.body, 'base64').toString('ascii')
+  );
 }
 
 /**
@@ -362,7 +374,7 @@ function getAccessory(e) {
 async function writeLogForSession(text, session) {
   return new Data.SessionInput({
     session: session.id,
-    text,
+    text
   }).save();
 }
 
@@ -372,7 +384,7 @@ async function writeLogForSession(text, session) {
  */
 async function getSession(sessionIdComposite) {
   return Data.Session.findOne({
-    _id: sessionIdComposite,
+    _id: sessionIdComposite
   });
 }
 
@@ -380,11 +392,11 @@ async function getSession(sessionIdComposite) {
  * Register a new session onto ORM
  * @param {Object} e
  */
-async function registerSession({
-  sessionId, io_driver, io_data, alias,
-}) {
+async function registerSession({ sessionId, io_driver, io_data, alias }) {
   const io_id = `${config.uid}${SESSION_SEPARATOR}${io_driver}`;
-  const sessionIdComposite = `${io_id}${sessionId ? SESSION_SEPARATOR : ''}${sessionId}`;
+  const sessionIdComposite = `${io_id}${
+    sessionId ? SESSION_SEPARATOR : ''
+  }${sessionId}`;
 
   let session = await getSession(sessionIdComposite);
 
@@ -397,30 +409,16 @@ async function registerSession({
       io_data,
       alias,
       settings: {
-        updated_at: Date.now(),
+        updated_at: Date.now()
       },
       pipe: {
-        updated_at: Date.now(),
+        updated_at: Date.now()
       },
-      server_settings: config.uid,
+      server_settings: config.uid
     }).save();
   }
 
-  if (!sessionId && !globalSession) {
-    updateGlobalSession(session);
-  }
-
   return session;
-}
-
-/**
- * Register this session as global session, available via IOManager.session
- * @param {Object} session
- */
-function updateGlobalSession(session) {
-  console.info(TAG, 'updating global session model');
-  globalSession = session;
-  emitter.emit('session_ready');
 }
 
 /**
@@ -429,8 +427,8 @@ function updateGlobalSession(session) {
 async function processQueue() {
   const qitem = await Data.IOQueue.findOne({
     io_id: {
-      $in: configuredDriversId,
-    },
+      $in: configuredDriversId
+    }
   });
 
   if (!qitem) {
@@ -481,13 +479,6 @@ async function start({ onDriverInput }) {
   startQueuePolling();
 }
 
-/**
- * Get the global session
- */
-function getGlobalSession() {
-  return globalSession;
-}
-
 module.exports = {
   emitter,
   SESSION_SEPARATOR,
@@ -500,6 +491,5 @@ module.exports = {
   getSession,
   writeLogForSession,
   fulfillmentTransformer,
-  start,
-  getGlobalSession,
+  start
 };

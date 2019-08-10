@@ -99,9 +99,9 @@ function bindEvents() {
 /**
  * Speak a sentence
  * @param {string} text String to speak
- * @param {string} language Language of text
+ * @param {object} language Language of text
  */
-async function sendMessage(text, { language = IOManager.getGlobalSession().getTranslateTo() }) {
+async function sendMessage(text, { language }) {
   const key = md5(text);
   currentSendMessageKey = key;
 
@@ -110,7 +110,7 @@ async function sendMessage(text, { language = IOManager.getGlobalSession().getTr
   for (const sentence of sentences) {
     if (currentSendMessageKey === key) {
       const audioFile = await TTS.getAudioFile(sentence, {
-        language,
+        language
       });
       await Play.playVoice(audioFile);
     }
@@ -179,12 +179,12 @@ function destroyRecognizeStream() {
  * Create and assign the SR stream by attaching
  * the microphone input to GCP-SR stream
  */
-function createRecognizeStream(language = IOManager.getGlobalSession().getTranslateFrom()) {
+function createRecognizeStream({ session, language }) {
   console.log(TAG, 'recognizing microphone stream');
 
   recognizeStream = SR.createRecognizeStream(
     {
-      language,
+      language
     },
     (err, text) => {
       destroyRecognizeStream();
@@ -195,24 +195,24 @@ function createRecognizeStream(language = IOManager.getGlobalSession().getTransl
           return;
         }
         emitter.emit('input', {
-          session: IOManager.getGlobalSession(),
-          error: err,
+          session,
+          error: err
         });
         return;
       }
 
       // Otherwise, emit an INPUT message with the recognized text
       emitter.emit('input', {
-        session: IOManager.getGlobalSession(),
+        session,
         params: {
-          text,
-        },
+          text
+        }
       });
-    },
+    }
   );
 
   // Every time user speaks, reset the EOR timer to the max
-  recognizeStream.on('data', (data) => {
+  recognizeStream.on('data', data => {
     if (data.results.length > 0) {
       eorTick = EOR_MAX;
     }
@@ -229,11 +229,11 @@ function createRecognizeStream(language = IOManager.getGlobalSession().getTransl
 /**
  * Register the global session used by this driver
  */
-async function registerGlobalSession() {
+async function registerInternalSession() {
   return IOManager.registerSession({
     sessionId: null, // act as a global session
     io_driver: 'human',
-    io_data: {},
+    io_data: {}
   });
 }
 
@@ -256,11 +256,9 @@ function registerOutputQueueInterval() {
 /**
  * Wake the bot and listen for intents
  */
-function wake() {
-  if (IOManager.getGlobalSession() == null) {
-    console.error(TAG, 'called wake prematurely (session is still null)');
-    return;
-  }
+async function wake() {
+  const session = await registerInternalSession();
+  const language = await session.getTranslateFrom();
 
   console.info(TAG, 'wake');
   emitter.emit('woken');
@@ -277,18 +275,13 @@ function wake() {
 
   // Recreate the SRR-stream
   destroyRecognizeStream();
-  createRecognizeStream();
+  createRecognizeStream({ session, language });
 }
 
 /**
  * Stop the recognizer
  */
 function stop() {
-  if (IOManager.getGlobalSession() == null) {
-    console.error(TAG, 'called stop prematurely');
-    return;
-  }
-
   console.info(TAG, 'stop');
   emitter.emit('stopped');
 
@@ -304,11 +297,11 @@ function stop() {
 /**
  * Create and assign the hotword stream to listen for wake word
  */
-function createHotwordDetectorStream() {
+function createHotwordDetectorStream({ session }) {
   hotwordDetectorStream = new Snowboy.Detector({
     resource: `${etcDir}/common.res`,
     models: hotwordModels,
-    audioGain: 1.0,
+    audioGain: 1.0
   });
 
   hotwordDetectorStream.on('hotword', async (index, hotword) => {
@@ -332,13 +325,16 @@ function createHotwordDetectorStream() {
     wakeWordTick--;
     if (wakeWordTick === 0) {
       wakeWordTick = -1;
-      console.info(TAG, `detected ${WAKE_WORD_TICKS} ticks of consecutive silence, prompt user`);
+      console.info(
+        TAG,
+        `detected ${WAKE_WORD_TICKS} ticks of consecutive silence, prompt user`
+      );
       destroyRecognizeStream();
       emitter.emit('input', {
-        session: IOManager.getGlobalSession(),
+        session,
         params: {
-          event: 'hotword_recognized_first_hint',
-        },
+          event: 'hotword_recognized_first_hint'
+        }
       });
     }
   });
@@ -348,7 +344,7 @@ function createHotwordDetectorStream() {
     wakeWordTick = -1;
   });
 
-  hotwordDetectorStream.on('error', (err) => {
+  hotwordDetectorStream.on('error', err => {
     console.error(TAG, 'Hotword error', err);
   });
 
@@ -382,7 +378,9 @@ async function processOutputQueue() {
   if (queueProcessingItem != null) return;
 
   // Always ensure that there is the session
-  const session = IOManager.getGlobalSession();
+  const session = await registerInternalSession();
+  const fromLanguage = session.getTranslateTo();
+  const toLanguage = session.getTranslateTo();
 
   // Grab the first item in the queue
   const f = queueOutput[0];
@@ -399,7 +397,7 @@ async function processOutputQueue() {
 
   emitter.emit('output', {
     session,
-    fulfillment: f,
+    fulfillment: f
   });
 
   // Process a Text
@@ -408,7 +406,7 @@ async function processOutputQueue() {
       await Play.playVoice(f.audio);
     } else if (f.text) {
       await sendMessage(f.text, {
-        language: f.payload.language,
+        language: f.payload.language || toLanguage
       });
     }
   } catch (err) {
@@ -484,7 +482,7 @@ async function processOutputQueue() {
   // If that item is not a feedback|welcome, start the recognizer phase again
   if (!f.payload.feedback && !f.payload.welcome && queueOutput.length === 0) {
     eorTick = EOR_MAX;
-    createRecognizeStream();
+    createRecognizeStream({ session, language: fromLanguage });
   }
 }
 
@@ -495,7 +493,7 @@ async function startInput() {
   console.debug(TAG, 'start input', _config);
 
   // Ensure session is present
-  await registerGlobalSession();
+  const session = await registerInternalSession();
 
   // Preventive stop any other output
   await stopOutput();
@@ -507,7 +505,7 @@ async function startInput() {
   Rec.start();
 
   // Start all timers
-  createHotwordDetectorStream();
+  createHotwordDetectorStream({ session });
   registerOutputQueueInterval();
   registerEORInterval();
 }
@@ -526,11 +524,11 @@ async function stopInput() {
 async function output(f) {
   console.debug(TAG, 'output');
   console.dir(f, {
-    depth: 10,
+    depth: 10
   });
 
   // Ensure session is present
-  await registerGlobalSession();
+  await registerInternalSession();
 
   // Just push onto the queue, and let the queue process
   queueOutput.push(f);
@@ -543,5 +541,5 @@ module.exports = {
   startInput,
   stopInput,
   output,
-  emitter,
+  emitter
 };
