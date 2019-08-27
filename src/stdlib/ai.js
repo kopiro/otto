@@ -416,10 +416,10 @@ function attachToServer() {
 /**
  * Process a fulfillment to a session
  * @param {Object} e
- * @param {Object} e.fulfillment Fulfillment payload
+ * @param {Object} e.params Input params
  * @param {Object} e.session Session object
  */
-async function processInput({ params, session }) {
+async function processInput({ params = {}, session }) {
   let f = null;
 
   console.info(TAG, 'output by input params', params);

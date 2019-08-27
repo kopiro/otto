@@ -37,7 +37,7 @@ function isIdDriverUp(driverId) {
  * Transform a Fulfillment by making some edits based on the current session settings
  * @param  {Object} f Fulfillment object
  * @param  {Object} session Session
- * @return {Object}
+ * @return {Promise<Object>}
  */
 async function fulfillmentTransformer(f, session) {
   // If this fulfillment has already been transformed, let's skip this
@@ -109,7 +109,7 @@ function eventToAllIO(name, data) {
 async function output(f, session) {
   if (!f) {
     console.warn(
-      'Do not output to driver because f is null - this could be intentional, but check your action'
+      'Do not output to driver because fulfillment is null - this could be intentional, but check your action'
     );
     return null;
   }
@@ -226,8 +226,9 @@ async function configureDriver(driverStr, onDriverInput) {
  * Return an array of drivers strings to load
  */
 function getDriversToLoad() {
-  if (process.env.OTTO_IO_DRIVERS)
+  if (process.env.OTTO_IO_DRIVERS) {
     return process.env.OTTO_IO_DRIVERS.split(',');
+  }
   return config.ioDrivers || [];
 }
 
@@ -236,8 +237,9 @@ function getDriversToLoad() {
  * @param {String} driver
  */
 function getAccessoriesToLoad(driver) {
-  if (process.env.OTTO_IO_ACCESSORIES)
+  if (process.env.OTTO_IO_ACCESSORIES) {
     return process.env.OTTO_IO_ACCESSORIES.split(',');
+  }
   return config.ioAccessoriesMap[driver] || [];
 }
 
@@ -245,8 +247,9 @@ function getAccessoriesToLoad(driver) {
  * Return an array of listeners strings to load
  */
 function getListenersToLoad() {
-  if (process.env.OTTO_IO_LISTENERS)
+  if (process.env.OTTO_IO_LISTENERS) {
     return process.env.OTTO_IO_LISTENERS.split(',');
+  }
   return config.listeners || [];
 }
 
@@ -312,9 +315,14 @@ async function loadListeners() {
   const listenersToLoad = getListenersToLoad();
 
   for (const listenerStr of listenersToLoad) {
-    const listener = getListener(listenerStr);
-    enabledListeners[listenerStr] = listener;
-    listener.listen();
+    try {
+      const listener = getListener(listenerStr);
+      enabledListeners[listenerStr] = listener;
+      listener.run();
+      console.log(TAG, `listener <${listenerStr}> started`);
+    } catch (err) {
+      console.error(TAG, `listener <${listenerStr}> error: ${err}`);
+    }
   }
 }
 
@@ -377,6 +385,7 @@ async function writeLogForSession(text, session) {
 /**
  * Load the session from ORM
  * @param {String} sessionIdComposite
+ * @returns {Promise<Object>}
  */
 async function getSession(sessionIdComposite) {
   return Data.Session.findOne({
@@ -388,7 +397,12 @@ async function getSession(sessionIdComposite) {
  * Register a new session onto ORM
  * @param {Object} e
  */
-async function registerSession({ sessionId, io_driver, io_data, alias }) {
+async function registerSession({
+  sessionId = '',
+  io_data = {},
+  io_driver,
+  alias
+}) {
   const io_id = `${config.uid}${SESSION_SEPARATOR}${io_driver}`;
   const sessionIdComposite = `${io_id}${
     sessionId ? SESSION_SEPARATOR : ''
@@ -462,6 +476,7 @@ async function startQueuePolling() {
 async function start({ onDriverInput }) {
   await loadDrivers();
   await loadAccessories();
+  await loadListeners();
 
   for (const driverStr of Object.keys(enabledDrivers)) {
     try {
@@ -471,7 +486,6 @@ async function start({ onDriverInput }) {
     }
   }
 
-  await loadListeners();
   startQueuePolling();
 }
 

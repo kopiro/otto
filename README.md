@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/kopiro/otto-ai.svg?branch=master)](https://travis-ci.org/kopiro/otto-ai)
 
-![Logo](image.png?raw=true "Logo")
+![Logo](image.png?raw=true 'Logo')
 
 Otto was my monkey plush, now is my personal AI assistant.
 
@@ -35,7 +35,7 @@ yarn dev
 
 #### Run client
 
-When running in client mode, you have to satisfy some dependencies 
+When running in client mode, you have to satisfy some dependencies
 that can be installed via a script based on your platform.
 
 - _client_deps/macos.sh_ if you run on macOS
@@ -147,34 +147,34 @@ Your action parameters are:
 - The API.AI (Dialogflow) object
 - The mongoose _session_ for this request
 
-There is a main difference in actions. 
+There is a main difference in actions.
 
-If an action has *one* return value, it should be a **Function** or, 
+If an action has _one_ return value, it should be a **Function** or,
 if you need to do async requests, a **Promise / AsyncFunction**.
 
-Otherwise, if an action return multiple values *over time*, it should be a **Generator / AsyncGenerator**.
+Otherwise, if an action return multiple values _over time_, it should be a **Generator / AsyncGenerator**.
 
 #### Promise/Async Function
 
 ```js
-exports.id = "hello.name";
+exports.id = 'hello.name';
 module.exports = async function main({ queryResult }, session) {
-	let { parameters: p, queryText } = queryResult;
-	if (p.name == null) throw "Invalid parameters";
-	return `Hello ${p.name}!`;
+  let { parameters: p, queryText } = queryResult;
+  if (p.name == null) throw 'Invalid parameters';
+  return `Hello ${p.name}!`;
 };
 ```
 
 #### Generator Function
 
 ```js
-exports.id = "count.to";
+exports.id = 'count.to';
 module.exports = async function* main({ queryResult }, session) {
-	let { parameters: p, queryText } = queryResult;
-	for (let i = 1; i < Number(p.to); i++) {
-		await timeout(1000);
-		yield String(i);
-	}
+  let { parameters: p, queryText } = queryResult;
+  for (let i = 1; i < Number(p.to); i++) {
+    await timeout(1000);
+    yield String(i);
+  }
 };
 ```
 
@@ -182,7 +182,7 @@ module.exports = async function* main({ queryResult }, session) {
 
 The actions must be placed in the `./src/actions` directory.
 
-If an action name is `hello.name`, the final file must be `./src/actions/hello/name.js`; 
+If an action name is `hello.name`, the final file must be `./src/actions/hello/name.js`;
 shorter, if an action name is `hello`, the final must be `./src/actions/hello/index.js`.
 
 ### Action output payload
@@ -261,7 +261,6 @@ The output payload of an action could have these attributes:
 | language         | The source language of the AI                    | en            | no       | String   |
 | ioAccessoriesMap | Map with driver: list accessories                | {}            | no       | String{} |
 | listeners        | List of listeners to load                        | []            | no       | String[] |
-| listeners        | List of listeners to load                        | []            | no       | String[] |
 | ioRedirectMap    | Redirection map with input driver: output driver | {}            | no       | String{} |
 | scheduler        | On/Off the scheduler                             | true          | no       | Bool     |
 | serverMode       | On/Off the server mode                           | false         | no       | Bool     |
@@ -317,6 +316,7 @@ The output payload of an action could have these attributes:
 
 | Key | Description | Default value | Required | Type |
 | --- | ----------- | ------------- | -------- | ---- |
+
 
 #### Facebook (Library)
 

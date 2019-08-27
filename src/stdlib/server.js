@@ -39,14 +39,14 @@ const routerListeners = express.Router();
 routerApi.use(bodyParser.json());
 routerApi.use(
   bodyParser.urlencoded({
-    extended: true,
-  }),
+    extended: true
+  })
 );
 
 routerApi.get('/', (req, res) => {
   res.json({
     name: pack.name,
-    version: pack.version,
+    version: pack.version
   });
 });
 
@@ -55,8 +55,8 @@ routerApi.get('/', (req, res) => {
 routerListeners.use(bodyParser.json());
 routerListeners.use(
   bodyParser.urlencoded({
-    extended: true,
-  }),
+    extended: true
+  })
 );
 
 // public
@@ -70,18 +70,20 @@ app.use('/listeners', routerListeners);
 
 // Adding policy URL
 app.get('/policy', (req, res) => {
-  res.end('This bot is used only for fun, it\'s our monkey plush. It only answers to basic questions.');
+  res.end(
+    "This bot is used only for fun, it's our monkey plush. It only answers to basic questions."
+  );
 });
 
 function start() {
   server.listen(
     {
       port: _config.port,
-      server: '0.0.0.0',
+      server: '0.0.0.0'
     },
     () => {
       console.info(TAG, `started: http://0.0.0.0:${_config.port}`);
-    },
+    }
   );
 }
 
@@ -94,5 +96,5 @@ module.exports = {
   routerListeners,
   io,
   app,
-  start,
+  start
 };

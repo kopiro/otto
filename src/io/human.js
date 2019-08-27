@@ -231,9 +231,7 @@ function createRecognizeStream({ session, language }) {
  */
 async function registerInternalSession() {
   return IOManager.registerSession({
-    sessionId: null, // act as a global session
-    io_driver: 'human',
-    io_data: {}
+    io_driver: 'human'
   });
 }
 
