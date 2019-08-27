@@ -30,7 +30,7 @@ function parseContext(c, sessionId) {
 /**
  * Clean fulfillment to be suitable for webhook
  * @param {Object} f Fulfillment
- * @param {Session} session Session
+ * @param {Object} session Session
  * @returns
  */
 async function fulfillmentTransformerForWebhookOutput(f, session) {

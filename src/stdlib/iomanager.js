@@ -76,10 +76,10 @@ async function fulfillmentTransformer(f, session) {
 
 /**
  * Clean fulfillment for output
- * @param {Object} fulfillment
+ * @param {Object} f
  * @returns
  */
-async function fulfillmentTransformerForOutput(f) {
+async function cleanFulfillmentForOutput(f) {
   return {
     queryText: f.queryText,
     text: f.fulfillmentText,
@@ -114,18 +114,11 @@ async function output(f, session) {
     return null;
   }
 
-  // Transform and Clean fulfillment
-  f = await fulfillmentTransformer(f, session);
-  f = await fulfillmentTransformerForOutput(f);
-
   // If this fulfillment has been handled by a generator, simply skip
-  if (f.payload.handledByGenerator) {
+  if (f.payload && f.payload.handledByGenerator) {
     console.warn(TAG, 'Skipping output because is handled by generator');
     return null;
   }
-
-  console.info(TAG, 'output');
-  console.dir(f);
 
   // If this driver is not up & running for this configuration,
   // the item could be handled by another platform that has that driver configured,
@@ -160,8 +153,15 @@ async function output(f, session) {
     throw new Error(`Driver ${session.io_driver} is not enabled`);
   }
 
+  // Transform and clean fulfillment
+  f = await fulfillmentTransformer(f, session);
+  f = await cleanFulfillmentForOutput(f);
+
   // Call the output
   try {
+    console.info(TAG, 'output');
+    console.dir(f, { depth: 2 });
+
     await driver.output(f, session);
   } catch (err) {
     console.error(TAG, 'driver output error', err);
