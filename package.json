@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "./run-dev.sh",
     "start": "./run.sh",
-    "fix": "eslint --fix ./src"
+    "fix": "eslint --fix ./src",
+    "snyk-protect": "snyk protect",
+    "prepublish": "npm run snyk-protect"
   },
   "engines": {
     "node": ">=8 <9"
@@ -57,7 +59,8 @@
     "striptags": "^3.1.1",
     "transmission": "^0.4.9",
     "underscore": "^1.9.1",
-    "uuid": "^3.3.2"
+    "uuid": "^3.3.2",
+    "snyk": "^1.230.5"
   },
   "devDependencies": {
     "eslint": "^5.3.0",
@@ -72,5 +75,6 @@
     "apa102-spi": "0.0.3",
     "rpio": "^0.9.19",
     "snowboy": "^1.2.0"
-  }
+  },
+  "snyk": true
 }
