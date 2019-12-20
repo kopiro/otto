@@ -1,19 +1,19 @@
-const Events = require('events');
-const md5 = require('md5');
-const Snowboy = require('snowboy');
-const Rec = require('../lib/rec');
-const Hotword = require('../lib/hotword');
-const URLManager = require('../lib/urlmanager');
-const config = require('../config');
-const IOManager = require('../stdlib/iomanager');
-const SR = require('../interfaces/sr');
-const TTS = require('../interfaces/tts');
-const Play = require('../lib/play');
-const { mimicHumanMessage } = require('../helpers');
-const { etcDir } = require('../paths');
+const Events = require("events");
+const md5 = require("md5");
+const Snowboy = require("snowboy");
+const Rec = require("../lib/rec");
+const Hotword = require("../lib/hotword");
+const URLManager = require("../lib/urlmanager");
+const config = require("../config");
+const IOManager = require("../stdlib/iomanager");
+const SR = require("../interfaces/sr");
+const TTS = require("../interfaces/tts");
+const Play = require("../lib/play");
+const { mimicHumanMessage } = require("../helpers");
+const { etcDir } = require("../paths");
 
 const _config = config.human;
-const TAG = 'IO.Human';
+const TAG = "IO.Human";
 const emitter = new Events.EventEmitter();
 
 /**
@@ -88,10 +88,10 @@ let currentSendMessageKey = null;
  * Bind external events to internal procedures
  */
 function bindEvents() {
-  emitter.on('wake', wake);
-  emitter.on('stop', stop);
+  emitter.on("wake", wake);
+  emitter.on("stop", stop);
 
-  emitter.on('loaded', () => {
+  emitter.on("loaded", () => {
     Play.playURI(`${etcDir}/boot.wav`);
   });
 }
@@ -167,7 +167,7 @@ function stopOutput() {
  */
 function destroyRecognizeStream() {
   isRecognizing = false;
-  emitter.emit('notrecognizing');
+  emitter.emit("notrecognizing");
 
   if (recognizeStream != null) {
     Rec.getStream().unpipe(recognizeStream);
@@ -180,7 +180,7 @@ function destroyRecognizeStream() {
  * the microphone input to GCP-SR stream
  */
 function createRecognizeStream({ session, language }) {
-  console.log(TAG, 'recognizing microphone stream');
+  console.log(TAG, "recognizing microphone stream");
 
   recognizeStream = SR.createRecognizeStream(
     {
@@ -194,7 +194,7 @@ function createRecognizeStream({ session, language }) {
         if (err.unrecognized) {
           return;
         }
-        emitter.emit('input', {
+        emitter.emit("input", {
           session,
           error: err
         });
@@ -202,7 +202,7 @@ function createRecognizeStream({ session, language }) {
       }
 
       // Otherwise, emit an INPUT message with the recognized text
-      emitter.emit('input', {
+      emitter.emit("input", {
         session,
         params: {
           text
@@ -212,14 +212,14 @@ function createRecognizeStream({ session, language }) {
   );
 
   // Every time user speaks, reset the EOR timer to the max
-  recognizeStream.on('data', data => {
+  recognizeStream.on("data", data => {
     if (data.results.length > 0) {
       eorTick = EOR_MAX;
     }
   });
 
   isRecognizing = true;
-  emitter.emit('recognizing');
+  emitter.emit("recognizing");
 
   // Pipe current mic stream to SR stream
   Rec.getStream().pipe(recognizeStream);
@@ -231,7 +231,7 @@ function createRecognizeStream({ session, language }) {
  */
 async function registerInternalSession() {
   return IOManager.registerSession({
-    io_driver: 'human'
+    io_driver: "human"
   });
 }
 
@@ -258,8 +258,8 @@ async function wake() {
   const session = await registerInternalSession();
   const language = await session.getTranslateFrom();
 
-  console.info(TAG, 'wake');
-  emitter.emit('woken');
+  console.info(TAG, "wake");
+  emitter.emit("woken");
 
   // Stop any previous output
   stopOutput();
@@ -280,8 +280,8 @@ async function wake() {
  * Stop the recognizer
  */
 function stop() {
-  console.info(TAG, 'stop');
-  emitter.emit('stopped');
+  console.info(TAG, "stop");
+  emitter.emit("stopped");
 
   stopOutput();
 
@@ -302,10 +302,10 @@ function createHotwordDetectorStream({ session }) {
     audioGain: 1.0
   });
 
-  hotwordDetectorStream.on('hotword', async (index, hotword) => {
-    console.log(TAG, 'hotword', hotword);
+  hotwordDetectorStream.on("hotword", async (index, hotword) => {
+    console.log(TAG, "hotword", hotword);
     switch (hotword) {
-      case 'wake':
+      case "wake":
         wake();
         break;
       default:
@@ -316,7 +316,7 @@ function createHotwordDetectorStream({ session }) {
     }
   });
 
-  hotwordDetectorStream.on('silence', async () => {
+  hotwordDetectorStream.on("silence", async () => {
     if (!isRecognizing) return;
     if (wakeWordTick === -1) return;
 
@@ -328,22 +328,22 @@ function createHotwordDetectorStream({ session }) {
         `detected ${WAKE_WORD_TICKS} ticks of consecutive silence, prompt user`
       );
       destroyRecognizeStream();
-      emitter.emit('input', {
+      emitter.emit("input", {
         session,
         params: {
-          event: 'hotword_recognized_first_hint'
+          event: "hotword_recognized_first_hint"
         }
       });
     }
   });
 
   // When user shout, reset the wakeWordTick to restart the count
-  hotwordDetectorStream.on('sound', () => {
+  hotwordDetectorStream.on("sound", () => {
     wakeWordTick = -1;
   });
 
-  hotwordDetectorStream.on('error', err => {
-    console.error(TAG, 'Hotword error', err);
+  hotwordDetectorStream.on("error", err => {
+    console.error(TAG, "Hotword error", err);
   });
 
   // Get the mic stream and pipe to the hotword stream
@@ -357,7 +357,7 @@ function createHotwordDetectorStream({ session }) {
  */
 function processEOR() {
   if (eorTick === 0) {
-    console.info(TAG, 'timeout exceeded for conversation');
+    console.info(TAG, "timeout exceeded for conversation");
     eorTick = -1;
     destroyRecognizeStream();
   } else if (eorTick > 0) {
@@ -393,7 +393,7 @@ async function processOutputQueue() {
   // to avoid that the bot listens to itself
   destroyRecognizeStream();
 
-  emitter.emit('output', {
+  emitter.emit("output", {
     session,
     fulfillment: f
   });
@@ -470,15 +470,20 @@ async function processOutputQueue() {
   queueOutput.shift();
 
   if (f.payload.feedback) {
-    emitter.emit('thinking');
+    emitter.emit("thinking");
   }
 
   if (f.payload.welcome) {
-    emitter.emit('stop');
+    emitter.emit("stop");
   }
 
   // If that item is not a feedback|welcome, start the recognizer phase again
-  if (!f.payload.feedback && !f.payload.welcome && queueOutput.length === 0) {
+  if (
+    false &&
+    !f.payload.feedback &&
+    !f.payload.welcome &&
+    queueOutput.length === 0
+  ) {
     eorTick = EOR_MAX;
     createRecognizeStream({ session, language: fromLanguage });
   }
@@ -488,7 +493,7 @@ async function processOutputQueue() {
  * Start the session
  */
 async function startInput() {
-  console.debug(TAG, 'start input', _config);
+  console.debug(TAG, "start input", _config);
 
   // Ensure session is present
   const session = await registerInternalSession();
@@ -520,7 +525,7 @@ async function stopInput() {
  * @param {Object} f
  */
 async function output(f) {
-  console.debug(TAG, 'output');
+  console.debug(TAG, "output");
   console.dir(f, {
     depth: 10
   });
@@ -535,7 +540,7 @@ async function output(f) {
 bindEvents();
 
 module.exports = {
-  id: 'human',
+  id: "human",
   startInput,
   stopInput,
   output,
