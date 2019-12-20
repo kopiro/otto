@@ -53,7 +53,8 @@
     "striptags": "^3.1.1",
     "transmission": "^0.4.9",
     "underscore": "^1.9.1",
-    "uuid": "^3.3.2"
+    "uuid": "^3.3.2",
+    "snyk": "^1.264.0"
   },
   "devDependencies": {
     "eslint": "^5.3.0",
@@ -67,5 +68,10 @@
     "apa102-spi": "0.0.3",
     "rpio": "^0.9.19",
     "snowboy": "^1.2.0"
-  }
+  },
+  "scripts": {
+    "snyk-protect": "snyk protect",
+    "prepare": "yarn run snyk-protect"
+  },
+  "snyk": true
 }
