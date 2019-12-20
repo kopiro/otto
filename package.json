@@ -2,11 +2,6 @@
   "name": "otto-ai",
   "version": "2.0.0",
   "description": "Simple AI for Otto",
-  "scripts": {
-    "dev": "./run-dev.sh",
-    "start": "./run.sh",
-    "fix": "eslint --fix ./src"
-  },
   "engines": {
     "node": ">=8 <9"
   },
@@ -48,6 +43,7 @@
     "mongoose": "^5",
     "mongoose-autopopulate": "^0.6.1",
     "node-telegram-bot-api": "^0.30.0",
+    "pm2": "^4.2.1",
     "prompt": "^1.0.0",
     "raven": "^2.6.4",
     "request": "^2.88.0",
@@ -65,8 +61,7 @@
     "eslint-config-prettier": "^6.1.0",
     "eslint-plugin-import": "^2.16.0",
     "eslint-plugin-jsx-a11y": "^6.2.1",
-    "eslint-plugin-react": "^7.12.4",
-    "nodemon": "^1.18.6"
+    "eslint-plugin-react": "^7.12.4"
   },
   "optionalDependencies": {
     "apa102-spi": "0.0.3",
