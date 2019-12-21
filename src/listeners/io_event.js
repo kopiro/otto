@@ -17,7 +17,7 @@ async function processSingle(sessionStr, event) {
   }
 
   const output = await AI.processInput({
-    params: { event: event },
+    params: { event },
     session
   });
   return output;

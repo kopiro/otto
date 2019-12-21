@@ -32,5 +32,5 @@ RUN yarn install
 # Copy my code
 COPY . .
 
-ENTRYPOINT [ "npm", "run", "start" ]
+ENTRYPOINT [ "yarn", "prod" ]
 EXPOSE 80
