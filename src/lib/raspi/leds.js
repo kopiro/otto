@@ -1,3 +1,5 @@
+/* eslint-disable import/no-extraneous-dependencies */
+/* eslint-disable import/no-unresolved */
 const TAG = "Raspi/Leds";
 
 const BRIGHTNESS_MAX = 30;
@@ -10,7 +12,6 @@ try {
   // Apa102spi(number of leds, clock divider)
   // The clock divider argument is an even divisor of the base 250MHz rate ranging between 0 and 65536.
   // @ts-ignore
-  // eslint-disable-next-line import/no-extraneous-dependencies
   Apa102spi = require("apa102-spi");
   LedManager = new Apa102spi(3, 100);
 } catch (err) {

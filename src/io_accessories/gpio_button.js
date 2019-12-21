@@ -1,5 +1,7 @@
+/* eslint-disable import/no-extraneous-dependencies */
+/* eslint-disable import/no-unresolved */
 exports.id = "gpio_button";
-// eslint-disable-next-line import/no-extraneous-dependencies
+
 const rpio = require("rpio");
 const config = require("../config");
 
