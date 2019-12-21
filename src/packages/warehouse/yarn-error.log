@@ -1,0 +1,36 @@
+Arguments: 
+  /Users/flaviod/.nvm/versions/node/v8.16.2/bin/node /Users/flaviod/.nvm/versions/node/v12.13.0/bin/yarn init
+
+PATH: 
+  /Users/flaviod/.nvm/versions/node/v8.16.2/bin:/Users/flaviod/.nvm/versions/node/v12.13.0/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Applications/VMware Fusion.app/Contents/Public:/usr/local/MacGPG2/bin:/opt/X11/bin:/Applications/Wireshark.app/Contents/MacOS:/Users/flaviod/.nvm/versions/node/v12.13.0/bin:/opt/dotfiles/bin:/Users/flaviod/.yarn/bin:/Users/flaviod/.config/yarn/global/node_modules/.bin:/Users/flaviod/.composer/vendor/bin:/Users/flaviod/Library/Android/sdk/tools:/Users/flaviod/Library/Android/sdk/build-tools:/Users/flaviod/Library/Android/sdk/platform-tools:/Users/flaviod/Library/Android/sdk/tools/bin:/usr/local/sbin:/opt/dotfiles/bin:/Users/flaviod/.yarn/bin:/Users/flaviod/.config/yarn/global/node_modules/.bin:/Users/flaviod/.composer/vendor/bin:/Users/flaviod/Library/Android/sdk/tools:/Users/flaviod/Library/Android/sdk/build-tools:/Users/flaviod/Library/Android/sdk/platform-tools:/Users/flaviod/Library/Android/sdk/tools/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin
+
+Yarn version: 
+  1.19.1
+
+Node version: 
+  8.16.2
+
+Platform: 
+  darwin x64
+
+Trace: 
+  Error: canceled
+      at Interface.<anonymous> (/Users/flaviod/.nvm/versions/node/v12.13.0/lib/node_modules/yarn/lib/cli.js:136824:13)
+      at emitNone (events.js:106:13)
+      at Interface.emit (events.js:208:7)
+      at Interface._ttyWrite (readline.js:774:16)
+      at ReadStream.onkeypress (readline.js:158:10)
+      at emitTwo (events.js:126:13)
+      at ReadStream.emit (events.js:214:7)
+      at emitKeys (internal/readline.js:420:14)
+      at emitKeys.next (<anonymous>)
+      at ReadStream.onData (readline.js:1010:36)
+
+npm manifest: 
+  No manifest
+
+yarn manifest: 
+  No manifest
+
+Lockfile: 
+  No lockfile

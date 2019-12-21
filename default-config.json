@@ -14,9 +14,11 @@
   },
   "snowboy": {
     "apiKey": null,
-    "sensitivity": {
-      "wake": 0.4,
-      "stop": 0.4
+    "hotwords": {
+      "wake": {
+        "sensitivity": 0.4,
+        "speech": "Hey otto"
+      }
     }
   },
   "aws": {

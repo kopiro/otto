@@ -5,7 +5,7 @@ const request = require("request");
 const fs = require("fs");
 const md5 = require("md5");
 const config = require("./config");
-const { tmpDir, cacheDir } = require("./paths");
+const { cacheDir } = require("./paths");
 
 /**
  * Pick a random element in an array
@@ -98,7 +98,7 @@ function getLocaleFromLanguageCode(language = null) {
 function getLocalObjectFromURI(uri) {
   return new Promise((resolve, reject) => {
     if (Buffer.isBuffer(uri)) {
-      const localFile = `${tmpDir}/${uuid()}.wav`;
+      const localFile = `${cacheDir}/${uuid()}.wav`;
       fs.writeFileSync(localFile, uri);
       console.log("localFile", localFile);
       return resolve(localFile);

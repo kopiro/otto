@@ -1,5 +1,6 @@
 const request = require("request");
 const fs = require("fs");
+const path = require("path");
 // @ts-ignore
 // eslint-disable-next-line import/no-extraneous-dependencies
 const Snowboy = require("snowboy");
@@ -9,16 +10,15 @@ const Play = require("../lib/play");
 const Rec = require("../lib/rec");
 const SR = require("../interfaces/sr");
 const Messages = require("../lib/messages");
-const { etcDir } = require("../paths");
+const { storageDir, tmpDir } = require("../paths");
 const { cleanText, uuid } = require("../helpers");
 
 const TAG = "HotWord";
-
-const PMDL_DIR = `${etcDir}/hotwords-pmdl/`;
-
 let genderId = null;
 
 const _config = config.snowboy;
+
+const PMDL_DIR = path.join(storageDir, "hotwords-pmdl");
 
 async function getModels(forceTraining = false) {
   return new Promise(async (resolve, reject) => {
@@ -26,45 +26,43 @@ async function getModels(forceTraining = false) {
       return reject(new Error("Snowboy not installed"));
     }
 
-    let directories = fs.readdirSync(PMDL_DIR);
-    directories = directories.filter(e =>
-      fs.statSync(PMDL_DIR + e).isDirectory()
-    );
-
     const pmdls = {};
     const hotwordModels = new Snowboy.Models();
 
-    directories.forEach(dir => {
-      dir = String(dir);
-      pmdls[dir] = [];
+    Object.entries(_config.hotwords).forEach(([hotword, hotwordConfig]) => {
+      pmdls[hotword] = [];
 
-      let files = fs.readdirSync(PMDL_DIR + dir);
-      files = files.filter(file => /\.pmdl$/.test(file));
+      const dir = path.join(PMDL_DIR, hotword);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
 
-      const sens = _config.sensitivity[dir];
+      const files = fs.readdirSync(dir).filter(file => /\.pmdl$/.test(file));
+      const { sensitivity } = hotwordConfig;
       console.debug(
         TAG,
-        `added ${files.length} pdml files (${dir}) with sensitivity = ${sens}`
+        `added ${files.length} pdml files (${hotword}) with sensitivity = ${sensitivity}`
       );
 
       files.forEach(file => {
-        pmdls[dir].push(file);
+        pmdls[hotword].push(file);
         hotwordModels.add({
-          file: `${PMDL_DIR + dir}/${String(file)}`,
-          sensitivity: _config.sensitivity[dir],
-          hotwords: dir
+          file: path.join(dir, file),
+          sensitivity,
+          hotwords: hotword
         });
       });
     });
 
     const trained = {};
-    for (const dir of Object.keys(pmdls)) {
-      if (pmdls[dir].length === 0 || forceTraining === true) {
-        trained[dir] = false;
-        while (trained[dir] === false) {
+    for (const [hotword, files] of Object.entries(pmdls)) {
+      if (files.length === 0 || forceTraining) {
+        trained[hotword] = false;
+
+        while (trained[hotword] === false) {
           try {
-            await startTraining(dir);
-            trained[dir] = true;
+            await startTraining(hotword);
+            trained[hotword] = true;
           } catch (err) {
             console.error(TAG, err);
           }
@@ -87,16 +85,14 @@ async function sendMessage(text) {
 
 function listenForHotwordTraining() {
   return new Promise(resolve => {
-    const wavFile = `${etcDir}/hotwords-wavs/${uuid()}.wav`;
+    const wavFile = path.join(tmpDir, `hotwords-wavs-${uuid()}.wav`);
     const wavStream = fs.createWriteStream(wavFile);
 
     Rec.start({
       time: 3
     });
     Rec.getStream().pipe(wavStream);
-    Rec.getStream().on("end", () => {
-      resolve(wavFile);
-    });
+    Rec.getStream().on("end", () => resolve(wavFile));
   });
 }
 
@@ -108,7 +104,7 @@ async function recognizeFromMic() {
 
 async function sendWavFiles(opt) {
   return new Promise((resolve, reject) => {
-    const pmdlFile = `${etcDir}/hotwords-pmdl/${opt.hotword}/${uuid()}.pmdl`;
+    const pmdlFile = path.join(PMDL_DIR, opt.hotword, `${uuid()}.pmdl`);
 
     console.info(TAG, "sendWav", opt);
 
@@ -122,7 +118,7 @@ async function sendWavFiles(opt) {
           },
           body: JSON.stringify({
             token: config.snowboy.apiKey,
-            name: opt.hotwordSpeech,
+            name: opt.speech,
             language: config.language,
             gender: opt.genderId,
             microphone: "mic",
@@ -140,7 +136,7 @@ async function sendWavFiles(opt) {
       .on("response", async response => {
         if (response.statusCode >= 400) {
           await sendMessage(
-            Messages.get("io_hotword_training_failed", opt.hotwordSpeech)
+            Messages.get("io_hotword_training_failed", opt.speech)
           );
           return reject();
         }
@@ -153,10 +149,9 @@ async function sendWavFiles(opt) {
 }
 
 async function startTraining(hotword) {
-  const hotwordSpeech = Messages.getRaw("io_hotword_list")[hotword];
-  await sendMessage(
-    Messages.get("io_hotword_training_tutorial", hotwordSpeech)
-  );
+  const { speech } = _config.hotwords[hotword];
+
+  await sendMessage(Messages.get("io_hotword_training_tutorial", speech));
 
   if (genderId == null) {
     const gendersMap = Messages.getRaw("io_hotword_training_genders");
@@ -179,13 +174,13 @@ async function startTraining(hotword) {
   }
 
   await sendWavFiles({
-    hotwordSpeech,
+    speech,
     hotword,
     gender: genderId,
     wavFiles
   });
 
-  await sendMessage(Messages.get("io_hotword_training_success", hotwordSpeech));
+  await sendMessage(Messages.get("io_hotword_training_success", speech));
 }
 
 module.exports = { getModels };

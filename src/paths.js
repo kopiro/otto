@@ -5,7 +5,7 @@ const tmpDir = `${baseDir}/tmp`;
 const cacheDir = `${baseDir}/cache`;
 const etcDir = `${baseDir}/etc`;
 const keysDir = `${baseDir}/keys`;
-const tmpsecretDir = `${baseDir}/tmp-secret`;
+const storageDir = `${baseDir}/storage`;
 
 module.exports = {
   baseDir,
@@ -13,5 +13,5 @@ module.exports = {
   cacheDir,
   etcDir,
   keysDir,
-  tmpsecretDir
+  storageDir
 };

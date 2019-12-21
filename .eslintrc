@@ -10,8 +10,9 @@
     "node": true,
     "browser": true
   },
-  "plugins": [],
+  "plugins": ["prettier"],
   "rules": {
+    "prettier/prettier": "error",
     "no-console": "off",
     "no-param-reassign": "off",
     "no-restricted-syntax": "off",
