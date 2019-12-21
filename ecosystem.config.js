@@ -6,7 +6,7 @@ module.exports = {
       node_args: "--harmony",
       instances: 1,
       autorestart: true,
-      watch: false,
+      watch: ["src"],
       max_memory_restart: "1G"
     }
   ]
