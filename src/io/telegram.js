@@ -1,22 +1,20 @@
-const fs = require('fs');
-const request = require('request');
-const TelegramBot = require('node-telegram-bot-api');
-const Events = require('events');
-const bodyParser = require('body-parser');
-const config = require('../config');
-const Server = require('../stdlib/server');
-const IOManager = require('../stdlib/iomanager');
-const SR = require('../interfaces/sr');
-const TTS = require('../interfaces/tts');
-const Play = require('../lib/play');
-const Proc = require('../lib/proc');
-const {
-  mimicHumanMessage, getAiNameRegex, uuid, rand,
-} = require('../helpers');
-const { tmpDir } = require('../paths');
+const fs = require("fs");
+const request = require("request");
+const TelegramBot = require("node-telegram-bot-api");
+const Events = require("events");
+const bodyParser = require("body-parser");
+const config = require("../config");
+const Server = require("../stdlib/server");
+const IOManager = require("../stdlib/iomanager");
+const SR = require("../interfaces/sr");
+const TTS = require("../interfaces/tts");
+const Play = require("../lib/play");
+const Proc = require("../lib/proc");
+const { mimicHumanMessage, getAiNameRegex, uuid, rand } = require("../helpers");
+const { tmpDir } = require("../paths");
 
 const _config = config.telegram;
-const TAG = 'IO.Telegram';
+const TAG = "IO.Telegram";
 const emitter = new Events.EventEmitter();
 
 const bot = new TelegramBot(_config.token, _config.options);
@@ -30,17 +28,22 @@ const callbackQuery = {};
  * @param {Object} e Telegram object
  */
 async function handleInputVoice(session, e) {
-  return new Promise(async (resolve) => {
+  return new Promise(async resolve => {
     const fileLink = await bot.getFileLink(e.voice.file_id);
     const voiceFile = `${tmpDir}/${uuid()}.ogg`;
 
     request(fileLink)
       .pipe(fs.createWriteStream(voiceFile))
-      .on('close', async () => {
-        await Proc.spawn('opusdec', [voiceFile, `${voiceFile}.wav`, '--rate', SR.SAMPLE_RATE]);
+      .on("close", async () => {
+        await Proc.spawn("opusdec", [
+          voiceFile,
+          `${voiceFile}.wav`,
+          "--rate",
+          SR.SAMPLE_RATE
+        ]);
         const text = await SR.recognizeFile(`${voiceFile}.wav`, {
           convertFile: false,
-          language: session.getTranslateFrom(),
+          language: session.getTranslateFrom()
         });
         resolve(text);
       });
@@ -57,10 +60,10 @@ async function sendMessage(
   chatId,
   text,
   opt = {
-    parse_mode: 'html',
-  },
+    parse_mode: "html"
+  }
 ) {
-  await bot.sendChatAction(chatId, 'typing');
+  await bot.sendChatAction(chatId, "typing");
   return bot.sendMessage(chatId, text, opt);
 }
 
@@ -73,7 +76,7 @@ async function sendMessage(
  */
 async function sendVoiceMessage(chatId, text, language, botOpt = {}) {
   const sentences = mimicHumanMessage(text);
-  await bot.sendChatAction(chatId, 'record_audio');
+  await bot.sendChatAction(chatId, "record_audio");
 
   for (const sentence of sentences) {
     const audioFile = await TTS.getAudioFile(sentence, { language });
@@ -92,13 +95,13 @@ function startInput() {
   // We could attach the webhook to the Router API or via polling
   if (_config.useRouter && config.serverMode) {
     bot.setWebHook(`${config.server.domain}/io/telegram/bot${_config.token}`);
-    Server.routerIO.use('/telegram', bodyParser.json(), (req, res) => {
+    Server.routerIO.use("/telegram", bodyParser.json(), (req, res) => {
       bot.processUpdate(req.body);
       res.sendStatus(200);
     });
-    console.info(TAG, 'started', _config);
+    console.info(TAG, "started", _config);
   } else {
-    console.info(TAG, 'started via polling', _config);
+    console.info(TAG, "started via polling", _config);
   }
 }
 
@@ -108,21 +111,21 @@ function startInput() {
  * @param {*} session The user session
  */
 async function output(f, session) {
-  console.info(TAG, 'output');
+  console.info(TAG, "output");
   console.dir(
     {
       f,
-      session,
+      session
     },
     {
-      depth: 2,
-    },
+      depth: 2
+    }
   );
 
   // Inform observers
-  emitter.emit('output', {
+  emitter.emit("output", {
     session,
-    fulfillment: f,
+    fulfillment: f
   });
 
   // This is the Telegram Chat ID used to respond to the user
@@ -138,12 +141,12 @@ async function output(f, session) {
         resize_keyboard: true,
         one_time_keyboard: true,
         keyboard: [
-          f.payload.replies.map((r) => {
-            if (typeof r === 'string') return r;
+          f.payload.replies.map(r => {
+            if (typeof r === "string") return r;
             return r.text;
-          }),
-        ],
-      },
+          })
+        ]
+      }
     };
   }
 
@@ -154,7 +157,7 @@ async function output(f, session) {
 
       if (session.pipe.nextWithVoice) {
         session.savePipe({
-          nextWithVoice: false,
+          nextWithVoice: false
         });
         await sendVoiceMessage(chatId, f.text, language, botOpt);
       }
@@ -180,19 +183,37 @@ async function output(f, session) {
     if (f.payload.music) {
       if (f.payload.music.spotify) {
         if (f.payload.music.spotify.track) {
-          await sendMessage(chatId, f.payload.music.spotify.track.external_urls.spotify, botOpt);
+          await sendMessage(
+            chatId,
+            f.payload.music.spotify.track.external_urls.spotify,
+            botOpt
+          );
         } else if (f.payload.music.spotify.tracks) {
           await sendMessage(
             chatId,
-            f.payload.music.spotify.tracks.map(e => e.external_urls.spotify).join('\n'),
-            botOpt,
+            f.payload.music.spotify.tracks
+              .map(e => e.external_urls.spotify)
+              .join("\n"),
+            botOpt
           );
         } else if (f.payload.music.spotify.album) {
-          await sendMessage(chatId, f.payload.music.spotify.album.external_urls.spotify, botOpt);
+          await sendMessage(
+            chatId,
+            f.payload.music.spotify.album.external_urls.spotify,
+            botOpt
+          );
         } else if (f.payload.music.spotify.artist) {
-          await sendMessage(chatId, f.payload.music.spotify.artist.external_urls.spotify, botOpt);
+          await sendMessage(
+            chatId,
+            f.payload.music.spotify.artist.external_urls.spotify,
+            botOpt
+          );
         } else if (f.payload.music.spotify.playlist) {
-          await sendMessage(chatId, f.payload.music.spotify.playlist.external_urls.spotify, botOpt);
+          await sendMessage(
+            chatId,
+            f.payload.music.spotify.playlist.external_urls.spotify,
+            botOpt
+          );
         }
       } else if (f.payload.music.uri) {
         await sendMessage(chatId, f.payload.music.uri, botOpt);
@@ -206,13 +227,13 @@ async function output(f, session) {
   try {
     if (f.payload.video) {
       if (f.payload.video.uri) {
-        await bot.sendChatAction(chatId, 'upload_video');
+        await bot.sendChatAction(chatId, "upload_video");
         await bot.sendVideo(chatId, f.payload.video.uri, botOpt);
       } else if (f.payload.video.youtube) {
         await bot.sendMessage(
           chatId,
           `https://www.youtube.com/watch?v=${f.payload.video.youtube.id}`,
-          botOpt,
+          botOpt
         );
       }
     }
@@ -224,7 +245,7 @@ async function output(f, session) {
   try {
     if (f.payload.image) {
       if (f.payload.image.uri) {
-        await bot.sendChatAction(chatId, 'upload_photo');
+        await bot.sendChatAction(chatId, "upload_photo");
         await bot.sendPhoto(chatId, f.payload.image.uri, botOpt);
       }
     }
@@ -236,7 +257,7 @@ async function output(f, session) {
   try {
     if (f.payload.audio) {
       if (f.payload.audio.uri) {
-        await bot.sendChatAction(chatId, 'upload_audio');
+        await bot.sendChatAction(chatId, "upload_audio");
         await bot.sendAudio(chatId, f.payload.audio.uri, botOpt);
       }
     }
@@ -248,7 +269,7 @@ async function output(f, session) {
   try {
     if (f.payload.voice) {
       if (f.payload.voice.uri) {
-        await bot.sendChatAction(chatId, 'upload_audio');
+        await bot.sendChatAction(chatId, "upload_audio");
         const voiceFile = await Play.playVoiceToTempFile(f.payload.voice.uri);
         await bot.sendVoice(chatId, voiceFile, botOpt);
       }
@@ -261,7 +282,7 @@ async function output(f, session) {
   try {
     if (f.payload.document) {
       if (f.payload.document.uri) {
-        await bot.sendChatAction(chatId, 'upload_document');
+        await bot.sendChatAction(chatId, "upload_document");
         await bot.sendDocument(chatId, f.payload.document.uri, botOpt);
       }
     }
@@ -292,22 +313,22 @@ async function output(f, session) {
   }
 }
 
-bot.on('webhook_error', (err) => {
-  console.error(TAG, 'webhook error', err);
+bot.on("webhook_error", err => {
+  console.error(TAG, "webhook error", err);
 });
 
-bot.on('message', async (e) => {
-  console.info(TAG, 'input');
+bot.on("message", async e => {
+  console.info(TAG, "input");
   console.dir(e, {
-    depth: 2,
+    depth: 2
   });
 
   const sessionId = e.chat.id;
-  const chatIsGroup = e.chat.type === 'group';
+  const chatIsGroup = e.chat.type === "group";
 
   let alias;
   switch (e.chat.type) {
-    case 'private':
+    case "private":
       alias = `${e.chat.first_name} ${e.chat.last_name}`;
       break;
     default:
@@ -318,24 +339,24 @@ bot.on('message', async (e) => {
   // Register the session
   const session = await IOManager.registerSession({
     sessionId,
-    io_driver: 'telegram',
+    io_driver: "telegram",
     io_data: e.chat,
-    alias,
+    alias
   });
 
   // Process a Text object
   if (e.text) {
     // If we are in a group, only listen for activators
     if (chatIsGroup && !getAiNameRegex().test(e.text)) {
-      console.debug(TAG, 'skipping input for missing activator', e.text);
+      console.debug(TAG, "skipping input for missing activator", e.text);
       return false;
     }
 
-    emitter.emit('input', {
+    emitter.emit("input", {
       session,
       params: {
-        text: e.text,
-      },
+        text: e.text
+      }
     });
     return true;
   }
@@ -347,35 +368,35 @@ bot.on('message', async (e) => {
 
       // If we are in a group, only listen for activators
       if (chatIsGroup && !getAiNameRegex().test(e.text)) {
-        console.debug(TAG, 'skipping input for missing activator', e.text);
+        console.debug(TAG, "skipping input for missing activator", e.text);
         return false;
       }
 
       // User sent a voice note, respond with a voice note :)
       session.savePipe({
-        nextWithVoice: true,
+        nextWithVoice: true
       });
-      emitter.emit('input', {
+      emitter.emit("input", {
         session,
         params: {
-          text,
-        },
+          text
+        }
       });
     } catch (err) {
       if (chatIsGroup === false) {
         return false;
       }
       if (err.unrecognized) {
-        return emitter.emit('input', {
+        return emitter.emit("input", {
           session: IOManager.globalSession,
           params: {
-            event: 'io_SR_unrecognized',
-          },
+            event: "io_SR_unrecognized"
+          }
         });
       }
-      return emitter.emit('input', {
+      return emitter.emit("input", {
         session: IOManager.globalSession,
-        error: err,
+        error: err
       });
     }
 
@@ -387,41 +408,46 @@ bot.on('message', async (e) => {
     const photoLink = bot.getFileLink(e.photo[e.photo.length - 1].file_id);
     if (chatIsGroup) return false;
 
-    emitter.emit('input', {
+    emitter.emit("input", {
       session,
       params: {
         image: {
-          uri: photoLink,
-        },
-      },
+          uri: photoLink
+        }
+      }
     });
 
     return true;
   }
 
-  emitter.emit('input', {
+  emitter.emit("input", {
     session,
     error: {
-      unkownInputType: true,
-    },
+      unkownInputType: true
+    }
   });
   return true;
 });
 
-bot.on('callback_query', (e) => {
+bot.on("callback_query", e => {
   if (e.game_short_name) {
     const user = callbackQuery[e.from.id];
     if (user) {
       if (user[e.game_short_name]) {
-        bot.answerCallbackQuery(e.id, undefined, false, user[e.game_short_name]);
+        bot.answerCallbackQuery(
+          e.id,
+          undefined,
+          false,
+          user[e.game_short_name]
+        );
       }
     }
   }
 });
 
 module.exports = {
-  id: 'telegram',
+  id: "telegram",
   startInput,
   output,
-  emitter,
+  emitter
 };

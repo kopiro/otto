@@ -1,4 +1,5 @@
 const path = require("path");
+
 process.env.GOOGLE_APPLICATION_CREDENTIALS = path.resolve(
   __dirname,
   "../keys/gcloud.json"

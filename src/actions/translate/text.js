@@ -1,8 +1,8 @@
-exports.id = 'translate.text';
+exports.id = "translate.text";
 
-const _ = require('underscore');
-const config = require('../../config');
-const Translator = require('../../lib/translator');
+const _ = require("underscore");
+const config = require("../../config");
+const Translator = require("../../lib/translator");
 
 module.exports = async function main({ queryResult }) {
   const { parameters: p } = queryResult;
@@ -11,10 +11,10 @@ module.exports = async function main({ queryResult }) {
   const language = _.findWhere(languages, { name: p.language });
   if (language == null) {
     throw new Error({
-      message: 'unknown_language',
+      message: "unknown_language",
       data: {
-        language: p.language,
-      },
+        language: p.language
+      }
     });
   }
 
@@ -23,7 +23,7 @@ module.exports = async function main({ queryResult }) {
     fulfillmentText: text,
     payload: {
       includeVoice: true,
-      language: language.code,
-    },
+      language: language.code
+    }
   };
 };

@@ -1,10 +1,10 @@
-const fs = require('fs');
+const fs = require("fs");
 
 const actionList = {};
 
 // Try to load from cache
 (function iterate(dir) {
-  fs.readdirSync(dir).forEach((file) => {
+  fs.readdirSync(dir).forEach(file => {
     file = `${dir}/${file}`;
 
     const stat = fs.lstatSync(file);
@@ -13,11 +13,11 @@ const actionList = {};
     } else if (stat.isFile()) {
       if (/\.js$/.test(file)) {
         const actionName = file
-          .replace('/index.js', '')
-          .replace(__dirname, '')
-          .replace(/^./, '')
-          .replace(/\//g, '.')
-          .replace('.js', '');
+          .replace("/index.js", "")
+          .replace(__dirname, "")
+          .replace(/^./, "")
+          .replace(/\//g, ".")
+          .replace(".js", "");
 
         if (actionName) {
           actionList[actionName] = () => require(file);
@@ -25,6 +25,6 @@ const actionList = {};
       }
     }
   });
-}(__dirname));
+})(__dirname);
 
 exports.list = actionList;

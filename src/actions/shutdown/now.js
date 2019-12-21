@@ -1,9 +1,9 @@
-exports.id = 'shutdown.now';
+exports.id = "shutdown.now";
 
-const Proc = require('../../lib/proc');
+const Proc = require("../../lib/proc");
 
 module.exports = function main({ queryResult }) {
   const { fulfillmentText } = queryResult;
-  Proc.spawn('shutdown now');
+  Proc.spawn("shutdown now");
   return fulfillmentText;
 };

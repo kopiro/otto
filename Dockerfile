@@ -32,5 +32,8 @@ RUN yarn install
 # Copy my code
 COPY . .
 
+# Test
+RUN yarn test
+
 ENTRYPOINT [ "yarn", "prod" ]
 EXPOSE 80

@@ -1,11 +1,11 @@
-const DialogFlow = require('dialogflow');
-const Server = require('./server');
-const IOManager = require('./iomanager');
-const Translator = require('../lib/translator');
-const Actions = require('../actions/index');
-const Data = require('../data/index');
-const config = require('../config');
-const { structProtoToJson, extractWithPattern } = require('../helpers');
+const DialogFlow = require("dialogflow");
+const Server = require("./server");
+const IOManager = require("./iomanager");
+const Translator = require("../lib/translator");
+const Actions = require("../actions/index");
+const Data = require("../data/index");
+const config = require("../config");
+const { structProtoToJson, extractWithPattern } = require("../helpers");
 
 const dialogflow = DialogFlow.v2beta1;
 const _config = config.dialogflow;
@@ -13,7 +13,7 @@ const _config = config.dialogflow;
 const dfSessionClient = new dialogflow.SessionsClient();
 const dfContextsClient = new dialogflow.ContextsClient();
 
-const TAG = 'AI';
+const TAG = "AI";
 
 /**
  * Parse the context
@@ -46,14 +46,14 @@ async function fulfillmentTransformerForWebhookOutput(f, session) {
  * @returns
  */
 function getDFSessionPath(sessionId) {
-  const dfSessionId = sessionId.replace(/\//g, '_');
+  const dfSessionId = sessionId.replace(/\//g, "_");
   if (_config.environment == null) {
     return dfSessionClient.sessionPath(_config.projectId, dfSessionId);
   }
   return dfSessionClient.environmentSessionPath(
     _config.projectId,
     _config.environment,
-    '-',
+    "-",
     dfSessionId
   );
 }
@@ -80,7 +80,7 @@ function actionErrorTransformer(body, err) {
   const f = {};
 
   if (err.message) {
-    const errMessage = typeof err === 'string' ? err : err.message;
+    const errMessage = typeof err === "string" ? err : err.message;
 
     // If an error occurs, try to intercept this error
     // in the fulfillmentMessages that comes from DialogFlow
@@ -97,7 +97,7 @@ function actionErrorTransformer(body, err) {
       while ((theVar = re.exec(f.fulfillmentText))) {
         f.fulfillmentText = f.fulfillmentText.replace(
           `$_${theVar[1]}`,
-          err.data[theVar[1]] || ''
+          err.data[theVar[1]] || ""
         );
       }
     }
@@ -127,7 +127,7 @@ async function actionResultToFulfillment(
   let f = null;
 
   // If an action return a string, wrap into an object
-  if (typeof actionResult === 'string') {
+  if (typeof actionResult === "string") {
     actionResult = {
       fulfillmentText: actionResult
     };
@@ -141,7 +141,7 @@ async function actionResultToFulfillment(
       for (const c of f.outputContexts) {
         console.info(
           TAG,
-          'Setting context manually because we are not in a webhook',
+          "Setting context manually because we are not in a webhook",
           session.id,
           c
         );
@@ -160,14 +160,14 @@ async function actionResultToFulfillment(
  * @param {Session} session
  */
 async function generatorResolver(body, generator, session) {
-  console.info(TAG, 'Using generator resolver', generator);
+  console.info(TAG, "Using generator resolver", generator);
   try {
     for await (let f of generator) {
       f = await actionResultToFulfillment(body, f, session, false);
       await IOManager.output(f, session);
     }
   } catch (err) {
-    console.error(TAG, 'error while executing action generator', err);
+    console.error(TAG, "error while executing action generator", err);
     const f = actionErrorTransformer(body, err);
     await IOManager.output(f, session);
   }
@@ -195,8 +195,8 @@ async function actionResolver(body, session, fromWebhook = false) {
     f = await actionToCall()(body, session);
 
     // Now check if this action is a Promise or a Generator
-    if (typeof f.next === 'function') {
-      console.log('f', f);
+    if (typeof f.next === "function") {
+      console.log("f", f);
       // Call the generator
       generatorResolver(body, f, session);
       // And immediately resolve
@@ -209,7 +209,7 @@ async function actionResolver(body, session, fromWebhook = false) {
 
     f = await actionResultToFulfillment(body, f, session, fromWebhook);
   } catch (err) {
-    console.error(TAG, 'error while executing action:', err);
+    console.error(TAG, "error while executing action:", err);
     f = await actionErrorTransformer(body, err);
   }
 
@@ -242,7 +242,7 @@ async function textRequestTransformer(text, session) {
  * @returns {Promise<Object>}
  */
 async function eventRequestTransformer(event, session) {
-  if (typeof event === 'string') {
+  if (typeof event === "string") {
     event = { name: event };
   }
   event.languageCode = session.getTranslateFrom();
@@ -279,7 +279,7 @@ async function bodyParser(body, session, fromWebhook = false) {
     }
     body.queryResult.payload = body.queryResult.payload || {};
 
-    console.debug(TAG, 'Body parsed remotely by webhook');
+    console.debug(TAG, "Body parsed remotely by webhook");
     return body.queryResult;
   }
 
@@ -301,13 +301,13 @@ async function bodyParser(body, session, fromWebhook = false) {
   }
 
   if (body.queryResult.action) {
-    console.warn(TAG, 'Using action resolver locally');
+    console.warn(TAG, "Using action resolver locally");
     return actionResolver(body, session, fromWebhook);
   }
 
   // Otherwise, check if at least an intent is match and direct return that fulfillment
   if (body.queryResult.intent) {
-    console.warn(TAG, 'Using queryResult object (matched from intent) locally');
+    console.warn(TAG, "Using queryResult object (matched from intent) locally");
     return {
       outputAudio: body.outputAudio,
       fulfillmentText: body.queryResult.fulfillmentText,
@@ -319,10 +319,10 @@ async function bodyParser(body, session, fromWebhook = false) {
 
   // If not intentId is returned, this is a unhandled DialogFlow intent
   // So make another event request to inform user (ai_unhandled)
-  console.info(TAG, 'Using ai_unhandled followupEventInput');
+  console.info(TAG, "Using ai_unhandled followupEventInput");
   return {
     followupEventInput: {
-      name: 'ai_unhandled',
+      name: "ai_unhandled",
       languageCode: session.getTranslateTo()
     }
   };
@@ -335,7 +335,7 @@ async function bodyParser(body, session, fromWebhook = false) {
  * @returns {Promise<Object>}
  */
 async function textRequest(text, session) {
-  console.info(TAG, 'text request:', text);
+  console.info(TAG, "text request:", text);
 
   // Transform the text to eventually translate it
   text = await textRequestTransformer(text, session);
@@ -359,7 +359,7 @@ async function textRequest(text, session) {
  * @param {Object} session Session
  */
 async function eventRequest(event, session) {
-  console.info(TAG, 'event request:', event);
+  console.info(TAG, "event request:", event);
 
   // Transform the text to eventually translate it
   event = await eventRequestTransformer(event, session);
@@ -378,19 +378,19 @@ async function eventRequest(event, session) {
  * Attach the AI to the Server
  */
 function attachToServer() {
-  Server.routerApi.post('/fulfillment', async (req, res) => {
+  Server.routerApi.post("/fulfillment", async (req, res) => {
     if (!req.body || Object.keys(req.body).length === 0) {
       return res.json({
         data: {
-          error: 'Empty body'
+          error: "Empty body"
         }
       });
     }
 
-    console.info(TAG, '[WEBHOOK] received request');
+    console.info(TAG, "[WEBHOOK] received request");
     console.dir(req.body);
 
-    const sessionId = req.body.session.split('/').pop();
+    const sessionId = req.body.session.split("/").pop();
 
     // From AWH can came any session ID, so ensure it exists on our DB
     let session = await IOManager.getSession(sessionId);
@@ -406,7 +406,7 @@ function attachToServer() {
     f = await IOManager.fulfillmentTransformer(f, session);
     f = await fulfillmentTransformerForWebhookOutput(f, session);
 
-    console.info(TAG, '[WEBHOOK] output fulfillment');
+    console.info(TAG, "[WEBHOOK] output fulfillment");
     console.log(JSON.stringify(f));
 
     return res.json(f);
@@ -422,7 +422,7 @@ function attachToServer() {
 async function processInput({ params = {}, session }) {
   let f = null;
 
-  console.info(TAG, 'output by input params', params);
+  console.info(TAG, "output by input params", params);
 
   if (params.text) {
     IOManager.writeLogForSession(params.text, session);
@@ -430,7 +430,7 @@ async function processInput({ params = {}, session }) {
   } else if (params.event) {
     f = await eventRequest(params.event, session);
   } else {
-    console.warn('Neither { text, event } in params is not null');
+    console.warn("Neither { text, event } in params is not null");
   }
 
   return IOManager.output(f, session);

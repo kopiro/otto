@@ -1,5 +1,7 @@
 const Events = require("events");
 const md5 = require("md5");
+// @ts-ignore
+// eslint-disable-next-line import/no-extraneous-dependencies
 const Snowboy = require("snowboy");
 const Rec = require("../lib/rec");
 const Hotword = require("../lib/hotword");
@@ -377,7 +379,6 @@ async function processOutputQueue() {
 
   // Always ensure that there is the session
   const session = await registerInternalSession();
-  const fromLanguage = session.getTranslateTo();
   const toLanguage = session.getTranslateTo();
 
   // Grab the first item in the queue
@@ -478,15 +479,10 @@ async function processOutputQueue() {
   }
 
   // If that item is not a feedback|welcome, start the recognizer phase again
-  if (
-    false &&
-    !f.payload.feedback &&
-    !f.payload.welcome &&
-    queueOutput.length === 0
-  ) {
-    eorTick = EOR_MAX;
-    createRecognizeStream({ session, language: fromLanguage });
-  }
+  // if (!f.payload.feedback && !f.payload.welcome && queueOutput.length === 0) {
+  //   eorTick = EOR_MAX;
+  //   createRecognizeStream({ session, language: fromLanguage });
+  // }
 }
 
 /**

@@ -1,9 +1,12 @@
-const gcloudTranslate = require('@google-cloud/translate')();
-const config = require('../config');
+// @ts-ignore
+const gcloudTranslate = require("@google-cloud/translate")();
+const config = require("../config");
 
-const TAG = 'Translator';
-
-function translate(text, toLanguage = config.language, fromLanguage = config.language) {
+function translate(
+  text,
+  toLanguage = config.language,
+  fromLanguage = config.language
+) {
   return new Promise((resolve, reject) => {
     if (toLanguage === fromLanguage) {
       resolve(text);

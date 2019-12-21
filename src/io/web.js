@@ -1,16 +1,14 @@
-const path = require('path');
-const Events = require('events');
-const config = require('../config');
-const Play = require('../lib/play');
-const SR = require('../interfaces/sr');
-const TTS = require('../interfaces/tts');
-const Server = require('../stdlib/server');
-const IOManager = require('../stdlib/iomanager');
-const { tmpDir } = require('../paths');
-const { uuid } = require('../helpers');
+const path = require("path");
+const Events = require("events");
+const Play = require("../lib/play");
+const SR = require("../interfaces/sr");
+const TTS = require("../interfaces/tts");
+const Server = require("../stdlib/server");
+const IOManager = require("../stdlib/iomanager");
+const { tmpDir } = require("../paths");
+const { uuid } = require("../helpers");
 
-const _config = config.web;
-const TAG = 'IO.Web';
+const TAG = "IO.Web";
 const emitter = new Events.EventEmitter();
 
 /**
@@ -20,67 +18,65 @@ let started = false;
 
 /**
  * Process an input request by Express
- * @param {Object} req
- * @param {Object} res
  */
 async function handleRequest(session, e) {
   if (e.text) {
-    emitter.emit('input', {
+    emitter.emit("input", {
       session,
       params: {
-        text: e.text,
-      },
+        text: e.text
+      }
     });
   } else if (e.audio) {
     const text = await SR.recognizeBuffer(e.audio, {
-      language: session.getTranslateFrom(),
+      language: session.getTranslateFrom()
     });
-    emitter.emit('input', {
+    emitter.emit("input", {
       session,
       params: {
-        text,
-      },
+        text
+      }
     });
   } else {
-    throw new Error('Unable to understand your request');
+    throw new Error("Unable to understand your request");
   }
 }
 
 function configureSocket(socket) {
-  socket.on('input', async (e) => {
+  socket.on("input", async e => {
     try {
       if (e.sessionId == null) {
-        throw new Error('Invalid session identifier');
+        throw new Error("Invalid session identifier");
       }
 
-      console.info(TAG, 'request', e);
+      console.info(TAG, "request", e);
 
       // Register the session
       const session = await IOManager.registerSession({
         sessionId: e.sessionId,
-        io_driver: 'web',
-        io_data: e,
+        io_driver: "web",
+        io_data: e
       });
 
       session.io_data_web = {
         socket,
-        e,
+        e
       };
 
-      socket.emit('typing');
+      socket.emit("typing");
 
       try {
         await handleRequest(session, e);
       } catch (err) {
         console.error(TAG, err);
-        emitter.emit('input', {
+        emitter.emit("input", {
           session,
-          error: err,
+          error: err
         });
       }
     } catch (err) {
-      emitter.emit('output', {
-        error: err,
+      emitter.emit("output", {
+        error: err
       });
     }
   });
@@ -93,12 +89,12 @@ function startInput() {
   if (started) return;
   started = true;
 
-  Server.io.on('connection', (socket) => {
-    console.log(TAG, 'Someone connected via socket');
+  Server.io.on("connection", socket => {
+    console.log(TAG, "Someone connected via socket");
     configureSocket(socket);
   });
 
-  console.info(TAG, 'started');
+  console.info(TAG, "started");
 }
 
 /**
@@ -109,28 +105,28 @@ function startInput() {
 async function output(f, session) {
   const request = session.io_data_web;
   if (request == null) {
-    throw new Error('Invalid data found in session');
+    throw new Error("Invalid data found in session");
   }
 
-  console.info(TAG, 'output');
+  console.info(TAG, "output");
   console.dir(
     {
       f,
-      session,
+      session
     },
     {
-      depth: 2,
-    },
+      depth: 2
+    }
   );
 
   // Inform observers
-  emitter.emit('output', {
+  emitter.emit("output", {
     session,
-    fulfillment: f,
+    fulfillment: f
   });
 
   // Process voice if output type set
-  if (request.e.outputType === 'voice') {
+  if (request.e.outputType === "voice") {
     const speech = f.fulfillmentText;
     const language = f.payload.language || session.getTranslateTo();
 
@@ -138,21 +134,23 @@ async function output(f, session) {
       const outputFile = path.join(tmpDir, `${uuid()}.mp3`);
       await Play.playVoiceToFile(
         await TTS.getAudioFile(speech, {
-          language,
+          language
         }),
-        outputFile,
+        outputFile
       );
-      f.voice = Server.getAbsoluteURIByRelativeURI(`/tmp/${path.basename(outputFile)}`);
+      f.voice = Server.getAbsoluteURIByRelativeURI(
+        `/tmp/${path.basename(outputFile)}`
+      );
     }
   }
 
-  return request.socket.emit('output', f);
+  return request.socket.emit("output", f);
 }
 
 module.exports = {
-  id: 'web',
+  id: "web",
   onlyServerMode: true,
   startInput,
   output,
-  emitter,
+  emitter
 };

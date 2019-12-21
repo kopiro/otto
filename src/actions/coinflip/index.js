@@ -1,8 +1,8 @@
-exports.id = 'coinflip';
-const { rand } = require('../../helpers');
+exports.id = "coinflip";
+const { rand } = require("../../helpers");
 
 module.exports = async function main() {
   return {
-    fulfillmentText: rand(['Testa', 'Croce']),
+    fulfillmentText: rand(["Testa", "Croce"])
   };
 };

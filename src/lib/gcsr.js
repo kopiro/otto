@@ -1,13 +1,13 @@
-const speech = require('@google-cloud/speech')();
-const { promisify } = require('util');
-const _ = require('underscore');
-const fs = require('fs');
-const Proc = require('../lib/proc');
-const config = require('../config');
-const { getLocaleFromLanguageCode, uuid } = require('../helpers');
-const { tmpDir } = require('../paths');
+const speech = require("@google-cloud/speech")();
+const { promisify } = require("util");
+const _ = require("underscore");
+const fs = require("fs");
+const Proc = require("../lib/proc");
+const config = require("../config");
+const { getLocaleFromLanguageCode, uuid } = require("../helpers");
+const { tmpDir } = require("../paths");
 
-const TAG = 'GCSR';
+const TAG = "GCSR";
 const SAMPLE_RATE = 16000;
 
 /**
@@ -21,7 +21,7 @@ function recognize(stream, opt = {}) {
       createRecognizeStream(opt, (err, text) => {
         if (err) return reject(err);
         return resolve(text);
-      }),
+      })
     );
   });
 }
@@ -39,9 +39,9 @@ function createRecognizeStream(opt, callback) {
     singleUtterance: true,
     // If true, interim results (tentative hypotheses) may be returned as they become available
     interimResults: true,
-    encoding: 'LINEAR16',
+    encoding: "LINEAR16",
     sampleRate: SAMPLE_RATE,
-    language: config.language,
+    language: config.language
   });
 
   const stream = speech.streamingRecognize({
@@ -50,24 +50,24 @@ function createRecognizeStream(opt, callback) {
     config: {
       encoding: opt.encoding,
       sampleRateHertz: opt.sampleRate,
-      languageCode: getLocaleFromLanguageCode(opt.language),
-    },
+      languageCode: getLocaleFromLanguageCode(opt.language)
+    }
   });
 
-  stream.on('end', () => {
+  stream.on("end", () => {
     if (resolved === false) {
       callback({
-        unrecognized: true,
+        unrecognized: true
       });
     }
   });
 
-  stream.on('error', (err) => {
+  stream.on("error", err => {
     console.error(TAG, err);
     callback(err);
   });
 
-  stream.on('data', (data) => {
+  stream.on("data", data => {
     if (data.results.length > 0) {
       const r = data.results[0];
       if (!_.isEmpty(r.alternatives)) {
@@ -75,7 +75,7 @@ function createRecognizeStream(opt, callback) {
       }
       if (r.isFinal) {
         const text = r.alternatives[0].transcript;
-        console.info(TAG, 'recognized', text);
+        console.info(TAG, "recognized", text);
         resolved = true;
         callback(null, text);
       }
@@ -88,20 +88,23 @@ function createRecognizeStream(opt, callback) {
 /**
  * Recognize a local audio file
  */
-async function recognizeFile(file, opt = { convertFile: false, overrideFile: false }) {
+async function recognizeFile(
+  file,
+  opt = { convertFile: false, overrideFile: false }
+) {
   if (opt.convertFile) {
     const newFile = opt.overrideFile ? file : `${file}.wav`;
-    await Proc.spawn('ffmpeg', [
-      opt.overrideFile ? '-y' : '',
-      '-i',
+    await Proc.spawn("ffmpeg", [
+      opt.overrideFile ? "-y" : "",
+      "-i",
       file,
-      '-acodec',
-      'pcm_s16le',
-      '-ar',
+      "-acodec",
+      "pcm_s16le",
+      "-ar",
       SAMPLE_RATE,
-      '-ac',
-      '1',
-      newFile,
+      "-ac",
+      "1",
+      newFile
     ]);
     file = newFile;
   }
@@ -115,7 +118,11 @@ async function recognizeFile(file, opt = { convertFile: false, overrideFile: fal
 async function recognizeBuffer(buffer, opt = {}) {
   const tmpFile = `${tmpDir}/${uuid()}.wav`;
   await promisify(fs.writeFile)(tmpFile, buffer);
-  return recognizeFile(tmpFile, { convertFile: true, overrideFile: true, ...opt });
+  return recognizeFile(tmpFile, {
+    convertFile: true,
+    overrideFile: true,
+    ...opt
+  });
 }
 
 /**
@@ -127,13 +134,13 @@ async function recognizeStream(stream, opt = {}) {
       createRecognizeStream(
         {
           interimResults: false,
-          language: opt.language,
+          language: opt.language
         },
         (err, text) => {
           if (err) return reject(err);
           return resolve(text);
-        },
-      ),
+        }
+      )
     );
   });
 }
@@ -143,5 +150,5 @@ module.exports = {
   recognizeBuffer,
   recognizeFile,
   createRecognizeStream,
-  recognize,
+  recognize
 };

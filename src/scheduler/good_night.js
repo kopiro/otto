@@ -1,9 +1,9 @@
-const AI = require('../stdlib/ai');
+const AI = require("../stdlib/ai");
 
 function run({ session }) {
-  return AI.processInput({ params: { event: 'good_night' }, session });
+  return AI.processInput({ params: { event: "good_night" }, session });
 }
 
 module.exports = {
-  run,
+  run
 };

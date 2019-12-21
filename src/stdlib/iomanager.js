@@ -1,10 +1,10 @@
-const Events = require('events');
-const Translator = require('../lib/translator');
-const Data = require('../data');
-const config = require('../config');
-const { timeout } = require('../helpers');
+const Events = require("events");
+const Translator = require("../lib/translator");
+const Data = require("../data/index");
+const config = require("../config");
+const { timeout } = require("../helpers");
 
-const TAG = 'IOManager';
+const TAG = "IOManager";
 
 const configuredDriversId = [];
 const enabledDrivers = {};
@@ -14,15 +14,15 @@ const queueProcessing = {};
 
 const emitter = new Events.EventEmitter();
 
-const SESSION_SEPARATOR = '-';
+const SESSION_SEPARATOR = "-";
 
 /**
  * Define constants used when forwarding output to an accessory
  */
 const CAN_HANDLE_OUTPUT = {
-  YES_AND_BREAK: 'yes_and_break',
-  YES_AND_CONTINUE: 'yes_and_continue',
-  NO: 'no'
+  YES_AND_BREAK: "yes_and_break",
+  YES_AND_CONTINUE: "yes_and_continue",
+  NO: "no"
 };
 
 /**
@@ -109,14 +109,14 @@ function eventToAllIO(name, data) {
 async function output(f, session) {
   if (!f) {
     console.warn(
-      'Do not output to driver because fulfillment is null - this could be intentional, but check your action'
+      "Do not output to driver because fulfillment is null - this could be intentional, but check your action"
     );
     return null;
   }
 
   // If this fulfillment has been handled by a generator, simply skip
   if (f.payload && f.payload.handledByGenerator) {
-    console.warn(TAG, 'Skipping output because is handled by generator');
+    console.warn(TAG, "Skipping output because is handled by generator");
     return null;
   }
 
@@ -124,7 +124,7 @@ async function output(f, session) {
   // the item could be handled by another platform that has that driver configured,
   // so we'll enqueue it.
   if (!isIdDriverUp(session.io_id)) {
-    console.info(TAG, 'putting in IO queue because driver is not UP', {
+    console.info(TAG, "putting in IO queue because driver is not UP", {
       session,
       f
     });
@@ -159,12 +159,12 @@ async function output(f, session) {
 
   // Call the output
   try {
-    console.info(TAG, 'output');
+    console.info(TAG, "output");
     console.dir(f, { depth: 2 });
 
     await driver.output(f, session);
   } catch (err) {
-    console.error(TAG, 'driver output error', err);
+    console.error(TAG, "driver output error", err);
   }
 
   // Process output accessories:
@@ -190,7 +190,7 @@ async function output(f, session) {
           break;
       }
     } catch (err) {
-      console.error(TAG, 'accessory output error', err);
+      console.error(TAG, "accessory output error", err);
     }
   }
 
@@ -216,7 +216,7 @@ async function configureAccessories(driverStr) {
 async function configureDriver(driverStr, onDriverInput) {
   const driver = enabledDrivers[driverStr];
 
-  driver.emitter.on('input', onDriverInput);
+  driver.emitter.on("input", onDriverInput);
 
   await configureAccessories(driverStr);
   return driver.startInput();
@@ -226,8 +226,8 @@ async function configureDriver(driverStr, onDriverInput) {
  * Return an array of drivers strings to load
  */
 function getDriversToLoad() {
-  if (process.env.OTTO_IO_DRIVERS) {
-    return process.env.OTTO_IO_DRIVERS.split(',');
+  if (process.env.OTTO_ioDriverS) {
+    return process.env.OTTO_ioDriverS.split(",");
   }
   return config.ioDrivers || [];
 }
@@ -238,7 +238,7 @@ function getDriversToLoad() {
  */
 function getAccessoriesToLoad(driver) {
   if (process.env.OTTO_IO_ACCESSORIES) {
-    return process.env.OTTO_IO_ACCESSORIES.split(',');
+    return process.env.OTTO_IO_ACCESSORIES.split(",");
   }
   return config.ioAccessoriesMap[driver] || [];
 }
@@ -248,7 +248,7 @@ function getAccessoriesToLoad(driver) {
  */
 function getListenersToLoad() {
   if (process.env.OTTO_IO_LISTENERS) {
-    return process.env.OTTO_IO_LISTENERS.split(',');
+    return process.env.OTTO_IO_LISTENERS.split(",");
   }
   return config.listeners || [];
 }
@@ -283,7 +283,7 @@ async function loadDrivers() {
 
       const driverId = `${config.uid}${SESSION_SEPARATOR}${driverStr}`;
       configuredDriversId.push(driverId);
-      driver.emitter.emit('loaded');
+      driver.emitter.emit("loaded");
 
       console.log(TAG, `driver loaded with id: <${driverId}>`);
     } catch (err) {
@@ -324,26 +324,6 @@ async function loadListeners() {
       console.error(TAG, `listener <${listenerStr}> error: ${err}`);
     }
   }
-}
-
-/**
- * Encode an object to be sure that can be passed to API requests
- * @param {Object} b
- */
-function encodeBody(b) {
-  return {
-    body: Buffer.alloc(JSON.stringify(b)).toString('base64')
-  };
-}
-
-/**
- * Decode an object previously encoded via IOManager.encodeBody
- * @param {Object} fulfillment
- */
-function decodeBody(fulfillment) {
-  return JSON.parse(
-    Buffer.alloc(fulfillment.payload.body, 'base64').toString('ascii')
-  );
 }
 
 /**
@@ -398,14 +378,14 @@ async function getSession(sessionIdComposite) {
  * @param {Object} e
  */
 async function registerSession({
-  sessionId = '',
-  io_data = {},
-  io_driver,
+  sessionId = "",
+  ioData = {},
+  ioDriver,
   alias
 }) {
-  const io_id = `${config.uid}${SESSION_SEPARATOR}${io_driver}`;
-  const sessionIdComposite = `${io_id}${
-    sessionId ? SESSION_SEPARATOR : ''
+  const ioId = `${config.uid}${SESSION_SEPARATOR}${ioDriver}`;
+  const sessionIdComposite = `${ioId}${
+    sessionId ? SESSION_SEPARATOR : ""
   }${sessionId}`;
 
   let session = await getSession(sessionIdComposite);
@@ -414,9 +394,9 @@ async function registerSession({
     console.info(TAG, `a new session model registered: ${sessionId}`);
     session = await new Data.Session({
       _id: sessionIdComposite,
-      io_id,
-      io_driver,
-      io_data,
+      io_id: ioId,
+      io_driver: ioDriver,
+      io_data: ioData,
       alias,
       settings: {
         updated_at: Date.now()
@@ -452,10 +432,11 @@ async function processQueue() {
 
   queueProcessing[qitem._id] = true;
 
-  console.info(TAG, 'processing queue item');
+  console.info(TAG, "processing queue item");
   console.dir(qitem, { depth: 2 });
 
   qitem.remove();
+  // @ts-ignore
   output(qitem.fulfillment, qitem.session);
 
   return qitem;
@@ -496,8 +477,6 @@ module.exports = {
   eventToAllIO,
   output,
   registerSession,
-  encodeBody,
-  decodeBody,
   getSession,
   writeLogForSession,
   fulfillmentTransformer,

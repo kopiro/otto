@@ -1,5 +1,5 @@
-const gcloudStorage = require('@google-cloud/storage')();
-const config = require('../config');
+const gcloudStorage = require("@google-cloud/storage")();
+const config = require("../config");
 
 const _config = config.gcloud.storage;
 

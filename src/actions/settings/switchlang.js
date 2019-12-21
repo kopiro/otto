@@ -1,10 +1,10 @@
-exports.id = 'settings.switchlang';
+exports.id = "settings.switchlang";
 
-const _ = require('underscore');
-const levenshtein = require('fast-levenshtein');
-const config = require('../../config');
-const Translator = require('../../lib/translator');
-const { extractWithPattern } = require('../../helpers');
+const _ = require("underscore");
+const levenshtein = require("fast-levenshtein");
+const config = require("../../config");
+const Translator = require("../../lib/translator");
+const { extractWithPattern } = require("../../helpers");
 
 module.exports = async function main({ queryResult }, session) {
   const { parameters: p, fulfillmentMessages } = queryResult;
@@ -21,14 +21,14 @@ module.exports = async function main({ queryResult }, session) {
   // So we should request the languages in Italiano to match "inglese"
   const languages = await Translator.getLanguages(config.language);
 
-  for (const x of ['from', 'to']) {
+  for (const x of ["from", "to"]) {
     const langReq = p[`translate_${x}`];
     if (langReq == null) continue;
 
     let prefLang = {
       distance: 999,
       code: null,
-      name: null,
+      name: null
     };
 
     for (const l of languages) {
@@ -37,13 +37,13 @@ module.exports = async function main({ queryResult }, session) {
         prefLang = {
           distance: lev,
           code: l.code,
-          name: l.name,
+          name: l.name
         };
       }
     }
 
     if (prefLang.code == null) {
-      throw new Error('unkown_language');
+      throw new Error("unkown_language");
     }
 
     let langToSet = prefLang.code;
@@ -53,17 +53,18 @@ module.exports = async function main({ queryResult }, session) {
 
   await session.save();
 
-  const from = _.findWhere(languages, { code: session.getTranslateFrom() }).name;
+  const from = _.findWhere(languages, { code: session.getTranslateFrom() })
+    .name;
   const to = _.findWhere(languages, { code: session.getTranslateTo() }).name;
 
   if (session.getTranslateFrom() === session.getTranslateTo()) {
-    return extractWithPattern(fulfillmentMessages, '[].payload.text.single').replace(
-      '$_language',
-      from,
-    );
+    return extractWithPattern(
+      fulfillmentMessages,
+      "[].payload.text.single"
+    ).replace("$_language", from);
   }
 
-  return extractWithPattern(fulfillmentMessages, '[].payload.text.plural')
-    .replace('$_from', from)
-    .replace('$_to', to);
+  return extractWithPattern(fulfillmentMessages, "[].payload.text.plural")
+    .replace("$_from", from)
+    .replace("$_to", to);
 };

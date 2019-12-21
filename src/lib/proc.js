@@ -1,24 +1,24 @@
-const TAG = 'Proc';
-const { spawn: systemSpawn } = require('child_process');
+const TAG = "Proc";
+const { spawn: systemSpawn } = require("child_process");
 
 function spawn(program, args) {
   return new Promise((resolve, reject) => {
-    console.log(TAG, program, args.join(' '));
+    console.log(TAG, program, args.join(" "));
 
     const spawned = systemSpawn(program, args);
 
-    let stdout = '';
-    let stderr = '';
+    let stdout = "";
+    let stderr = "";
 
-    spawned.stdout.on('data', (buf) => {
+    spawned.stdout.on("data", buf => {
       stdout += buf;
     });
 
-    spawned.stderr.on('data', (buf) => {
+    spawned.stderr.on("data", buf => {
       stderr += buf;
     });
 
-    spawned.on('close', (err) => {
+    spawned.on("close", err => {
       if (err) {
         reject(stderr);
       } else {

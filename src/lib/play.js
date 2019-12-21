@@ -1,8 +1,8 @@
-const path = require('path');
-const { spawn } = require('child_process');
-const config = require('../config');
-const { tmpDir } = require('../paths');
-const { getLocalObjectFromURI, uuid } = require('../helpers');
+const path = require("path");
+const { spawn } = require("child_process");
+const config = require("../config");
+const { tmpDir } = require("../paths");
+const { getLocalObjectFromURI, uuid } = require("../helpers");
 
 const _config = config.play;
 
@@ -23,19 +23,19 @@ function kill() {
  * @param {String} uri URI or file
  * @param {Array} addArgs Eventual voice effects
  */
-async function playURI(uri, addArgs = [], program = 'play') {
+async function playURI(uri, addArgs = [], program = "play") {
   return new Promise(async (resolve, reject) => {
     const localUri = await getLocalObjectFromURI(uri);
 
     const proc = spawn(program, [localUri].concat(addArgs));
     processes[proc.pid] = true;
 
-    let stderr = '';
-    proc.stderr.on('data', (buf) => {
+    let stderr = "";
+    proc.stderr.on("data", buf => {
       stderr += buf;
     });
 
-    proc.on('close', (err) => {
+    proc.on("close", err => {
       delete processes[proc.pid];
       if (err) {
         return reject(stderr);
@@ -59,7 +59,7 @@ async function playVoice(uri) {
  * @param {String} uri
  */
 async function playVoiceToFile(uri, file) {
-  await playURI(uri, [file].concat(_config.addArgs), 'sox');
+  await playURI(uri, [file].concat(_config.addArgs), "sox");
   return file;
 }
 
@@ -77,5 +77,5 @@ module.exports = {
   playVoice,
   playVoiceToFile,
   playVoiceToTempFile,
-  kill,
+  kill
 };

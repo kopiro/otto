@@ -7,8 +7,9 @@
     "node": ">=8 <9"
   },
   "scripts": {
-    "prod": "yarn pm2 start ecosystem.config.js --no-daemon",
-    "dev": "yarn pm2-dev start ecosystem.config.js",
+    "prod": "yarn pm2 start ./ecosystem.config.js --no-daemon",
+    "dev": "yarn pm2-dev start ./ecosystem.config.js",
+    "test": "yarn eslint ./src",
     "build": "docker-compose build",
     "deploy": "yarn build && docker-compose push"
   },

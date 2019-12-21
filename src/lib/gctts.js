@@ -1,13 +1,13 @@
-const GCTTS = require('@google-cloud/text-to-speech');
-const _ = require('underscore');
-const md5 = require('md5');
-const fs = require('fs');
-const config = require('../config');
-const { cacheDir } = require('../paths');
-const { uuid, getLocaleFromLanguageCode } = require('../helpers');
+const GCTTS = require("@google-cloud/text-to-speech");
+const _ = require("underscore");
+const md5 = require("md5");
+const fs = require("fs");
+const config = require("../config");
+const { cacheDir } = require("../paths");
+const { uuid, getLocaleFromLanguageCode } = require("../helpers");
 
 const _config = config.gcloud.tts;
-const TAG = 'GCTTS';
+const TAG = "GCTTS";
 const CACHE_REGISTRY_FILE = `${cacheDir}/${TAG}.json`;
 
 // Creates a client
@@ -21,15 +21,17 @@ let cache = {};
  */
 function loadCacheRegistry() {
   try {
-    const registry = JSON.parse(fs.readFileSync(CACHE_REGISTRY_FILE).toString());
+    const registry = JSON.parse(
+      fs.readFileSync(CACHE_REGISTRY_FILE).toString()
+    );
     if (registry.audio == null || registry.voices == null) {
-      throw new Error('Invalid registry format');
+      throw new Error("Invalid registry format");
     }
     cache = registry;
   } catch (ex) {
     cache = {
       audio: {},
-      voices: {},
+      voices: {}
     };
   }
 }
@@ -41,7 +43,7 @@ function loadCacheRegistry() {
  * @param {String} file File containing the audio
  */
 async function setCacheForAudio(text, opt, file) {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     const key = md5(text + JSON.stringify(opt));
     cache.audio[key] = file;
     fs.writeFile(CACHE_REGISTRY_FILE, JSON.stringify(cache), resolve);
@@ -72,7 +74,7 @@ async function getVoice(opt) {
   return {
     languageCode: locale,
     name: `${locale}-Wavenet-A`,
-    ssmlGender: opt.gender.toUpperCase(),
+    ssmlGender: opt.gender.toUpperCase()
   };
 }
 
@@ -85,7 +87,7 @@ function getAudioFile(text, opt = {}) {
   return new Promise(async (resolve, reject) => {
     _.defaults(opt, {
       gender: _config.gender,
-      language: config.language,
+      language: config.language
     });
 
     // If file has been downloaded, just serve it
@@ -108,8 +110,8 @@ function getAudioFile(text, opt = {}) {
         input,
         voice,
         audioConfig: {
-          audioEncoding: 'MP3',
-        },
+          audioEncoding: "MP3"
+        }
       },
       (err, data) => {
         if (err) {
@@ -117,7 +119,7 @@ function getAudioFile(text, opt = {}) {
         }
 
         file = `${cacheDir}/${TAG}_${uuid()}.mp3`;
-        return fs.writeFile(file, data.audioContent, 'binary', (err2) => {
+        return fs.writeFile(file, data.audioContent, "binary", err2 => {
           if (err2) {
             return reject(err2);
           }
@@ -126,7 +128,7 @@ function getAudioFile(text, opt = {}) {
           setCacheForAudio(text, opt, file);
           return resolve(file);
         });
-      },
+      }
     );
   });
 }
@@ -134,5 +136,5 @@ function getAudioFile(text, opt = {}) {
 loadCacheRegistry();
 
 module.exports = {
-  getAudioFile,
+  getAudioFile
 };

@@ -1,4 +1,4 @@
-const fs = require('fs');
+const fs = require("fs");
 
 const baseDir = fs.realpathSync(`${__dirname}/..`);
 const tmpDir = `${baseDir}/tmp`;
@@ -13,5 +13,5 @@ module.exports = {
   cacheDir,
   etcDir,
   keysDir,
-  tmpsecretDir,
+  tmpsecretDir
 };

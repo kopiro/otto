@@ -23,26 +23,25 @@ async function processSingle(sessionStr, event) {
   return output;
 }
 
-const run = () => {
+function run() {
   Server.routerListeners.post("/io_event", async (req, res) => {
-    let output = null;
+    const list =
+      typeof req.body === "object" && req.body.length > 1
+        ? req.body
+        : [req.body];
+    const output = [];
 
     try {
-      if (typeof req.body === "object" && req.body.length > 1) {
-        output = [];
-        for (const obj of req.body) {
-          const _output = await processSingle(obj.session, obj.event);
-          output.push({ session: obj.session, result: _output });
-        }
-      } else {
-        output = await processSingle(req.body.session, req.body.event);
+      for (const obj of list) {
+        const _output = await processSingle(obj.session, obj.event);
+        output.push({ session: obj.session, result: _output });
       }
 
-      res.json({ status: output });
+      return res.json({ status: output });
     } catch (err) {
       return res.status(400).json({ error: err });
     }
   });
-};
+}
 
 module.exports = { run };

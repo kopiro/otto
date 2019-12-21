@@ -1,8 +1,8 @@
-const mongoose = require('mongoose');
-const autopopulate = require('mongoose-autopopulate');
-const IOManager = require('../stdlib/iomanager');
-const { ServerSettings } = require('./index');
-const config = require('../config');
+const mongoose = require("mongoose");
+const autopopulate = require("mongoose-autopopulate");
+const IOManager = require("../stdlib/iomanager");
+const { ServerSettings } = require("./index");
+const config = require("../config");
 
 const { Schema } = mongoose;
 
@@ -13,15 +13,15 @@ const Session = new Schema({
   io_data: Schema.Types.Mixed,
   server_settings: {
     type: String,
-    ref: 'server_settings',
-    autopopulate: true,
+    ref: "server_settings",
+    autopopulate: true
   },
   settings: Schema.Types.Mixed,
   translate_from: String,
   translate_to: String,
   alias: String,
   is_admin: Boolean,
-  pipe: Schema.Types.Mixed,
+  pipe: Schema.Types.Mixed
 });
 
 Session.plugin(autopopulate);
@@ -34,11 +34,11 @@ Session.methods.saveServerSettings = async function saveServerSettings(data) {
   let s = this.server_settings;
   if (s == null) {
     s = new ServerSettings({
-      _id: (this.populated('server_settings') || this._id),
+      _id: this.populated("server_settings") || this._id
     });
   }
   s.data = { ...s.data, ...data };
-  s.markModified('data');
+  s.markModified("data");
   s.save();
 };
 
@@ -56,7 +56,7 @@ Session.methods.getIODriver = function getIODriver() {
 Session.methods.savePipe = async function savePipe(data) {
   this.pipe = { ...(this.pipe || {}), ...data };
   this.pipe.updated_at = Date.now();
-  this.markModified('pipe');
+  this.markModified("pipe");
   await this.save();
 };
 
@@ -67,7 +67,7 @@ Session.methods.savePipe = async function savePipe(data) {
 Session.methods.saveSettings = async function saveSettings(data) {
   this.settings = { ...(this.settings || {}), ...data };
   this.settings.updated_at = Date.now();
-  this.markModified('settings');
+  this.markModified("settings");
   await this.save();
 };
 

@@ -1,4 +1,4 @@
-exports.id = 'repeat';
+exports.id = "repeat";
 
 module.exports = function main({ queryResult }) {
   const { parameters: p } = queryResult;

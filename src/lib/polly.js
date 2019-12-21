@@ -1,20 +1,20 @@
-const _ = require('underscore');
-const md5 = require('md5');
-const fs = require('fs');
-const { promisify } = require('util');
-const aws = require('../lib/aws');
-const config = require('../config');
-const { cacheDir } = require('../paths');
-const { getLocaleFromLanguageCode, uuid } = require('../helpers');
+const _ = require("underscore");
+const md5 = require("md5");
+const fs = require("fs");
+const { promisify } = require("util");
+const aws = require("../lib/aws");
+const config = require("../config");
+const { cacheDir } = require("../paths");
+const { getLocaleFromLanguageCode, uuid } = require("../helpers");
 
-const TAG = 'Polly';
+const TAG = "Polly";
 
 const _config = config.aws.polly;
 const CACHE_REGISTRY_FILE = `${cacheDir}/${TAG}.json`;
 
 const client = new aws.Polly({
-  signatureVersion: 'v4',
-  region: 'eu-west-1',
+  signatureVersion: "v4",
+  region: "eu-west-1"
 });
 
 let cache = null;
@@ -26,21 +26,28 @@ function getCacheRegistry() {
   if (cache) return cache;
 
   try {
-    const registry = JSON.parse(fs.readFileSync(CACHE_REGISTRY_FILE).toString());
+    const registry = JSON.parse(
+      fs.readFileSync(CACHE_REGISTRY_FILE).toString()
+    );
     if (registry.audio == null || registry.voices == null) {
-      throw new Error(`Invalid registry format for ${CACHE_REGISTRY_FILE} file`);
+      throw new Error(
+        `Invalid registry format for ${CACHE_REGISTRY_FILE} file`
+      );
     }
     cache = registry;
   } catch (ex) {
     cache = {
       audio: {},
-      voices: {},
+      voices: {}
     };
   }
   return cache;
 }
 async function saveCacheRegistry() {
-  return promisify(fs.writeFile)(CACHE_REGISTRY_FILE, JSON.stringify(getCacheRegistry()));
+  return promisify(fs.writeFile)(
+    CACHE_REGISTRY_FILE,
+    JSON.stringify(getCacheRegistry())
+  );
 }
 
 /**
@@ -103,7 +110,7 @@ function getVoice(opt) {
     // Call the API to retrieve all voices in that locale
     return client.describeVoices(
       {
-        LanguageCode: locale,
+        LanguageCode: locale
       },
       async (err, data) => {
         if (err != null) {
@@ -116,12 +123,12 @@ function getVoice(opt) {
         if (voice == null) {
           console.debug(
             TAG,
-            `falling back to language ${config.language} instead of ${opt.language}`,
+            `falling back to language ${config.language} instead of ${opt.language}`
           );
           voice = await getVoice(
             _.extend({}, opt, {
-              language: config.language,
-            }),
+              language: config.language
+            })
           );
           return resolve(voice);
         }
@@ -129,7 +136,7 @@ function getVoice(opt) {
         // Save for later uses
         setCacheForVoice(opt, voice);
         return resolve(voice);
-      },
+      }
     );
   });
 }
@@ -143,7 +150,7 @@ function getAudioFile(text, opt = {}) {
   return new Promise(async (resolve, reject) => {
     _.defaults(opt, {
       gender: _config.gender,
-      language: config.language,
+      language: config.language
     });
 
     // If file has been downloaded, just serve it
@@ -163,8 +170,8 @@ function getAudioFile(text, opt = {}) {
       {
         VoiceId: voice.Id,
         Text: text,
-        TextType: isSSML ? 'ssml' : 'text',
-        OutputFormat: 'mp3',
+        TextType: isSSML ? "ssml" : "text",
+        OutputFormat: "mp3"
       },
       async (err, data) => {
         if (err) {
@@ -179,11 +186,11 @@ function getAudioFile(text, opt = {}) {
         } catch (writeErr) {
           return reject(writeErr);
         }
-      },
+      }
     );
   });
 }
 
 module.exports = {
-  getAudioFile,
+  getAudioFile
 };

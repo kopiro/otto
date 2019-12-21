@@ -1,7 +1,7 @@
-exports.id = 'draw';
+exports.id = "draw";
 
-const ImageSearch = require('../../lib/imagesearch');
-const { rand } = require('../../helpers');
+const ImageSearch = require("../../lib/imagesearch");
+const { rand } = require("../../helpers");
 
 module.exports = async function main({ queryResult }) {
   const { parameters: p } = queryResult;
@@ -12,8 +12,8 @@ module.exports = async function main({ queryResult }) {
   return {
     payload: {
       image: {
-        uri: img.url,
-      },
-    },
+        uri: img.url
+      }
+    }
   };
 };
