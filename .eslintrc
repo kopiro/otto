@@ -8,9 +8,9 @@
     "commonjs": true,
     "es6": true,
     "node": true,
-    "browser": true
+    "jest/globals": true
   },
-  "plugins": ["prettier"],
+  "plugins": ["prettier", "jest"],
   "rules": {
     "prettier/prettier": "error",
     "no-console": "off",

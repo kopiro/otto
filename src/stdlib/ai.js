@@ -2,10 +2,13 @@ const DialogFlow = require("dialogflow");
 const Server = require("./server");
 const IOManager = require("./iomanager");
 const Translator = require("../lib/translator");
-const Actions = require("../actions/index");
 const Data = require("../data/index");
 const config = require("../config");
-const { structProtoToJson, extractWithPattern } = require("../helpers");
+const {
+  structProtoToJson,
+  extractWithPattern,
+  replaceVariablesInStrings
+} = require("../helpers");
 
 const dialogflow = DialogFlow.v2beta1;
 const _config = config.dialogflow;
@@ -82,24 +85,23 @@ function actionErrorTransformer(body, err) {
   if (err.message) {
     const errMessage = typeof err === "string" ? err : err.message;
 
-    // If an error occurs, try to intercept this error
-    // in the fulfillmentMessages that comes from DialogFlow
-    f.fulfillmentText =
-      extractWithPattern(
-        body.queryResult.fulfillmentMessages,
-        `[].payload.error.${errMessage}`
-      ) || errMessage;
+    const textInPayload = extractWithPattern(
+      body.queryResult.fulfillmentMessages,
+      `[].payload.error.${errMessage}`
+    );
 
-    if (err.data) {
-      let theVar = null;
-      const re = /$_(\w+)/g;
-      // eslint-disable-next-line no-cond-assign
-      while ((theVar = re.exec(f.fulfillmentText))) {
-        f.fulfillmentText = f.fulfillmentText.replace(
-          `$_${theVar[1]}`,
-          err.data[theVar[1]] || ""
+    if (textInPayload) {
+      // If an error occurs, try to intercept this error
+      // in the fulfillmentMessages that comes from DialogFlow
+      f.fulfillmentText = textInPayload;
+      if (err.data) {
+        f.fulfillmentText = replaceVariablesInStrings(
+          f.fulfillmentText,
+          err.data
         );
       }
+    } else {
+      f.fulfillmentText = err.message.replace(/_/g, " ");
     }
   }
 
@@ -119,13 +121,10 @@ function actionErrorTransformer(body, err) {
  * @returns
  */
 async function actionResultToFulfillment(
-  body,
   actionResult,
   session,
   fromWebhook = false
 ) {
-  let f = null;
-
   // If an action return a string, wrap into an object
   if (typeof actionResult === "string") {
     actionResult = {
@@ -133,7 +132,7 @@ async function actionResultToFulfillment(
     };
   }
 
-  f = actionResult;
+  const f = actionResult || {};
 
   // Set context if not coming from webhooks
   if (!fromWebhook) {
@@ -162,14 +161,17 @@ async function actionResultToFulfillment(
 async function generatorResolver(body, generator, session) {
   console.info(TAG, "Using generator resolver", generator);
   try {
-    for await (let f of generator) {
-      f = await actionResultToFulfillment(body, f, session, false);
-      await IOManager.output(f, session);
+    for await (let generatorResult of generator) {
+      generatorResult = await actionResultToFulfillment(
+        generatorResult,
+        session,
+        false
+      );
+      await IOManager.output(generatorResult, session);
     }
   } catch (err) {
     console.error(TAG, "error while executing action generator", err);
-    const f = actionErrorTransformer(body, err);
-    await IOManager.output(f, session);
+    await IOManager.output(actionErrorTransformer(body, err), session);
   }
 }
 
@@ -179,26 +181,29 @@ async function generatorResolver(body, generator, session) {
  * @param {Object} session Session
  * @returns {Promise<Object>}
  */
-async function actionResolver(body, session, fromWebhook = false) {
-  const actionName = body.queryResult.action;
+async function actionResolver(actionName, body, session, fromWebhook = false) {
   console.info(TAG, `calling action <${actionName}>`);
-
-  let f = null;
 
   try {
     // Actual call to the Action
-    const actionToCall = Actions.list[actionName];
-    if (actionToCall == null) {
-      throw new Error(`Invalid action name: ${actionName}`);
+    let actionResult = null;
+    let actionToCall = null;
+
+    // Support for pkg
+    const [pkgName, pkgAction = "index"] = actionName.split(".");
+    actionToCall = require(`../packages/${pkgName}/${pkgAction}`);
+
+    if (!actionToCall) {
+      throw new Error(`Invalid action name <${actionName}>`);
     }
 
-    f = await actionToCall()(body, session);
+    actionResult = await actionToCall(body, session);
+    console.dir(actionResult);
 
     // Now check if this action is a Promise or a Generator
-    if (typeof f.next === "function") {
-      console.log("f", f);
+    if (actionResult && typeof actionResult.next === "function") {
       // Call the generator
-      generatorResolver(body, f, session);
+      generatorResolver(body, actionResult, session);
       // And immediately resolve
       return {
         payload: {
@@ -207,13 +212,11 @@ async function actionResolver(body, session, fromWebhook = false) {
       };
     }
 
-    f = await actionResultToFulfillment(body, f, session, fromWebhook);
+    return actionResultToFulfillment(actionResult, session, fromWebhook);
   } catch (err) {
     console.error(TAG, "error while executing action:", err);
-    f = await actionErrorTransformer(body, err);
+    return actionErrorTransformer(body, err);
   }
-
-  return f;
 }
 
 /**
@@ -257,6 +260,10 @@ async function eventRequestTransformer(event, session) {
  */
 async function bodyParser(body, session, fromWebhook = false) {
   if (config.mimicOfflineServer) {
+    console.error(
+      TAG,
+      "Miming an offline server, this could result in some weirdness!"
+    );
     body.webhookStatus = null;
   }
 
@@ -301,8 +308,8 @@ async function bodyParser(body, session, fromWebhook = false) {
   }
 
   if (body.queryResult.action) {
-    console.warn(TAG, "Using action resolver locally");
-    return actionResolver(body, session, fromWebhook);
+    console.warn(TAG, `Resolving action <${body.queryResult.action}> locally`);
+    return actionResolver(body.queryResult.action, body, session, fromWebhook);
   }
 
   // Otherwise, check if at least an intent is match and direct return that fulfillment
@@ -382,7 +389,7 @@ function attachToServer() {
     if (!req.body || Object.keys(req.body).length === 0) {
       return res.json({
         data: {
-          error: "Empty body"
+          error: "ERR_EMPTY_BODY"
         }
       });
     }
@@ -407,7 +414,7 @@ function attachToServer() {
     f = await fulfillmentTransformerForWebhookOutput(f, session);
 
     console.info(TAG, "[WEBHOOK] output fulfillment");
-    console.log(JSON.stringify(f));
+    console.dir(f);
 
     return res.json(f);
   });

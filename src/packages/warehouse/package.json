@@ -3,5 +3,9 @@
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
-  "private": true
+  "private": true,
+  "dependencies": {
+    "mongoose": "^5.8.2",
+    "mongoose-autopopulate": "^0.10.0"
+  }
 }

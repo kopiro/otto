@@ -39,7 +39,7 @@ function isIdDriverUp(driverId) {
  * @param  {Object} session Session
  * @return {Promise<Object>}
  */
-async function fulfillmentTransformer(f, session) {
+async function fulfillmentTransformer(f = {}, session) {
   // If this fulfillment has already been transformed, let's skip this
   if (f.payload && f.payload.transformerUid) {
     return f;
@@ -129,11 +129,12 @@ async function output(f, session) {
       f
     });
 
-    await new Data.IOQueue({
+    const ioQueue = new Data.IOQueue({
       session: session.id,
       io_id: session.io_id,
       fulfillment: f
-    }).save();
+    });
+    await ioQueue.save();
 
     return null;
   }

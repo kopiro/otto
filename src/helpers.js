@@ -230,6 +230,20 @@ function getAiNameRegex() {
   return new RegExp(config.aiNameRegex, "g");
 }
 
+function replaceVariablesInStrings(text, data) {
+  let reLoop = null;
+  let textCopy = text;
+  const re = /\$_(\w+)/g;
+  // eslint-disable-next-line no-cond-assign
+  while ((reLoop = re.exec(text))) {
+    const inVar = reLoop[1];
+    if (data[inVar]) {
+      textCopy = textCopy.replace(`$_${inVar}`, data[inVar] || "");
+    }
+  }
+  return textCopy;
+}
+
 module.exports = {
   getAiNameRegex,
   valueProtoToJson,
@@ -243,5 +257,6 @@ module.exports = {
   cleanText,
   uuid,
   timeout,
-  rand
+  rand,
+  replaceVariablesInStrings
 };

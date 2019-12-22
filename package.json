@@ -2,6 +2,9 @@
   "name": "otto-ai",
   "version": "2.0.0",
   "description": "Simple AI for Otto",
+  "workspaces": [
+    "./src/packages/*"
+  ],
   "private": true,
   "engines": {
     "node": ">=8 <9"
@@ -9,7 +12,9 @@
   "scripts": {
     "prod": "yarn pm2 start ./ecosystem.config.js --no-daemon",
     "dev": "yarn pm2-dev start ./ecosystem.config.js",
-    "test": "yarn eslint ./src",
+    "unit-test": "jest ./src",
+    "lint": "eslint --fix ./src",
+    "test": "yarn lint && yarn unit-test",
     "build": "docker-compose build",
     "deploy": "yarn build && docker-compose push"
   },
@@ -48,8 +53,8 @@
     "keypress": "^0.2.1",
     "md5": "^2.2.1",
     "moment": "^2.22.2",
-    "mongoose": "^5",
-    "mongoose-autopopulate": "^0.6.1",
+    "mongoose": "^5.8.2",
+    "mongoose-autopopulate": "^0.10.0",
     "node-telegram-bot-api": "^0.30.0",
     "pm2": "^4.2.1",
     "prompt": "^1.0.0",
@@ -68,9 +73,11 @@
     "eslint-config-airbnb": "^17.1.0",
     "eslint-config-prettier": "^6.1.0",
     "eslint-plugin-import": "^2.16.0",
+    "eslint-plugin-jest": "^23.1.1",
     "eslint-plugin-jsx-a11y": "^6.2.1",
     "eslint-plugin-prettier": "^3.1.2",
     "eslint-plugin-react": "^7.12.4",
+    "jest": "^24.9.0",
     "prettier": "^1.19.1"
   },
   "optionalDependencies": {

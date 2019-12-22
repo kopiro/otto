@@ -111,17 +111,6 @@ function startInput() {
  * @param {*} session The user session
  */
 async function output(f, session) {
-  console.info(TAG, "output");
-  console.dir(
-    {
-      f,
-      session
-    },
-    {
-      depth: 2
-    }
-  );
-
   // Inform observers
   emitter.emit("output", {
     session,
@@ -339,8 +328,8 @@ bot.on("message", async e => {
   // Register the session
   const session = await IOManager.registerSession({
     sessionId,
-    io_driver: "telegram",
-    io_data: e.chat,
+    ioDriver: "telegram",
+    ioData: e.chat,
     alias
   });
 

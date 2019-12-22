@@ -2,9 +2,6 @@
 	"io_hotword_training_tutorial": [
 		"Configura per la hotword %s"
 	],
-	"io_hotword_training_ask_name": [
-		"Come ti chiami?"
-	],
 	"io_hotword_training_ask_gender": [
 		"Sei uomo o donna?"
 	],
@@ -20,11 +17,5 @@
 	],
 	"io_hotword_training_success": [
 		"Configurazione per la hotword %s riuscita"
-	],
-	"coinflip_choices": [
-		"Testa", "Croce"
-	],
-	"playback_current_track_is": [
-		"Questa canzone si chiama %s di %s, contenuta nell'album %s"
 	]
 }

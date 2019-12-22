@@ -54,8 +54,8 @@ function configureSocket(socket) {
       // Register the session
       const session = await IOManager.registerSession({
         sessionId: e.sessionId,
-        io_driver: "web",
-        io_data: e
+        ioDriver: "web",
+        ioData: e
       });
 
       session.io_data_web = {
@@ -107,17 +107,6 @@ async function output(f, session) {
   if (request == null) {
     throw new Error("Invalid data found in session");
   }
-
-  console.info(TAG, "output");
-  console.dir(
-    {
-      f,
-      session
-    },
-    {
-      depth: 2
-    }
-  );
 
   // Inform observers
   emitter.emit("output", {

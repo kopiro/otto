@@ -123,30 +123,28 @@ async function sendMessage(text, { language }) {
 
 /**
  * Send an audio directly to the speaker
- * @param {Object} e
  */
-async function sendAudio(e) {
-  if (e.uri) {
-    await Play.playURI(e.uri);
+async function sendAudio({ uri }) {
+  if (uri) {
+    await Play.playURI(uri);
   }
 }
 
 /**
  * Send an audio directly to the speaker
- * @param {Object} e
  */
-async function sendVoice(e) {
-  if (e.uri) {
-    await Play.playVoice(e.uri);
+async function sendVoice({ uri }) {
+  if (uri) {
+    await Play.playVoice(uri);
   }
 }
 
 /**
  * Send a URL
- * @param {String} e
+ * @param {String} url
  */
-async function sendURL(e) {
-  await URLManager.open(e);
+async function sendURL(url) {
+  await URLManager.open(url);
 }
 
 /**
@@ -233,7 +231,7 @@ function createRecognizeStream({ session, language }) {
  */
 async function registerInternalSession() {
   return IOManager.registerSession({
-    io_driver: "human"
+    ioDriver: "human"
   });
 }
 
@@ -521,11 +519,6 @@ async function stopInput() {
  * @param {Object} f
  */
 async function output(f) {
-  console.debug(TAG, "output");
-  console.dir(f, {
-    depth: 10
-  });
-
   // Ensure session is present
   await registerInternalSession();
 
