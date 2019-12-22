@@ -180,7 +180,7 @@ module.exports = async function* main({ queryResult }, session) {
 
 #### Naming
 
-The actions must be placed in the `./src/actions` directory.
+The actions must be placed in the `./src/packages` directory.
 
 If an action name is `hello.name`, the final file must be `./src/actions/hello/name.js`;
 shorter, if an action name is `hello`, the final must be `./src/actions/hello/index.js`.

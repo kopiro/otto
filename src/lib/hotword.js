@@ -1,7 +1,6 @@
 const request = require("request");
 const fs = require("fs");
 const path = require("path");
-// @ts-ignore
 // eslint-disable-next-line import/no-extraneous-dependencies
 const Snowboy = require("snowboy");
 const config = require("../config");
@@ -75,7 +74,8 @@ async function getModels(forceTraining = false) {
     }
 
     // Recall scanForHotword to rescan pmdls
-    return resolve(await getModels());
+    const models = await getModels();
+    return resolve(models);
   });
 }
 
@@ -183,4 +183,4 @@ async function startTraining(hotword) {
   await sendMessage(Messages.get("io_hotword_training_success", speech));
 }
 
-module.exports = { getModels };
+module.exports = { getModels, startTraining };
