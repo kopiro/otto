@@ -32,6 +32,9 @@ async function getModels(forceTraining = false) {
       pmdls[hotword] = [];
 
       const dir = path.join(PMDL_DIR, hotword);
+      if (!fs.existsSync(PMDL_DIR)) {
+        fs.mkdirSync(PMDL_DIR, { recursive: true });
+      }
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
       }
