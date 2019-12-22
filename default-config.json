@@ -10,6 +10,7 @@
   "raven": null,
   "serverMode": false,
   "play": {
+    "binary": "play",
     "addArgs": []
   },
   "snowboy": {

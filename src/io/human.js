@@ -92,10 +92,6 @@ let currentSendMessageKey = null;
 function bindEvents() {
   emitter.on("wake", wake);
   emitter.on("stop", stop);
-
-  emitter.on("loaded", () => {
-    Play.playURI(`${etcDir}/boot.wav`);
-  });
 }
 
 /**
@@ -265,7 +261,7 @@ async function wake() {
   stopOutput();
 
   // Play a recognizable sound
-  Play.playURI(`${etcDir}/wake.mp3`);
+  Play.playURI(`${etcDir}/wake.wav`);
 
   // Reset any timer variable
   wakeWordTick = WAKE_WORD_TICKS;
@@ -525,6 +521,8 @@ async function output(f) {
   // Just push onto the queue, and let the queue process
   queueOutput.push(f);
 }
+
+Play.playURI(`${etcDir}/boot.wav`, [], 1);
 
 bindEvents();
 

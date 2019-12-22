@@ -12,9 +12,11 @@ const processes = {};
  * Kill all playing processes
  */
 function kill() {
-  for (const pid of Object.keys(processes)) {
-    process.kill(pid);
-    delete processes[pid];
+  for (const [pid, level] of Object.entries(processes)) {
+    if (level === 0) {
+      process.kill(pid);
+      delete processes[pid];
+    }
   }
 }
 
@@ -23,12 +25,12 @@ function kill() {
  * @param {String} uri URI or file
  * @param {Array} addArgs Eventual voice effects
  */
-async function playURI(uri, addArgs = [], program = "play") {
+async function playURI(uri, addArgs = [], level = 0) {
   return new Promise(async (resolve, reject) => {
     const localUri = await getLocalObjectFromURI(uri);
 
-    const proc = spawn(program, [localUri].concat(addArgs));
-    processes[proc.pid] = true;
+    const proc = spawn(_config.binary, [localUri].concat(addArgs));
+    processes[proc.pid] = level;
 
     let stderr = "";
     proc.stderr.on("data", buf => {
