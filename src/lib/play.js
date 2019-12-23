@@ -25,11 +25,11 @@ function kill() {
  * @param {String} uri URI or file
  * @param {Array} addArgs Eventual voice effects
  */
-async function playURI(uri, addArgs = [], level = 0) {
+async function playURI(uri, addArgs = [], level = 0, program = null) {
   return new Promise(async (resolve, reject) => {
     const localUri = await getLocalObjectFromURI(uri);
 
-    const proc = spawn(_config.binary, [localUri].concat(addArgs));
+    const proc = spawn(program || _config.binary, [localUri].concat(addArgs));
     processes[proc.pid] = level;
 
     let stderr = "";
@@ -61,7 +61,7 @@ async function playVoice(uri) {
  * @param {String} uri
  */
 async function playVoiceToFile(uri, file) {
-  await playURI(uri, [file].concat(_config.addArgs), "sox");
+  await playURI(uri, [file].concat(_config.addArgs), 0, "sox");
   return file;
 }
 

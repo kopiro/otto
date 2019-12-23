@@ -83,8 +83,7 @@ async function cleanFulfillmentForOutput(f) {
   return {
     queryText: f.queryText,
     text: f.fulfillmentText,
-    // Re-enable to pass audio directly from DialogFlow
-    // audio: f.outputAudio,
+    audio: f.outputAudio, // This will use the audio buffer coming from DialogFlow
     error: f.error,
     payload: f.payload
   };
