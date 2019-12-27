@@ -1,5 +1,4 @@
 const Events = require("events");
-const md5 = require("md5");
 // @ts-ignore
 // eslint-disable-next-line import/no-extraneous-dependencies
 const Snowboy = require("snowboy");
@@ -9,9 +8,7 @@ const URLManager = require("../lib/urlmanager");
 const config = require("../config");
 const IOManager = require("../stdlib/iomanager");
 const SR = require("../interfaces/sr");
-const TTS = require("../interfaces/tts");
 const Play = require("../lib/play");
-const { mimicHumanMessage } = require("../helpers");
 const { etcDir } = require("../paths");
 
 const _config = config.human;
@@ -82,39 +79,11 @@ let eorTick = -1;
 let hotwordModels = null;
 
 /**
- * An hash that represents current spoken message
- */
-let currentSendMessageKey = null;
-
-/**
  * Bind external events to internal procedures
  */
 function bindEvents() {
   emitter.on("wake", wake);
   emitter.on("stop", stop);
-}
-
-/**
- * Speak a sentence
- * @param {string} text String to speak
- * @param {object} language Language of text
- */
-async function sendMessage(text, { language }) {
-  const key = md5(text);
-  currentSendMessageKey = key;
-
-  const sentences = mimicHumanMessage(text);
-
-  for (const sentence of sentences) {
-    if (currentSendMessageKey === key) {
-      const audioFile = await TTS.getAudioFile(sentence, {
-        language
-      });
-      await Play.playVoice(audioFile);
-    }
-  }
-
-  return true;
 }
 
 /**
@@ -151,7 +120,6 @@ function stopOutput() {
   Play.kill();
 
   // Reset the current processed items
-  currentSendMessageKey = null;
   queueProcessingItem = null;
 
   // Empty the queue
@@ -373,7 +341,6 @@ async function processOutputQueue() {
 
   // Always ensure that there is the session
   const session = await registerInternalSession();
-  const toLanguage = session.getTranslateTo();
 
   // Grab the first item in the queue
   const f = queueOutput[0];
@@ -397,10 +364,6 @@ async function processOutputQueue() {
   try {
     if (f.audio) {
       await Play.playVoice(f.audio);
-    } else if (f.text) {
-      await sendMessage(f.text, {
-        language: f.payload.language || toLanguage
-      });
     }
   } catch (err) {
     console.error(TAG, err);
