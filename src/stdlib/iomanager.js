@@ -140,12 +140,13 @@ async function output(f, session) {
 
   // Redirect to another driver if is configured to do that
   // by simplying replacing the driver
-  if (config.ioRedirectMap[session.io_driver] != null) {
-    session.io_driver = config.ioRedirectMap[session.io_driver];
+  const newDriver = config.ioRedirectMap[session.io_driver];
+  if (newDriver != null) {
     console.info(
       TAG,
-      `<${session.io_driver}> redirect output to <${session.io_driver}>`
+      `<${session.io_driver}> redirect output to <${newDriver}>`
     );
+    session.io_driver = config.ioRedirectMap[session.io_driver];
   }
 
   const driver = enabledDrivers[session.io_driver];
