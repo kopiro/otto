@@ -315,13 +315,7 @@ async function bodyParser(body, session, fromWebhook = false) {
   // Otherwise, check if at least an intent is match and direct return that fulfillment
   if (body.queryResult.intent) {
     console.warn(TAG, "Using queryResult object (matched from intent) locally");
-    return {
-      outputAudio: body.outputAudio,
-      fulfillmentText: body.queryResult.fulfillmentText,
-      fulfillmentMessages: body.queryResult.fulfillmentMessages,
-      outputContexts: body.queryResult.outputContexts,
-      payload: body.queryResult.payload
-    };
+    return body.queryResult;
   }
 
   // If not intentId is returned, this is a unhandled DialogFlow intent
