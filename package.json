@@ -12,7 +12,7 @@
   "scripts": {
     "prod": "yarn pm2 start ./ecosystem.config.js --no-daemon",
     "dev": "yarn pm2-dev start ./ecosystem.config.js",
-    "unit-test": "jest ./src",
+    "unit-test": "jest ./src --passWithNoTests",
     "lint": "eslint --fix ./src",
     "test": "yarn lint && yarn unit-test",
     "build": "docker-compose build",

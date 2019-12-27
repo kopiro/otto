@@ -409,14 +409,17 @@ function attachToServer() {
       await session.save();
     }
 
-    let f = await bodyParser(req.body, session, true);
-    f = await IOManager.fulfillmentTransformer(f, session);
-    f = await fulfillmentTransformerForWebhookOutput(f, session);
+    let fulfillment = await bodyParser(req.body, session, true);
+    fulfillment = await IOManager.fulfillmentTransformer(fulfillment, session);
+    fulfillment = await fulfillmentTransformerForWebhookOutput(
+      fulfillment,
+      session
+    );
 
     console.info(TAG, "[WEBHOOK] output fulfillment");
-    console.dir(f);
+    console.dir(fulfillment);
 
-    return res.json(f);
+    return res.json(fulfillment);
   });
 }
 
@@ -427,20 +430,20 @@ function attachToServer() {
  * @param {Object} e.session Session object
  */
 async function processInput({ params = {}, session }) {
-  let f = null;
+  let fulfillment = null;
 
   console.info(TAG, "output by input params", params);
 
   if (params.text) {
     IOManager.writeLogForSession(params.text, session);
-    f = await textRequest(params.text, session);
+    fulfillment = await textRequest(params.text, session);
   } else if (params.event) {
-    f = await eventRequest(params.event, session);
+    fulfillment = await eventRequest(params.event, session);
   } else {
     console.warn("Neither { text, event } in params is not null");
   }
 
-  return IOManager.output(f, session);
+  return IOManager.output(fulfillment, session);
 }
 
 module.exports = {
