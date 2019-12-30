@@ -241,8 +241,27 @@ async function eventRequestTransformer(event, session) {
   return event;
 }
 
-function outputAudioParser(body) {
+/**
+ * Returns a valid audio buffer
+ * @param {Object} body Body
+ * @param {Object} session Session
+ */
+function outputAudioParser(body, session) {
+  // If there's no audio in the response, skip
   if (!body.outputAudio) return null;
+
+  // If the voice language doesn't match the session language, skip
+  if (
+    body.outputAudioConfig.synthesizeSpeechConfig.voice.name.substr(0, 2) !==
+    session.getTranslateTo()
+  ) {
+    console.warn(
+      TAG,
+      "deleting outputAudio because of a voice language mismatch"
+    );
+    return null;
+  }
+
   return {
     buffer: body.outputAudio,
     extension: body.outputAudioConfig.audioEncoding
@@ -255,7 +274,7 @@ function outputAudioParser(body) {
  * Parse the DialogFlow webhook response
  * @param {Object} body
  */
-async function webhookResponseToFulfillment(body) {
+async function webhookResponseToFulfillment(body, session) {
   console.debug(TAG, "Using webhook response", body);
 
   if (body.webhookStatus.code > 0) {
@@ -267,7 +286,7 @@ async function webhookResponseToFulfillment(body) {
   const { queryResult } = body;
 
   return {
-    audio: outputAudioParser(body),
+    audio: outputAudioParser(body, session),
     queryText: queryResult.queryText,
     fulfillmentText: queryResult.fulfillmentText,
     payload: queryResult.webhookPayload
@@ -288,14 +307,16 @@ async function bodyParser(body, session) {
   }
 
   if (body.webhookStatus && !config.mimicOfflineServer) {
-    return webhookResponseToFulfillment(body);
+    return webhookResponseToFulfillment(body, session);
   }
 
-  body.queryResult.parameters = structProtoToJson(body.queryResult.parameters);
-  // body.queryResult.fulfillmentMessages = body.queryResult.fulfillmentMessages.map(e => ({
-  //   payload: structProtoToJson(e.payload)
-  // }));
-  body.queryResult.payload = structProtoToJson(body.queryResult.payload);
+  // body.queryResult.parameters = structProtoToJson(body.queryResult.parameters);
+  // body.queryResult.fulfillmentMessages = body.queryResult.fulfillmentMessages.map(
+  //   e => ({
+  //     payload: structProtoToJson(e.payload)
+  //   })
+  // );
+  // body.queryResult.payload = structProtoToJson(body.queryResult.payload);
 
   // If we have an "action", call the package with the specified name
   if (body.queryResult.action) {
@@ -312,7 +333,7 @@ async function bodyParser(body, session) {
     );
 
     return {
-      audio: outputAudioParser(body),
+      audio: outputAudioParser(body, session),
       queryText: body.queryResult.queryText,
       fulfillmentText: body.queryResult.fulfillmentText,
       payload: body.queryResult.payload,

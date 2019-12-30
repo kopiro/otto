@@ -43,7 +43,7 @@ module.exports = async function main({ queryResult }, session) {
     }
 
     if (prefLang.code == null) {
-      throw new Error("unkown_language");
+      throw new Error("UNKOWN_LANGUAGE");
     }
 
     let langToSet = prefLang.code;
@@ -63,7 +63,6 @@ module.exports = async function main({ queryResult }, session) {
       "[].payload.text.single"
     ).replace("$_language", from);
   }
-
   return extractWithPattern(fulfillmentMessages, "[].payload.text.plural")
     .replace("$_from", from)
     .replace("$_to", to);

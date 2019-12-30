@@ -9,5 +9,5 @@
   "io_hotword_training_failed": ["Configurazione per la hotword %s fallita"],
   "io_hotword_training_success": ["Configurazione per la hotword %s riuscita"],
   "error_payload_not_recognized": ["Impossibile riprodurre questo contenuto"],
-  "deprecated_using_fulfillment_text": ["Cof Cof. "]
+  "deprecated_using_fulfillment_text": ["cofcof. "]
 }
