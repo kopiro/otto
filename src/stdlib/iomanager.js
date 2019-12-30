@@ -35,57 +35,52 @@ function isIdDriverUp(driverId) {
 
 /**
  * Transform a Fulfillment by making some edits based on the current session settings
- * @param  {Object} f Fulfillment object
- * @param  {Object} session Session
+ * @param  {Object} fulfillment Fulfillment object
+ * @param  {Object} session Session object
  * @return {Promise<Object>}
  */
-async function fulfillmentTransformer(f = {}, session) {
+async function fulfillmentTransformer(fulfillment, session) {
   // If this fulfillment has already been transformed, let's skip this
-  if (f.payload && f.payload.transformerUid) {
-    return f;
+  if (fulfillment.payload && fulfillment.payload.transformerUid) {
+    return fulfillment;
   }
 
   // Merge all objects from fulfillmentMessages into payload
-  f.payload = f.payload || {};
-  for (const msg of f.fulfillmentMessages || []) {
-    if (!Array.isArray(msg)) {
-      f.payload = { ...f.payload, ...msg.payload };
-    }
-  }
+  fulfillment.payload = fulfillment.payload || {};
 
   // Always translate fulfillment speech in the user language
-  if (f.fulfillmentText) {
+  if (fulfillment.fulfillmentText) {
     if (session.getTranslateTo() !== config.language) {
       console.log(
         TAG,
         `Translating text (${
-          f.fulfillmentText
+          fulfillment.fulfillmentText
         }) to language: ${session.getTranslateTo()}`
       );
-      f.fulfillmentText = await Translator.translate(
-        f.fulfillmentText,
+      fulfillment.fulfillmentText = await Translator.translate(
+        fulfillment.fulfillmentText,
         session.getTranslateTo()
       );
-      f.payload.translatedTo = session.getTranslateTo();
+      fulfillment.payload.translatedTo = session.getTranslateTo();
     }
   }
 
-  f.payload.transformerUid = config.uid;
-  return f;
+  fulfillment.payload.transformerUid = config.uid;
+  return fulfillment;
 }
 
 /**
  * Clean fulfillment for output
- * @param {Object} f
- * @returns
+ * @param {Object} fulfillment
+ * @return {Object}
  */
-async function cleanFulfillmentForOutput(f) {
+function cleanFulfillmentForDriverOutput(fulfillment) {
   return {
-    queryText: f.queryText,
-    text: f.fulfillmentText,
-    audio: f.outputAudio, // This will use the audio buffer coming from DialogFlow
-    error: f.error,
-    payload: f.payload
+    queryText: fulfillment.queryText,
+    text: fulfillment.fulfillmentText,
+    audio: fulfillment.audio,
+    error: fulfillment.error,
+    payload: fulfillment.payload
   };
 }
 
@@ -102,11 +97,11 @@ function eventToAllIO(name, data) {
 
 /**
  * Process an input to a specific IO driver based on the session
- * @param {Object} f Input object
+ * @param {Object} fulfillment Fulfillment object
  * @param {Object} session Session object
  */
-async function output(f, session) {
-  if (!f) {
+async function output(fulfillment, session) {
+  if (!fulfillment) {
     console.warn(
       "Do not output to driver because fulfillment is null - this could be intentional, but check your action"
     );
@@ -114,7 +109,7 @@ async function output(f, session) {
   }
 
   // If this fulfillment has been handled by a generator, simply skip
-  if (f.payload && f.payload.handledByGenerator) {
+  if (fulfillment.payload && fulfillment.payload.handledByGenerator) {
     console.warn(TAG, "Skipping output because is handled by generator");
     return null;
   }
@@ -125,13 +120,13 @@ async function output(f, session) {
   if (!isIdDriverUp(session.io_id)) {
     console.info(TAG, "putting in IO queue because driver is not UP", {
       session,
-      f
+      fulfillment
     });
 
     const ioQueue = new Data.IOQueue({
       session: session.id,
       io_id: session.io_id,
-      fulfillment: f
+      fulfillment
     });
     await ioQueue.save();
 
@@ -141,12 +136,12 @@ async function output(f, session) {
   // Redirect to another driver if is configured to do that
   // by simplying replacing the driver
   const newDriver = config.ioRedirectMap[session.io_driver];
-  if (newDriver != null) {
+  if (newDriver) {
     console.info(
       TAG,
       `<${session.io_driver}> redirect output to <${newDriver}>`
     );
-    session.io_driver = config.ioRedirectMap[session.io_driver];
+    session.io_driver = newDriver;
   }
 
   const driver = enabledDrivers[session.io_driver];
@@ -155,15 +150,14 @@ async function output(f, session) {
   }
 
   // Transform and clean fulfillment
-  f = await fulfillmentTransformer(f, session);
-  f = await cleanFulfillmentForOutput(f);
+  fulfillment = await fulfillmentTransformer(fulfillment, session);
+  fulfillment = cleanFulfillmentForDriverOutput(fulfillment);
 
   // Call the output
   try {
     console.info(TAG, "output");
-    console.dir(f, { depth: 2 });
-
-    await driver.output(f, session);
+    console.info(fulfillment);
+    await driver.output(fulfillment, session);
   } catch (err) {
     console.error(TAG, "driver output error", err);
   }
@@ -175,15 +169,15 @@ async function output(f, session) {
   // - do not handle and forward to next accessory
   const accessories = enabledAccesories[session.io_driver] || [];
   for (const accessory of accessories) {
-    const handleType = accessory.canHandleOutput(f, session);
+    const handleType = accessory.canHandleOutput(fulfillment, session);
 
     try {
       switch (handleType) {
         case CAN_HANDLE_OUTPUT.YES_AND_BREAK:
-          await accessory.output(f, session);
+          await accessory.output(fulfillment, session);
           return { forwardedToAccessory: accessory.id };
         case CAN_HANDLE_OUTPUT.YES_AND_CONTINUE:
-          await accessory.output(f, session);
+          await accessory.output(fulfillment, session);
           break;
         case CAN_HANDLE_OUTPUT.NO:
           break;

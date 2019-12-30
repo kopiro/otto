@@ -96,11 +96,13 @@ function getLocaleFromLanguageCode(language = null) {
  * @param {String} uri
  */
 function getLocalObjectFromURI(uri) {
+  const TAG = "getLocalObjectFromURI";
+
   return new Promise((resolve, reject) => {
-    if (Buffer.isBuffer(uri)) {
-      const localFile = `${cacheDir}/${uuid()}.wav`;
-      fs.writeFileSync(localFile, uri);
-      console.log("localFile", localFile);
+    if (Buffer.isBuffer(uri) || Buffer.isBuffer(uri.buffer)) {
+      const localFile = `${cacheDir}/${uuid()}.${uri.extension || "unknown"}`;
+      fs.writeFileSync(localFile, uri.buffer || uri);
+      console.debug(TAG, `writing buffer to local file <${localFile}>`);
       return resolve(localFile);
     }
 

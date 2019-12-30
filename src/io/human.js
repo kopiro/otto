@@ -10,6 +10,8 @@ const IOManager = require("../stdlib/iomanager");
 const SR = require("../interfaces/sr");
 const Play = require("../lib/play");
 const { etcDir } = require("../paths");
+const TTS = require("../interfaces/tts");
+const Messages = require("../lib/messages");
 
 const _config = config.human;
 const TAG = "IO.Human";
@@ -360,10 +362,30 @@ async function processOutputQueue() {
     fulfillment: f
   });
 
-  // Process a Text
+  let processed = false;
+  const language = f.payload.language || session.getTranslateTo();
+
+  // Process an Audio
   try {
     if (f.audio) {
       await Play.playVoice(f.audio);
+      processed = true;
+    }
+  } catch (err) {
+    console.error(TAG, err);
+  }
+
+  // Process a text (should be deprecated)
+  try {
+    if (f.text && !processed) {
+      const audioFile = await TTS.getAudioFile(
+        `${Messages.get("deprecated_using_fulfillment_text")}${f.text}`,
+        {
+          language
+        }
+      );
+      await Play.playVoice(audioFile);
+      processed = true;
     }
   } catch (err) {
     console.error(TAG, err);
@@ -373,6 +395,7 @@ async function processOutputQueue() {
   try {
     if (f.payload.url) {
       await sendURL(f.payload.url);
+      processed = true;
     }
   } catch (err) {
     console.error(TAG, err);
@@ -381,7 +404,7 @@ async function processOutputQueue() {
   // Process a Music object
   try {
     if (f.payload.music) {
-      // TODO
+      processed = false;
     }
   } catch (err) {
     console.error(TAG, err);
@@ -390,7 +413,7 @@ async function processOutputQueue() {
   // Process a Video object
   try {
     if (f.payload.video) {
-      // TODO
+      processed = false;
     }
   } catch (err) {
     console.error(TAG, err);
@@ -400,6 +423,7 @@ async function processOutputQueue() {
   try {
     if (f.payload.audio) {
       await sendAudio(f.payload.audio);
+      processed = true;
     }
   } catch (err) {
     console.error(TAG, err);
@@ -409,6 +433,7 @@ async function processOutputQueue() {
   try {
     if (f.payload.voice) {
       await sendVoice(f.payload.voice);
+      processed = true;
     }
   } catch (err) {
     console.error(TAG, err);
@@ -417,10 +442,20 @@ async function processOutputQueue() {
   // Process a Document Object
   try {
     if (f.payload.document) {
-      // TODO
+      processed = false;
     }
   } catch (err) {
     console.error(TAG, err);
+  }
+
+  if (!processed) {
+    const audioFile = await TTS.getAudioFile(
+      Messages.get("error_payload_not_recognized"),
+      {
+        language
+      }
+    );
+    await Play.playVoice(audioFile);
   }
 
   // Reset current processed item and shift that item in the queue
