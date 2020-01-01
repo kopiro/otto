@@ -1,5 +1,4 @@
 const Events = require("events");
-const Translator = require("../lib/translator");
 const Data = require("../data/index");
 const config = require("../config");
 const { timeout } = require("../helpers");
@@ -34,53 +33,18 @@ function isIdDriverUp(driverId) {
 }
 
 /**
- * Transform a Fulfillment by making some edits based on the current session settings
- * @param  {Object} fulfillment Fulfillment object
- * @param  {Object} session Session object
- * @return {Promise<Object>}
- */
-async function fulfillmentTransformer(fulfillment, session) {
-  // If this fulfillment has already been transformed, let's skip this
-  if (fulfillment.payload && fulfillment.payload.transformerUid) {
-    return fulfillment;
-  }
-
-  // Ensure payload exists
-  fulfillment.payload = fulfillment.payload || {};
-
-  // Always translate fulfillment speech in the user language
-  if (fulfillment.fulfillmentText) {
-    if (session.getTranslateTo() !== config.language) {
-      const translatedText = await Translator.translate(
-        fulfillment.fulfillmentText,
-        session.getTranslateTo()
-      );
-      if (fulfillment.fulfillmentText !== translatedText) {
-        fulfillment.fulfillmentText = translatedText;
-        fulfillment.payload.translatedTo = session.getTranslateTo();
-      }
-    }
-  }
-
-  fulfillment.payload.transformerUid = config.uid;
-  fulfillment.payload.transformedAt = Date.now();
-  return fulfillment;
-}
-
-/**
  * Clean fulfillment for output
  * @param {Object} fulfillment
  * @return {Object}
  */
-function cleanFulfillmentForDriverOutput(fulfillment) {
-  return fulfillment;
-  // {
-  //   queryText: fulfillment.queryText,
-  //   text: fulfillment.fulfillmentText,
-  //   audio: fulfillment.audio,
-  //   error: fulfillment.error,
-  //   payload: fulfillment.payload
-  // };
+function fulfillmentTransformerForDriverOutput(fulfillment) {
+  return {
+    queryText: fulfillment.queryText,
+    text: fulfillment.fulfillmentText,
+    audio: fulfillment.audio,
+    error: fulfillment.error,
+    payload: fulfillment.payload
+  };
 }
 
 /**
@@ -149,8 +113,7 @@ async function output(fulfillment, session) {
   }
 
   // Transform and clean fulfillment
-  fulfillment = await fulfillmentTransformer(fulfillment, session);
-  fulfillment = cleanFulfillmentForDriverOutput(fulfillment);
+  fulfillment = fulfillmentTransformerForDriverOutput(fulfillment);
 
   // Call the output
   try {
@@ -473,6 +436,5 @@ module.exports = {
   registerSession,
   getSession,
   writeLogForSession,
-  fulfillmentTransformer,
   start
 };

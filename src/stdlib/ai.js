@@ -351,7 +351,6 @@ async function bodyParser(body, session, localParser = true) {
     });
 
     let audio;
-
     if (localParser) {
       audio = outputAudioParser(body, session);
     }
@@ -451,14 +450,47 @@ function attachToServer() {
     }
 
     let fulfillment = await bodyParser(req.body, session, false);
-    fulfillment = await IOManager.fulfillmentTransformer(fulfillment, session);
-
+    fulfillment = await fulfillmentTransformerForSession(fulfillment, session);
     fulfillment = fulfillmentTransformerForWebhookOutput(fulfillment, session);
 
     console.info(TAG, "[WEBHOOK] output fulfillment", fulfillment);
 
     return res.json(fulfillment);
   });
+}
+
+/**
+ * Transform a Fulfillment by making some edits based on the current session settings
+ * @param  {Object} fulfillment Fulfillment object
+ * @param  {Object} session Session object
+ * @return {Promise<Object>}
+ */
+async function fulfillmentTransformerForSession(fulfillment, session) {
+  // If this fulfillment has already been transformed, let's skip this
+  if (fulfillment.payload && fulfillment.payload.transformerUid) {
+    return fulfillment;
+  }
+
+  // Ensure payload exists
+  fulfillment.payload = fulfillment.payload || {};
+
+  // Always translate fulfillment speech in the user language
+  if (fulfillment.fulfillmentText) {
+    if (session.getTranslateTo() !== config.language) {
+      const translatedText = await Translator.translate(
+        fulfillment.fulfillmentText,
+        session.getTranslateTo()
+      );
+      if (fulfillment.fulfillmentText !== translatedText) {
+        fulfillment.fulfillmentText = translatedText;
+        fulfillment.payload.translatedTo = session.getTranslateTo();
+      }
+    }
+  }
+
+  fulfillment.payload.transformerUid = config.uid;
+  fulfillment.payload.transformedAt = Date.now();
+  return fulfillment;
 }
 
 /**
@@ -481,6 +513,7 @@ async function processInput({ params = {}, session }) {
     console.warn("Neither { text, event } in params is not null");
   }
 
+  fulfillment = await fulfillmentTransformerForSession(fulfillment, session);
   return IOManager.output(fulfillment, session);
 }
 
