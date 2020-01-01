@@ -257,7 +257,8 @@ function outputAudioParser(body, session) {
   // If the voice language doesn't match the session language, skip
   if (
     audioLanguageCode !== session.getTranslateTo() ||
-    audioLanguageCode !== body.queryResult.webhookPayload.language
+    (body.queryResult.webhookPayload.language &&
+      audioLanguageCode !== body.queryResult.webhookPayload.language)
   ) {
     console.warn(
       TAG,
