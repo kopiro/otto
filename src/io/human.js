@@ -214,7 +214,15 @@ function registerEORInterval() {
  */
 function registerOutputQueueInterval() {
   if (queueIntv) clearInterval(queueIntv);
-  queueIntv = setInterval(processOutputQueue, 1000);
+  queueIntv = setInterval(async () => {
+    try {
+      await processOutputQueue();
+    } catch (err) {
+      throw err;
+    }
+    queueProcessingItem = null;
+    queueOutput.shift();
+  }, 1000);
 }
 
 /**
@@ -457,10 +465,6 @@ async function processOutputQueue() {
     );
     await Play.playVoice(audioFile);
   }
-
-  // Reset current processed item and shift that item in the queue
-  queueProcessingItem = null;
-  queueOutput.shift();
 
   if (f.payload.feedback) {
     emitter.emit("thinking");

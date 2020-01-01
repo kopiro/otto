@@ -4,7 +4,7 @@ const md5 = require("md5");
 const fs = require("fs");
 const config = require("../config");
 const { cacheDir } = require("../paths");
-const { uuid, getLocaleFromLanguageCode } = require("../helpers");
+const { uuid } = require("../helpers");
 
 const _config = config.gcloud.tts;
 const TAG = "GCTTS";
@@ -43,11 +43,9 @@ function loadCacheRegistry() {
  * @param {String} file File containing the audio
  */
 async function setCacheForAudio(text, opt, file) {
-  return new Promise(resolve => {
-    const key = md5(text + JSON.stringify(opt));
-    cache.audio[key] = file;
-    fs.writeFile(CACHE_REGISTRY_FILE, JSON.stringify(cache), resolve);
-  });
+  const key = md5(text + JSON.stringify(opt));
+  cache.audio[key] = file;
+  return fs.writeFileSync(CACHE_REGISTRY_FILE, JSON.stringify(cache));
 }
 
 /**
@@ -69,12 +67,15 @@ function getCacheForAudio(text, opt) {
  * Retrieve the voice title based on language and gender
  * @param {*} opt
  */
-async function getVoice(opt) {
-  const locale = getLocaleFromLanguageCode(opt.language);
+async function getVoice({ language: languageCode, gender }) {
+  const response = await client.listVoices({ languageCode });
+  const { ssmlGender, name } = response[0].voices.filter(
+    voice => voice.ssmlGender.toLowerCase() === gender.toLowerCase()
+  )[0];
   return {
-    languageCode: locale,
-    name: `${locale}-Wavenet-A`,
-    ssmlGender: opt.gender.toUpperCase()
+    languageCode,
+    ssmlGender,
+    name
   };
 }
 
@@ -83,54 +84,45 @@ async function getVoice(opt) {
  * @param {String} text Sentence
  * @param {Object} opt
  */
-function getAudioFile(text, opt = {}) {
-  return new Promise(async (resolve, reject) => {
-    _.defaults(opt, {
-      gender: _config.gender,
-      language: config.language
-    });
-
-    // If file has been downloaded, just serve it
-    let file = getCacheForAudio(text, opt);
-    if (file) {
-      return resolve(file);
-    }
-
-    // Find the voice title by options
-    const voice = await getVoice(opt);
-    const isSSML = /<speak>/.test(text);
-
-    const input = {};
-    if (isSSML) input.ssml = text;
-    else input.text = text;
-
-    // Call the API
-    return client.synthesizeSpeech(
-      {
-        input,
-        voice,
-        audioConfig: {
-          audioEncoding: "MP3"
-        }
-      },
-      (err, data) => {
-        if (err) {
-          return reject(err);
-        }
-
-        file = `${cacheDir}/${TAG}_${uuid()}.mp3`;
-        return fs.writeFile(file, data.audioContent, "binary", err2 => {
-          if (err2) {
-            return reject(err2);
-          }
-
-          // Save this entry onto cache
-          setCacheForAudio(text, opt, file);
-          return resolve(file);
-        });
-      }
-    );
+async function getAudioFile(text, opt = {}) {
+  _.defaults(opt, {
+    gender: _config.gender,
+    language: config.language
   });
+
+  if (text.length >= 5000) {
+    console.warn(TAG, "truncating text to 5000 chars");
+    text = text.substr(0, 5000);
+  }
+
+  // If file has been downloaded, just serve it
+  const cachedFile = getCacheForAudio(text, opt);
+  if (cachedFile) {
+    return cachedFile;
+  }
+
+  // Find the voice title by options
+  const voice = await getVoice(opt);
+
+  const isSSML = /<speak>/.test(text);
+  const input = { [isSSML ? "ssml" : "text"]: text };
+
+  // Call the API
+  const data = await client.synthesizeSpeech({
+    input,
+    voice,
+    audioConfig: {
+      audioEncoding: "MP3"
+    }
+  });
+
+  const file = `${cacheDir}/${TAG}_${uuid()}.mp3`;
+  fs.writeFileSync(file, data[0].audioContent, "binary");
+
+  // Save this entry onto cache
+  setCacheForAudio(text, opt, file);
+
+  return file;
 }
 
 loadCacheRegistry();

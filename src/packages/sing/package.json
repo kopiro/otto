@@ -1,0 +1,10 @@
+{
+  "name": "otto-sing",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "musicmatch": "^0.3.2",
+    "musixmatch-node": "^1.0.2"
+  }
+}

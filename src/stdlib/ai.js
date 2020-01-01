@@ -250,10 +250,14 @@ function outputAudioParser(body, session) {
   // If there's no audio in the response, skip
   if (!body.outputAudio) return null;
 
+  const audioLanguageCode = body.outputAudioConfig.synthesizeSpeechConfig.voice.name.substr(
+    0,
+    2
+  );
   // If the voice language doesn't match the session language, skip
   if (
-    body.outputAudioConfig.synthesizeSpeechConfig.voice.name.substr(0, 2) !==
-    session.getTranslateTo()
+    audioLanguageCode !== session.getTranslateTo() ||
+    audioLanguageCode !== body.queryResult.webhookPayload.language
   ) {
     console.warn(
       TAG,
@@ -336,8 +340,7 @@ async function bodyParser(body, session) {
       audio: outputAudioParser(body, session),
       queryText: body.queryResult.queryText,
       fulfillmentText: body.queryResult.fulfillmentText,
-      payload: body.queryResult.payload,
-      languageCode: session.getTranslateTo()
+      payload: body.queryResult.payload
     };
   }
 
@@ -346,8 +349,7 @@ async function bodyParser(body, session) {
   console.info(TAG, "Using ai_unhandled followupEventInput");
   return {
     followupEventInput: {
-      name: "ai_unhandled",
-      languageCode: session.getTranslateTo()
+      name: "ai_unhandled"
     }
   };
 }

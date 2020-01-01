@@ -5,6 +5,7 @@ const request = require("request");
 const fs = require("fs");
 const md5 = require("md5");
 const config = require("./config");
+const Translator = require("./lib/translator");
 const { cacheDir } = require("./paths");
 
 /**
@@ -246,6 +247,12 @@ function replaceVariablesInStrings(text, data) {
   return textCopy;
 }
 
+async function getLanguageCodeFromLanguageLongString(languageLongString) {
+  const languages = await Translator.getLanguages(config.language);
+  const langObject = _.findWhere(languages, { name: languageLongString });
+  return langObject && langObject.code;
+}
+
 module.exports = {
   getAiNameRegex,
   valueProtoToJson,
@@ -260,5 +267,6 @@ module.exports = {
   uuid,
   timeout,
   rand,
-  replaceVariablesInStrings
+  replaceVariablesInStrings,
+  getLanguageCodeFromLanguageLongString
 };
