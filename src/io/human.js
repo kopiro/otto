@@ -384,12 +384,9 @@ async function processOutputQueue() {
   // Process a text (should be deprecated)
   try {
     if (f.text && !processed) {
-      const audioFile = await TTS.getAudioFile(
-        `${Messages.get("deprecated_using_fulfillment_text")}${f.text}`,
-        {
-          language
-        }
-      );
+      const audioFile = await TTS.getAudioFile(f.text, {
+        language
+      });
       await Play.playVoice(audioFile);
       processed = true;
     }

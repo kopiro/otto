@@ -10,9 +10,9 @@ module.exports = async function main({ queryResult }, session) {
   const { parameters: p, fulfillmentMessages } = queryResult;
 
   // Handle special parameter
-  if (p.translate_both) {
-    p.translate_from = p.translate_both;
-    p.translate_to = p.translate_both;
+  if (p.translateBoth) {
+    p.translateFrom = p.translateBoth;
+    p.translateTo = p.translateBoth;
   }
 
   // Get languages every time the original language (IT),
@@ -21,9 +21,9 @@ module.exports = async function main({ queryResult }, session) {
   // So we should request the languages in Italiano to match "inglese"
   const languages = await Translator.getLanguages(config.language);
 
-  for (const x of ["from", "to"]) {
-    const langReq = p[`translate_${x}`];
-    if (langReq == null) continue;
+  for (const x of ["From", "To"]) {
+    const langReq = p[`translate${x}`];
+    if (!langReq) continue;
 
     let prefLang = {
       distance: 999,
@@ -47,8 +47,11 @@ module.exports = async function main({ queryResult }, session) {
     }
 
     let langToSet = prefLang.code;
-    if (langToSet === config.language) langToSet = null;
-    session[`translate_${x}`] = langToSet;
+    if (langToSet === config.language) {
+      langToSet = null;
+    }
+
+    session[`translate${x}`] = langToSet;
   }
 
   await session.save();
@@ -57,13 +60,26 @@ module.exports = async function main({ queryResult }, session) {
     .name;
   const to = _.findWhere(languages, { code: session.getTranslateTo() }).name;
 
+  let fulfillmentText;
+
   if (session.getTranslateFrom() === session.getTranslateTo()) {
-    return extractWithPattern(
+    fulfillmentText = extractWithPattern(
       fulfillmentMessages,
       "[].payload.text.single"
     ).replace("$_language", from);
+  } else {
+    fulfillmentText = extractWithPattern(
+      fulfillmentMessages,
+      "[].payload.text.plural"
+    )
+      .replace("$_from", from)
+      .replace("$_to", to);
   }
-  return extractWithPattern(fulfillmentMessages, "[].payload.text.plural")
-    .replace("$_from", from)
-    .replace("$_to", to);
+
+  return {
+    fulfillmentText,
+    payload: {
+      language: session.getTranslateTo()
+    }
+  };
 };

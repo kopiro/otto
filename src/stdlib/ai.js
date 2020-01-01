@@ -115,7 +115,7 @@ function actionErrorTransformer(body, err) {
  * @returns
  */
 // eslint-disable-next-line no-unused-vars
-async function actionResultToFulfillment(actionResult, session) {
+function actionResultToFulfillment(actionResult, session) {
   // If an action return a string, wrap into an object
   if (typeof actionResult === "string") {
     actionResult = {
@@ -149,17 +149,23 @@ async function actionResultToFulfillment(actionResult, session) {
  */
 async function generatorResolver(body, generator, session) {
   console.info(TAG, "Using generator resolver", generator);
+
   try {
-    for await (let generatorFulfillment of generator) {
-      generatorFulfillment = await actionResultToFulfillment(
-        generatorFulfillment,
+    for await (let fulfillment of generator) {
+      console.log("fulfillment", fulfillment);
+      fulfillment = actionResultToFulfillment(fulfillment, session);
+      fulfillment = await fulfillmentTransformerForSession(
+        fulfillment,
         session
       );
-      await IOManager.output(generatorFulfillment, session);
+
+      console.log(TAG, "generator fulfillment", fulfillment);
+      await IOManager.output(fulfillment, session);
     }
   } catch (err) {
     console.error(TAG, "error while executing action generator", err);
-    const fulfillment = await actionErrorTransformer(body, err);
+    let fulfillment = actionErrorTransformer(body, err);
+    fulfillment = await fulfillmentTransformerForSession(fulfillment, session);
     await IOManager.output(fulfillment, session);
   }
 }
@@ -248,10 +254,10 @@ function outputAudioParser(body, session) {
   // If there's no audio in the response, skip
   if (!body.outputAudio) return null;
 
-  const audioLanguageCode = body.outputAudioConfig.synthesizeSpeechConfig.voice.name.substr(
-    0,
-    2
-  );
+  const audioLanguageCode = body.outputAudioConfig.synthesizeSpeechConfig.voice.name
+    .substr(0, 2)
+    .toLowerCase();
+
   // If the voice language doesn't match the session language, skip
   if (
     audioLanguageCode !== session.getTranslateTo() ||
@@ -314,13 +320,17 @@ async function bodyParser(body, session, localParser = true) {
     return webhookResponseToFulfillment(body, session);
   }
 
-  // body.queryResult.parameters = structProtoToJson(body.queryResult.parameters);
-  // body.queryResult.fulfillmentMessages = body.queryResult.fulfillmentMessages.map(
-  //   e => ({
-  //     payload: structProtoToJson(e.payload)
-  //   })
-  // );
-  // body.queryResult.payload = structProtoToJson(body.queryResult.payload);
+  if (localParser) {
+    // When not coming from webhook, these structures are wrapped
+    body.queryResult.parameters = structProtoToJson(
+      body.queryResult.parameters
+    );
+    body.queryResult.fulfillmentMessages = body.queryResult.fulfillmentMessages.map(
+      e => ({
+        payload: structProtoToJson(e.payload)
+      })
+    );
+  }
 
   // If we have an "action", call the package with the specified name
   if (body.queryResult.action) {

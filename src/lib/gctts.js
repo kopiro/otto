@@ -15,6 +15,7 @@ const CACHE_REGISTRY_FILE = `${cacheDir}/${TAG}.json`;
 const client = new GCTTS.TextToSpeechClient();
 
 let cache = {};
+const voices = {};
 
 /**
  * Load the cache registry from file
@@ -68,15 +69,28 @@ function getCacheForAudio(text, opt) {
  * @param {*} opt
  */
 async function getVoice({ language: languageCode, gender }) {
+  const cacheKey = languageCode + gender;
+
+  if (voices[cacheKey]) {
+    return voices[cacheKey];
+  }
+
   const response = await client.listVoices({ languageCode });
-  const { ssmlGender, name } = response[0].voices.filter(
+  const availableVoices = response[0].voices.filter(
     voice => voice.ssmlGender.toLowerCase() === gender.toLowerCase()
-  )[0];
-  return {
-    languageCode,
-    ssmlGender,
-    name
-  };
+  );
+
+  if (availableVoices.length > 0) {
+    const { ssmlGender, name } = availableVoices[0];
+    voices[cacheKey] = {
+      languageCode,
+      ssmlGender,
+      name
+    };
+    return voices[cacheKey];
+  }
+
+  return getVoice({ language: config.language, gender });
 }
 
 /**
