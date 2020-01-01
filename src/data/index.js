@@ -25,23 +25,23 @@ const IOQueueSchema = new Schema({
   driver: String,
   params: Schema.Types.Mixed,
   fulfillment: Schema.Types.Mixed,
-  io_id: String
+  ioId: String
 });
 IOQueueSchema.plugin(autopopulate);
 const IOQueue = mongoose.model("io_queue", IOQueueSchema);
 
 const SchedulerSchema = new Schema({
   session: { type: String, ref: "session", autopopulate: true },
-  manager_uid: String,
-  program: String,
-  program_data: Schema.Types.Mixed,
+  managerUid: String,
+  programName: String,
+  programArgs: Schema.Types.Mixed,
   yearly: String, // set "dayofyear hour:minute"
   monthly: String, // set "dayofmonth hour:minute"
   weekly: String, // set "dayofweek hour:minute"
   daily: String, // set "hour:minute"
   hourly: String, // set minute
-  on_tick: Boolean, // every second
-  on_date: String // on a date
+  onTick: Boolean, // every second
+  onDate: String // on a date
 });
 SchedulerSchema.plugin(autopopulate);
 const Scheduler = mongoose.model("scheduler", SchedulerSchema);

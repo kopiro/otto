@@ -45,27 +45,25 @@ async function fulfillmentTransformer(fulfillment, session) {
     return fulfillment;
   }
 
-  // Merge all objects from fulfillmentMessages into payload
+  // Ensure payload exists
   fulfillment.payload = fulfillment.payload || {};
 
   // Always translate fulfillment speech in the user language
   if (fulfillment.fulfillmentText) {
     if (session.getTranslateTo() !== config.language) {
-      console.log(
-        TAG,
-        `Translating text (${
-          fulfillment.fulfillmentText
-        }) to language: ${session.getTranslateTo()}`
-      );
-      fulfillment.fulfillmentText = await Translator.translate(
+      const translatedText = await Translator.translate(
         fulfillment.fulfillmentText,
         session.getTranslateTo()
       );
-      fulfillment.payload.translatedTo = session.getTranslateTo();
+      if (fulfillment.fulfillmentText !== translatedText) {
+        fulfillment.fulfillmentText = translatedText;
+        fulfillment.payload.translatedTo = session.getTranslateTo();
+      }
     }
   }
 
   fulfillment.payload.transformerUid = config.uid;
+  fulfillment.payload.transformedAt = Date.now();
   return fulfillment;
 }
 
@@ -75,13 +73,14 @@ async function fulfillmentTransformer(fulfillment, session) {
  * @return {Object}
  */
 function cleanFulfillmentForDriverOutput(fulfillment) {
-  return {
-    queryText: fulfillment.queryText,
-    text: fulfillment.fulfillmentText,
-    audio: fulfillment.audio,
-    error: fulfillment.error,
-    payload: fulfillment.payload
-  };
+  return fulfillment;
+  // {
+  //   queryText: fulfillment.queryText,
+  //   text: fulfillment.fulfillmentText,
+  //   audio: fulfillment.audio,
+  //   error: fulfillment.error,
+  //   payload: fulfillment.payload
+  // };
 }
 
 /**
@@ -117,7 +116,7 @@ async function output(fulfillment, session) {
   // If this driver is not up & running for this configuration,
   // the item could be handled by another platform that has that driver configured,
   // so we'll enqueue it.
-  if (!isIdDriverUp(session.io_id)) {
+  if (!isIdDriverUp(session.ioId)) {
     console.info(TAG, "putting in IO queue because driver is not UP", {
       session,
       fulfillment
@@ -125,7 +124,7 @@ async function output(fulfillment, session) {
 
     const ioQueue = new Data.IOQueue({
       session: session.id,
-      io_id: session.io_id,
+      ioId: session.ioId,
       fulfillment
     });
     await ioQueue.save();
@@ -135,18 +134,18 @@ async function output(fulfillment, session) {
 
   // Redirect to another driver if is configured to do that
   // by simplying replacing the driver
-  const newDriver = config.ioRedirectMap[session.io_driver];
+  const newDriver = config.ioRedirectMap[session.ioDriver];
   if (newDriver) {
     console.info(
       TAG,
-      `<${session.io_driver}> redirect output to <${newDriver}>`
+      `<${session.ioDriver}> redirect output to <${newDriver}>`
     );
-    session.io_driver = newDriver;
+    session.ioDriver = newDriver;
   }
 
-  const driver = enabledDrivers[session.io_driver];
+  const driver = enabledDrivers[session.ioDriver];
   if (!driver) {
-    throw new Error(`Driver ${session.io_driver} is not enabled`);
+    throw new Error(`Driver ${session.ioDriver} is not enabled`);
   }
 
   // Transform and clean fulfillment
@@ -167,7 +166,7 @@ async function output(fulfillment, session) {
   // - handle a kind of output, process it and blocking the next accessory
   // - handle a kind of output, process it but don't block the next accessory
   // - do not handle and forward to next accessory
-  const accessories = enabledAccesories[session.io_driver] || [];
+  const accessories = enabledAccesories[session.ioDriver] || [];
   for (const accessory of accessories) {
     const handleType = accessory.canHandleOutput(fulfillment, session);
 
@@ -389,9 +388,9 @@ async function registerSession({
     console.info(TAG, `a new session model registered: ${sessionId}`);
     session = await new Data.Session({
       _id: sessionIdComposite,
-      io_id: ioId,
-      io_driver: ioDriver,
-      io_data: ioData,
+      ioId,
+      ioDriver,
+      ioData,
       alias,
       settings: {
         updated_at: Date.now()
@@ -399,7 +398,7 @@ async function registerSession({
       pipe: {
         updated_at: Date.now()
       },
-      server_settings: config.uid
+      serverSettings: config.uid
     }).save();
   }
 
@@ -411,7 +410,7 @@ async function registerSession({
  */
 async function processQueue() {
   const qitem = await Data.IOQueue.findOne({
-    io_id: {
+    ioId: {
       $in: configuredDriversId
     }
   });

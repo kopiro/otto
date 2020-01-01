@@ -78,7 +78,7 @@ function getDFSessionPath(sessionId) {
  * @returns
  */
 function actionErrorTransformer(body, err) {
-  const f = {};
+  const fulfillment = {};
 
   if (err.message) {
     const errMessage = typeof err === "string" ? err : err.message;
@@ -91,22 +91,20 @@ function actionErrorTransformer(body, err) {
     if (textInPayload) {
       // If an error occurs, try to intercept this error
       // in the fulfillmentMessages that comes from DialogFlow
-      f.fulfillmentText = textInPayload;
+      let text = textInPayload;
       if (err.data) {
-        f.fulfillmentText = replaceVariablesInStrings(
-          f.fulfillmentText,
-          err.data
-        );
+        text = replaceVariablesInStrings(text, err.data);
       }
+      fulfillment.fulfillmentText = text;
     } else {
-      f.fulfillmentText = err.message.replace(/_/g, " ");
+      fulfillment.fulfillmentText = err.message.replace(/_/g, " ");
     }
   }
 
   // Add anyway the complete error
-  f.payload = { error: err };
+  fulfillment.payload = { error: err };
 
-  return f;
+  return fulfillment;
 }
 
 /**
@@ -257,8 +255,10 @@ function outputAudioParser(body, session) {
   // If the voice language doesn't match the session language, skip
   if (
     audioLanguageCode !== session.getTranslateTo() ||
-    (body.queryResult.webhookPayload.language &&
-      audioLanguageCode !== body.queryResult.webhookPayload.language)
+    (body.queryResult &&
+      body.queryResult.webhookPayload &&
+      body.queryResult.webhookPayload.language &&
+      body.queryResult.webhookPayload.language !== audioLanguageCode)
   ) {
     console.warn(
       TAG,
@@ -292,7 +292,6 @@ async function webhookResponseToFulfillment(body, session) {
 
   return {
     audio: outputAudioParser(body, session),
-    queryText: queryResult.queryText,
     fulfillmentText: queryResult.fulfillmentText,
     payload: queryResult.webhookPayload
       ? structProtoToJson(queryResult.webhookPayload)
@@ -306,8 +305,8 @@ async function webhookResponseToFulfillment(body, session) {
  * @param {Object} session Session
  * @returns {Promise<Object>}
  */
-async function bodyParser(body, session) {
-  if (config.mimicOfflineServer) {
+async function bodyParser(body, session, localParser = true) {
+  if (localParser && config.mimicOfflineServer) {
     console.error(TAG, "Miming an offline webhook server");
   }
 
@@ -337,11 +336,32 @@ async function bodyParser(body, session) {
       body.queryResult
     );
 
+    const {
+      queryText,
+      fulfillmentText,
+      fulfillmentMessages,
+      parameters
+    } = body.queryResult;
+
+    // Merge all objects from fulfillmentMessages into payload
+    // TODO: what if multiple first-level keys are the same?
+    let payload = {};
+    fulfillmentMessages.forEach(message => {
+      payload = { ...payload, ...message.payload };
+    });
+
+    let audio;
+
+    if (localParser) {
+      audio = outputAudioParser(body, session);
+    }
+
     return {
-      audio: outputAudioParser(body, session),
-      queryText: body.queryResult.queryText,
-      fulfillmentText: body.queryResult.fulfillmentText,
-      payload: body.queryResult.payload
+      audio,
+      parameters,
+      queryText,
+      fulfillmentText,
+      payload
     };
   }
 
@@ -430,7 +450,7 @@ function attachToServer() {
       await session.save();
     }
 
-    let fulfillment = await bodyParser(req.body, session);
+    let fulfillment = await bodyParser(req.body, session, false);
     fulfillment = await IOManager.fulfillmentTransformer(fulfillment, session);
 
     fulfillment = fulfillmentTransformerForWebhookOutput(fulfillment, session);

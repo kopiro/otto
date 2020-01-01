@@ -215,11 +215,15 @@ function registerEORInterval() {
 function registerOutputQueueInterval() {
   if (queueIntv) clearInterval(queueIntv);
   queueIntv = setInterval(async () => {
+    if (queueOutput.length === 0) return;
+    if (queueProcessingItem != null) return;
+
     try {
       await processOutputQueue();
     } catch (err) {
       throw err;
     }
+
     queueProcessingItem = null;
     queueOutput.shift();
   }, 1000);
@@ -343,12 +347,6 @@ function processEOR() {
  * Process the item in the output queue
  */
 async function processOutputQueue() {
-  // Do not process if no item in the queue
-  if (queueOutput.length === 0) return;
-
-  // Do not process if already processing
-  if (queueProcessingItem != null) return;
-
   // Always ensure that there is the session
   const session = await registerInternalSession();
 
@@ -431,16 +429,6 @@ async function processOutputQueue() {
   try {
     if (f.payload.audio) {
       await sendAudio(f.payload.audio);
-      processed = true;
-    }
-  } catch (err) {
-    console.error(TAG, err);
-  }
-
-  // Process a Voice object
-  try {
-    if (f.payload.voice) {
-      await sendVoice(f.payload.voice);
       processed = true;
     }
   } catch (err) {

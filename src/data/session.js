@@ -8,19 +8,19 @@ const { Schema } = mongoose;
 
 const Session = new Schema({
   _id: String,
-  io_driver: String,
-  io_id: String,
-  io_data: Schema.Types.Mixed,
-  server_settings: {
+  ioDriver: String,
+  ioId: String,
+  ioData: Schema.Types.Mixed,
+  serverSettings: {
     type: String,
     ref: "server_settings",
     autopopulate: true
   },
   settings: Schema.Types.Mixed,
-  translate_from: String,
-  translate_to: String,
+  translateFrom: String,
+  translateTo: String,
   alias: String,
-  is_admin: Boolean,
+  isAdmin: Boolean,
   pipe: Schema.Types.Mixed
 });
 
@@ -31,10 +31,10 @@ Session.plugin(autopopulate);
  * @param {Object} data
  */
 Session.methods.saveServerSettings = async function saveServerSettings(data) {
-  let s = this.server_settings;
+  let s = this.serverSettings;
   if (s == null) {
     s = new ServerSettings({
-      _id: this.populated("server_settings") || this._id
+      _id: this.populated("serverSettings") || this._id
     });
   }
   s.data = { ...s.data, ...data };
@@ -46,7 +46,7 @@ Session.methods.saveServerSettings = async function saveServerSettings(data) {
  * Retrieve the IO driver module
  */
 Session.methods.getIODriver = function getIODriver() {
-  return IOManager.getDriver(this.io_driver);
+  return IOManager.getDriver(this.ioDriver);
 };
 
 /**
@@ -75,14 +75,14 @@ Session.methods.saveSettings = async function saveSettings(data) {
  * Get the language to translate from
  */
 Session.methods.getTranslateFrom = function getTranslateFrom() {
-  return this.translate_from || config.language;
+  return this.translateFrom || config.language;
 };
 
 /**
  * Get the language to translate to
  */
 Session.methods.getTranslateTo = function getTranslateTo() {
-  return this.translate_to || config.language;
+  return this.translateTo || config.language;
 };
 
 module.exports = Session;

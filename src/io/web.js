@@ -58,7 +58,7 @@ function configureSocket(socket) {
         ioData: e
       });
 
-      session.io_data_web = {
+      session.ioDataWeb = {
         socket,
         e
       };
@@ -103,7 +103,7 @@ function startInput() {
  * @param {*} session The user session
  */
 async function output(f, session) {
-  const request = session.io_data_web;
+  const request = session.ioDataWeb;
   if (request == null) {
     throw new Error("Invalid data found in session");
   }
