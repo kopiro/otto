@@ -349,7 +349,7 @@ async function registerSession({
 
   if (session == null) {
     console.info(TAG, `a new session model registered: ${sessionId}`);
-    session = await new Data.Session({
+    session = new Data.Session({
       _id: sessionIdComposite,
       ioId,
       ioDriver,
@@ -362,7 +362,8 @@ async function registerSession({
         updated_at: Date.now()
       },
       serverSettings: config.uid
-    }).save();
+    });
+    await session.save();
   }
 
   return session;
@@ -393,7 +394,6 @@ async function processQueue() {
   console.dir(qitem, { depth: 2 });
 
   qitem.remove();
-  // @ts-ignore
   output(qitem.fulfillment, qitem.session);
 
   return qitem;
