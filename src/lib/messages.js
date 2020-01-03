@@ -1,11 +1,11 @@
 const util = require("util");
-const { baseDir } = require("../paths");
 const { rand } = require("../helpers");
+
+const library = require(`../../messages.json`);
 
 const TAG = "Messages";
 
 // TODO : refactor
-const library = require(`${baseDir}/messages.json`) || {};
 
 function getRaw(key) {
   const str = library[key];

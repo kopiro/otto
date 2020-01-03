@@ -1,3 +1,5 @@
+/* eslint-disable import/no-dynamic-require */
+/* eslint-disable global-require */
 const Moment = require("../lib/moment");
 const Data = require("../data");
 const config = require("../config");
@@ -7,7 +9,7 @@ const FORMAT = "YYYY-MM-DD HH:mm:ss";
 
 let started = false;
 
-async function getJobs(time) {
+async function getJobs(time, conditions = []) {
   return Data.Scheduler.find({
     managerUid: config.uid,
     $or: [
@@ -18,23 +20,16 @@ async function getJobs(time) {
       { hourly: time.format("mm:ss", { trim: false }) },
       { minutely: time.format("ss", { trim: false }) },
       { onDate: time.format(FORMAT) },
-      { onTick: true }
+      { onTick: true },
+      ...conditions
     ]
   });
 }
 
-async function getJobsOnBoot() {
-  return Data.Scheduler.find({
-    managerUid: config.uid,
-    onBoot: true
-  });
-}
-
-async function runJobs(jobs) {
-  if (jobs.length === 0) return;
-
-  console.log(TAG, Date.now(), "Jobs to run", jobs);
+async function runJobs(jobs = []) {
   for (const job of jobs) {
+    console.log(TAG, Date.now(), "running job", job);
+
     try {
       const programExecutable = require(`../scheduler/${job.programName}`);
       const result = await programExecutable(job);
@@ -46,16 +41,15 @@ async function runJobs(jobs) {
 }
 
 async function tick() {
-  const now = Moment();
-  const jobs = await getJobs(now);
+  const jobs = await getJobs(Moment());
   runJobs(jobs);
 }
 
-async function startPolling() {
+async function start() {
   if (started) return;
   started = true;
 
-  const jobs = await getJobsOnBoot();
+  const jobs = await getJobs(Moment(), [{ onBoot: true }]);
   runJobs(jobs);
 
   console.info(TAG, "polling started");
@@ -63,5 +57,5 @@ async function startPolling() {
 }
 
 module.exports = {
-  startPolling
+  start
 };

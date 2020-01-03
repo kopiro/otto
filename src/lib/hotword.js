@@ -19,6 +19,110 @@ const _config = config.snowboy;
 
 const PMDL_DIR = path.join(storageDir, "hotwords-pmdl");
 
+async function recognizeFromMic() {
+  const text = await SR.recognize(Rec.start());
+  Rec.stop();
+  return text;
+}
+
+async function sendMessage(text) {
+  return Play.playVoice(await TTS.getAudioFile(text));
+}
+
+async function sendWavFiles(opt) {
+  return new Promise((resolve, reject) => {
+    const pmdlFile = path.join(PMDL_DIR, opt.hotword, `${uuid()}.pmdl`);
+
+    console.info(TAG, "sendWav", opt);
+
+    request
+      .post(
+        {
+          url: "https://snowboy.kitt.ai/api/v1/train/",
+          method: "POST",
+          headers: {
+            "content-type": "application/json"
+          },
+          body: JSON.stringify({
+            token: config.snowboy.apiKey,
+            name: opt.speech,
+            language: config.language,
+            gender: opt.genderId,
+            microphone: "mic",
+            voice_samples: opt.wavFiles.map(wavFile => ({
+              wave: fs.readFileSync(wavFile).toString("base64")
+            }))
+          })
+        },
+        (err, response, body) => {
+          if (response.statusCode >= 400) {
+            console.error(TAG, body);
+          }
+        }
+      )
+      .on("response", async response => {
+        if (response.statusCode >= 400) {
+          await sendMessage(
+            Messages.get("io_hotword_training_failed", opt.speech)
+          );
+          return reject();
+        }
+
+        return response
+          .pipe(fs.createWriteStream(pmdlFile))
+          .on("close", () => resolve(pmdlFile));
+      });
+  });
+}
+
+function listenForHotwordTraining() {
+  return new Promise(resolve => {
+    const wavFile = path.join(tmpDir, `hotwords-wavs-${uuid()}.wav`);
+    const wavStream = fs.createWriteStream(wavFile);
+
+    Rec.start({
+      time: 3
+    });
+    Rec.getStream().pipe(wavStream);
+    Rec.getStream().on("end", () => resolve(wavFile));
+  });
+}
+
+async function startTraining(hotword) {
+  const { speech } = _config.hotwords[hotword];
+
+  await sendMessage(Messages.get("io_hotword_training_tutorial", speech));
+
+  if (genderId == null) {
+    const gendersMap = Messages.getRaw("io_hotword_training_genders");
+    while (genderId == null) {
+      await sendMessage(Messages.get("io_hotword_training_ask_gender"));
+      const gender = cleanText(await recognizeFromMic());
+      genderId = gendersMap[gender];
+    }
+  }
+
+  const wavFiles = [];
+  for (let i = 0; i < 3; i++) {
+    await sendMessage(Messages.get("io_hotword_training_start"));
+    try {
+      wavFiles.push(await listenForHotwordTraining());
+    } catch (err) {
+      console.error(TAG, err);
+      i--;
+    }
+  }
+
+  await sendWavFiles({
+    speech,
+    hotword,
+    gender: genderId,
+    wavFiles
+  });
+
+  await sendMessage(Messages.get("io_hotword_training_success", speech));
+}
+
 async function getModels(forceTraining = false) {
   return new Promise(async (resolve, reject) => {
     if (Snowboy == null) {
@@ -80,110 +184,6 @@ async function getModels(forceTraining = false) {
     const models = await getModels();
     return resolve(models);
   });
-}
-
-async function sendMessage(text) {
-  return Play.playVoice(await TTS.getAudioFile(text));
-}
-
-function listenForHotwordTraining() {
-  return new Promise(resolve => {
-    const wavFile = path.join(tmpDir, `hotwords-wavs-${uuid()}.wav`);
-    const wavStream = fs.createWriteStream(wavFile);
-
-    Rec.start({
-      time: 3
-    });
-    Rec.getStream().pipe(wavStream);
-    Rec.getStream().on("end", () => resolve(wavFile));
-  });
-}
-
-async function recognizeFromMic() {
-  const text = await SR.recognize(Rec.start());
-  Rec.stop();
-  return text;
-}
-
-async function sendWavFiles(opt) {
-  return new Promise((resolve, reject) => {
-    const pmdlFile = path.join(PMDL_DIR, opt.hotword, `${uuid()}.pmdl`);
-
-    console.info(TAG, "sendWav", opt);
-
-    request
-      .post(
-        {
-          url: "https://snowboy.kitt.ai/api/v1/train/",
-          method: "POST",
-          headers: {
-            "content-type": "application/json"
-          },
-          body: JSON.stringify({
-            token: config.snowboy.apiKey,
-            name: opt.speech,
-            language: config.language,
-            gender: opt.genderId,
-            microphone: "mic",
-            voice_samples: opt.wavFiles.map(wavFile => ({
-              wave: fs.readFileSync(wavFile).toString("base64")
-            }))
-          })
-        },
-        (err, response, body) => {
-          if (response.statusCode >= 400) {
-            console.error(TAG, body);
-          }
-        }
-      )
-      .on("response", async response => {
-        if (response.statusCode >= 400) {
-          await sendMessage(
-            Messages.get("io_hotword_training_failed", opt.speech)
-          );
-          return reject();
-        }
-
-        return response
-          .pipe(fs.createWriteStream(pmdlFile))
-          .on("close", () => resolve(pmdlFile));
-      });
-  });
-}
-
-async function startTraining(hotword) {
-  const { speech } = _config.hotwords[hotword];
-
-  await sendMessage(Messages.get("io_hotword_training_tutorial", speech));
-
-  if (genderId == null) {
-    const gendersMap = Messages.getRaw("io_hotword_training_genders");
-    while (genderId == null) {
-      await sendMessage(Messages.get("io_hotword_training_ask_gender"));
-      const gender = cleanText(await recognizeFromMic());
-      genderId = gendersMap[gender];
-    }
-  }
-
-  const wavFiles = [];
-  for (let i = 0; i < 3; i++) {
-    await sendMessage(Messages.get("io_hotword_training_start"));
-    try {
-      wavFiles.push(await listenForHotwordTraining());
-    } catch (err) {
-      console.error(TAG, err);
-      i--;
-    }
-  }
-
-  await sendWavFiles({
-    speech,
-    hotword,
-    gender: genderId,
-    wavFiles
-  });
-
-  await sendMessage(Messages.get("io_hotword_training_success", speech));
 }
 
 module.exports = { getModels, startTraining };

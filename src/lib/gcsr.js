@@ -11,22 +11,6 @@ const TAG = "GCSR";
 const SAMPLE_RATE = 16000;
 
 /**
- * Start a recognition stream
- * @param {Stream} stream
- * @param {Object} opt
- */
-function recognize(stream, opt = {}) {
-  return new Promise(async (resolve, reject) => {
-    stream.pipe(
-      createRecognizeStream(opt, (err, text) => {
-        if (err) return reject(err);
-        return resolve(text);
-      })
-    );
-  });
-}
-
-/**
  * Create a recognition stream
  * @param {Object} opt
  * @param {Function} callback
@@ -86,6 +70,42 @@ function createRecognizeStream(opt, callback) {
 }
 
 /**
+ * Recognize a Stream
+ */
+async function recognizeStream(stream, opt = {}) {
+  return new Promise((resolve, reject) => {
+    stream.pipe(
+      createRecognizeStream(
+        {
+          interimResults: false,
+          language: opt.language
+        },
+        (err, text) => {
+          if (err) return reject(err);
+          return resolve(text);
+        }
+      )
+    );
+  });
+}
+
+/**
+ * Start a recognition stream
+ * @param {Stream} stream
+ * @param {Object} opt
+ */
+function recognize(stream, opt = {}) {
+  return new Promise(async (resolve, reject) => {
+    stream.pipe(
+      createRecognizeStream(opt, (err, text) => {
+        if (err) return reject(err);
+        return resolve(text);
+      })
+    );
+  });
+}
+
+/**
  * Recognize a local audio file
  */
 async function recognizeFile(
@@ -122,26 +142,6 @@ async function recognizeBuffer(buffer, opt = {}) {
     convertFile: true,
     overrideFile: true,
     ...opt
-  });
-}
-
-/**
- * Recognize a Stream
- */
-async function recognizeStream(stream, opt = {}) {
-  return new Promise((resolve, reject) => {
-    stream.pipe(
-      createRecognizeStream(
-        {
-          interimResults: false,
-          language: opt.language
-        },
-        (err, text) => {
-          if (err) return reject(err);
-          return resolve(text);
-        }
-      )
-    );
   });
 }
 

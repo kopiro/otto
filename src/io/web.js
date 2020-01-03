@@ -12,7 +12,7 @@ const TAG = "IO.Web";
 const emitter = new Events.EventEmitter();
 
 /**
- * True when startInput has been called
+ * True when start has been called
  */
 let started = false;
 
@@ -85,7 +85,7 @@ function configureSocket(socket) {
 /**
  * Start the polling/webhook cycle
  */
-function startInput() {
+function start() {
   if (started) return;
   started = true;
 
@@ -139,7 +139,7 @@ async function output(f, session) {
 module.exports = {
   id: "web",
   onlyServerMode: true,
-  startInput,
+  start,
   output,
   emitter
 };

@@ -14,15 +14,11 @@
   "rules": {
     "prettier/prettier": "error",
     "no-console": "off",
-    "no-param-reassign": "off",
+    "no-param-reassign": "warn",
     "no-restricted-syntax": "off",
     "no-await-in-loop": "off",
-    "global-require": "off",
     "no-continue": "off",
-    "import/no-dynamic-require": "off",
     "no-underscore-dangle": "off",
-    "camelcase": "warn",
-    "no-use-before-define": "off",
     "no-plusplus": "off"
   }
 }

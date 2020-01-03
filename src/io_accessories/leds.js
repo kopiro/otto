@@ -6,9 +6,7 @@ const colorForRecognizing = [0, 255, 0];
 const colorForOutput = [255, 0, 0];
 const colorForThinking = [255, 255, 0];
 
-exports.canHandleOutput = () => false;
-
-exports.attach = io => {
+exports.startInput = io => {
   RaspiLeds.off();
 
   io.emitter.on("input", () => {

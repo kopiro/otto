@@ -22,6 +22,7 @@ if (!config.uid) {
 }
 
 if (config.raven && process.env.NODE_ENV === "production") {
+  // eslint-disable-next-line global-require
   require("raven")
     .config(config.raven)
     .install();
@@ -54,6 +55,6 @@ mongoose.connection.once("open", async () => {
   });
 
   if (config.scheduler) {
-    Scheduler.startPolling();
+    Scheduler.start();
   }
 });

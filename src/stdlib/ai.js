@@ -1,3 +1,5 @@
+/* eslint-disable import/no-dynamic-require */
+/* eslint-disable global-require */
 const DialogFlow = require("dialogflow");
 const Server = require("./server");
 const IOManager = require("./iomanager");
@@ -28,6 +30,40 @@ function parseContext(c, sessionId) {
     c.name = dfContextsClient.contextPath(_config.projectId, sessionId, c.name);
   }
   return c;
+}
+
+/**
+ * Transform a Fulfillment by making some edits based on the current session settings
+ * @param  {Object} fulfillment Fulfillment object
+ * @param  {Object} session Session object
+ * @return {Promise<Object>}
+ */
+async function fulfillmentTransformerForSession(fulfillment, session) {
+  // If this fulfillment has already been transformed, let's skip this
+  if (fulfillment.payload && fulfillment.payload.transformerUid) {
+    return fulfillment;
+  }
+
+  // Ensure payload exists
+  fulfillment.payload = fulfillment.payload || {};
+
+  // Always translate fulfillment speech in the user language
+  if (fulfillment.fulfillmentText) {
+    if (session.getTranslateTo() !== config.language) {
+      const translatedText = await Translator.translate(
+        fulfillment.fulfillmentText,
+        session.getTranslateTo()
+      );
+      if (fulfillment.fulfillmentText !== translatedText) {
+        fulfillment.fulfillmentText = translatedText;
+        fulfillment.payload.translatedTo = session.getTranslateTo();
+      }
+    }
+  }
+
+  fulfillment.payload.transformerUid = config.uid;
+  fulfillment.payload.transformedAt = Date.now();
+  return fulfillment;
 }
 
 /**
@@ -468,41 +504,6 @@ function attachToServer() {
     return res.json(fulfillment);
   });
 }
-
-/**
- * Transform a Fulfillment by making some edits based on the current session settings
- * @param  {Object} fulfillment Fulfillment object
- * @param  {Object} session Session object
- * @return {Promise<Object>}
- */
-async function fulfillmentTransformerForSession(fulfillment, session) {
-  // If this fulfillment has already been transformed, let's skip this
-  if (fulfillment.payload && fulfillment.payload.transformerUid) {
-    return fulfillment;
-  }
-
-  // Ensure payload exists
-  fulfillment.payload = fulfillment.payload || {};
-
-  // Always translate fulfillment speech in the user language
-  if (fulfillment.fulfillmentText) {
-    if (session.getTranslateTo() !== config.language) {
-      const translatedText = await Translator.translate(
-        fulfillment.fulfillmentText,
-        session.getTranslateTo()
-      );
-      if (fulfillment.fulfillmentText !== translatedText) {
-        fulfillment.fulfillmentText = translatedText;
-        fulfillment.payload.translatedTo = session.getTranslateTo();
-      }
-    }
-  }
-
-  fulfillment.payload.transformerUid = config.uid;
-  fulfillment.payload.transformedAt = Date.now();
-  return fulfillment;
-}
-
 /**
  * Process a fulfillment to a session
  * @param {Object} e

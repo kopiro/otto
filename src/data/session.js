@@ -21,7 +21,9 @@ const Session = new Schema({
   translateTo: String,
   alias: String,
   isAdmin: Boolean,
-  pipe: Schema.Types.Mixed
+  pipe: Schema.Types.Mixed,
+  fallbackSession: { type: String, ref: "session", autopopulate: true },
+  redirectSession: { type: String, ref: "session", autopopulate: true }
 });
 
 Session.plugin(autopopulate);

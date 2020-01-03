@@ -88,7 +88,7 @@ async function sendVoiceMessage(chatId, text, language, botOpt = {}) {
 /**
  * Start the polling/webhook cycle
  */
-function startInput() {
+function start() {
   if (started) return;
   started = true;
 
@@ -118,7 +118,7 @@ async function output(f, session) {
   });
 
   // This is the Telegram Chat ID used to respond to the user
-  const chatId = session.io_data.id;
+  const chatId = session.ioData.id;
   const language = f.payload.language || session.getTranslateTo();
 
   let botOpt = {};
@@ -436,7 +436,7 @@ bot.on("callback_query", e => {
 
 module.exports = {
   id: "telegram",
-  startInput,
+  start,
   output,
   emitter
 };

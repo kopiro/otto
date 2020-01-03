@@ -4,15 +4,15 @@ const Events = require("events");
 const Snowboy = require("snowboy");
 const Rec = require("../lib/rec");
 const Hotword = require("../lib/hotword");
-const URLManager = require("../lib/urlmanager");
 const config = require("../config");
 const IOManager = require("../stdlib/iomanager");
 const SR = require("../interfaces/sr");
 const Play = require("../lib/play");
 const { etcDir } = require("../paths");
 const TTS = require("../interfaces/tts");
-const Messages = require("../lib/messages");
+const { timeout } = require("../helpers");
 
+// eslint-disable-next-line no-unused-vars
 const _config = config.human;
 const TAG = "IO.Human";
 const emitter = new Events.EventEmitter();
@@ -25,27 +25,17 @@ let isRecognizing = false;
 /**
  * Stream object created by GCP-SR
  */
-let recognizeStream;
+let recognizeStream = null;
 
 /**
  * Stream object created by Snowboy
  */
-let hotwordDetectorStream;
-
-/**
- * Queue used for output
- */
-let queueOutput = [];
-
-/**
- * ID for setInterval used to check the queue
- */
-let queueIntv;
+let hotwordDetectorStream = null;
 
 /**
  * Current item processed by the queue
  */
-let queueProcessingItem;
+let currentItem = null;
 
 /**
  * When the wake word has been detected,
@@ -81,51 +71,11 @@ let eorTick = -1;
 let hotwordModels = null;
 
 /**
- * Bind external events to internal procedures
- */
-function bindEvents() {
-  emitter.on("wake", wake);
-  emitter.on("stop", stop);
-}
-
-/**
- * Send an audio directly to the speaker
- */
-async function sendAudio({ uri }) {
-  if (uri) {
-    await Play.playURI(uri);
-  }
-}
-
-/**
- * Send an audio directly to the speaker
- */
-async function sendVoice({ uri }) {
-  if (uri) {
-    await Play.playVoice(uri);
-  }
-}
-
-/**
- * Send a URL
- * @param {String} url
- */
-async function sendURL(url) {
-  await URLManager.open(url);
-}
-
-/**
  * Stop current output by killing processed and flushing the queue
  */
 function stopOutput() {
   // Kill any audible
   Play.kill();
-
-  // Reset the current processed items
-  queueProcessingItem = null;
-
-  // Empty the queue
-  queueOutput = [];
 }
 
 /**
@@ -202,6 +152,19 @@ async function registerInternalSession() {
 }
 
 /**
+ * Process the EOR ticker
+ */
+function processEOR() {
+  if (eorTick === 0) {
+    console.info(TAG, "timeout exceeded for conversation");
+    eorTick = -1;
+    destroyRecognizeStream();
+  } else if (eorTick > 0) {
+    eorTick--;
+  }
+}
+
+/**
  * Register the EOR setInterval ID
  */
 function registerEORInterval() {
@@ -210,37 +173,16 @@ function registerEORInterval() {
 }
 
 /**
- * Register the Queue setInterval ID
- */
-function registerOutputQueueInterval() {
-  if (queueIntv) clearInterval(queueIntv);
-  queueIntv = setInterval(async () => {
-    if (queueOutput.length === 0) return;
-    if (queueProcessingItem != null) return;
-
-    try {
-      await processOutputQueue();
-    } catch (err) {
-      throw err;
-    }
-
-    queueProcessingItem = null;
-    queueOutput.shift();
-  }, 1000);
-}
-
-/**
  * Wake the bot and listen for intents
  */
 async function wake() {
   const session = await registerInternalSession();
-  const language = await session.getTranslateFrom();
+  const language = session.getTranslateFrom();
 
   console.info(TAG, "wake");
   emitter.emit("woken");
 
-  // Stop any previous output
-  stopOutput();
+  stopOutput(); // Stop any previous output
 
   // Play a recognizable sound
   Play.playURI(`${etcDir}/wake.wav`);
@@ -331,33 +273,12 @@ function createHotwordDetectorStream({ session }) {
 }
 
 /**
- * Process the EOR ticker
+ *
+ * @param {Object} f
+ * @param {Object} session
  */
-function processEOR() {
-  if (eorTick === 0) {
-    console.info(TAG, "timeout exceeded for conversation");
-    eorTick = -1;
-    destroyRecognizeStream();
-  } else if (eorTick > 0) {
-    eorTick--;
-  }
-}
-
-/**
- * Process the item in the output queue
- */
-async function processOutputQueue() {
-  // Always ensure that there is the session
-  const session = await registerInternalSession();
-
-  // Grab the first item in the queue
-  const f = queueOutput[0];
-
-  // Temporary disable timer variables
-  eorTick = -1;
-
-  // Set the current queue item to process
-  queueProcessingItem = f;
+async function _output(f, session) {
+  eorTick = -1; // Temporary disable timer variables
 
   // If there was a recognizer listener, stop it
   // to avoid that the bot listens to itself
@@ -394,61 +315,14 @@ async function processOutputQueue() {
     console.error(TAG, err);
   }
 
-  // Process a URL
-  try {
-    if (f.payload.url) {
-      await sendURL(f.payload.url);
-      processed = true;
-    }
-  } catch (err) {
-    console.error(TAG, err);
-  }
-
-  // Process a Music object
-  try {
-    if (f.payload.music) {
-      processed = false;
-    }
-  } catch (err) {
-    console.error(TAG, err);
-  }
-
-  // Process a Video object
-  try {
-    if (f.payload.video) {
-      processed = false;
-    }
-  } catch (err) {
-    console.error(TAG, err);
-  }
-
   // Process an Audio Object
   try {
     if (f.payload.audio) {
-      await sendAudio(f.payload.audio);
+      await Play.playAudio(f.payload.audio);
       processed = true;
     }
   } catch (err) {
     console.error(TAG, err);
-  }
-
-  // Process a Document Object
-  try {
-    if (f.payload.document) {
-      processed = false;
-    }
-  } catch (err) {
-    console.error(TAG, err);
-  }
-
-  if (!processed) {
-    const audioFile = await TTS.getAudioFile(
-      Messages.get("error_payload_not_recognized"),
-      {
-        language
-      }
-    );
-    await Play.playVoice(audioFile);
   }
 
   if (f.payload.feedback) {
@@ -464,59 +338,66 @@ async function processOutputQueue() {
   //   eorTick = EOR_MAX;
   //   createRecognizeStream({ session, language: fromLanguage });
   // }
+
+  return processed;
+}
+
+/**
+ * Process the item in the output queue
+ * @param {Object} f
+ * @param {Object} session
+ */
+async function output(f, session) {
+  // If we have a current processed item, let's wait until it's null
+  while (currentItem) {
+    console.log(TAG, "waiting 500ms until agent is not speaking", currentItem);
+    // eslint-disable-next-line no-await-in-loop
+    await timeout(500);
+  }
+
+  let result;
+  let err;
+
+  currentItem = f;
+
+  try {
+    result = await _output(f, session);
+  } catch (e) {
+    err = e;
+  }
+
+  currentItem = null;
+  if (err) {
+    throw err;
+  }
+
+  return result;
 }
 
 /**
  * Start the session
  */
-async function startInput() {
-  console.debug(TAG, "start input", _config);
-
+async function start() {
   // Ensure session is present
   const session = await registerInternalSession();
 
-  // Preventive stop any other output
-  await stopOutput();
+  stopOutput(); // Preventive stop any other output
+  Rec.start(); // Power on the mic
 
   // Start all timers
   hotwordModels = await Hotword.getModels();
-
-  // Power on the mic
-  Rec.start();
-
-  // Start all timers
   createHotwordDetectorStream({ session });
-  registerOutputQueueInterval();
   registerEORInterval();
+
+  Play.playURI(`${etcDir}/boot.wav`, [], 1);
 }
 
-/**
- * Stop the mic
- */
-async function stopInput() {
-  Rec.stop();
-}
-
-/**
- * Output an item
- * @param {Object} f
- */
-async function output(f) {
-  // Ensure session is present
-  await registerInternalSession();
-
-  // Just push onto the queue, and let the queue process
-  queueOutput.push(f);
-}
-
-Play.playURI(`${etcDir}/boot.wav`, [], 1);
-
-bindEvents();
+emitter.on("wake", wake);
+emitter.on("stop", stop);
 
 module.exports = {
   id: "human",
-  startInput,
-  stopInput,
+  start,
   output,
   emitter
 };

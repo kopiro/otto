@@ -23,7 +23,7 @@ async function processSingle(sessionStr, event) {
   return output;
 }
 
-function run() {
+exports.start = () => {
   Server.routerListeners.post("/io_event", async (req, res) => {
     const list =
       typeof req.body === "object" && req.body.length > 1
@@ -42,6 +42,4 @@ function run() {
       return res.status(400).json({ error: err });
     }
   });
-}
-
-module.exports = { run };
+};

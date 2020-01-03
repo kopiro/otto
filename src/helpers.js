@@ -152,6 +152,18 @@ function extractWithPattern(input, pattern) {
   return extractWithPattern(input[_p], p.join("."));
 }
 
+const JSON_SIMPLE_TYPE_TO_PROTO_KIND_MAP = {
+  [typeof 0]: "numberValue",
+  [typeof ""]: "stringValue",
+  [typeof false]: "boolValue"
+};
+
+const JSON_SIMPLE_VALUE_KINDS = new Set([
+  "numberValue",
+  "stringValue",
+  "boolValue"
+]);
+
 function jsonValueToProto(value) {
   const valueProto = {};
 
@@ -163,6 +175,7 @@ function jsonValueToProto(value) {
     valueProto.listValue = { values: value.map(jsonValueToProto) };
   } else if (typeof value === "object") {
     valueProto.kind = "structValue";
+    // eslint-disable-next-line no-use-before-define
     valueProto.structValue = jsonToStructProto(value);
   } else if (typeof value in JSON_SIMPLE_TYPE_TO_PROTO_KIND_MAP) {
     const kind = JSON_SIMPLE_TYPE_TO_PROTO_KIND_MAP[typeof value];
@@ -182,24 +195,13 @@ function jsonToStructProto(json) {
   return { fields };
 }
 
-const JSON_SIMPLE_TYPE_TO_PROTO_KIND_MAP = {
-  [typeof 0]: "numberValue",
-  [typeof ""]: "stringValue",
-  [typeof false]: "boolValue"
-};
-
-const JSON_SIMPLE_VALUE_KINDS = new Set([
-  "numberValue",
-  "stringValue",
-  "boolValue"
-]);
-
 function structProtoToJson(proto) {
   if (!proto || !proto.fields) {
     return {};
   }
   const json = {};
   for (const k of Object.keys(proto.fields)) {
+    // eslint-disable-next-line no-use-before-define
     json[k] = valueProtoToJson(proto.fields[k]);
   }
   return json;
