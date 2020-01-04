@@ -12,6 +12,5 @@ const config = assignDeep(
   ),
   JSON.parse(fs.readFileSync(configFilePath, "utf8"))
 );
-console.info("Using config file :", configFilePath);
 
 module.exports = config;

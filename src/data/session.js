@@ -1,6 +1,5 @@
 const mongoose = require("mongoose");
 const autopopulate = require("mongoose-autopopulate");
-const IOManager = require("../stdlib/iomanager");
 const { ServerSettings } = require("./index");
 const config = require("../config");
 
@@ -23,7 +22,8 @@ const Session = new Schema({
   isAdmin: Boolean,
   pipe: Schema.Types.Mixed,
   fallbackSession: { type: String, ref: "session", autopopulate: true },
-  redirectSession: { type: String, ref: "session", autopopulate: true }
+  redirectSession: { type: String, ref: "session", autopopulate: true },
+  repeatModeSession: { type: String, ref: "session", autopopulate: true }
 });
 
 Session.plugin(autopopulate);
@@ -42,13 +42,6 @@ Session.methods.saveServerSettings = async function saveServerSettings(data) {
   s.data = { ...s.data, ...data };
   s.markModified("data");
   s.save();
-};
-
-/**
- * Retrieve the IO driver module
- */
-Session.methods.getIODriver = function getIODriver() {
-  return IOManager.getDriver(this.ioDriver);
 };
 
 /**

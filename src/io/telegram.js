@@ -111,6 +111,8 @@ function start() {
  * @param {*} session The user session
  */
 async function output(f, session) {
+  let processed = false;
+
   // Inform observers
   emitter.emit("output", {
     session,
@@ -153,6 +155,7 @@ async function output(f, session) {
       if (f.payload.includeVoice) {
         await sendVoiceMessage(chatId, f.text, language, botOpt);
       }
+      processed = true;
     }
   } catch (err) {
     console.error(TAG, err);
@@ -162,6 +165,7 @@ async function output(f, session) {
   try {
     if (f.payload.url) {
       await bot.sendMessage(chatId, f.payload.url, botOpt);
+      processed = true;
     }
   } catch (err) {
     console.error(TAG, err);
@@ -207,6 +211,7 @@ async function output(f, session) {
       } else if (f.payload.music.uri) {
         await sendMessage(chatId, f.payload.music.uri, botOpt);
       }
+      processed = true;
     }
   } catch (err) {
     console.error(TAG, err);
@@ -225,6 +230,7 @@ async function output(f, session) {
           botOpt
         );
       }
+      processed = true;
     }
   } catch (err) {
     console.error(TAG, err);
@@ -237,6 +243,7 @@ async function output(f, session) {
         await bot.sendChatAction(chatId, "upload_photo");
         await bot.sendPhoto(chatId, f.payload.image.uri, botOpt);
       }
+      processed = true;
     }
   } catch (err) {
     console.error(TAG, err);
@@ -249,6 +256,7 @@ async function output(f, session) {
         await bot.sendChatAction(chatId, "upload_audio");
         await bot.sendAudio(chatId, f.payload.audio.uri, botOpt);
       }
+      processed = true;
     }
   } catch (err) {
     console.error(TAG, err);
@@ -262,6 +270,7 @@ async function output(f, session) {
         const voiceFile = await Play.playVoiceToTempFile(f.payload.voice.uri);
         await bot.sendVoice(chatId, voiceFile, botOpt);
       }
+      processed = true;
     }
   } catch (err) {
     console.error(TAG, err);
@@ -274,6 +283,7 @@ async function output(f, session) {
         await bot.sendChatAction(chatId, "upload_document");
         await bot.sendDocument(chatId, f.payload.document.uri, botOpt);
       }
+      processed = true;
     }
   } catch (err) {
     console.error(TAG, err);
@@ -287,6 +297,7 @@ async function output(f, session) {
       callbackQuery[chatId] = callbackQuery[chatId] || {};
       callbackQuery[chatId][f.payload.game.id] = f.payload.game;
       await bot.sendGame(chatId, f.payload.game.id);
+      processed = true;
     }
   } catch (err) {
     console.error(TAG, err);
@@ -296,10 +307,13 @@ async function output(f, session) {
   try {
     if (f.payload.sticker) {
       await bot.sendSticker(chatId, rand(f.payload.sticker), botOpt);
+      processed = true;
     }
   } catch (err) {
     console.error(TAG, err);
   }
+
+  return processed;
 }
 
 bot.on("webhook_error", err => {

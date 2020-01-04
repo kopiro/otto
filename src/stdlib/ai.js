@@ -1,7 +1,6 @@
 /* eslint-disable import/no-dynamic-require */
 /* eslint-disable global-require */
 const DialogFlow = require("dialogflow");
-const Server = require("./server");
 const IOManager = require("./iomanager");
 const Translator = require("../lib/translator");
 const Data = require("../data/index");
@@ -38,7 +37,7 @@ function parseContext(c, sessionId) {
  * @param  {Object} session Session object
  * @return {Promise<Object>}
  */
-async function fulfillmentTransformerForSession(fulfillment, session) {
+async function fulfillmentTransformerForSession(fulfillment = {}, session) {
   // If this fulfillment has already been transformed, let's skip this
   if (fulfillment.payload && fulfillment.payload.transformerUid) {
     return fulfillment;
@@ -154,7 +153,7 @@ function actionErrorTransformer(body, err) {
 function actionResultToFulfillment(actionResult, session) {
   // If an action return a string, wrap into an object
   if (typeof actionResult === "string") {
-    actionResult = {
+    return {
       fulfillmentText: actionResult
     };
   }
@@ -187,22 +186,24 @@ async function generatorResolver(body, generator, session) {
   console.info(TAG, "Using generator resolver", generator);
 
   try {
-    for await (let fulfillment of generator) {
-      console.log("fulfillment", fulfillment);
-      fulfillment = actionResultToFulfillment(fulfillment, session);
-      fulfillment = await fulfillmentTransformerForSession(
-        fulfillment,
+    for await (const fulfillment of generator) {
+      await IOManager.output(
+        await fulfillmentTransformerForSession(
+          actionResultToFulfillment(fulfillment, session),
+          session
+        ),
         session
       );
-
-      console.log(TAG, "generator fulfillment", fulfillment);
-      await IOManager.output(fulfillment, session);
     }
   } catch (err) {
     console.error(TAG, "error while executing action generator", err);
-    let fulfillment = actionErrorTransformer(body, err);
-    fulfillment = await fulfillmentTransformerForSession(fulfillment, session);
-    await IOManager.output(fulfillment, session);
+    await IOManager.output(
+      await fulfillmentTransformerForSession(
+        actionErrorTransformer(body, err),
+        session
+      ),
+      session
+    );
   }
 }
 
@@ -216,10 +217,9 @@ async function actionResolver(actionName, body, session) {
   console.info(TAG, `calling action <${actionName}>`);
 
   try {
-    // Support for pkg
     const [pkgName, pkgAction = "index"] = actionName.split(".");
+    // TODO: avoid code injection
     const actionToCall = require(`../packages/${pkgName}/${pkgAction}`);
-
     if (!actionToCall) {
       throw new Error(`Invalid action name <${actionName}>`);
     }
@@ -258,7 +258,7 @@ async function textRequestTransformer(text, session) {
   // Remove the AI name in the text
   // text = text.replace(config.aiNameRegex, '');
   if (config.language !== session.getTranslateTo()) {
-    text = await Translator.translate(
+    return Translator.translate(
       text,
       config.language,
       session.getTranslateTo()
@@ -274,11 +274,12 @@ async function textRequestTransformer(text, session) {
  * @returns {Promise<Object>}
  */
 async function eventRequestTransformer(event, session) {
+  const _event = {};
   if (typeof event === "string") {
-    event = { name: event };
+    _event.name = event;
   }
-  event.languageCode = session.getTranslateFrom();
-  return event;
+  _event.languageCode = session.getTranslateFrom();
+  return _event;
 }
 
 /**
@@ -322,7 +323,7 @@ function outputAudioParser(body, session) {
  * @param {Object} body
  */
 async function webhookResponseToFulfillment(body, session) {
-  console.debug(TAG, "Using webhook response", body);
+  console.debug(TAG, "using webhook response");
 
   if (body.webhookStatus.code > 0) {
     return {
@@ -426,11 +427,11 @@ async function bodyParser(body, session, localParser = true) {
  * @param {Object} session Session
  * @returns {Promise<Object>}
  */
-async function textRequest(text, session) {
-  console.info(TAG, "text request:", text);
+async function textRequest(textArg, session) {
+  console.info(TAG, "text request:", textArg);
 
   // Transform the text to eventually translate it
-  text = await textRequestTransformer(text, session);
+  const text = await textRequestTransformer(textArg, session);
 
   // Instantiate the DialogFlow request
   const responses = await dfSessionClient.detectIntent({
@@ -451,11 +452,11 @@ async function textRequest(text, session) {
  * @param {Object} event Event object
  * @param {Object} session Session
  */
-async function eventRequest(event, session) {
-  console.info(TAG, "event request:", event);
+async function eventRequest(eventArg, session) {
+  console.info(TAG, "event request:", eventArg);
 
   // Transform the text to eventually translate it
-  event = await eventRequestTransformer(event, session);
+  const event = await eventRequestTransformer(eventArg, session);
 
   // Instantiate the DialogFlow request
   const responses = await dfSessionClient.detectIntent({
@@ -471,8 +472,8 @@ async function eventRequest(event, session) {
 /**
  * Attach the AI to the Server
  */
-function attachToServer() {
-  Server.routerApi.post("/fulfillment", async (req, res) => {
+function attachToServer(serverInstance) {
+  serverInstance.routerApi.post("/fulfillment", async (req, res) => {
     if (!req.body || Object.keys(req.body).length === 0) {
       return res.json({
         data: {
@@ -481,12 +482,12 @@ function attachToServer() {
       });
     }
 
-    console.info(TAG, "[WEBHOOK] received request", req.body);
+    console.info(TAG, "[WEBHOOK]", "received request", req.body);
 
     const sessionId = req.body.session.split("/").pop();
 
     // From AWH can came any session ID, so ensure it exists on our DB
-    let session = await IOManager.getSession(sessionId);
+    let session = await Data.Session.findById(sessionId);
     if (!session) {
       console.error(TAG, `creating a missing session ID with ${sessionId}`);
       session = new Data.Session({
@@ -495,11 +496,15 @@ function attachToServer() {
       await session.save();
     }
 
-    let fulfillment = await bodyParser(req.body, session, false);
-    fulfillment = await fulfillmentTransformerForSession(fulfillment, session);
-    fulfillment = fulfillmentTransformerForWebhookOutput(fulfillment, session);
+    const fulfillment = fulfillmentTransformerForWebhookOutput(
+      await fulfillmentTransformerForSession(
+        await bodyParser(req.body, session, false),
+        session
+      ),
+      session
+    );
 
-    console.info(TAG, "[WEBHOOK] output fulfillment", fulfillment);
+    console.info(TAG, "[WEBHOOK]", "output fulfillment", fulfillment);
 
     return res.json(fulfillment);
   });
@@ -508,24 +513,39 @@ function attachToServer() {
  * Process a fulfillment to a session
  * @param {Object} e
  * @param {Object} e.params Input params
+ * @param {String} e.params.text Text
+ * @param {String} e.params.event Event
  * @param {Object} e.session Session object
  */
 async function processInput({ params = {}, session }) {
+  const { text, event } = params;
   let fulfillment = null;
 
-  console.info(TAG, "output by input params", params);
+  if (session.repeatModeSession) {
+    console.info(TAG, "using repeatModeSession", session.repeatModeSession);
+    return IOManager.output(
+      await fulfillmentTransformerForSession(
+        { fulfillmentText: text },
+        session.repeatModeSession
+      ),
+      session.repeatModeSession
+    );
+  }
 
-  if (params.text) {
-    IOManager.writeLogForSession(params.text, session);
-    fulfillment = await textRequest(params.text, session);
-  } else if (params.event) {
-    fulfillment = await eventRequest(params.event, session);
+  IOManager.writeLogForSession(params, session);
+
+  if (text) {
+    fulfillment = await textRequest(text, session);
+  } else if (event) {
+    fulfillment = await eventRequest(event, session);
   } else {
     console.warn("Neither { text, event } in params is not null");
   }
 
-  fulfillment = await fulfillmentTransformerForSession(fulfillment, session);
-  return IOManager.output(fulfillment, session);
+  return IOManager.output(
+    await fulfillmentTransformerForSession(fulfillment, session),
+    session
+  );
 }
 
 module.exports = {

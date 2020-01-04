@@ -21,11 +21,11 @@ SessionInputSchema.plugin(autopopulate);
 const SessionInput = mongoose.model("session_input", SessionInputSchema);
 
 const IOQueueSchema = new Schema({
+  ioId: String,
   session: { type: String, ref: "session", autopopulate: true },
   driver: String,
   params: Schema.Types.Mixed,
-  fulfillment: Schema.Types.Mixed,
-  ioId: String
+  fulfillment: Schema.Types.Mixed
 });
 IOQueueSchema.plugin(autopopulate);
 const IOQueue = mongoose.model("io_queue", IOQueueSchema);

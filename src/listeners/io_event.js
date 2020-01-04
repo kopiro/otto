@@ -16,11 +16,10 @@ async function processSingle(sessionStr, event) {
     throw new Error("SESSION_NOT_FOUND");
   }
 
-  const output = await AI.processInput({
+  return AI.processInput({
     params: { event },
     session
   });
-  return output;
 }
 
 exports.start = () => {
