@@ -34,7 +34,7 @@
   },
   "dependencies": {
     "@google-cloud/speech": "^0.10.3",
-    "@google-cloud/storage": "^1.7.0",
+    "@google-cloud/storage": "^3.0.0",
     "@google-cloud/text-to-speech": "^0.3.0",
     "@google-cloud/translate": "^1.0.0",
     "assign-deep": "^1.0.1",
