@@ -267,7 +267,8 @@ function loadListeners() {
 async function writeLogForSession(params, session) {
   const sessionInput = new Data.SessionInput({
     ...params,
-    session: session.id
+    session: session.id,
+    createdAt: new Date()
   });
   await sessionInput.save();
   return sessionInput;

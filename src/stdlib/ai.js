@@ -8,6 +8,7 @@ const config = require("../config");
 const {
   structProtoToJson,
   extractWithPattern,
+  jsonToStructProto,
   replaceVariablesInStrings
 } = require("../helpers");
 
@@ -269,17 +270,22 @@ async function textRequestTransformer(text, session) {
 
 /**
  * Transform an event by making compatible
- * @param {Object} event Event string or object
+ * @param {Object} eventOrEventString Event string or object
  * @param {Object} session Session
  * @returns {Promise<Object>}
  */
-async function eventRequestTransformer(event, session) {
-  const _event = {};
-  if (typeof event === "string") {
-    _event.name = event;
+async function eventRequestTransformer(eventOrEventString, session) {
+  const event = {};
+  if (typeof eventOrEventString === "string") {
+    event.name = eventOrEventString;
+  } else {
+    Object.assign(event, eventOrEventString);
   }
-  _event.languageCode = session.getTranslateFrom();
-  return _event;
+  event.languageCode = session.getTranslateFrom();
+  if (event.parameters) {
+    event.parameters = jsonToStructProto(event.parameters);
+  }
+  return event;
 }
 
 /**
@@ -457,7 +463,6 @@ async function eventRequest(eventArg, session) {
 
   // Transform the text to eventually translate it
   const event = await eventRequestTransformer(eventArg, session);
-
   // Instantiate the DialogFlow request
   const responses = await dfSessionClient.detectIntent({
     session: getDFSessionPath(session.id),

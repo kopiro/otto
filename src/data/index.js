@@ -15,6 +15,8 @@ const ServerSettings = mongoose.model(
 
 const SessionInputSchema = new Schema({
   session: { type: String, ref: "session", autopopulate: true },
+  createdAt: Date,
+  event: Schema.Types.Mixed,
   text: String
 });
 SessionInputSchema.plugin(autopopulate);

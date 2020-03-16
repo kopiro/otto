@@ -38,7 +38,14 @@ exports.start = () => {
 
       return res.json({ status: output });
     } catch (err) {
-      return res.status(400).json({ error: err });
+      console.error("IO Event", err);
+      return res.status(400).json({
+        error: {
+          name: err.name,
+          message: err.message,
+          stack: err.stack
+        }
+      });
     }
   });
 };
