@@ -232,7 +232,7 @@ function valueProtoToJson(proto) {
 }
 
 function getAiNameRegex() {
-  return new RegExp(config.aiNameRegex, "g");
+  return new RegExp(config.aiNameRegex, "gi");
 }
 
 function replaceVariablesInStrings(text, data) {
