@@ -63,7 +63,7 @@
     "transmission": "^0.4.9",
     "underscore": "^1.9.1",
     "uuid": "^3.3.2",
-    "yargs": "^15.1.0"
+    "yargs": "^15.3.0"
   },
   "devDependencies": {
     "eslint": "^5.3.0",
