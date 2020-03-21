@@ -4,6 +4,7 @@ const diacriticsRemove = require("diacritics").remove;
 const request = require("request");
 const fs = require("fs");
 const md5 = require("md5");
+const path = require("path");
 const config = require("./config");
 const Translator = require("./lib/translator");
 const { cacheDir } = require("./paths");
@@ -100,16 +101,29 @@ function getLocalObjectFromURI(uri) {
   const TAG = "getLocalObjectFromURI";
 
   return new Promise((resolve, reject) => {
-    if (Buffer.isBuffer(uri) || Buffer.isBuffer(uri.buffer)) {
-      const localFile = `${cacheDir}/${uuid()}.${uri.extension || "unknown"}`;
-      fs.writeFileSync(localFile, uri.buffer || uri);
+    if (Buffer.isBuffer(uri)) {
+      const localFile = path.join(cacheDir, `${uuid()}.unknown`);
       console.debug(TAG, `writing buffer to local file <${localFile}>`);
+      fs.writeFileSync(localFile, uri);
+      return resolve(localFile);
+    }
+
+    if (uri.buffer) {
+      const localFile = path.join(
+        cacheDir,
+        `${uuid()}.${uri.extension || "unknown"}`
+      );
+      console.debug(TAG, `writing buffer to local file <${localFile}>`);
+      fs.writeFileSync(
+        localFile,
+        Buffer.from(uri.buffer.toString("hex"), "hex")
+      );
       return resolve(localFile);
     }
 
     if (/^https?:\/\//.test(uri)) {
       const extension = uri.split(".").pop() || "unknown";
-      const localFile = `${cacheDir}/${md5(uri)}.${extension}`;
+      const localFile = path.join(cacheDir, `${md5(uri)}.${extension}`);
       if (fs.existsSync(localFile)) {
         return resolve(localFile);
       }
