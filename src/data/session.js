@@ -23,6 +23,7 @@ const Session = new Schema({
   pipe: Schema.Types.Mixed,
   fallbackSession: { type: String, ref: "session", autopopulate: true },
   redirectSession: { type: String, ref: "session", autopopulate: true },
+  forwardSession: { type: String, ref: "session", autopopulate: true },
   repeatModeSession: { type: String, ref: "session", autopopulate: true }
 });
 
