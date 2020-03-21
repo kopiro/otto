@@ -51,6 +51,14 @@ async function handleInputVoice(session, e) {
 }
 
 /**
+ * Remove any XML tag
+ * @param {String} text
+ */
+function cleanOutputText(text) {
+  return text.replace(/<[^>]+>/g, "");
+}
+
+/**
  * Send a message to the user
  * @param {String} chatId Chat ID
  * @param {*} text Text to send
@@ -64,7 +72,7 @@ async function sendMessage(
   }
 ) {
   await bot.sendChatAction(chatId, "typing");
-  return bot.sendMessage(chatId, text, opt);
+  return bot.sendMessage(chatId, cleanOutputText(text), opt);
 }
 
 /**
