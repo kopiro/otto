@@ -81,13 +81,6 @@ async function output(fulfillment, session) {
     return output(fulfillment, session.redirectSession);
   }
 
-  if (session.forwardSession) {
-    console.info(TAG, "using forwardSession", session.forwardSession);
-    setImmediate(() => {
-      output(fulfillment, session.forwardSession);
-    });
-  }
-
   // If this driver is not up & running for this configuration,
   // the item could be handled by another platform that has that driver configured,
   // so we'll enqueue it.
@@ -111,6 +104,13 @@ async function output(fulfillment, session) {
   const driver = enabledDrivers[session.ioDriver];
   if (!driver) {
     throw new Error(`Driver <${session.ioDriver}> is not enabled`);
+  }
+
+  if (session.forwardSession) {
+    console.info(TAG, "using forwardSession", session.forwardSession);
+    setImmediate(() => {
+      output(fulfillment, session.forwardSession);
+    });
   }
 
   // Transform and clean fulfillment to be suitable for driver output
