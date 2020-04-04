@@ -156,25 +156,25 @@ Otherwise, if an action return multiple values _over time_, it should be a **Gen
 #### Promise/Async Function
 
 ```js
-exports.id = "hello.name";
-module.exports = async function main({ queryResult }, session) {
+export const id = "hello.name";
+export async function main({ queryResult }, session) {
   let { parameters: p, queryText } = queryResult;
   if (p.name == null) throw "Invalid parameters";
   return `Hello ${p.name}!`;
-};
+}
 ```
 
 #### Generator Function
 
 ```js
-exports.id = "count.to";
-module.exports = async function* main({ queryResult }, session) {
+export const id = "count.to";
+export async function* main({ queryResult }, session) {
   let { parameters: p, queryText } = queryResult;
   for (let i = 1; i < Number(p.to); i++) {
     await timeout(1000);
     yield String(i);
   }
-};
+}
 ```
 
 #### Naming

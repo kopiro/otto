@@ -1,4 +1,4 @@
-FROM node:8-alpine
+FROM node:12-alpine
 WORKDIR /app
 
 # Instal base packages
@@ -26,11 +26,19 @@ RUN apk add --no-cache imagemagick graphicsmagick
 RUN rm -rf /var/cache/apk/*
 
 # Install node modules
-COPY package.json yarn.lock ./
+COPY package.json yarn.lock tsConfig.json .eslintrc jest.config.js .prettierrc ./
 RUN yarn install
 
 # Copy my code
-COPY . .
+COPY ./src ./src
+COPY ./etc ./etc
 
-ENTRYPOINT [ "yarn", "prod" ]
+# Build code
+RUN yarn build:code
+
+# Clean src
+RUN rm -rf ./src
+
+ENTRYPOINT [ "yarn", "start:built" ]
+VOLUME /app/cache /app/log /app/keys /app/tmp /app/tmp-secret
 EXPOSE 80

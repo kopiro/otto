@@ -1,0 +1,8 @@
+{
+  "watch": ["./src"],
+  "ext": ".ts",
+  "ignore": [],
+  "inspect": 9229,
+  "exec": "node -r ts-node/register --inspect ./src",
+  "restartable": "rs"
+}

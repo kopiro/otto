@@ -1,0 +1,24 @@
+{
+  "responseId": "0a52742c-f2d5-4a8a-b5c8-24cef93cf0bc-9aa0e9ed",
+  "queryResult": {
+    "queryText": "ciao",
+    "parameters": { "me": "" },
+    "allRequiredParamsPresent": true,
+    "fulfillmentText": "Era da un po' che non mi scrivevi!",
+    "fulfillmentMessages": [{ "text": { "text": ["Era da un po' che non mi scrivevi!"] } }],
+    "outputContexts": [
+      {
+        "name": "projects/otto-ai/agent/sessions/ottodev-telegram-57217673/contexts/__system_counters__",
+        "parameters": { "no-input": 0, "no-match": 0, "me": "", "me.original": "" }
+      }
+    ],
+    "intent": {
+      "name": "projects/otto-ai/agent/intents/977de8ef-45ee-4815-99a3-c9e2767e432f",
+      "displayName": "smalltalk.greetings"
+    },
+    "intentDetectionConfidence": 1,
+    "languageCode": "it"
+  },
+  "originalDetectIntentRequest": { "payload": {} },
+  "session": "projects/otto-ai/agent/sessions/ottodev-telegram-57217673"
+}
