@@ -22,7 +22,7 @@
   },
   "server": {
     "domain": null,
-    "port": 8080
+    "port": 9000
   },
   "mongo": {
     "host": "db",
@@ -37,9 +37,8 @@
   },
   "telegram": {
     "token": null,
-    "useRouter": true,
     "options": {
-      "polling": true
+      "polling": false
     }
   },
   "human": {},
