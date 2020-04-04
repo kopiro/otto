@@ -17,8 +17,7 @@
     "test": "yarn lint && yarn unitest",
     "build:code": "tsc",
     "build:docker": "docker-compose build",
-    "deploy:docker": "docker-compose push",
-    "deploy": "y deploy:docker"
+    "deploy:docker": "docker-compose push"
   },
   "os": [
     "darwin",

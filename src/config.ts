@@ -3,10 +3,14 @@ import fs from "fs";
 
 let config: typeof defaultConfig = null;
 
-function parseLocalConfig(config, localConfig) {
+function parseLocalConfig(config, localConfig, path = "") {
   for (const [key, value] of Object.entries(localConfig)) {
-    if (typeof value === "object") {
-      parseLocalConfig(config[key], localConfig[key]);
+    if (typeof value === "object" && !Array.isArray(value)) {
+      if (key in config) {
+        parseLocalConfig(config[key], localConfig[key], `${path}.${key}`);
+      } else {
+        throw new Error(`Invalid key ${path}.${key} in config`);
+      }
     } else {
       config[key] = value;
     }
