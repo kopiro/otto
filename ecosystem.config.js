@@ -2,8 +2,8 @@ module.exports = {
   apps: [
     {
       name: "otto",
-      script: "./src/main.js",
-      node_args: ["--harmony", "--inspect"],
+      script: "./src/boot.ts",
+      node_args: ["--inspect", "-r", "ts-node/register"],
       instances: 1,
       autorestart: true,
       watch: ["./src"],

@@ -1,0 +1,101 @@
+{
+  "uid": "",
+  "aiNameRegex": "",
+  "mimicOfflineServer": false,
+  "ioDrivers": [],
+  "ioAccessoriesMap": {},
+  "listeners": [],
+  "scheduler": true,
+  "language": "en",
+  "raven": null,
+  "serverMode": false,
+  "audio": {
+    "encoding": "MP3",
+    "extension": "mp3"
+  },
+  "tts": {
+    "gender": "Female"
+  },
+  "play": {
+    "binary": "play",
+    "addArgs": []
+  },
+  "snowboy": {
+    "apiKey": null,
+    "hotwords": {
+      "wake": {
+        "sensitivity": 0.4,
+        "speech": "Hey otto"
+      }
+    }
+  },
+  "server": {
+    "domain": null,
+    "port": 8080
+  },
+  "mongo": {
+    "host": "db",
+    "port": 27017,
+    "database": "admin",
+    "user": "admin",
+    "password": null
+  },
+  "dialogflow": {
+    "projectId": null,
+    "environment": null
+  },
+  "telegram": {
+    "token": null,
+    "useRouter": true,
+    "options": {
+      "polling": true
+    }
+  },
+  "human": {},
+  "messenger": {
+    "token": null,
+    "verify": null,
+    "appId": null,
+    "appSecret": null,
+    "port": null
+  },
+  "facebook": {
+    "appId": null,
+    "secret": null,
+    "pageId": null,
+    "accessToken": null
+  },
+  "gcloud": {
+    "cseId": null,
+    "apiKey": null,
+    "storage": {
+      "bucket": null
+    }
+  },
+  "spotify": {
+    "clientId": null,
+    "clientSecret": null
+  },
+  "wolfram": {
+    "appId": null
+  },
+  "youtube": {
+    "apiKey": null
+  },
+  "musixmatch": {
+    "apiKey": null
+  },
+  "wunderground": {
+    "apiKey": null
+  },
+  "transmission": {
+    "host": null,
+    "port": null,
+    "username": null,
+    "password": null,
+    "ssl": false
+  },
+  "gpio_button": {
+    "pin": null
+  }
+}
