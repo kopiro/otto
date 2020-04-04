@@ -33,6 +33,11 @@ RUN yarn install
 COPY ./src ./src
 COPY ./etc ./etc
 
+# Install workspaces packages
+RUN yarn install
+
+RUN ls -la
+
 # Build code
 RUN yarn build:code
 
