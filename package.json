@@ -114,7 +114,6 @@
   },
   "optionalDependencies": {
     "apa102-spi": "0.0.3",
-    "rpio": "^0.9.19",
-    "snowboy": "^1.2.0"
+    "rpio": "^0.9.19"
   }
 }

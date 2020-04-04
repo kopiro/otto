@@ -20,15 +20,6 @@
     "binary": "play",
     "addArgs": []
   },
-  "snowboy": {
-    "apiKey": null,
-    "hotwords": {
-      "wake": {
-        "sensitivity": 0.4,
-        "speech": "Hey otto"
-      }
-    }
-  },
   "server": {
     "domain": null,
     "port": 8080

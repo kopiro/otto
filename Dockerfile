@@ -26,7 +26,7 @@ RUN apk add --no-cache imagemagick graphicsmagick
 RUN rm -rf /var/cache/apk/*
 
 # Install node modules
-COPY package.json yarn.lock tsConfig.json .eslintrc jest.config.js .prettierrc ./
+COPY package.json yarn.lock tsconfig.json .eslintrc jest.config.js .prettierrc ./
 RUN yarn install
 
 # Copy my code
