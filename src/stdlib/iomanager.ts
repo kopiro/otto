@@ -29,7 +29,6 @@ const IO_QUEUE_TIMEOUT = 1000;
 
 /**
  * Load the driver module
- *
  */
 export function getDriver(e: string): IODriverModule {
   return require(`../io/${e}`);
@@ -37,7 +36,6 @@ export function getDriver(e: string): IODriverModule {
 
 /**
  * Load the listener module
- *
  */
 export function getListener(e: string): IOListenerModule {
   return require(`../listeners/${e}`);
@@ -45,7 +43,6 @@ export function getListener(e: string): IOListenerModule {
 
 /**
  * Load the accessory module
- *
  */
 export function getAccessory(e: string): IOAccessoryModule {
   return require(`../io_accessories/${e}`);
@@ -53,8 +50,6 @@ export function getAccessory(e: string): IOAccessoryModule {
 
 /**
  * Clean fulfillment for output
- *
- *
  */
 export function fulfillmentTransformerForDriverOutput(fulfillment) {
   const { queryText, audio, error, payload } = fulfillment;
@@ -135,8 +130,6 @@ export async function output(fulfillment: Fulfillment, session: Session): Promis
     result = { error: err };
   }
 
-  console.log(TAG, "output result is", result);
-
   if (!result && session.fallbackSession) {
     console.info(TAG, "using fallbackSession", session.fallbackSession);
     return output(fulfillment, session.fallbackSession);
@@ -180,8 +173,6 @@ export function getDriversToLoad(): Array<string> {
 
 /**
  * Return an array of accessories strings to load for that driver
- *
- *
  */
 export function getAccessoriesToLoad(driver: string): Array<string> {
   if (process.env.OTTO_IO_ACCESSORIES) {
@@ -192,7 +183,6 @@ export function getAccessoriesToLoad(driver: string): Array<string> {
 
 /**
  * Return an array of listeners strings to load
- *
  */
 export function getListenersToLoad(): Array<string> {
   if (process.env.OTTO_IO_LISTENERS) {
@@ -283,8 +273,6 @@ export async function writeLogForSession(params: InputParams, session: Session) 
 
 /**
  * Load the session from ORM
- *
- *
  */
 export async function getSession(sessionId: string): Promise<Session> {
   const session = await Data.Session.findById(sessionId);

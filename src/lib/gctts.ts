@@ -3,7 +3,7 @@ import md5 from "md5";
 import fs from "fs";
 import config from "../config";
 import { cacheDir } from "../paths";
-import { uuid } from "../helpers";
+import { v4 as uuid } from "uuid";
 import { Language, Gender } from "../types";
 
 const TAG = "GCTTS";
@@ -88,8 +88,6 @@ async function getVoice(language: Language, gender: Gender) {
 
 /**
  * Download the audio file for that sentence and options
- *
- *
  */
 export async function getAudioFile(text: string, language: Language, gender: Gender) {
   // If file has been downloaded, just serve it

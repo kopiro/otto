@@ -1,11 +1,12 @@
 import md5 from "md5";
 import fs from "fs";
 import { promisify } from "util";
-import aws from "./aws";
+import { client as aws } from "./aws";
 import config from "../config";
 import { cacheDir } from "../paths";
-import { getLocaleFromLanguageCode, uuid } from "../helpers";
+import { getLocaleFromLanguageCode } from "../helpers";
 import { Voice } from "aws-sdk/clients/polly";
+import { v4 as uuid } from "uuid";
 
 const TAG = "Polly";
 
@@ -44,8 +45,6 @@ async function saveCacheRegistry() {
 
 /**
  * Set the cache item for the voice
- *
- *
  */
 async function setCacheForVoice(language: string, gender: string, voice: Voice) {
   getCacheRegistry().voices[md5(language + gender)] = voice;
@@ -54,7 +53,6 @@ async function setCacheForVoice(language: string, gender: string, voice: Voice) 
 
 /**
  * Get the cache for a voice
- *
  */
 function getCacheForVoice(opt: any) {
   return getCacheRegistry().voices[JSON.stringify(opt)];
@@ -62,9 +60,6 @@ function getCacheForVoice(opt: any) {
 
 /**
  * Set the cache item for the audio
- *
- *
- *
  */
 async function setCacheForAudio(text: string, language: string, gender: string, file: string) {
   const key = md5(text + language + gender);
@@ -74,9 +69,6 @@ async function setCacheForAudio(text: string, language: string, gender: string, 
 
 /**
  * Get the cache item for an audio
- *
- *
- *
  */
 function getCacheForAudio(text: string, language: string, gender: string) {
   const key = md5(text + language + gender);
@@ -89,7 +81,6 @@ function getCacheForAudio(text: string, language: string, gender: string) {
 
 /**
  * Retrieve the voice title based on language and gender
- *
  */
 function getVoice(language: string, gender: string): Promise<Voice> {
   return new Promise((resolve, reject) => {
@@ -128,8 +119,6 @@ function getVoice(language: string, gender: string): Promise<Voice> {
 
 /**
  * Download the audio file for that sentence and options
- *
- *
  */
 export function getAudioFile(text: string, language: string, gender: string) {
   return new Promise(async (resolve, reject) => {

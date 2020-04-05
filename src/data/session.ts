@@ -31,7 +31,6 @@ SessionSchema.plugin(autopopulate);
 
 /**
  * Save new settings in DB
- *
  */
 SessionSchema.methods.saveServerSettings = async (data: {}): Promise<boolean> => {
   let s = this.serverSettings;
@@ -47,7 +46,6 @@ SessionSchema.methods.saveServerSettings = async (data: {}): Promise<boolean> =>
 
 /**
  * Save new data in pipe in DB
- *
  */
 SessionSchema.methods.savePipe = async (data: {}): Promise<boolean> => {
   this.pipe = { ...(this.pipe || {}), ...data };
@@ -58,7 +56,6 @@ SessionSchema.methods.savePipe = async (data: {}): Promise<boolean> => {
 
 /**
  * Save new settings in DB
- *
  */
 SessionSchema.methods.saveSettings = async (data: {}): Promise<boolean> => {
   this.settings = { ...(this.settings || {}), ...data };

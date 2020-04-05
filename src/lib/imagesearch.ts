@@ -3,5 +3,6 @@ import config from "../config";
 
 const _config = config().gcloud;
 
-const _ = new ImagesClient(_config.cseId, _config.apiKey);
-export default _;
+const _client = new ImagesClient(_config.cseId, _config.apiKey);
+
+export const client = _client;

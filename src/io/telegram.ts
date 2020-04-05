@@ -10,7 +10,8 @@ import * as SR from "../interfaces/sr";
 import * as TTS from "../interfaces/tts";
 import * as Play from "../lib/play";
 import * as Proc from "../lib/proc";
-import { mimicHumanMessage, getAiNameRegex, uuid, rand } from "../helpers";
+import { v4 as uuid } from "uuid";
+import { mimicHumanMessage, getAiNameRegex, rand } from "../helpers";
 import { tmpDir } from "../paths";
 
 const _config = config().telegram;
@@ -26,8 +27,6 @@ export const id = "telegram";
 
 /**
  * Handle a voice input by recognizing the text
- *
- *
  */
 async function handleInputVoice(session: any, e) {
   return new Promise(async resolve => {
@@ -46,7 +45,6 @@ async function handleInputVoice(session: any, e) {
 
 /**
  * Remove any XML tag
- *
  */
 function cleanOutputText(text: string) {
   return text.replace(/<[^>]+>/g, "");
@@ -54,9 +52,6 @@ function cleanOutputText(text: string) {
 
 /**
  * Send a message to the user
- *
- *
- *
  */
 async function sendMessage(
   chatId: string,
@@ -71,10 +66,6 @@ async function sendMessage(
 
 /**
  * Send a voice message to the user
- *
- *
- *
- *
  */
 async function sendVoiceMessage(chatId: string, text: string, language: string, botOpt: any = {}) {
   const sentences = mimicHumanMessage(text);
@@ -109,8 +100,6 @@ export function start() {
 
 /**
  * Output an object to the user
- *
- *
  */
 export async function output(f, session) {
   let processed = false;

@@ -2,7 +2,8 @@ import path from "path";
 import { spawn } from "child_process";
 import config from "../config";
 import { tmpDir } from "../paths";
-import { getLocalObjectFromURI, uuid } from "../helpers";
+import { getLocalObjectFromURI } from "../helpers";
+import { v4 as uuid } from "uuid";
 
 const _config = config().play;
 
@@ -22,8 +23,6 @@ export function kill() {
 
 /**
  * Play an item
- *
- *
  */
 export async function playURI(uri, addArgs = [], level = 0, program = null) {
   return new Promise(async (resolve, reject) => {
@@ -50,7 +49,6 @@ export async function playURI(uri, addArgs = [], level = 0, program = null) {
 
 /**
  * Play an item using voice effects
- *
  */
 export async function playVoice(uri) {
   return playURI(uri, _config.addArgs);
@@ -58,7 +56,6 @@ export async function playVoice(uri) {
 
 /**
  * Play an item using voice effects to a temporary file
- *
  */
 export async function playVoiceToFile(uri, file) {
   await playURI(uri, [file].concat(_config.addArgs), 0, "sox");
@@ -67,7 +64,6 @@ export async function playVoiceToFile(uri, file) {
 
 /**
  * Play an item using voice effects to a temporary file
- *
  */
 export function playVoiceToTempFile(uri) {
   const file = path.join(tmpDir, `${uuid()}.mp3`);

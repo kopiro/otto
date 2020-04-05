@@ -3,6 +3,6 @@
   "ext": ".ts",
   "ignore": [],
   "inspect": 9229,
-  "exec": "node -r ts-node/register --inspect ./src",
+  "exec": "node -r ts-node/register -r dotenv/config --inspect ./src",
   "restartable": "rs"
 }

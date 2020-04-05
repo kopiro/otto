@@ -32,6 +32,7 @@ export interface Fulfillment {
     transformerUid?: string;
     transformedAt?: number;
     translatedTo?: Language;
+    translateFrom?: Language;
     error?: CustomError;
     handledByGenerator?: boolean;
   };

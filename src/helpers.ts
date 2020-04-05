@@ -1,14 +1,13 @@
-import uuidMod from "uuid";
 import { remove as diacriticsRemove } from "diacritics";
 import request from "request";
 import fs from "fs";
 import md5 from "md5";
 import path from "path";
-
 import config from "./config";
-import * as Translator from "./lib/translator";
+import * as Translator from "./interfaces/translator";
 import { cacheDir } from "./paths";
 import { Language, Locale } from "./types";
+import { v4 as uuid } from "uuid";
 
 /**
  * Pick a random element in an array
@@ -22,13 +21,6 @@ export function rand<T>(e: Array<T> | T): T {
  */
 export function timeout(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-/**
- * Generate a UUID v4
- */
-export function uuid(): string {
-  return uuidMod.v4();
 }
 
 /**

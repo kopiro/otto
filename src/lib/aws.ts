@@ -1,3 +1,5 @@
-import _ from "aws-sdk";
-_.config.loadFromPath(process.env.AWS_KEY_PATH);
-export default _;
+import awsSDK from "aws-sdk";
+
+awsSDK.config.loadFromPath(process.env.AWS_KEY_PATH);
+
+export const client = awsSDK;

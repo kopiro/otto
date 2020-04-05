@@ -7,20 +7,20 @@ const TAG = "GCSR";
 
 export const SAMPLE_RATE = 16000;
 
+const client = new speech.SpeechClient();
+
 /**
  * Create a recognition stream
- *
- *
  */
 export function createRecognizeStream(
   language: string,
   callback: (err: any, text?: string) => void,
   interimResults = true,
   singleUtterance = true,
-): any {
+) {
   let resolved = false;
 
-  const stream = speech.streamingRecognize({
+  const stream = client.streamingRecognize({
     singleUtterance,
     interimResults,
     config: {
@@ -84,8 +84,6 @@ export async function recognizeStream(stream: fs.ReadStream, language: string): 
 
 /**
  * Start a recognition stream
- *
- *
  */
 export function recognize(stream: any, language: string): Promise<string> {
   return new Promise(async (resolve, reject) => {

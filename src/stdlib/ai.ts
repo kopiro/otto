@@ -1,6 +1,6 @@
 import { v2 as dialogflow } from "dialogflow";
 import * as IOManager from "./iomanager";
-import * as Translator from "../lib/translator";
+import * as Translator from "../interfaces/translator";
 import config from "../config";
 import { extractWithPattern, replaceVariablesInStrings } from "../helpers";
 import {
@@ -46,15 +46,19 @@ export async function fulfillmentTransformerForSession(
   // Always translate fulfillment speech in the user language
   if (fulfillment.fulfillmentText) {
     if (session.getTranslateTo() !== config().language) {
-      const translatedText = await Translator.translate(
+      fulfillment.fulfillmentText = await Translator.translate(
         fulfillment.fulfillmentText,
         session.getTranslateTo(),
         config().language,
       );
-      if (fulfillment.fulfillmentText !== translatedText) {
-        fulfillment.fulfillmentText = translatedText;
-        fulfillment.payload.translatedTo = session.getTranslateTo();
-      }
+      fulfillment.payload.translatedTo = session.getTranslateTo();
+    } else if (fulfillment.payload?.translateFrom) {
+      fulfillment.fulfillmentText = await Translator.translate(
+        fulfillment.fulfillmentText,
+        session.getTranslateTo(),
+        fulfillment.payload.translateFrom,
+      );
+      fulfillment.payload.translatedTo = session.getTranslateTo();
     }
   }
 
