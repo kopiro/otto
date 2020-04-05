@@ -241,14 +241,10 @@ function outputAudioParser(body: IDetectIntentResponse, session: ISession): Buff
     return null;
   }
 
-  const audioLanguageCode = body.outputAudioConfig.synthesizeSpeechConfig?.voice.name
-    .substr(0, 2)
-    .toLowerCase() as Language;
-
   const payloadLanguageCode = struct.decode(body.queryResult.webhookPayload as Struct).language as Language;
 
   // If the voice language doesn't match the session language, skip
-  if (audioLanguageCode !== session.getTranslateTo() || audioLanguageCode !== payloadLanguageCode) {
+  if (payloadLanguageCode && config().language !== payloadLanguageCode) {
     console.warn(TAG, "deleting outputAudio because of a voice language mismatch");
     return null;
   }
