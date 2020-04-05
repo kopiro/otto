@@ -29,7 +29,7 @@ async function runJobs(jobs = []) {
     console.log(TAG, Date.now(), "running job", job);
 
     try {
-      const programExecutable = await import(`../scheduler/${job.programName}`);
+      const programExecutable = (await import(`../scheduler/${job.programName}`)).default;
       const result = await programExecutable(job);
       console.debug(TAG, "processed", job, result);
     } catch (err) {

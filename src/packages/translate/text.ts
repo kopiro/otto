@@ -1,5 +1,5 @@
 import config from "../../config";
-import * as Translator from "../../lib/translator";
+import * as Translator from "../../interfaces/translator";
 
 export const id = "translate.text";
 

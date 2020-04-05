@@ -1,5 +1,5 @@
 import config from "../../config";
-import * as Translator from "../../lib/translator";
+import * as Translator from "../../interfaces/translator";
 import { AIAction } from "../../types";
 
 export const id = "settings.switchlang";

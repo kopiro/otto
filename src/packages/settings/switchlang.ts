@@ -1,7 +1,7 @@
 import _ from "underscore";
 import levenshtein from "fast-levenshtein";
 import config from "../../config";
-import * as Translator from "../../lib/translator";
+import * as Translator from "../../interfaces/translator";
 import { extractWithPattern } from "../../helpers";
 import { Fulfillment } from "../../types";
 
@@ -57,8 +57,8 @@ export default async ({ queryResult }, session): Promise<Fulfillment> => {
 
   await session.save();
 
-  const from = _.findWhere(languages, { code: session.getTranslateFrom() }).name;
-  const to = _.findWhere(languages, { code: session.getTranslateTo() }).name;
+  const from = languages.filter(e => e.code === session.getTranslateFrom())[0]?.name;
+  const to = languages.filter(e => e.code === session.getTranslateTo())[0]?.name;
 
   let fulfillmentText;
 

@@ -1,6 +1,4 @@
-import fs from "fs";
-
-export const baseDir = fs.realpathSync(`${__dirname}/..`);
+export const baseDir = process.cwd();
 export const tmpDir = `${baseDir}/tmp`;
 export const cacheDir = `${baseDir}/cache`;
 export const etcDir = `${baseDir}/etc`;

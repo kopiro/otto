@@ -1,6 +1,6 @@
 import _ from "underscore";
 import config from "../../config";
-import * as Translator from "../../lib/translator";
+import * as Translator from "../../interfaces/translator";
 import { Fulfillment, AIAction } from "../../types";
 
 export const id = "settings.availablelangs";

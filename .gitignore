@@ -1,5 +1,6 @@
 keys
 node_modules
 build
+build.tar.gz
 .env
 *.log

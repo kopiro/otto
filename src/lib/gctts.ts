@@ -70,7 +70,7 @@ async function getVoice(language: Language, gender: Gender) {
   }
 
   const response = await client.listVoices({ languageCode: language });
-  const availableVoices = response[0].filter(voice => voice.ssmlGender.toLowerCase() === gender.toLowerCase());
+  const availableVoices = response[0].voices.filter(voice => voice.ssmlGender === gender.toUpperCase());
 
   if (availableVoices.length > 0) {
     const { ssmlGender, name } = availableVoices[0];
