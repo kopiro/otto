@@ -101,7 +101,7 @@ function getVoice(language: string, gender: string): Promise<Voice> {
         }
 
         // Filter voice by selected gender
-        voice = data.Voices.find(v => v.Gender === gender);
+        voice = data.Voices.find((v) => v.Gender === gender);
 
         if (voice == null) {
           console.debug(TAG, `falling back to language ${config().language} instead of ${language}`);

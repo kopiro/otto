@@ -9,7 +9,6 @@ import * as TTS from "../interfaces/tts";
 import { timeout } from "../helpers";
 import { Fulfillment, Session } from "../types";
 
-// eslint-disable-next-line no-unused-vars
 const TAG = "IO.Human";
 const DRIVER_ID = "human";
 
@@ -74,7 +73,7 @@ function destroyRecognizeStream() {
   emitter.emit("notrecognizing");
 
   if (recognizeStream != null) {
-    Rec.getStream().unpipe(recognizeStream);
+    Rec.getStream()?.unpipe(recognizeStream);
     recognizeStream.destroy();
   }
 }
@@ -111,7 +110,7 @@ function createRecognizeStream(session: Session) {
   });
 
   // Every time user speaks, reset the EOR timer to the max
-  recognizeStream.on("data", data => {
+  recognizeStream.on("data", (data) => {
     if (data.results.length > 0) {
       eorTick = EOR_MAX;
     }
@@ -121,7 +120,7 @@ function createRecognizeStream(session: Session) {
   emitter.emit("recognizing");
 
   // Pipe current mic stream to SR stream
-  Rec.getStream().pipe(recognizeStream);
+  Rec.getStream()?.pipe(recognizeStream);
   return recognizeStream;
 }
 
@@ -202,7 +201,7 @@ function createHotwordDetectorStream() {
 /**
 
  */
-async function _output(f, session) {
+async function _output(fulfillment: Fulfillment, session: Session) {
   eorTick = -1; // Temporary disable timer variables
 
   // If there was a recognizer listener, stop it
@@ -211,16 +210,16 @@ async function _output(f, session) {
 
   emitter.emit("output", {
     session,
-    fulfillment: f,
+    fulfillment,
   });
 
   let processed = false;
-  const language = f.payload.language || session.getTranslateTo();
+  const language = fulfillment.payload.language || session.getTranslateTo();
 
   // Process an Audio
   try {
-    if (f.audio) {
-      await Play.playVoice(f.audio);
+    if (fulfillment.audio) {
+      await Play.playVoice(fulfillment.audio);
       processed = true;
     }
   } catch (err) {
@@ -229,8 +228,9 @@ async function _output(f, session) {
 
   // Process a text (should be deprecated)
   try {
-    if (f.text && !processed) {
-      const audioFile = await TTS.getAudioFile(f.text, language, config().tts.gender);
+    if (fulfillment.fulfillmentText && !processed) {
+      console.warn(TAG, "using deprecated fulfillmentText instead of using audio");
+      const audioFile = await TTS.getAudioFile(fulfillment.fulfillmentText, language, config().tts.gender);
       await Play.playVoice(audioFile);
       processed = true;
     }
@@ -240,19 +240,19 @@ async function _output(f, session) {
 
   // Process an Audio Object
   try {
-    if (f.payload.audio) {
-      await Play.playURI(f.payload.audio);
+    if (fulfillment.payload.audio) {
+      await Play.playURI(fulfillment.payload.audio.uri);
       processed = true;
     }
   } catch (err) {
     console.error(TAG, err);
   }
 
-  if (f.payload.feedback) {
+  if (fulfillment.payload.feedback) {
     emitter.emit("thinking");
   }
 
-  if (f.payload.welcome) {
+  if (fulfillment.payload.welcome) {
     emitter.emit("stop");
   }
 
@@ -289,16 +289,15 @@ export async function output(fulfillment: Fulfillment, session: Session) {
  * Start the session
  */
 export async function start() {
-  // Ensure session is present
   const session = await registerInternalSession();
-  console.log(TAG, "started", session);
+  console.log(TAG, `started, sessionID: ${session.id}`);
 
-  stopOutput(); // Preventive stop any other output
-  Rec.start(); // Power on the mic
+  // stopOutput(); // Preventive stop any other output
+  // Rec.start(); // Power on the mic
 
   // Start all timers
-  createHotwordDetectorStream();
-  registerEORInterval();
+  // createHotwordDetectorStream();
+  // registerEORInterval();
 
   // Play.playURI(`${etcDir}/boot.wav`, ["-v", 0.4], 1);
 }

@@ -32,7 +32,7 @@ SessionSchema.plugin(autopopulate);
 /**
  * Save new settings in DB
  */
-SessionSchema.methods.saveServerSettings = async (data: {}): Promise<boolean> => {
+SessionSchema.methods.saveServerSettings = async function (data: {}): Promise<boolean> {
   let s = this.serverSettings;
   if (s == null) {
     s = new ServerSettings({
@@ -47,7 +47,7 @@ SessionSchema.methods.saveServerSettings = async (data: {}): Promise<boolean> =>
 /**
  * Save new data in pipe in DB
  */
-SessionSchema.methods.savePipe = async (data: {}): Promise<boolean> => {
+SessionSchema.methods.savePipe = async function (data: {}): Promise<boolean> {
   this.pipe = { ...(this.pipe || {}), ...data };
   this.pipe.updated_at = Date.now();
   this.markModified("pipe");
@@ -57,7 +57,7 @@ SessionSchema.methods.savePipe = async (data: {}): Promise<boolean> => {
 /**
  * Save new settings in DB
  */
-SessionSchema.methods.saveSettings = async (data: {}): Promise<boolean> => {
+SessionSchema.methods.saveSettings = async function (data: {}): Promise<boolean> {
   this.settings = { ...(this.settings || {}), ...data };
   this.settings.updated_at = Date.now();
   this.markModified("settings");
@@ -67,13 +67,13 @@ SessionSchema.methods.saveSettings = async (data: {}): Promise<boolean> => {
 /**
  * Get the language to translate from
  */
-SessionSchema.methods.getTranslateFrom = (): Language => {
+SessionSchema.methods.getTranslateFrom = function (): Language {
   return this.translateFrom || config().language;
 };
 
 /**
  * Get the language to translate to
  */
-SessionSchema.methods.getTranslateTo = (): Language => {
+SessionSchema.methods.getTranslateTo = function (): Language {
   return this.translateTo || config().language;
 };

@@ -8,7 +8,7 @@ const FORMAT = "YYYY-MM-DD HH:mm:ss";
 let started = false;
 
 async function getJobs(time, conditions = []) {
-  return Data.Scheduler.find({
+  const jobs = await Data.Scheduler.find({
     managerUid: config().uid,
     $or: [
       { yearly: time.format("DDD HH:mm:ss", { trim: false }) },
@@ -19,9 +19,11 @@ async function getJobs(time, conditions = []) {
       { minutely: time.format("ss", { trim: false }) },
       { onDate: time.format(FORMAT) },
       { onTick: true },
+      { dailyRandom: true },
       ...conditions,
     ],
   });
+  return jobs;
 }
 
 async function runJobs(jobs = []) {

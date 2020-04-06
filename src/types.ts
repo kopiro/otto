@@ -16,7 +16,7 @@ export interface CustomError {
 }
 
 export interface BufferWithExtension {
-  buffer: Uint8Array | string | { toString: () => string };
+  buffer: Uint8Array | string | { toString: (encoding?: string) => string };
   extension: string;
 }
 
@@ -28,6 +28,8 @@ export interface Fulfillment {
     data?: Record<string, string>;
   };
   payload?: {
+    feedback?: boolean;
+    welcome?: boolean;
     language?: Language;
     transformerUid?: string;
     transformedAt?: number;
@@ -35,6 +37,25 @@ export interface Fulfillment {
     translateFrom?: Language;
     error?: CustomError;
     handledByGenerator?: boolean;
+    replies?: string[];
+    includeVoice?: boolean;
+    url?: string;
+    video?: {
+      uri: string;
+    };
+    image?: {
+      uri: string;
+    };
+    audio?: {
+      uri: string;
+    };
+    document?: {
+      uri: string;
+    };
+    telegram?: {
+      game: string;
+      sticker: string;
+    };
   };
   audio?: BufferWithExtension;
 }
@@ -56,18 +77,37 @@ export interface IOQueue extends Document {
   session: Session;
 }
 
+export interface Scheduler extends Document {
+  session: Session;
+  managerUid: string;
+  programName: string;
+  programArgs: any;
+  yearly: string; // set "dayofyear hour:minute"
+  monthly: string; // set "dayofmonth hour:minute"
+  weekly: string; // set "dayofweek hour:minute"
+  daily: string; // set "hour:minute"
+  hourly: string; // set minute
+  onTick: boolean; // every second
+  onDate: string; // on a date
+  randomness: [number, number];
+}
+
 export interface Session extends Document {
   id: string;
+  uid: string;
   ioDriver: string;
   ioId: string;
-  ioData: {};
+  ioData: Record<string, any>;
   serverSettings: {};
   settings: {};
   translateFrom: Language;
   translateTo: Language;
   alias: string | null;
   isAdmin: boolean;
-  pipe: {};
+  pipe: {
+    nextWithVoice?: boolean;
+    includeVoice?: boolean;
+  };
   fallbackSession: Session | undefined;
   redirectSession: Session | undefined;
   forwardSession: Session | undefined;

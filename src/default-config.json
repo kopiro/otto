@@ -6,8 +6,14 @@
   "ioAccessoriesMap": {},
   "listeners": [],
   "scheduler": true,
+  "ioQueue": {
+    "enabled": true,
+    "timeout": 1000
+  },
   "language": "en",
-  "raven": null,
+  "sentry": {
+    "dsn": ""
+  },
   "serverMode": false,
   "audio": {
     "encoding": "MP3",

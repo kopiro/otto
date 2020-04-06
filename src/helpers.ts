@@ -6,7 +6,7 @@ import path from "path";
 import config from "./config";
 import * as Translator from "./interfaces/translator";
 import { cacheDir } from "./paths";
-import { Language, Locale } from "./types";
+import { Language, Locale, BufferWithExtension } from "./types";
 import { v4 as uuid } from "uuid";
 
 /**
@@ -20,7 +20,7 @@ export function rand<T>(e: Array<T> | T): T {
  * Timeout using promises
  */
 export function timeout(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
@@ -28,13 +28,6 @@ export function timeout(ms: number) {
  */
 export function normalizeTextForKeyword(t: string): string {
   return diacriticsRemove(t).toLowerCase();
-}
-
-/**
- * Split a text using a pattern to mimic a message sent by a human
- */
-export function mimicHumanMessage(text: string): Array<string> {
-  return text.split(/\\n|\n|\.(?=\s+|[A-Z])/).filter(e => e.length > 0);
 }
 
 /**
@@ -80,7 +73,7 @@ export function getLocaleFromLanguageCode(language: Language): Locale {
 /**
  * Get the local URI of a remote object by downloading it
  */
-export function getLocalObjectFromURI(uri: string | Buffer | { buffer: any; extension: string }): Promise<string> {
+export function getLocalObjectFromURI(uri: string | Buffer | BufferWithExtension): Promise<string> {
   const TAG = "getLocalObjectFromURI";
 
   return new Promise((resolve, reject) => {
@@ -172,7 +165,7 @@ export function replaceVariablesInStrings(text: string, data: Record<string, str
 
 export async function getLanguageCodeFromLanguageLongString(languageLongString: string): Promise<Language> {
   const languages = await Translator.getLanguages(config().language);
-  return languages.find(e => e.name === languageLongString)?.code;
+  return languages.find((e) => e.name === languageLongString)?.code;
 }
 
 export function tryCatch<T>(callable: () => T, defaultValue: any): T | typeof defaultValue {

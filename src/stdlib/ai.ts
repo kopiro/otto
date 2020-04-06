@@ -385,22 +385,26 @@ export async function fulfillmentEndpoint(req: Request, res: Response) {
   const body = req.body as WebhookRequest;
 
   const sessionId = (body.session as string).split("/").pop();
-  let session = await IOManager.getSession(sessionId);
-  if (!session) {
-    session = new Session();
-  }
+  const session = await IOManager.registerSession("webhook", sessionId, {});
 
   let fulfillment = await bodyParser(body, session);
   fulfillment = await fulfillmentTransformerForSession(fulfillment, session);
 
-  console.info(TAG, "[WEBHOOK]", "output fulfillment", fulfillment);
+  const response = { ...fulfillment } as WebhookResponse;
+  if (response.outputContexts) {
+    response.outputContexts = response.outputContexts.map((ctx) => {
+      ctx.name = dfContextsClient.contextPath(_config.projectId, session.id, ctx.name);
+      return ctx;
+    });
+  }
 
-  const response = fulfillment as WebhookResponse;
-  response.outputContexts = (response.outputContexts || []).map(ctx => {
-    ctx.name = dfContextsClient.contextPath(_config.projectId, session.id, ctx.name);
-    return ctx;
-  });
+  // Trick to use Google-Home only for recording, but forwarding output to my speaker
+  // if (body.originalDetectIntentRequest?.source === "google") {
+  //   IOManager.output(fulfillment, await IOManager.getSession("ottohome-human"));
+  //   response.fulfillmentText = "  ";
+  // }
 
+  console.info(TAG, "[WEBHOOK]", "output", response);
   return res.status(200).json(response);
 }
 

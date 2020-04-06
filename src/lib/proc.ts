@@ -11,15 +11,15 @@ export function spawn(program: string, args: Array<any> = []): Promise<string> {
     let stdout = "";
     let stderr = "";
 
-    spawned.stdout.on("data", buf => {
+    spawned.stdout.on("data", (buf) => {
       stdout += buf;
     });
 
-    spawned.stderr.on("data", buf => {
+    spawned.stderr.on("data", (buf) => {
       stderr += buf;
     });
 
-    spawned.on("close", err => {
+    spawned.on("close", (err) => {
       err ? reject(stderr) : resolve(stdout);
     });
   });

@@ -7,7 +7,7 @@ export default async function main({ queryResult }) {
   const { parameters: p } = queryResult;
 
   const languages = await Translator.getLanguages(config().language);
-  const language = languages.find(e => e.name === p.language);
+  const language = languages.find((e) => e.name === p.language);
 
   if (!language) {
     throw {

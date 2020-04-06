@@ -4,7 +4,7 @@ import { getLanguageCodeFromLanguageLongString } from "../../helpers";
 
 const mxm = new Musixmatch(config().musixmatch.apiKey);
 
-export default async function({ queryResult }) {
+export default async function ({ queryResult }) {
   const { parameters } = queryResult;
   const { track, artist, language } = parameters;
   const [response, languageCode] = await Promise.all([

@@ -8,6 +8,7 @@ import {
   Fulfillment,
   InputParams,
   IOQueue,
+  CustomError,
 } from "../types";
 
 const TAG = "IOManager";
@@ -21,11 +22,6 @@ const ioQueueInProcess = {};
  * The separator between paths in the session ID definition
  */
 const SESSION_SEPARATOR = "-";
-
-/**
- * Define the polling timeout for the queue
- */
-const IO_QUEUE_TIMEOUT = 1000;
 
 /**
  * Load the driver module
@@ -51,21 +47,18 @@ export function getAccessory(e: string): IOAccessoryModule {
 /**
  * Clean fulfillment for output
  */
-export function fulfillmentTransformerForDriverOutput(fulfillment) {
-  const { queryText, audio, error, payload } = fulfillment;
-  return {
-    queryText,
-    audio,
-    error,
-    payload,
-    text: fulfillment.fulfillmentText,
-  };
+export function fulfillmentTransformerForDriverOutput(fulfillment: Fulfillment): Fulfillment {
+  return fulfillment;
 }
 
 /**
  * Process an input to a specific IO driver based on the session
  */
-export async function output(fulfillment: Fulfillment, session: Session): Promise<boolean> {
+export async function output(
+  fulfillment: Fulfillment,
+  session: Session,
+  loadDriverIfNotEnabled = false,
+): Promise<boolean> {
   if (!fulfillment) {
     console.warn(
       "Do not output to driver because fulfillment is null - this could be intentional, but check your action",
@@ -81,71 +74,80 @@ export async function output(fulfillment: Fulfillment, session: Session): Promis
 
   // Redirecting output to another session
   if (session.redirectSession) {
-    console.info(TAG, "using redirectSession", session.redirectSession);
-    return output(fulfillment, session.redirectSession);
+    console.info(TAG, "using redirectSession", session.redirectSession.id);
+    return output(fulfillment, session.redirectSession, loadDriverIfNotEnabled);
   }
 
-  // If this driver is not up & running for this configuration,
-  // the item could be handled by another platform that has that driver configured,
-  // so we'll enqueue it.
-  if (configuredDriversId.indexOf(session.ioId) === -1) {
-    console.info(
-      TAG,
-      `putting in IO queue because driver <${session.ioId}> of session <${
-        session.id
-      }> is not this list [${configuredDriversId.join()}]`,
-    );
+  let driver: IODriverModule;
 
-    const ioQueueElement = new Data.IOQueue({
-      session: session.id,
-      ioId: session.ioId,
-      fulfillment,
-    });
-    await ioQueueElement.save();
+  if (loadDriverIfNotEnabled) {
+    driver = getDriver(session.ioDriver);
+  } else {
+    // If this driver is not up & running for this configuration,
+    // the item could be handled by another platform that has that driver configured,
+    // so we'll enqueue it.
+    if (configuredDriversId.indexOf(session.ioId) === -1) {
+      console.info(
+        TAG,
+        `putting in IO queue because driver <${session.ioId}> of session <${
+          session.id
+        }> is not this list [${configuredDriversId.join()}]`,
+      );
 
-    return null;
+      const ioQueueElement = new Data.IOQueue({
+        session: session.id,
+        ioId: session.ioId,
+        fulfillment,
+      });
+      await ioQueueElement.save();
+
+      return null;
+    }
+
+    driver = enabledDrivers[session.ioDriver];
   }
 
-  const driver = enabledDrivers[session.ioDriver];
   if (!driver) {
     throw new Error(`Driver <${session.ioDriver}> is not enabled`);
   }
 
   if (session.forwardSession) {
-    console.info(TAG, "using forwardSession", session.forwardSession);
+    console.info(TAG, "using forwardSession", session.forwardSession.id);
     setImmediate(() => {
-      output(fulfillment, session.forwardSession);
+      output(fulfillment, session.forwardSession, loadDriverIfNotEnabled);
     });
   }
 
   // Transform and clean fulfillment to be suitable for driver output
   const payload = fulfillmentTransformerForDriverOutput(fulfillment);
-  console.info(TAG, "output with", { payload, session });
 
   // Call the driver
   let result;
+  let error;
+
   try {
     result = await driver.output(payload, session);
   } catch (err) {
-    result = { error: err };
+    error = err;
   }
 
-  if (!result && session.fallbackSession) {
-    console.info(TAG, "using fallbackSession", session.fallbackSession);
+  if (error && session.fallbackSession) {
+    console.info(TAG, "using fallbackSession", session.fallbackSession.id);
     return output(fulfillment, session.fallbackSession);
   }
 
+  if (error) throw error;
   return result;
 }
 
 /**
  * Configure every accessory for that driver
  */
-export function configureAccessoriesForDriver(driverName: string) {
+export async function startAccessories(driverName: string) {
   const driver = enabledDrivers[driverName];
   const accessories = enabledAccesories[driverName] || [];
   for (const accessory of accessories) {
-    accessory.startInput(driver);
+    await accessory.startInput(driver);
   }
 }
 
@@ -153,12 +155,16 @@ export function configureAccessoriesForDriver(driverName: string) {
  * Configure driver by handling its input event,
  * parsing it and re-calling the output method of the driver
  */
-export function configureDriver(driverName: string, onDriverInput: (params: InputParams, session: Session) => void) {
+export async function startDriver(driverName: string, onDriverInput: (params: InputParams, session: Session) => void) {
   const driver = enabledDrivers[driverName];
-  driver.emitter.on("input", ({ params, session }) => {
-    onDriverInput(params as InputParams, session as Session);
+  driver.emitter.on("input", (input) => {
+    if (input.params) {
+      onDriverInput(input.params as InputParams, input.session as Session);
+    } else {
+      console.error(TAG, "driver emitted unkown events", input);
+    }
   });
-  driver.start();
+  await driver.start();
 }
 
 /**
@@ -271,12 +277,23 @@ export async function writeLogForSession(params: InputParams, session: Session) 
   return sessionInput;
 }
 
+function getSessionIdByParts(uid: string, ioDriver: string, sessionId: string) {
+  return [uid, ioDriver, sessionId].filter((e) => e).join(SESSION_SEPARATOR);
+}
+
 /**
  * Load the session from ORM
  */
 export async function getSession(sessionId: string): Promise<Session> {
   const session = await Data.Session.findById(sessionId);
   return (session as unknown) as Session;
+}
+
+/**
+ * Load the session from ORM
+ */
+export async function getSessionByParts(uid: string, ioDriver: string, sessionId: string): Promise<Session> {
+  return getSession(getSessionIdByParts(uid, ioDriver, sessionId));
 }
 
 /**
@@ -288,14 +305,15 @@ export async function registerSession(
   ioData?: any,
   alias?: string,
 ): Promise<Session> {
-  const ioId = [config().uid, ioDriver].join(SESSION_SEPARATOR);
-  const sessionIdComposite = [config().uid, ioDriver, sessionId].filter(e => e).join(SESSION_SEPARATOR);
-
-  const session = await getSession(sessionIdComposite);
+  const session = await getSessionByParts(config().uid, ioDriver, sessionId);
 
   if (!session) {
+    const sessionIdComposite = getSessionIdByParts(config().uid, ioDriver, sessionId);
+    // TODO: remove this and calculate it
+    const ioId = [config().uid, ioDriver].join(SESSION_SEPARATOR);
     const freshSession = new Data.Session({
       _id: sessionIdComposite,
+      uid: config().uid,
       ioId,
       ioDriver,
       ioData,
@@ -358,12 +376,14 @@ export async function start(onDriverInput: (params: InputParams, session: Sessio
 
   for (const driverName of Object.keys(enabledDrivers)) {
     try {
-      configureDriver(driverName, onDriverInput);
-      configureAccessoriesForDriver(driverName);
+      await startDriver(driverName, onDriverInput);
+      await startAccessories(driverName);
     } catch (err) {
       console.error(TAG, `Unable to activate driver <${driverName}>`, err);
     }
   }
 
-  setInterval(processIOQueue, IO_QUEUE_TIMEOUT);
+  if (config().ioQueue?.enabled) {
+    setInterval(processIOQueue, config().ioQueue.timeout);
+  }
 }

@@ -1,1 +1,1 @@
-export * from "../lib/polly";
+export * from "../lib/gctts";

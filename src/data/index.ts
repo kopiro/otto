@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import autopopulate from "mongoose-autopopulate";
 import { SessionSchema } from "./session";
-import { Session as ISession, IOQueue as IIOQueue } from "../types";
+import { Session as ISession, IOQueue as IIOQueue, Scheduler as IScheduler } from "../types";
 
 const { Schema } = mongoose;
 
@@ -48,7 +48,7 @@ const SchedulerSchema = new Schema({
   onDate: String, // on a date
 });
 SchedulerSchema.plugin(autopopulate);
-export const Scheduler = mongoose.model("scheduler", SchedulerSchema);
+export const Scheduler = mongoose.model<IScheduler>("scheduler", SchedulerSchema);
 
 const ListenerSchema = new Schema({
   session: { type: String, ref: "session", autopopulate: true },

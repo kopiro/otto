@@ -38,12 +38,12 @@ export function createRecognizeStream(
     }
   });
 
-  stream.on("error", err => {
+  stream.on("error", (err) => {
     console.error(TAG, err);
     callback(err);
   });
 
-  stream.on("data", data => {
+  stream.on("data", (data) => {
     if (data.results.length > 0) {
       const r = data.results[0];
       if (r.alternatives) {
