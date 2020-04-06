@@ -1,5 +1,5 @@
-import { EventEmitter } from "events";
 import { Document } from "mongoose";
+import { IODriver, IOBag } from "./stdlib/iomanager";
 
 export type Language = string;
 export type Locale = string;
@@ -8,6 +8,7 @@ export type Gender = string;
 export type AIAction = (
   body: Record<string, any>,
   session: Session,
+  bag: IOBag,
 ) => Promise<Fulfillment | string> | IterableIterator<Fulfillment | string> | Fulfillment | string;
 
 export interface CustomError {
@@ -37,7 +38,6 @@ export interface Fulfillment {
     translateFrom?: Language;
     error?: CustomError;
     handledByGenerator?: boolean;
-    replies?: string[];
     includeVoice?: boolean;
     url?: string;
     video?: {
@@ -68,6 +68,7 @@ export interface InputParams {
         name: string;
         parameters?: Record<string, string>;
       };
+  bag?: any;
 }
 
 // eslint-disable-next-line @typescript-eslint/interface-name-prefix
@@ -75,6 +76,7 @@ export interface IOQueue extends Document {
   id: string;
   fulfillment: Fulfillment;
   session: Session;
+  bag: any;
 }
 
 export interface Scheduler extends Document {
@@ -95,7 +97,7 @@ export interface Scheduler extends Document {
 export interface Session extends Document {
   id: string;
   uid: string;
-  ioDriver: string;
+  ioDriver: IODriver;
   ioId: string;
   ioData: Record<string, any>;
   serverSettings: {};
@@ -116,24 +118,4 @@ export interface Session extends Document {
   savePipe: (data: {}) => Promise<boolean>;
   getTranslateFrom: () => Language;
   getTranslateTo: () => Language;
-}
-
-// eslint-disable-next-line @typescript-eslint/interface-name-prefix
-export interface IODriverModule {
-  start: () => void;
-  output: (fulfillment: Fulfillment, session: Session) => void;
-  emitter: EventEmitter;
-  onlyClientMode: boolean;
-  onlyServerMode: boolean;
-}
-
-// eslint-disable-next-line @typescript-eslint/interface-name-prefix
-export interface IOListenerModule {
-  start: () => void;
-}
-
-// eslint-disable-next-line @typescript-eslint/interface-name-prefix
-export interface IOAccessoryModule {
-  start: () => void;
-  output: (fulfillment: Fulfillment, session: Session) => void;
 }

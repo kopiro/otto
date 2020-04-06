@@ -4,7 +4,7 @@
   "mimicOfflineServer": false,
   "ioDrivers": [],
   "ioAccessoriesMap": {},
-  "listeners": [],
+  "ioListeners": [],
   "scheduler": true,
   "ioQueue": {
     "enabled": true,

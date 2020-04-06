@@ -14,7 +14,7 @@ import {
 } from "../types";
 import { struct, Struct } from "pb-util";
 import { Request, Response } from "express";
-import { Session } from "../data";
+import { Log } from "./log";
 
 type IDetectIntentResponse = Record<string, any>;
 type IEventInput = Record<string, any>;
@@ -30,6 +30,7 @@ const dfSessionClient = new dialogflow.SessionsClient();
 const dfContextsClient = new dialogflow.ContextsClient();
 
 const TAG = "AI";
+const log = new Log(TAG);
 
 /**
  * Transform a Fulfillment by making some edits based on the current session settings
@@ -125,6 +126,7 @@ export async function generatorResolver(
   body: IDetectIntentResponse,
   fulfillmentGenerator: IterableIterator<Fulfillment>,
   session: ISession,
+  bag: IOManager.IOBag,
 ): Promise<[Fulfillment, boolean][]> {
   console.info(TAG, "Using generator resolver", fulfillmentGenerator);
 
@@ -136,12 +138,12 @@ export async function generatorResolver(
 
     try {
       trFulfillment = await fulfillmentTransformerForSession(fulfillment, session);
-      outputResult = await IOManager.output(trFulfillment, session);
+      outputResult = await IOManager.output(trFulfillment, session, bag);
     } catch (err) {
       console.error(TAG, "error while executing action generator", err);
       trFulfillment = actionErrorTransformer(body, err);
       trFulfillment = await fulfillmentTransformerForSession(trFulfillment, session);
-      outputResult = await IOManager.output(trFulfillment, session);
+      outputResult = await IOManager.output(trFulfillment, session, bag);
     }
 
     fulfillmentsAndOutputResults.push([trFulfillment, outputResult]);
@@ -157,8 +159,10 @@ export async function actionResolver(
   actionName: string,
   body: Record<string, any>,
   session: ISession,
+  bag: IOManager.IOBag,
 ): Promise<Fulfillment> {
   console.info(TAG, `calling action <${actionName}>`);
+
   let fulfillment: Fulfillment = null;
 
   try {
@@ -169,13 +173,13 @@ export async function actionResolver(
       throw new Error(`Invalid action name <${actionName}>`);
     }
 
-    const actionResult = await actionToCall(body, session);
+    const actionResult = await actionToCall(body, session, bag);
 
     // Now check if this action is a Promise or a Generator
     if (actionResult.constructor.name === "GeneratorFunction") {
       // Call the generator async
       setImmediate(() => {
-        generatorResolver(body, actionResult as IterableIterator<Fulfillment>, session);
+        generatorResolver(body, actionResult as IterableIterator<Fulfillment>, session, bag);
       });
 
       // And immediately resolve
@@ -284,20 +288,26 @@ export function webhookResponseToFulfillment(body: IDetectIntentResponse, sessio
 export async function bodyParser(
   body: IDetectIntentResponse | WebhookRequest,
   session: ISession,
+  bag: IOManager.IOBag,
 ): Promise<Fulfillment> {
+  const parsedFromWebhook = "webhookStatus" in body;
+
   if (config().mimicOfflineServer) {
     console.warn(TAG, "!!! Miming an offline webhook server !!!");
   } else {
-    if ("webhookStatus" in body) {
-      console.debug(TAG, "using webhook response");
+    if (parsedFromWebhook) {
+      console.debug(TAG, "using response already parsed by the webhook");
+      log.write(session.id, "body_parser_parsed_from_webhook", body);
       return webhookResponseToFulfillment(body as IDetectIntentResponse, session);
     }
   }
 
+  log.write(session.id, "body_parser", body);
+
   // If we have an "action", call the package with the specified name
   if (body.queryResult.action) {
     console.debug(TAG, `Resolving action <${body.queryResult.action}>`);
-    return actionResolver(body.queryResult.action, body, session);
+    return actionResolver(body.queryResult.action, body, session, bag);
   }
 
   // Otherwise, check if at least an intent is match and direct return that fulfillment
@@ -316,7 +326,8 @@ export async function bodyParser(
 
     return {
       fulfillmentText: body.queryResult.fulfillmentText,
-      audio: "webhookStatus" in body ? outputAudioParser(body, session) : null,
+      // Do not add this property when we're parsing this response on the webhook
+      audio: parsedFromWebhook ? outputAudioParser(body, session) : null,
     };
   }
 
@@ -330,11 +341,16 @@ export async function bodyParser(
   };
 }
 
-async function request(queryInput: IQueryInput, session: ISession): Promise<IDetectIntentResponse> {
-  const response = await dfSessionClient.detectIntent({
+async function request(
+  queryInput: IQueryInput,
+  session: ISession,
+  bag: IOManager.IOBag,
+): Promise<IDetectIntentResponse> {
+  const payload = {
     session: getDFSessionPath(session),
     queryInput,
     queryParams: {
+      payload: struct.encode(bag),
       sentimentAnalysisRequestConfig: {
         analyzeQueryTextSentiment: true,
       },
@@ -342,39 +358,46 @@ async function request(queryInput: IQueryInput, session: ISession): Promise<IDet
     outputAudioConfig: {
       audioEncoding: (`OUTPUT_AUDIO_ENCODING_${config().audio.encoding}` as unknown) as OutputAudioEncoding,
     },
-  });
+  };
+  const response = await dfSessionClient.detectIntent(payload);
+  log.write(session.id, "sent_detect_intent", payload);
+
   return response[0] as IDetectIntentResponse;
 }
 
 /**
  * Make a text request to DialogFlow and let the flow begin
  */
-export async function textRequest(_text: string, session: ISession): Promise<Fulfillment> {
+export async function textRequest(_text: string, session: ISession, bag: IOManager.IOBag): Promise<Fulfillment> {
   console.info(TAG, "text request:", _text);
 
   const text = await textRequestTransformer(_text, session);
-  const response = await request({ text }, session);
-  const fulfillment = await bodyParser(response, session);
+  const response = await request({ text }, session, bag);
+  const fulfillment = await bodyParser(response, session, bag);
   return fulfillment;
 }
 
 /**
  * Make an event request to DialogFlow and let the flow begin
  */
-export async function eventRequest(_event: InputParams["event"], session: ISession): Promise<Fulfillment> {
+export async function eventRequest(
+  _event: InputParams["event"],
+  session: ISession,
+  bag: IOManager.IOBag,
+): Promise<Fulfillment> {
   console.info(TAG, "event request:", _event);
 
   const event = await eventRequestTransformer(_event, session);
-  const response = await request({ event }, session);
-  const fulfillment = await bodyParser(response, session);
+  const response = await request({ event }, session, bag);
+  const fulfillment = await bodyParser(response, session, bag);
   return fulfillment;
 }
 
 /**
  * The endpoint closure used by the webhook
  */
-export async function fulfillmentEndpoint(req: Request, res: Response) {
-  console.info(TAG, "[WEBHOOK]", "received request", JSON.stringify(req.body));
+export async function webhookEndpoint(req: Request, res: Response) {
+  console.info(TAG, "[WEBHOOK]", "received request");
 
   if (!req.body || Object.keys(req.body).length === 0) {
     return res.status(400).json({
@@ -385,9 +408,9 @@ export async function fulfillmentEndpoint(req: Request, res: Response) {
   const body = req.body as WebhookRequest;
 
   const sessionId = (body.session as string).split("/").pop();
-  const session = await IOManager.registerSession("webhook", sessionId, {});
+  const session = (await IOManager.getSession(sessionId)) || (await IOManager.registerSession("webhook", sessionId));
 
-  let fulfillment = await bodyParser(body, session);
+  let fulfillment = await bodyParser(body, session, body.originalDetectIntentRequest?.payload);
   fulfillment = await fulfillmentTransformerForSession(fulfillment, session);
 
   const response = { ...fulfillment } as WebhookResponse;
@@ -412,33 +435,35 @@ export async function fulfillmentEndpoint(req: Request, res: Response) {
  * Attach the AI to the Server
  */
 export function attachToServer(serverInstance) {
-  serverInstance.routerApi.post("/fulfillment", fulfillmentEndpoint);
+  serverInstance.routerApi.post("/fulfillment", webhookEndpoint);
 }
 
 /**
  * Process a fulfillment to a session
  */
 export async function processInput(params: InputParams, session: ISession) {
-  const { text, event } = params;
   console.info(TAG, "processInput", { params, session });
 
-  if (session.repeatModeSession) {
+  if (session.repeatModeSession && params.text) {
     console.info(TAG, "using repeatModeSession", session.repeatModeSession);
-    const fulfillment = await fulfillmentTransformerForSession({ fulfillmentText: text }, session.repeatModeSession);
-    return IOManager.output(fulfillment, session.repeatModeSession);
+    const fulfillment = await fulfillmentTransformerForSession(
+      { fulfillmentText: params.text },
+      session.repeatModeSession,
+    );
+    return IOManager.output(fulfillment, session.repeatModeSession, params.bag);
   }
 
   IOManager.writeLogForSession(params, session);
 
   let fulfillment: any = null;
-  if (text) {
-    fulfillment = await textRequest(text, session);
-  } else if (event) {
-    fulfillment = await eventRequest(event, session);
+  if (params.text) {
+    fulfillment = await textRequest(params.text, session, params.bag);
+  } else if (params.event) {
+    fulfillment = await eventRequest(params.event, session, params.bag);
   } else {
     console.warn("Neither { text, event } in params is not null");
   }
 
   fulfillment = await fulfillmentTransformerForSession(fulfillment, session);
-  return IOManager.output(fulfillment, session);
+  return IOManager.output(fulfillment, session, params.bag);
 }

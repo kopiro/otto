@@ -14,372 +14,423 @@ import * as Proc from "../lib/proc";
 import { v4 as uuid } from "uuid";
 import { tmpDir } from "../paths";
 import { Fulfillment, Session } from "../types";
-import { getAiNameRegex } from "../helpers";
+import { getAiNameRegex, getTmpFile } from "../helpers";
 
-const _config = config().telegram;
 const TAG = "IO.Telegram";
-export const emitter = new Events.EventEmitter();
+const DRIVER_ID = "telegram";
 
-const bot: TelegramBot = new TelegramBot(_config.token, _config.options);
+type TelegramConfig = {
+  token: string;
+  options: TelegramBot.ConstructorOptions;
+};
 
-let botMe: TelegramBot.User;
-let botMentionRegex: RegExp;
+type TelegramBag = {
+  replyToMessageId?: number;
+  respondWithAudioNote?: boolean;
+};
 
-let started = false;
-const callbackQuery = {};
+class Telegram implements IOManager.IODriverModule {
+  config: TelegramConfig;
 
-export const id = "telegram";
+  emitter: Events.EventEmitter;
 
-/**
- * Handle a voice input by recognizing the text
- */
-async function handleInputVoice(e: TelegramBot.Message, session: Session): Promise<string> {
-  return new Promise(async (resolve) => {
-    const fileLink = await bot.getFileLink(e.voice.file_id);
-    const voiceFile = path.join(tmpDir, `${uuid()}.ogg`);
-    const voiceWavFile = `${voiceFile}.wav`;
+  bot: TelegramBot;
+  botMe: TelegramBot.User;
+  botMentionRegex: RegExp;
 
-    request(fileLink)
-      .pipe(fs.createWriteStream(voiceFile))
-      .on("close", async () => {
-        await Proc.spawn("opusdec", [voiceFile, voiceWavFile, "--rate", SR.SAMPLE_RATE]);
-        const text = await SR.recognizeFile(voiceWavFile, session.getTranslateFrom(), false);
-        resolve(text);
-      });
-  });
-}
+  onlyClientMode: false;
+  onlyServerMode: false;
 
-/**
- * Remove any XML tag
- */
-function cleanOutputText(text: string) {
-  return text.replace(/<[^>]+>/g, "");
-}
+  started = false;
 
-/**
- * Split a text using a pattern to mimic a message sent by a human
- */
-export function mimicHumanMessage(text: string): Array<string> {
-  return cleanOutputText(text)
-    .split(/\\n|\n|\.(?=\s+|[A-Z])/)
-    .filter((e) => e.length > 0);
-}
+  constructor(config: TelegramConfig) {
+    this.config = config;
+    this.emitter = new Events.EventEmitter();
+    this.bot = new TelegramBot(this.config.token, this.config.options);
+  }
 
-function cleanInputText(e: TelegramBot.Message) {
-  let text = e.text;
-  text = text.replace(`@${botMe.username}`, "");
-  return text;
-}
+  /**
+   * Handle a voice input by recognizing the text
+   */
+  async handleInputVoice(e: TelegramBot.Message, session: Session): Promise<string> {
+    return new Promise(async (resolve) => {
+      const fileLink = await this.bot.getFileLink(e.voice.file_id);
+      const voiceFile = path.join(tmpDir, `${uuid()}.ogg`);
+      const voiceWavFile = `${voiceFile}.wav`;
 
-/**
- * Send a message to the user
- */
-async function sendMessage(
-  chatId: string,
-  text: string,
-  opt: any = {
-    parse_mode: "html",
-  },
-) {
-  await bot.sendChatAction(chatId, "typing");
-  return bot.sendMessage(chatId, cleanOutputText(text), opt);
-}
+      request(fileLink)
+        .pipe(fs.createWriteStream(voiceFile))
+        .on("close", async () => {
+          await Proc.spawn("opusdec", [voiceFile, voiceWavFile, "--rate", SR.SAMPLE_RATE]);
+          const text = await SR.recognizeFile(voiceWavFile, session.getTranslateFrom(), false);
+          resolve(text);
+        });
+    });
+  }
 
-/**
- * Send a voice message to the user
- */
-async function sendVoiceMessage(chatId: string, fulfillment: Fulfillment, session: Session, botOpt: any = {}) {
-  await bot.sendChatAction(chatId, "record_audio");
+  /**
+   * Remove any XML tag
+   */
+  cleanOutputText(text: string) {
+    return text.replace(/<[^>]+>/g, "");
+  }
 
-  if (fulfillment.audio) {
-    const voiceFile = await Play.playVoiceToTempFile(fulfillment.audio);
-    await bot.sendVoice(chatId, voiceFile, botOpt);
-  } else {
-    const sentences = mimicHumanMessage(fulfillment.fulfillmentText);
-    for (const sentence of sentences) {
+  /**
+   * Split a text using a pattern to mimic a message sent by a human
+   */
+  mimicHumanMessage(text: string): Array<string> {
+    return this.cleanOutputText(text)
+      .split(/\\n|\n|\.(?=\s+|[A-Z])/)
+      .filter((e) => e.length > 0);
+  }
+
+  cleanInputText(e: TelegramBot.Message) {
+    let text = e.text;
+    text = text.replace(`@${this.botMe.username}`, "");
+    return text;
+  }
+
+  /**
+   * Send a message to the user
+   */
+  async sendMessage(
+    chatId: string,
+    text: string,
+    opt: any = {
+      parse_mode: "html",
+    },
+  ) {
+    await this.bot.sendChatAction(chatId, "typing");
+    return this.bot.sendMessage(chatId, this.cleanOutputText(text), opt);
+  }
+
+  async getVoiceFile(fulfillment: Fulfillment, session: Session): Promise<string> {
+    if (fulfillment.audio) {
+      return Play.playVoiceToTempFile(fulfillment.audio);
+    } else {
       const audioFile = await TTS.getAudioFile(
-        sentence,
+        fulfillment.fulfillmentText,
         fulfillment.payload.language || session.getTranslateTo(),
         config().tts.gender,
       );
-      const voiceFile = await Play.playVoiceToTempFile(audioFile);
-      await bot.sendVoice(chatId, voiceFile, botOpt);
+      return Play.playVoiceToTempFile(audioFile);
     }
   }
-}
 
-function getIsMention(text: string) {
-  return botMentionRegex.test(text);
-}
-
-function getIsActivator(text: string) {
-  return getAiNameRegex().test(text);
-}
-
-function getAlias(msg: TelegramBot.Message): string {
-  switch (msg.chat.type) {
-    case "private":
-      return `${msg.chat.first_name} ${msg.chat.last_name}`;
-      break;
-    default:
-      return msg.chat.title;
-      break;
+  /**
+   * Send a voice message to the user
+   */
+  async sendAudioNote(
+    chatId: string,
+    fulfillment: Fulfillment,
+    session: Session,
+    botOpt: TelegramBot.SendMessageOptions = {},
+  ) {
+    await this.bot.sendChatAction(chatId, "record_audio");
+    const voiceFile = await this.getVoiceFile(fulfillment, session);
+    return this.bot.sendVoice(chatId, voiceFile, botOpt);
   }
-}
 
-function getChatIsGroup(msg: TelegramBot.Message) {
-  return msg.chat.type === "group";
-}
+  async sendVideoNote(
+    chatId: string,
+    fulfillment: Fulfillment,
+    session: Session,
+    botOpt: TelegramBot.SendMessageOptions = {},
+  ) {
+    await this.bot.sendChatAction(chatId, "record_video_note");
+    const voiceFile = await this.getVoiceFile(fulfillment, session);
+    const imageFile = getTmpFile("jpg");
+    await Proc.spawn("convert", [
+      "/Users/flaviod/Desktop/Empty/IMG_0317.HEIC",
+      "-resize",
+      "600x600^",
+      "-gravity",
+      "center",
+      "-crop",
+      "600x600+0+0",
+      imageFile,
+    ]);
+    const videoNoteFile = getTmpFile("mp4");
+    await Proc.spawn("ffmpeg", [
+      "-loop",
+      "1",
+      "-i",
+      imageFile,
+      "-i",
+      voiceFile,
+      "-c:v",
+      "libx264",
+      "-tune",
+      "stillimage",
+      "-c:a",
+      "aac",
+      "-b:a",
+      "192k",
+      "-pix_fmt",
+      "yuv420p",
+      "-shortest",
+      videoNoteFile,
+    ]);
+    return this.bot.sendVideoNote(chatId, videoNoteFile, botOpt);
+  }
 
-async function onBotInput(e: TelegramBot.Message) {
-  console.info(TAG, "input");
-  console.dir(e, {
-    depth: 2,
-  });
+  getIsMention(text: string) {
+    return this.botMentionRegex.test(text);
+  }
 
-  const sessionId = e.chat.id.toString();
-  const chatIsGroup = getChatIsGroup(e);
-  const alias = getAlias(e);
-  const isMention = getIsMention(e.text);
-  const isActivator = getIsActivator(e.text);
-  const isReply = e.reply_to_message?.from?.id === botMe.id;
+  getIsActivator(text: string) {
+    return getAiNameRegex().test(text);
+  }
 
-  // Register the session
-  const session = await IOManager.registerSession("telegram", sessionId, e.chat, alias);
-
-  // Process a Text object
-  if (e.text) {
-    // If we are in a group, only listen for activators
-    if (chatIsGroup && !(isMention || isReply || isActivator)) {
-      console.debug(TAG, "skipping input for missing activator");
-      return false;
+  getAlias(msg: TelegramBot.Message): string {
+    switch (msg.chat.type) {
+      case "private":
+        return `${msg.chat.first_name} ${msg.chat.last_name}`;
+        break;
+      default:
+        return msg.chat.title;
+        break;
     }
-
-    // Clean
-    const text = cleanInputText(e);
-    emitter.emit("input", {
-      session,
-      params: {
-        text,
-      },
-    });
-    return true;
   }
 
-  // Process a Voice object
-  if (e.voice) {
-    const text = await handleInputVoice(e, session);
-    const isActivatorInVoice = getIsActivator(text);
-
-    // If we are in a group, only listen for activators
-    if (chatIsGroup && !isActivatorInVoice) {
-      console.debug(TAG, "skipping input for missing activator");
-      return false;
-    }
-
-    // User sent a voice note, respond with a voice note :)
-    session.savePipe({
-      nextWithVoice: true,
-    });
-    emitter.emit("input", {
-      session,
-      params: {
-        text,
-      },
-    });
-
-    return true;
+  getChatIsGroup(msg: TelegramBot.Message) {
+    return msg.chat.type === "group";
   }
 
-  // Process a Photo Object
-  if (e.photo) {
-    const photoLink = bot.getFileLink(e.photo[e.photo.length - 1].file_id);
-    if (chatIsGroup) return false;
-
-    emitter.emit("input", {
-      session,
-      params: {
-        image: {
-          uri: photoLink,
-        },
-      },
+  async onBotInput(e: TelegramBot.Message) {
+    console.info(TAG, "input");
+    console.dir(e, {
+      depth: 2,
     });
 
-    return true;
-  }
+    const sessionId = e.chat.id.toString();
+    const chatIsGroup = this.getChatIsGroup(e);
+    const alias = this.getAlias(e);
+    const isMention = this.getIsMention(e.text);
+    const isActivator = this.getIsActivator(e.text);
+    const isReply = e.reply_to_message?.from?.id === this.botMe.id;
 
-  emitter.emit("input", {
-    session,
-    error: {
-      unkownInputType: true,
-    },
-  });
-  return true;
-}
+    // Register the session
+    const session = await IOManager.registerSession(DRIVER_ID, sessionId, e.chat, alias);
 
-/**
- * Start the polling/webhook cycle
- */
-export async function start() {
-  if (started) return;
-  started = true;
-
-  botMe = await bot.getMe();
-  botMentionRegex = new RegExp(`@${botMe.username}`, "i");
-
-  bot.on("message", onBotInput);
-  bot.on("webhook_error", (err) => {
-    console.error(TAG, "webhook error", err);
-  });
-
-  // We could attach the webhook to the Router API or via polling
-  if (_config.options.polling === false) {
-    bot.setWebHook(`${config().server.domain}/io/telegram/bot${_config.token}`);
-    Server.routerIO.use("/telegram", bodyParser.json(), (req, res) => {
-      bot.processUpdate(req.body);
-      res.sendStatus(200);
-    });
-  }
-
-  console.info(TAG, `started, botID: ${botMe.id}, botUsername: ${botMe.username}, polling: ${_config.options.polling}`);
-
-  return true;
-}
-
-/**
- * Output an object to the user
- */
-export async function output(f: Fulfillment, session: Session) {
-  let processed = false;
-
-  // Inform observers
-  emitter.emit("output", {
-    session,
-    fulfillment: f,
-  });
-
-  // This is the Telegram Chat ID used to respond to the user
-  const chatId = session.ioData.id;
-
-  let botOpt = {};
-
-  // If we have replies, set the bot opt to reflect the keyboard
-  if (f.payload?.replies) {
-    botOpt = {
-      reply_markup: {
-        resize_keyboard: true,
-        one_time_keyboard: true,
-        keyboard: [f.payload.replies],
-      },
+    const bag: IOManager.IOBag = {
+      replyToMessageId: e.message_id,
     };
-  }
 
-  // Process a Text Object
-  try {
-    if (f.fulfillmentText) {
-      await sendMessage(chatId, f.fulfillmentText, botOpt);
-
-      if (session.pipe.nextWithVoice) {
-        session.savePipe({
-          nextWithVoice: false,
-        });
-        await sendVoiceMessage(chatId, f, session, botOpt);
+    // Process a Text object
+    if (e.text) {
+      // If we are in a group, only listen for activators
+      if (chatIsGroup && !(isMention || isReply || isActivator)) {
+        console.debug(TAG, "skipping input for missing activator");
+        return false;
       }
-      if (f.payload?.includeVoice) {
-        await sendVoiceMessage(chatId, f, session, botOpt);
+
+      // Clean
+      const text = this.cleanInputText(e);
+      this.emitter.emit("input", {
+        session,
+        params: {
+          text,
+          bag,
+        },
+      });
+      return true;
+    }
+
+    // Process a Voice object
+    if (e.voice) {
+      const text = await this.handleInputVoice(e, session);
+      const isActivatorInVoice = this.getIsActivator(text);
+
+      // If we are in a group, only listen for activators
+      if (chatIsGroup && !isActivatorInVoice) {
+        console.debug(TAG, "skipping input for missing activator");
+        return false;
+      }
+
+      // User sent a voice note, respond with a voice note :)
+      this.emitter.emit("input", {
+        session,
+        params: {
+          text,
+          bag: { ...bag, respondWithAudioNote: true },
+        },
+      });
+
+      return true;
+    }
+
+    // Process a Photo Object
+    if (e.photo) {
+      const photoLink = this.bot.getFileLink(e.photo[e.photo.length - 1].file_id);
+      if (chatIsGroup) return false;
+
+      this.emitter.emit("input", {
+        session,
+        params: {
+          bag,
+          image: {
+            uri: photoLink,
+          },
+        },
+      });
+
+      return true;
+    }
+
+    this.emitter.emit("input", {
+      session,
+      error: {
+        unkownInputType: true,
+      },
+    });
+    return true;
+  }
+
+  /**
+   * Start the polling/webhook cycle
+   */
+  async start() {
+    if (this.started) return;
+    this.started = true;
+
+    this.botMe = await this.bot.getMe();
+    this.botMentionRegex = new RegExp(`@${this.botMe.username}`, "i");
+
+    this.bot.on("message", this.onBotInput.bind(this));
+    this.bot.on("webhook_error", (err) => {
+      console.error(TAG, "webhook error", err);
+    });
+
+    // We could attach the webhook to the Router API or via polling
+    if (this.config.options.polling === false) {
+      this.bot.setWebHook(`${config().server.domain}/io/telegram/bot${this.config.token}`);
+      Server.routerIO.use("/telegram", bodyParser.json(), (req, res) => {
+        this.bot.processUpdate(req.body);
+        res.sendStatus(200);
+      });
+    }
+
+    console.info(
+      TAG,
+      `started, botID: ${this.botMe.id}, botUsername: ${this.botMe.username}, polling: ${this.config.options.polling}`,
+    );
+
+    return true;
+  }
+
+  /**
+   * Output an object to the user
+   */
+  async output(f: Fulfillment, session: Session, bag: TelegramBag) {
+    let processed = false;
+
+    // Inform observers
+    this.emitter.emit("output", {
+      session,
+      fulfillment: f,
+    });
+
+    // This is the Telegram Chat ID used to respond to the user
+    const chatId = session.ioData.id;
+    const botOpt: TelegramBot.SendMessageOptions = {};
+
+    if (bag.replyToMessageId) {
+      botOpt.reply_to_message_id = bag.replyToMessageId;
+    }
+
+    // Process a Text Object
+    try {
+      if (f.fulfillmentText) {
+        await this.sendMessage(chatId, f.fulfillmentText, botOpt);
+        // await this.sendVideoNote(chatId, f, session, botOpt);
+
+        if (bag.respondWithAudioNote || f.payload?.includeVoice) {
+          await this.sendAudioNote(chatId, f, session, botOpt);
+        }
+        processed = true;
+      }
+    } catch (err) {
+      console.error(TAG, err);
+    }
+
+    // Process a URL Object
+    try {
+      if (f.payload?.url) {
+        await this.bot.sendMessage(chatId, f.payload.url, botOpt);
+        processed = true;
+      }
+    } catch (err) {
+      console.error(TAG, err);
+    }
+
+    // Process a Video object
+    try {
+      if (f.payload?.video?.uri) {
+        await this.bot.sendChatAction(chatId, "upload_video");
+        await this.bot.sendVideo(chatId, f.payload.video.uri, botOpt);
       }
       processed = true;
+    } catch (err) {
+      console.error(TAG, err);
     }
-  } catch (err) {
-    console.error(TAG, err);
-  }
 
-  // Process a URL Object
-  try {
-    if (f.payload?.url) {
-      await bot.sendMessage(chatId, f.payload.url, botOpt);
+    // Process an Image Object
+    try {
+      if (f.payload?.image?.uri) {
+        await this.bot.sendChatAction(chatId, "upload_photo");
+        await this.bot.sendPhoto(chatId, f.payload.image.uri, botOpt);
+      }
       processed = true;
+    } catch (err) {
+      console.error(TAG, err);
     }
-  } catch (err) {
-    console.error(TAG, err);
-  }
 
-  // Process a Video object
-  try {
-    if (f.payload?.video?.uri) {
-      await bot.sendChatAction(chatId, "upload_video");
-      await bot.sendVideo(chatId, f.payload.video.uri, botOpt);
-    }
-    processed = true;
-  } catch (err) {
-    console.error(TAG, err);
-  }
-
-  // Process an Image Object
-  try {
-    if (f.payload?.image?.uri) {
-      await bot.sendChatAction(chatId, "upload_photo");
-      await bot.sendPhoto(chatId, f.payload.image.uri, botOpt);
-    }
-    processed = true;
-  } catch (err) {
-    console.error(TAG, err);
-  }
-
-  // Process an Audio Object
-  try {
-    if (f.payload?.audio?.uri) {
-      await bot.sendChatAction(chatId, "upload_audio");
-      await bot.sendAudio(chatId, f.payload.audio.uri, botOpt);
-    }
-    processed = true;
-  } catch (err) {
-    console.error(TAG, err);
-  }
-
-  // Process a Document Object
-  try {
-    if (f.payload?.document?.uri) {
-      await bot.sendChatAction(chatId, "upload_document");
-      await bot.sendDocument(chatId, f.payload.document.uri, botOpt);
-    }
-    processed = true;
-  } catch (err) {
-    console.error(TAG, err);
-  }
-
-  try {
-    if (f.payload?.error?.message) {
-      await sendMessage(chatId, f.payload.error.message, botOpt);
+    // Process an Audio Object
+    try {
+      if (f.payload?.audio?.uri) {
+        await this.bot.sendChatAction(chatId, "upload_audio");
+        await this.bot.sendAudio(chatId, f.payload.audio.uri, botOpt);
+      }
       processed = true;
+    } catch (err) {
+      console.error(TAG, err);
     }
-  } catch (err) {
-    console.error(TAG, err);
-  }
 
-  // ---- Telegram specific Objects ----
-
-  // Process a Game Object
-  try {
-    if (f.payload?.telegram?.game) {
-      callbackQuery[chatId] = callbackQuery[chatId] || {};
-      callbackQuery[chatId][f.payload.telegram.game] = f.payload.telegram.game;
-      await bot.sendGame(chatId, f.payload.telegram.game);
+    // Process a Document Object
+    try {
+      if (f.payload?.document?.uri) {
+        await this.bot.sendChatAction(chatId, "upload_document");
+        await this.bot.sendDocument(chatId, f.payload.document.uri, botOpt);
+      }
       processed = true;
+    } catch (err) {
+      console.error(TAG, err);
     }
-  } catch (err) {
-    console.error(TAG, err);
-  }
 
-  // Process a Sticker Object
-  try {
-    if (f.payload?.telegram?.sticker) {
-      await bot.sendSticker(chatId, f.payload.telegram.sticker, botOpt);
-      processed = true;
+    try {
+      if (f.payload?.error?.message) {
+        await this.sendMessage(chatId, f.payload.error.message, botOpt);
+        processed = true;
+      }
+    } catch (err) {
+      console.error(TAG, err);
     }
-  } catch (err) {
-    console.error(TAG, err);
-  }
 
-  return processed;
+    // ---- Telegram specific Objects ----
+
+    // Process a Sticker Object
+    try {
+      if (f.payload?.telegram?.sticker) {
+        await this.bot.sendSticker(chatId, f.payload.telegram.sticker, botOpt);
+        processed = true;
+      }
+    } catch (err) {
+      console.error(TAG, err);
+    }
+
+    return processed;
+  }
 }
+
+export default new Telegram(config().telegram);

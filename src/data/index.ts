@@ -27,9 +27,8 @@ export const SessionInput = mongoose.model("session_input", SessionInputSchema);
 const IOQueueSchema = new Schema({
   ioId: String,
   session: { type: String, ref: "session", autopopulate: true },
-  driver: String,
-  params: Schema.Types.Mixed,
   fulfillment: Schema.Types.Mixed,
+  bag: Schema.Types.Mixed,
 });
 IOQueueSchema.plugin(autopopulate);
 export const IOQueue = mongoose.model<IIOQueue>("io_queue", IOQueueSchema);

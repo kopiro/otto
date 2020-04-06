@@ -5,9 +5,13 @@ import md5 from "md5";
 import path from "path";
 import config from "./config";
 import * as Translator from "./interfaces/translator";
-import { cacheDir } from "./paths";
+import { cacheDir, tmpDir } from "./paths";
 import { Language, Locale, BufferWithExtension } from "./types";
 import { v4 as uuid } from "uuid";
+
+export function getTmpFile(extension: string) {
+  return path.join(tmpDir, `${uuid()}.${extension}`);
+}
 
 /**
  * Pick a random element in an array

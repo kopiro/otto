@@ -91,10 +91,6 @@ it sends the stream through an online speech recognizer and return the speeech.
 When you finish to talk, it sends the recognized speech over AI that could return
 a output speech; it is sent over an online TTS to get an audio file that is played over the speaker.
 
-Optional dependencies:
-
-- **Snowboy** - for the hotword service
-
 #### IO.Telegram
 
 It listens via webhook (or via polling) the chat events of your Telegram bot,
@@ -155,7 +151,7 @@ Otherwise, if an action return multiple values _over time_, it should be a **Gen
 
 #### Promise/Async Function
 
-```js
+```ts
 export const id = "hello.name";
 export async function main({ queryResult }, session) {
   let { parameters: p, queryText } = queryResult;
@@ -166,7 +162,7 @@ export async function main({ queryResult }, session) {
 
 #### Generator Function
 
-```js
+```ts
 export const id = "count.to";
 export async function* main({ queryResult }, session) {
   let { parameters: p, queryText } = queryResult;
@@ -183,171 +179,3 @@ The actions must be placed in the `./src/packages` directory.
 
 If an action name is `hello.name`, the final file must be `./src/actions/hello/name.js`;
 shorter, if an action name is `hello`, the final must be `./src/actions/hello/index.js`.
-
-### Action output payload
-
-The output payload of an action could have these attributes:
-
-| Attribute              | Description                                                                                   |
-| ---------------------- | --------------------------------------------------------------------------------------------- |
-| `speech`               | String that could be spoken or written                                                        |
-| `payload.language`     | Language override for speech. Default `session.getTranslateTo()`                              |
-| `payload.replies[]`    | List of choices that the user can select. See below for the structure                         |
-| `payload.feedback`     | Boolean value indicating that this is temporary feedback until the real response will be sent |
-| `payload.includeVoice` | Boolean value indicating that an additional voice note along text should be sent              |
-| `payload.url`          | URL to send or to open                                                                        |
-| `payload.music`        | Music to send or to play                                                                      |
-| `payload.video`        | Video to send or to show                                                                      |
-| `payload.audio`        | Audio to send or to show                                                                      |
-| `payload.image`        | Image to send or to show                                                                      |
-| `payload.voice`        | Audio file to send or play via voice middlewares                                              |
-| `payload.game`         | Game that can be handled via Telegram                                                         |
-
-#### `payload.replies[]`
-
-| Attribute | Description             |
-| --------- | ----------------------- |
-| `id`      | Unique ID of the choice |
-| `text`    | String for the choice   |
-
-#### `payload.video`
-
-| Attribute | Description                    |
-| --------- | ------------------------------ |
-| `uri`     | Absolute URI of the media      |
-| `youtube` | Object containing Youtube data |
-
-#### `payload.image`
-
-| Attribute | Description               |
-| --------- | ------------------------- |
-| `uri`     | Absolute URI of the media |
-
-#### `payload.audio`
-
-| Attribute | Description               |
-| --------- | ------------------------- |
-| `uri`     | Absolute URI of the media |
-
-#### `payload.voice`
-
-| Attribute | Description               |
-| --------- | ------------------------- |
-| `uri`     | Absolute URI of the media |
-
-#### `payload.music`
-
-| Attribute          | Description                                                                           |
-| ------------------ | ------------------------------------------------------------------------------------- |
-| `uri`              | Absolute URI of the media                                                             |
-| `action`           | Action to execute to control playback. Can be `play`, `pause`, `next`, `prev`, `stop` |
-| `spotify`          | Object containing Spotify data                                                        |
-| `spotify.track`    | Spotify Track object                                                                  |
-| `spotify.album`    | Spotify Album object                                                                  |
-| `spotify.artist`   | Spotify Artist object                                                                 |
-| `spotify.playlist` | Spotify Playlist object                                                               |
-| `spotify.tracks`   | List of Spotify tracks                                                                |
-
-### Configuration keys
-
-#### First level keys
-
-| Key              | Description                                 | Default value | Required | Type     |
-| ---------------- | ------------------------------------------- | ------------- | -------- | -------- |
-| uid              | Name of current AI instance                 | null          | yes      | String   |
-| aiNameRegex      | Regex used to wakeup the AI in groups chats |               | yes\*    | String   |
-| ioDrivers        | List of IO drivers to load                  | []            | yes\*    | String[] |
-| language         | The source language of the AI               | en            | no       | String   |
-| ioAccessoriesMap | Map with driver: list accessories           | {}            | no       | String{} |
-| listeners        | List of listeners to load                   | []            | no       | String[] |
-| scheduler        | On/Off the scheduler                        | true          | no       | Bool     |
-| serverMode       | On/Off the server mode                      | false         | no       | Bool     |
-| raven            | Sentry DSN                                  | null          | no       | String   |
-
-#### Play
-
-| Key          | Description                                 | Default value | Required | Type     |
-| ------------ | ------------------------------------------- | ------------- | -------- | -------- |
-| play.addArgs | Additional CLI args to send to Play program | []            | no       | String[] |
-
-#### Snowboy
-
-| Key                      | Description                                       | Default value | Required | Type   |
-| ------------------------ | ------------------------------------------------- | ------------- | -------- | ------ |
-| snowboy.apiKey           | Snowboy API key to record new speechs for hotword | null          | yes\*    | String |
-| snowboy.sensitivity.wake | Sensitivity param for Snowboy wake hotword        | 0.4           | no       | Number |
-| snowboy.sensitivity.stop | Sensitivity param for Snowboy stop hotword        | 0.4           | no       | Number |
-
-#### Server
-
-| Key           | Description                                          | Default value | Required | Type   |
-| ------------- | ---------------------------------------------------- | ------------- | -------- | ------ |
-| server.domain | HTTP domain for the server (used for absolute links) | null          | yes\*    | String |
-| server.port   | HTTP port for the server                             | 8080          | no       | Number |
-| server.port   | HTTP port for the server                             | 8080          | no       | Number |
-
-#### Mongo
-
-| Key            | Description                     | Default value | Required | Type   |
-| -------------- | ------------------------------- | ------------- | -------- | ------ |
-| mongo.host     | Host for DB connection          | db            | yes      | String |
-| mongo.port     | Port for DB connection          | 27017         | yes      | Number |
-| mongo.database | Database name for DB connection | admin         | yes      | String |
-| mongo.user     | User for DB connection          | admin         | yes      | String |
-| mongo.password | Password for DB connection      | null          | yes      | String |
-
-#### APIAI (Dialogflow)
-
-| Key                 | Description                                      | Default value | Required | Type   |
-| ------------------- | ------------------------------------------------ | ------------- | -------- | ------ |
-| apiai.token         | API.AI/Dialogflow API key (client token)         | null          | yes      | String |
-| apiai.actionTimeout | Specify after how many seconds an action expires | 10            | no       | Number |
-
-#### Telegram (IO driver)
-
-| Key              | Description                            | Default value    | Required | Type   |
-| ---------------- | -------------------------------------- | ---------------- | -------- | ------ |
-| telegram.token   | Token used to instantiate Telegram bot | null             | yes\*    | String |
-| telegram.options | Options passed to TelegramBot library  | { polling: true} | yes\*    | Object |
-
-#### Human (IO Driver)
-
-| Key | Description | Default value | Required | Type |
-| --- | ----------- | ------------- | -------- | ---- |
-
-
-#### Facebook (Library)
-
-| Key                  | Description                        | Default value | Required | Type   |
-| -------------------- | ---------------------------------- | ------------- | -------- | ------ |
-| facebook.appId       | Application ID                     | null          | yes\*    | String |
-| facebook.secret      | Application secret                 | null          | yes\*    | String |
-| facebook.pageId      | Facebook Page ID                   | null          | yes\*    | String |
-| facebook.accessToken | Static page-token used to call API | null          | yes\*    | String |
-
-#### AWS (Library)
-
-| Key              | Description         | Default value | Required | Type        |
-| ---------------- | ------------------- | ------------- | -------- | ----------- |
-| aws.polly.gender | Gender used for TTS | Female        | no       | Male/Female |
-
-#### GCloud (Library)
-
-| Key                   | Description                      | Default value | Required | Type        |
-| --------------------- | -------------------------------- | ------------- | -------- | ----------- |
-| gcloud.cseId          | Application ID                   | null          | yes\*    | String      |
-| gcloud.apiKey         | Application key                  | null          | yes\*    | String      |
-| gcloud.storage.bucket | Google Cloud Storage bucket name | null          | yes\*    | String      |
-| gcloud.tts.gender     | Gender used for TTS              | Female        | no       | Male/Female |
-
-#### Transmission (Library)
-
-| Key                   | Description                            | Default value | Required | Type   |
-| --------------------- | -------------------------------------- | ------------- | -------- | ------ |
-| transmission.host     | Host of your Transmission instance     | null          | yes\*    | String |
-| transmission.port     | Port of your Transmission instance     | null          | yes\*    | Number |
-| transmission.username | Username of your Transmission instance | null          | yes\*    | String |
-| transmission.password | Password of your Transmission instance | null          | yes\*    | String |
-| transmission.ssl      | On/Off SSL to connect                  | false         | no       | Bool   |
-
-yes\* = (yes if you use that service)

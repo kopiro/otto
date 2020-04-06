@@ -1,21 +1,50 @@
 import * as Data from "../data/index";
 import config from "../config";
-import {
-  Session,
-  IODriverModule,
-  IOListenerModule,
-  IOAccessoryModule,
-  Fulfillment,
-  InputParams,
-  IOQueue,
-  CustomError,
-} from "../types";
+import { Session, Fulfillment, InputParams, IOQueue } from "../types";
+import { EventEmitter } from "events";
 
 const TAG = "IOManager";
 
-const configuredDriversId: Array<string> = [];
+export enum IODriver {
+  "telegram" = "telegram",
+  "human" = "human",
+}
+
+export enum IOListener {
+  "io_event" = "io_event",
+}
+
+export enum IOAccessory {
+  "gpio_button" = "gpio_button",
+  "leds" = "leds",
+}
+
+export type IOBag = Record<string, any>;
+
+// eslint-disable-next-line @typescript-eslint/interface-name-prefix
+export interface IODriverModule {
+  emitter: EventEmitter;
+  onlyClientMode: boolean;
+  onlyServerMode: boolean;
+  start: () => void;
+  output: (fulfillment: Fulfillment, session: Session, bag: IOBag) => void;
+}
+
+// eslint-disable-next-line @typescript-eslint/interface-name-prefix
+export interface IOListenerModule {
+  start: () => void;
+}
+
+// eslint-disable-next-line @typescript-eslint/interface-name-prefix
+export interface IOAccessoryModule {
+  start: () => void;
+}
+
+type IODriverId = string;
+
+const enabledDriverIds: Array<IODriverId> = [];
+
 const enabledDrivers: Record<string, IODriverModule> = {};
-const enabledAccesories = {};
 const ioQueueInProcess = {};
 
 /**
@@ -24,24 +53,73 @@ const ioQueueInProcess = {};
 const SESSION_SEPARATOR = "-";
 
 /**
+ * Return an array of drivers strings to load
+ */
+export function getDriversToLoad(): IODriver[] {
+  if (process.env.OTTO_IO_DRIVERS) {
+    return (process.env.OTTO_IO_DRIVERS.split(",") as unknown) as IODriver[];
+  }
+  return config().ioDrivers || [];
+}
+
+/**
+ * Return an array of accessories strings to load for that driver
+ */
+export function getAccessoriesToLoadForDriver(driver: IODriver): IOAccessory[] {
+  if (process.env.OTTO_IO_ACCESSORIES) {
+    return (process.env.OTTO_IO_ACCESSORIES.split(",") as unknown) as IOAccessory[];
+  }
+  return config().ioAccessoriesMap[driver] || [];
+}
+
+/**
+ * Return an array of listeners strings to load
+ */
+export function getListenersToLoad(): IOListener[] {
+  if (process.env.OTTO_IO_LISTENERS) {
+    return (process.env.OTTO_IO_LISTENERS.split(",") as unknown) as IOListener[];
+  }
+  return config().ioListeners || [];
+}
+
+/**
  * Load the driver module
  */
-export function getDriver(e: string): IODriverModule {
-  return require(`../io/${e}`);
+export async function getDriver(e: IODriver): Promise<IODriverModule> {
+  switch (e) {
+    case IODriver.telegram:
+      return (await import("../io/telegram")).default;
+    case IODriver.human:
+      return (await import("../io/human")).default;
+    default:
+      throw new Error(`Invalid driver: ${e}`);
+  }
 }
 
 /**
  * Load the listener module
  */
-export function getListener(e: string): IOListenerModule {
-  return require(`../listeners/${e}`);
+export async function getListener(e: IOListener): Promise<IOListenerModule> {
+  switch (e) {
+    case IOListener.io_event:
+      return (await import("../listeners/io_event")).default;
+    default:
+      throw new Error(`Invalid listener: ${e}`);
+  }
 }
 
 /**
  * Load the accessory module
  */
-export function getAccessory(e: string): IOAccessoryModule {
-  return require(`../io_accessories/${e}`);
+export async function getAccessoryForDriver(e: IOAccessory, driver: IODriverModule): Promise<IOAccessoryModule> {
+  switch (e) {
+    case IOAccessory.gpio_button:
+      return new (await import("../io_accessories/gpio_button")).default(driver);
+    case IOAccessory.leds:
+      return new (await import("../io_accessories/leds")).default(driver);
+    default:
+      throw new Error(`Invalid accessory: ${e}`);
+  }
 }
 
 /**
@@ -57,6 +135,7 @@ export function fulfillmentTransformerForDriverOutput(fulfillment: Fulfillment):
 export async function output(
   fulfillment: Fulfillment,
   session: Session,
+  bag: IOBag,
   loadDriverIfNotEnabled = false,
 ): Promise<boolean> {
   if (!fulfillment) {
@@ -67,7 +146,7 @@ export async function output(
   }
 
   // If this fulfillment has been handled by a generator, simply skip
-  if (fulfillment.payload && fulfillment.payload.handledByGenerator) {
+  if (fulfillment.payload?.handledByGenerator) {
     console.warn(TAG, "Skipping output because is handled by an external generator");
     return null;
   }
@@ -75,23 +154,23 @@ export async function output(
   // Redirecting output to another session
   if (session.redirectSession) {
     console.info(TAG, "using redirectSession", session.redirectSession.id);
-    return output(fulfillment, session.redirectSession, loadDriverIfNotEnabled);
+    return output(fulfillment, session.redirectSession, bag, loadDriverIfNotEnabled);
   }
 
   let driver: IODriverModule;
 
   if (loadDriverIfNotEnabled) {
-    driver = getDriver(session.ioDriver);
+    driver = await getDriver(session.ioDriver);
   } else {
     // If this driver is not up & running for this configuration,
     // the item could be handled by another platform that has that driver configured,
     // so we'll enqueue it.
-    if (configuredDriversId.indexOf(session.ioId) === -1) {
+    if (enabledDriverIds.indexOf(session.ioId) === -1) {
       console.info(
         TAG,
         `putting in IO queue because driver <${session.ioId}> of session <${
           session.id
-        }> is not this list [${configuredDriversId.join()}]`,
+        }> is not this list [${enabledDriverIds.join()}]`,
       );
 
       const ioQueueElement = new Data.IOQueue({
@@ -114,7 +193,7 @@ export async function output(
   if (session.forwardSession) {
     console.info(TAG, "using forwardSession", session.forwardSession.id);
     setImmediate(() => {
-      output(fulfillment, session.forwardSession, loadDriverIfNotEnabled);
+      output(fulfillment, session.forwardSession, bag, loadDriverIfNotEnabled);
     });
   }
 
@@ -126,14 +205,14 @@ export async function output(
   let error;
 
   try {
-    result = await driver.output(payload, session);
+    result = await driver.output(payload, session, bag);
   } catch (err) {
     error = err;
   }
 
   if (error && session.fallbackSession) {
     console.info(TAG, "using fallbackSession", session.fallbackSession.id);
-    return output(fulfillment, session.fallbackSession);
+    return output(fulfillment, session.fallbackSession, bag);
   }
 
   if (error) throw error;
@@ -143,125 +222,69 @@ export async function output(
 /**
  * Configure every accessory for that driver
  */
-export async function startAccessories(driverName: string) {
-  const driver = enabledDrivers[driverName];
-  const accessories = enabledAccesories[driverName] || [];
-  for (const accessory of accessories) {
-    await accessory.startInput(driver);
-  }
-}
-
-/**
- * Configure driver by handling its input event,
- * parsing it and re-calling the output method of the driver
- */
-export async function startDriver(driverName: string, onDriverInput: (params: InputParams, session: Session) => void) {
-  const driver = enabledDrivers[driverName];
-  driver.emitter.on("input", (input) => {
-    if (input.params) {
-      onDriverInput(input.params as InputParams, input.session as Session);
-    } else {
-      console.error(TAG, "driver emitted unkown events", input);
-    }
-  });
-  await driver.start();
-}
-
-/**
- * Return an array of drivers strings to load
- */
-export function getDriversToLoad(): Array<string> {
-  if (process.env.OTTO_IO_DRIVERS) {
-    return process.env.OTTO_IO_DRIVERS.split(",");
-  }
-  return config().ioDrivers || [];
-}
-
-/**
- * Return an array of accessories strings to load for that driver
- */
-export function getAccessoriesToLoad(driver: string): Array<string> {
-  if (process.env.OTTO_IO_ACCESSORIES) {
-    return process.env.OTTO_IO_ACCESSORIES.split(",");
-  }
-  return config().ioAccessoriesMap[driver] || [];
-}
-
-/**
- * Return an array of listeners strings to load
- */
-export function getListenersToLoad(): Array<string> {
-  if (process.env.OTTO_IO_LISTENERS) {
-    return process.env.OTTO_IO_LISTENERS.split(",");
-  }
-  return config().listeners || [];
+export async function startAccessoriesForDriver(driverName: IODriver, driver: IODriverModule) {
+  const accessoriesToLoad = getAccessoriesToLoadForDriver((driverName as unknown) as IODriver);
+  return Promise.all(
+    accessoriesToLoad.map((accessory) => {
+      return getAccessoryForDriver(accessory, driver).then((accessoryModule) => accessoryModule.start());
+    }),
+  );
 }
 
 /**
  * Effectively load configured drivers
  */
-export function loadDrivers(): Record<string, IODriverModule> {
-  const driversToLoad = getDriversToLoad();
+export async function configureDriver(driverName: IODriver): Promise<[IODriverModule, IODriverId]> {
+  const driver = await getDriver(driverName);
 
-  for (const driverName of driversToLoad) {
-    try {
-      const driver = getDriver(driverName);
-      const driverId = `${config().uid}${SESSION_SEPARATOR}${driverName}`;
+  const driverId = [config().uid, driverName].join(SESSION_SEPARATOR);
 
-      if (config().serverMode && driver.onlyClientMode) {
-        console.error(TAG, `unable to load <${driverName}> because this IO is not compatible with SERVER mode`);
-        continue;
-      }
-
-      if (!config().serverMode && driver.onlyServerMode) {
-        console.error(TAG, `unable to load <${driverName}> because this IO is not compatible with CLIENT mode`);
-        continue;
-      }
-
-      enabledDrivers[driverName] = driver;
-      configuredDriversId.push(driverId);
-
-      driver.emitter.emit("loaded");
-      console.log(TAG, `driver loaded with id: <${driverId}>`);
-    } catch (err) {
-      console.error(TAG, `driver <${driverName}> caused error`, err);
-    }
+  if (config().serverMode && driver.onlyClientMode) {
+    throw new Error(`unable to load <${driverName}> because this IO is not compatible with SERVER mode`);
   }
 
-  return enabledDrivers;
+  if (!config().serverMode && driver.onlyServerMode) {
+    throw new Error(`unable to load <${driverName}> because this IO is not compatible with CLIENT mode`);
+  }
+
+  return [driver, driverId];
 }
 
-/**
- * Effectively load configured accessories for each enabled driver
- */
-export function loadAccessories(): void {
-  const driversToLoad = getDriversToLoad();
-
-  for (const driverName of driversToLoad) {
-    enabledAccesories[driverName] = [];
-    const accessoriesToLoad = getAccessoriesToLoad(driverName);
-    for (const accessoryId of accessoriesToLoad) {
-      const accessory = getAccessory(accessoryId);
-      enabledAccesories[driverName].push(accessory);
-    }
-  }
+function startListeners() {
+  return Promise.all(
+    getListenersToLoad().map((listenerName) => {
+      return getListener(listenerName).then((listener) => listener.start());
+    }),
+  );
 }
 
-/**
- * Effectively load configured listeners
- */
-export function loadListeners(): void {
-  const listenersToLoad = getListenersToLoad();
+function startDrivers(onDriverInput: (params: InputParams, session: Session) => void) {
+  return Promise.all(
+    getDriversToLoad().map(async (driverName) => {
+      configureDriver(driverName)
+        .then(([driver, driverId]) => {
+          return Promise.all([driver, driverId, driver.start()]);
+        })
+        .then(([driver, driverId]) => {
+          return Promise.all([driver, driverId, startAccessoriesForDriver(driverName, driver)]);
+        })
+        .then(([driver, driverId]) => {
+          driver.emitter.on("input", (input) => {
+            if (input.params) {
+              onDriverInput(input.params as InputParams, input.session as Session);
+            } else {
+              console.error(TAG, "driver emitted unkown events", input);
+            }
+          });
 
-  for (const listenerName of listenersToLoad) {
-    try {
-      const listener = getListener(listenerName);
-      listener.start();
-      console.log(TAG, `listener <${listenerName}> started`);
-    } catch (err) {
-      console.error(TAG, `listener <${listenerName}> error`, err);
-    }
-  }
+          enabledDrivers[driverName] = driver;
+          enabledDriverIds.push(driverId);
+
+          console.log(TAG, `driver ${driverName} started with id: <${driverId}>`);
+          return true;
+        });
+    }),
+  );
 }
 
 /**
@@ -340,7 +363,7 @@ export async function registerSession(
 export async function getNextInQueue(): Promise<IOQueue> {
   return await Data.IOQueue.findOne({
     ioId: {
-      $in: configuredDriversId,
+      $in: enabledDriverIds,
     },
   });
 }
@@ -361,7 +384,7 @@ export async function processIOQueue(): Promise<IOQueue | null> {
 
   qitem.remove();
 
-  await output(qitem.fulfillment, qitem.session);
+  await output(qitem.fulfillment, qitem.session, qitem.bag);
 
   return qitem;
 }
@@ -370,17 +393,16 @@ export async function processIOQueue(): Promise<IOQueue | null> {
  * Start drivers, accessories and listeners
  */
 export async function start(onDriverInput: (params: InputParams, session: Session) => void) {
-  loadDrivers();
-  loadAccessories();
-  loadListeners();
+  try {
+    await startDrivers(onDriverInput);
+  } catch (err) {
+    console.error(err);
+  }
 
-  for (const driverName of Object.keys(enabledDrivers)) {
-    try {
-      await startDriver(driverName, onDriverInput);
-      await startAccessories(driverName);
-    } catch (err) {
-      console.error(TAG, `Unable to activate driver <${driverName}>`, err);
-    }
+  try {
+    await startListeners();
+  } catch (err) {
+    console.error(TAG, err);
   }
 
   if (config().ioQueue?.enabled) {
