@@ -335,7 +335,7 @@ class Telegram implements IOManager.IODriverModule {
     const chatId = session.ioData.id;
     const botOpt: TelegramBot.SendMessageOptions = {};
 
-    if (bag.replyToMessageId) {
+    if (bag?.replyToMessageId) {
       botOpt.reply_to_message_id = bag.replyToMessageId;
     }
 
@@ -345,7 +345,7 @@ class Telegram implements IOManager.IODriverModule {
         await this.sendMessage(chatId, f.fulfillmentText, botOpt);
         // await this.sendVideoNote(chatId, f, session, botOpt);
 
-        if (bag.respondWithAudioNote || f.payload?.includeVoice) {
+        if (bag?.respondWithAudioNote || f.payload?.includeVoice) {
           await this.sendAudioNote(chatId, f, session, botOpt);
         }
         processed = true;

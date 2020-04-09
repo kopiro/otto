@@ -45,5 +45,5 @@ RUN yarn build:code
 RUN rm -rf ./src
 
 ENTRYPOINT [ "yarn", "start:built" ]
-VOLUME /app/cache /app/log /app/keys /app/tmp /app/tmp-secret
+VOLUME /app/cache /app/log /app/keys /app/tmp
 EXPOSE 80

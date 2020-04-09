@@ -253,7 +253,11 @@ export async function configureDriver(driverName: IODriver): Promise<[IODriverMo
 function startListeners() {
   return Promise.all(
     getListenersToLoad().map((listenerName) => {
-      return getListener(listenerName).then((listener) => listener.start());
+      return getListener(listenerName)
+        .then((listener) => listener.start())
+        .then(() => {
+          console.log(TAG, `listener ${listenerName} started`);
+        });
     }),
   );
 }

@@ -14,7 +14,6 @@ services:
       - ./tmp:/app/tmp
       - ./log:/app/log
       - ./keys:/app/keys
-      - ./tmp-secret:/app/tmp-secret
       - ./package.json:/app/package.json
       - ./yarn.lock:/app/yarn.lock
       - ./src:/app/src

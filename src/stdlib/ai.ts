@@ -245,7 +245,9 @@ function outputAudioParser(body: IDetectIntentResponse, session: ISession): Buff
     return null;
   }
 
-  const payloadLanguageCode = struct.decode(body.queryResult.webhookPayload as Struct).language as Language;
+  const payloadLanguageCode = body.queryResult.webhookPayload
+    ? (struct.decode(body.queryResult.webhookPayload).language as Language)
+    : null;
 
   // If the voice language doesn't match the session language, skip
   if (payloadLanguageCode && config().language !== payloadLanguageCode) {
@@ -263,22 +265,20 @@ function outputAudioParser(body: IDetectIntentResponse, session: ISession): Buff
  * Parse the DialogFlow webhook response
  */
 export function webhookResponseToFulfillment(body: IDetectIntentResponse, session: ISession): Fulfillment {
-  const { queryResult, webhookStatus } = body;
-
-  if (webhookStatus.code > 0) {
+  if (body.webhookStatus?.code > 0) {
     return {
       payload: {
         error: {
-          message: webhookStatus.message,
+          message: body.webhookStatus.message,
         },
       },
     };
   }
 
   return {
-    fulfillmentText: queryResult.fulfillmentText,
+    fulfillmentText: body.queryResult.fulfillmentText,
     audio: outputAudioParser(body, session),
-    payload: struct.decode(queryResult.webhookPayload as Struct),
+    payload: body.queryResult.webhookPayload ? struct.decode(body.queryResult.webhookPayload) : null,
   };
 }
 
@@ -350,7 +350,7 @@ async function request(
     session: getDFSessionPath(session),
     queryInput,
     queryParams: {
-      payload: struct.encode(bag),
+      payload: bag ? struct.encode(bag) : {},
       sentimentAnalysisRequestConfig: {
         analyzeQueryTextSentiment: true,
       },

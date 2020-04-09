@@ -11,7 +11,8 @@ sudo apt-get -y install libavahi-compat-libdnssd-dev
 
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.2/install.sh | bash
 source ~/.bash_profile
-nvm install 8
+nvm install 12
+nvm use 12
 
 npm -g install yarn
 
