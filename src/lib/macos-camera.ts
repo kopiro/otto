@@ -8,4 +8,7 @@ export class MacOSCamera extends Camera {
     await Proc.spawn("imagesnap", ["-o", tmpFile]);
     return tmpFile;
   }
+  async takeVideo(): Promise<string> {
+    return "";
+  }
 }

@@ -98,9 +98,7 @@ function actionErrorTransformer(body: IDetectIntentResponse, error: CustomError)
 
   if (error.message) {
     const errMessage = error.message;
-
     const textInPayload = extractWithPattern(body.queryResult.fulfillmentMessages, `[].payload.error.${errMessage}`);
-
     if (textInPayload) {
       // If an error occurs, try to intercept this error
       // in the fulfillmentMessages that comes from DialogFlow
@@ -109,8 +107,6 @@ function actionErrorTransformer(body: IDetectIntentResponse, error: CustomError)
         text = replaceVariablesInStrings(text, error.data);
       }
       fulfillment.fulfillmentText = text;
-    } else {
-      fulfillment.fulfillmentText = error.message.replace(/_/g, " ");
     }
   }
 
@@ -169,12 +165,21 @@ export async function actionResolver(
   try {
     const [pkgName, pkgAction = "index"] = actionName.split(".");
     // TODO: avoid code injection
-    const actionToCall = (await import(`../packages/${pkgName}/${pkgAction}`)).default as AIAction;
-    if (!actionToCall) {
+    const pkg = await import(`../packages/${pkgName}/${pkgAction}`);
+    if (!pkg) {
       throw new Error(`Invalid action name <${actionName}>`);
     }
 
-    const actionResult = await actionToCall(body, session, bag);
+    const pkgAuthorizations = (pkg.authorizations || []) as IOManager.Authorizations[];
+    const sessionAuthorizations = session.authorizations || [];
+    for (const pkgAuth of pkgAuthorizations) {
+      if (!sessionAuthorizations.includes(pkgAuth)) {
+        throw new Error(`Missing ${pkgAuth} authorization for your session`);
+      }
+    }
+
+    const pkgCallable = pkg.default as AIAction;
+    const actionResult = await pkgCallable(body, session, bag);
 
     // Now check if this action is a Promise or a Generator
     if (actionResult.constructor.name === "GeneratorFunction") {

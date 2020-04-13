@@ -11,6 +11,10 @@ export type IOAccessory = "gpio_button" | "leds";
 
 export type IOBag = Record<string, any>;
 
+export enum Authorizations {
+  "CAMERA" = "CAMERA",
+}
+
 // eslint-disable-next-line @typescript-eslint/interface-name-prefix
 export interface IODriverModule {
   emitter: EventEmitter;
@@ -38,7 +42,7 @@ const ioQueueInProcess = {};
 /**
  * The separator between paths in the session ID definition
  */
-const SESSION_SEPARATOR = "-";
+const SESSION_SEPARATOR = "$";
 
 /**
  * Return an array of drivers strings to load
@@ -333,7 +337,7 @@ export async function registerSession(
       serverSettings: config().uid,
     });
     await freshSession.save();
-    console.info(TAG, "new session model registered", session);
+    console.info(TAG, "new session model registered", freshSession);
     return (freshSession as unknown) as Session;
   }
 

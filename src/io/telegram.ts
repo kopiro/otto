@@ -200,7 +200,7 @@ class Telegram implements IOManager.IODriverModule {
       depth: 2,
     });
 
-    const sessionId = e.chat.id.toString();
+    const sessionId = `u${e.from.id}c${e.chat.id}`;
     const chatIsGroup = this.getChatIsGroup(e);
     const alias = this.getAlias(e);
     const isMention = this.getIsMention(e.text);
@@ -208,7 +208,7 @@ class Telegram implements IOManager.IODriverModule {
     const isReply = e.reply_to_message?.from?.id === this.botMe.id;
 
     // Register the session
-    const session = await IOManager.registerSession(DRIVER_ID, sessionId, e.chat, alias);
+    const session = await IOManager.registerSession(DRIVER_ID, sessionId, e, alias);
 
     const bag: IOManager.IOBag = {
       replyToMessageId: e.message_id,
@@ -329,7 +329,7 @@ class Telegram implements IOManager.IODriverModule {
     });
 
     // This is the Telegram Chat ID used to respond to the user
-    const chatId = session.ioData.id;
+    const chatId = session.ioData.chat.id;
     const botOpt: TelegramBot.SendMessageOptions = {};
 
     if (bag?.replyToMessageId) {
@@ -407,7 +407,7 @@ class Telegram implements IOManager.IODriverModule {
 
     try {
       if (f.payload?.error?.message) {
-        await this.sendMessage(chatId, f.payload.error.message, botOpt);
+        await this.sendMessage(chatId, `<pre>${f.payload.error.toString()}</pre>`, botOpt);
         processed = true;
       }
     } catch (err) {

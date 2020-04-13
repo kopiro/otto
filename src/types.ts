@@ -1,5 +1,5 @@
 import { Document } from "mongoose";
-import { IODriver, IOBag } from "./stdlib/iomanager";
+import { IODriver, IOBag, Authorizations } from "./stdlib/iomanager";
 
 export type Language = string;
 export type Locale = string;
@@ -104,7 +104,7 @@ export interface Session extends Document {
   translateFrom: Language;
   translateTo: Language;
   alias: string | null;
-  isAdmin: boolean;
+  authorizations: Authorizations[];
   pipe: {
     nextWithVoice?: boolean;
     includeVoice?: boolean;
