@@ -309,36 +309,27 @@ export async function getSessionByParts(uid: string, ioDriver: string, sessionId
 /**
  * Register a new session onto ORM
  */
-export async function registerSession(
-  ioDriver: string,
-  sessionId?: string,
-  ioData?: any,
-  alias?: string,
-): Promise<Session> {
+export async function registerSession(ioDriver: string, sessionId?: string, ioData?: any): Promise<Session> {
   const session = await getSessionByParts(config().uid, ioDriver, sessionId);
+  const sessionIdComposite = getSessionIdByParts(config().uid, ioDriver, sessionId);
+  const ioId = [config().uid, ioDriver].join(SESSION_SEPARATOR);
+
+  const data = {
+    _id: sessionIdComposite,
+    uid: config().uid,
+    ioId,
+    ioDriver,
+    ioData,
+  };
 
   if (!session) {
-    const sessionIdComposite = getSessionIdByParts(config().uid, ioDriver, sessionId);
     // TODO: remove this and calculate it
-    const ioId = [config().uid, ioDriver].join(SESSION_SEPARATOR);
-    const freshSession = new Data.Session({
-      _id: sessionIdComposite,
-      uid: config().uid,
-      ioId,
-      ioDriver,
-      ioData,
-      alias,
-      settings: {
-        updated_at: Date.now(),
-      },
-      pipe: {
-        updated_at: Date.now(),
-      },
-      serverSettings: config().uid,
-    });
+    const freshSession = new Data.Session(data);
     await freshSession.save();
     console.info(TAG, "new session model registered", freshSession);
     return (freshSession as unknown) as Session;
+  } else {
+    await session.update(data);
   }
 
   return session;

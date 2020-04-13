@@ -18,7 +18,6 @@ export const SessionSchema = new Schema({
   settings: Schema.Types.Mixed,
   translateFrom: String,
   translateTo: String,
-  alias: String,
   pipe: Schema.Types.Mixed,
   authorizations: [String],
   fallbackSession: { type: String, ref: "session", autopopulate: true },

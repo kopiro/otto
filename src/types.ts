@@ -103,7 +103,6 @@ export interface Session extends Document {
   settings: {};
   translateFrom: Language;
   translateTo: Language;
-  alias: string | null;
   authorizations: Authorizations[];
   pipe: {
     nextWithVoice?: boolean;

@@ -179,17 +179,6 @@ class Telegram implements IOManager.IODriverModule {
     return getAiNameRegex().test(text);
   }
 
-  getAlias(msg: TelegramBot.Message): string {
-    switch (msg.chat.type) {
-      case "private":
-        return `${msg.chat.first_name} ${msg.chat.last_name}`;
-        break;
-      default:
-        return msg.chat.title;
-        break;
-    }
-  }
-
   getChatIsGroup(msg: TelegramBot.Message) {
     return msg.chat.type === "group";
   }
@@ -202,13 +191,12 @@ class Telegram implements IOManager.IODriverModule {
 
     const sessionId = `u${e.from.id}c${e.chat.id}`;
     const chatIsGroup = this.getChatIsGroup(e);
-    const alias = this.getAlias(e);
     const isMention = this.getIsMention(e.text);
     const isActivator = this.getIsActivator(e.text);
     const isReply = e.reply_to_message?.from?.id === this.botMe.id;
 
     // Register the session
-    const session = await IOManager.registerSession(DRIVER_ID, sessionId, e, alias);
+    const session = await IOManager.registerSession(DRIVER_ID, sessionId, { from: e.from, chat: e.chat });
 
     const bag: IOManager.IOBag = {
       replyToMessageId: e.message_id,
