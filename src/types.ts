@@ -91,7 +91,6 @@ export interface Scheduler extends Document {
   hourly: string; // set minute
   onTick: boolean; // every second
   onDate: string; // on a date
-  randomness: [number, number];
 }
 
 export interface Session extends Document {

@@ -1,6 +1,6 @@
 import { v2 as dialogflow } from "dialogflow";
 import * as IOManager from "./iomanager";
-import * as Translator from "../interfaces/translator";
+import Translator from "../stdlib/translator";
 import config from "../config";
 import { extractWithPattern, replaceVariablesInStrings } from "../helpers";
 import {
@@ -12,7 +12,7 @@ import {
   BufferWithExtension,
   Session as ISession,
 } from "../types";
-import { struct, Struct } from "pb-util";
+import { struct } from "pb-util";
 import { Request, Response } from "express";
 import { Log } from "./log";
 
@@ -39,8 +39,10 @@ export async function fulfillmentTransformerForSession(
   fulfillment: Fulfillment,
   session: ISession,
 ): Promise<Fulfillment> {
+  fulfillment.payload = fulfillment.payload || {};
+
   // If this fulfillment has already been transformed, let's skip this
-  if (fulfillment.payload?.transformerUid) {
+  if (fulfillment.payload.transformerUid) {
     return fulfillment;
   }
 
@@ -53,7 +55,7 @@ export async function fulfillmentTransformerForSession(
         config().language,
       );
       fulfillment.payload.translatedTo = session.getTranslateTo();
-    } else if (fulfillment.payload?.translateFrom) {
+    } else if (fulfillment.payload.translateFrom) {
       fulfillment.fulfillmentText = await Translator.translate(
         fulfillment.fulfillmentText,
         session.getTranslateTo(),
@@ -63,7 +65,6 @@ export async function fulfillmentTransformerForSession(
     }
   }
 
-  fulfillment.payload = fulfillment.payload || {};
   fulfillment.payload.transformerUid = config().uid;
   fulfillment.payload.transformedAt = Date.now();
 
@@ -209,12 +210,13 @@ export async function actionResolver(
 export async function textRequestTransformer(text: InputParams["text"], session: ISession): Promise<ITextInput> {
   const trText: ITextInput = {};
 
-  trText.languageCode = session.getTranslateTo();
   if (config().language !== session.getTranslateTo()) {
     trText.text = await Translator.translate(text, config().language, session.getTranslateTo());
   } else {
     trText.text = text;
   }
+
+  trText.languageCode = session.getTranslateTo();
 
   return trText;
 }
@@ -223,12 +225,12 @@ export async function textRequestTransformer(text: InputParams["text"], session:
  * Transform an event by making compatible
  */
 export async function eventRequestTransformer(event: InputParams["event"], session: ISession): Promise<IEventInput> {
-  const trEvent: IEventInput = {};
+  let trEvent: IEventInput;
 
   if (typeof event === "string") {
-    trEvent.name = event;
+    trEvent = { name: event };
   } else {
-    Object.assign(trEvent, event);
+    trEvent = { name: event.name, parameters: event.parameters ? struct.encode(event.parameters) : {} };
   }
 
   trEvent.languageCode = session.getTranslateTo();
@@ -239,7 +241,7 @@ export async function eventRequestTransformer(event: InputParams["event"], sessi
 /**
  * Returns a valid audio buffer
  */
-function outputAudioParser(body: IDetectIntentResponse, session: ISession): BufferWithExtension | null {
+function outputAudioParser(body: IDetectIntentResponse): BufferWithExtension | null {
   // If there's no audio in the response, skip
   if (!body.outputAudio) {
     return null;
@@ -277,7 +279,7 @@ export function webhookResponseToFulfillment(body: IDetectIntentResponse, sessio
 
   return {
     fulfillmentText: body.queryResult.fulfillmentText,
-    audio: outputAudioParser(body, session),
+    audio: outputAudioParser(body),
     payload: body.queryResult.webhookPayload ? struct.decode(body.queryResult.webhookPayload) : null,
   };
 }
@@ -290,7 +292,7 @@ export async function bodyParser(
   session: ISession,
   bag: IOManager.IOBag,
 ): Promise<Fulfillment> {
-  const parsedFromWebhook = "webhookStatus" in body;
+  const parsedFromWebhook = body.webhookStatus !== null;
 
   if (config().mimicOfflineServer) {
     console.warn(TAG, "!!! Miming an offline webhook server !!!");
@@ -327,7 +329,7 @@ export async function bodyParser(
     return {
       fulfillmentText: body.queryResult.fulfillmentText,
       // Do not add this property when we're parsing this response on the webhook
-      audio: parsedFromWebhook ? outputAudioParser(body, session) : null,
+      audio: parsedFromWebhook ? outputAudioParser(body) : null,
     };
   }
 
@@ -442,7 +444,7 @@ export function attachToServer(serverInstance) {
  * Process a fulfillment to a session
  */
 export async function processInput(params: InputParams, session: ISession) {
-  console.info(TAG, "processInput", { params, session });
+  console.info(TAG, "processInput", { params, "session.id": session.id });
 
   if (session.repeatModeSession && params.text) {
     console.info(TAG, "using repeatModeSession", session.repeatModeSession);

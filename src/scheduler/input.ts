@@ -1,6 +1,8 @@
 import * as AI from "../stdlib/ai";
-import { Session, InputParams } from "../types";
+import { SchedulerProgramClass } from "../stdlib/scheduler";
 
-export default function run(params: InputParams, session: Session) {
-  AI.processInput(params, session);
+export default class InputScheduler extends SchedulerProgramClass {
+  async run() {
+    return AI.processInput(this.job.programArgs, this.job.session);
+  }
 }

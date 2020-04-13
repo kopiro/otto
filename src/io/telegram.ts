@@ -7,8 +7,8 @@ import bodyParser from "body-parser";
 import config from "../config";
 import * as Server from "../stdlib/server";
 import * as IOManager from "../stdlib/iomanager";
-import * as SR from "../interfaces/sr";
-import * as TTS from "../interfaces/tts";
+import SpeechRecognizer from "../stdlib/speech-recognizer";
+import TextToSpeech from "../stdlib/text-to-speech";
 import * as Play from "../lib/play";
 import * as Proc from "../lib/proc";
 import { v4 as uuid } from "uuid";
@@ -38,9 +38,6 @@ class Telegram implements IOManager.IODriverModule {
   botMe: TelegramBot.User;
   botMentionRegex: RegExp;
 
-  onlyClientMode: false;
-  onlyServerMode: false;
-
   started = false;
 
   constructor(config: TelegramConfig) {
@@ -61,8 +58,8 @@ class Telegram implements IOManager.IODriverModule {
       request(fileLink)
         .pipe(fs.createWriteStream(voiceFile))
         .on("close", async () => {
-          await Proc.spawn("opusdec", [voiceFile, voiceWavFile, "--rate", SR.SAMPLE_RATE]);
-          const text = await SR.recognizeFile(voiceWavFile, session.getTranslateFrom(), false);
+          await Proc.spawn("opusdec", [voiceFile, voiceWavFile, "--rate", SpeechRecognizer.SAMPLE_RATE]);
+          const text = await SpeechRecognizer.recognizeFile(voiceWavFile, session.getTranslateFrom(), false, false);
           resolve(text);
         });
     });
@@ -108,7 +105,7 @@ class Telegram implements IOManager.IODriverModule {
     if (fulfillment.audio) {
       return Play.playVoiceToTempFile(fulfillment.audio);
     } else {
-      const audioFile = await TTS.getAudioFile(
+      const audioFile = await TextToSpeech.getAudioFile(
         fulfillment.fulfillmentText,
         fulfillment.payload.language || session.getTranslateTo(),
         config().tts.gender,

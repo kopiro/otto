@@ -5,8 +5,8 @@
     "noImplicitAny": false,
     "module": "commonjs",
     "esModuleInterop": true,
-    "target": "es6",
     "moduleResolution": "node",
+    "target": "es2017",
     "outDir": "build",
     "lib": ["es6"],
     "sourceMap": true

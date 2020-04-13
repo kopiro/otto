@@ -2,10 +2,10 @@ import Events from "events";
 import * as Rec from "../lib/rec";
 import config from "../config";
 import * as IOManager from "../stdlib/iomanager";
-import * as SR from "../interfaces/sr";
+import SpeechRecognizer from "../stdlib/speech-recognizer";
 import * as Play from "../lib/play";
 import { etcDir } from "../paths";
-import * as TTS from "../interfaces/tts";
+import TextToSpeech from "../stdlib/text-to-speech";
 import { timeout } from "../helpers";
 import { Fulfillment, Session } from "../types";
 
@@ -30,9 +30,6 @@ type HumanConfig = {};
 class Human implements IOManager.IODriverModule {
   config: HumanConfig;
   emitter: Events.EventEmitter;
-
-  onlyClientMode: true;
-  onlyServerMode: false;
 
   /**
    * TRUE when the audio is recording and it's submitting to GCP-SR
@@ -97,7 +94,7 @@ class Human implements IOManager.IODriverModule {
   createRecognizeStream(session: Session) {
     console.log(TAG, "recognizing microphone stream");
 
-    this.recognizeStream = SR.createRecognizeStream(session.getTranslateFrom(), (err, text) => {
+    this.recognizeStream = SpeechRecognizer.createRecognizeStream(session.getTranslateFrom(), (err, text) => {
       this.destroyRecognizeStream();
 
       // If erred, emit an error and exit
@@ -237,7 +234,7 @@ class Human implements IOManager.IODriverModule {
     try {
       if (fulfillment.fulfillmentText && !processed) {
         console.warn(TAG, "using deprecated fulfillmentText instead of using audio");
-        const audioFile = await TTS.getAudioFile(fulfillment.fulfillmentText, language, config().tts.gender);
+        const audioFile = await TextToSpeech.getAudioFile(fulfillment.fulfillmentText, language, config().tts.gender);
         await Play.playVoice(audioFile);
         processed = true;
       }
@@ -278,15 +275,15 @@ class Human implements IOManager.IODriverModule {
   async output(fulfillment: Fulfillment, session: Session): Promise<boolean> {
     // If we have a current processed item, let's wait until it's null
     while (this.currentSpokenFulfillment) {
-      console.log(TAG, "waiting until agent is not speaking");
+      console.log(TAG, "waiting until agent is not speaking...");
       // eslint-disable-next-line no-await-in-loop
-      await timeout(500);
+      await timeout(2000);
     }
 
     this.currentSpokenFulfillment = fulfillment;
 
     try {
-      return this._output(fulfillment, session);
+      return await this._output(fulfillment, session);
     } finally {
       this.currentSpokenFulfillment = null;
     }
@@ -309,7 +306,7 @@ class Human implements IOManager.IODriverModule {
     // this.createHotwordDetectorStream();
     // this.registerEORInterval();
 
-    // Play.playURI(`${etcDir}/boot.wav`, ["-v", 0.4], 1);
+    Play.playURI(`${etcDir}/boot.wav`, ["vol", "0.2"], 1);
   }
 }
 

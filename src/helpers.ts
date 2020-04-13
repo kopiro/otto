@@ -4,7 +4,7 @@ import fs from "fs";
 import md5 from "md5";
 import path from "path";
 import config from "./config";
-import * as Translator from "./interfaces/translator";
+import Translator from "./stdlib/translator";
 import { cacheDir, tmpDir } from "./paths";
 import { Language, Locale, BufferWithExtension } from "./types";
 import { v4 as uuid } from "uuid";

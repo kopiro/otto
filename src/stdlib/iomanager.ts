@@ -5,27 +5,15 @@ import { EventEmitter } from "events";
 
 const TAG = "IOManager";
 
-export enum IODriver {
-  "telegram" = "telegram",
-  "human" = "human",
-}
-
-export enum IOListener {
-  "io_event" = "io_event",
-}
-
-export enum IOAccessory {
-  "gpio_button" = "gpio_button",
-  "leds" = "leds",
-}
+export type IODriver = "telegram" | "human";
+export type IOListener = "io_event";
+export type IOAccessory = "gpio_button" | "leds";
 
 export type IOBag = Record<string, any>;
 
 // eslint-disable-next-line @typescript-eslint/interface-name-prefix
 export interface IODriverModule {
   emitter: EventEmitter;
-  onlyClientMode: boolean;
-  onlyServerMode: boolean;
   start: () => void;
   output: (fulfillment: Fulfillment, session: Session, bag: IOBag) => void;
 }
@@ -87,9 +75,9 @@ export function getListenersToLoad(): IOListener[] {
  */
 export async function getDriver(e: IODriver): Promise<IODriverModule> {
   switch (e) {
-    case IODriver.telegram:
+    case "telegram":
       return (await import("../io/telegram")).default;
-    case IODriver.human:
+    case "human":
       return (await import("../io/human")).default;
     default:
       throw new Error(`Invalid driver: ${e}`);
@@ -101,7 +89,7 @@ export async function getDriver(e: IODriver): Promise<IODriverModule> {
  */
 export async function getListener(e: IOListener): Promise<IOListenerModule> {
   switch (e) {
-    case IOListener.io_event:
+    case "io_event":
       return (await import("../listeners/io_event")).default;
     default:
       throw new Error(`Invalid listener: ${e}`);
@@ -113,9 +101,9 @@ export async function getListener(e: IOListener): Promise<IOListenerModule> {
  */
 export async function getAccessoryForDriver(e: IOAccessory, driver: IODriverModule): Promise<IOAccessoryModule> {
   switch (e) {
-    case IOAccessory.gpio_button:
+    case "gpio_button":
       return new (await import("../io_accessories/gpio_button")).default(driver);
-    case IOAccessory.leds:
+    case "leds":
       return new (await import("../io_accessories/leds")).default(driver);
     default:
       throw new Error(`Invalid accessory: ${e}`);
@@ -236,16 +224,7 @@ export async function startAccessoriesForDriver(driverName: IODriver, driver: IO
  */
 export async function configureDriver(driverName: IODriver): Promise<[IODriverModule, IODriverId]> {
   const driver = await getDriver(driverName);
-
   const driverId = [config().uid, driverName].join(SESSION_SEPARATOR);
-
-  if (config().serverMode && driver.onlyClientMode) {
-    throw new Error(`unable to load <${driverName}> because this IO is not compatible with SERVER mode`);
-  }
-
-  if (!config().serverMode && driver.onlyServerMode) {
-    throw new Error(`unable to load <${driverName}> because this IO is not compatible with CLIENT mode`);
-  }
 
   return [driver, driverId];
 }
@@ -383,8 +362,11 @@ export async function processIOQueue(): Promise<IOQueue | null> {
 
   ioQueueInProcess[qitem.id] = true;
 
-  console.info(TAG, "processing queue item");
-  console.dir(qitem, { depth: 2 });
+  console.info(TAG, "processing queue item", {
+    fulfillment: qitem.fulfillment,
+    "session.id": qitem.session,
+    bag: qitem.bag,
+  });
 
   qitem.remove();
 

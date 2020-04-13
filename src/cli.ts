@@ -13,7 +13,7 @@ program
   .action(async ({ driverId, sessionId, text }) => {
     try {
       const session = await IOManager.getSessionByParts(config().uid, driverId, sessionId);
-      const result = await IOManager.output({ fulfillmentText: text }, session, true);
+      const result = await IOManager.output({ fulfillmentText: text }, session, {}, true);
       console.log(result);
     } catch (err) {
       console.error(err);

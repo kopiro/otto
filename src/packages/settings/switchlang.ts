@@ -1,13 +1,13 @@
 import _ from "underscore";
 import levenshtein from "fast-levenshtein";
 import config from "../../config";
-import * as Translator from "../../interfaces/translator";
+import Translator from "../../stdlib/translator";
 import { extractWithPattern } from "../../helpers";
-import { Fulfillment } from "../../types";
+import { AIAction, Session, Fulfillment } from "../../types";
 
 export const id = "settings.switchlang";
 
-export default async ({ queryResult }, session): Promise<Fulfillment> => {
+export default (async ({ queryResult }, session: Session): Promise<Fulfillment> => {
   const { parameters: p, fulfillmentMessages } = queryResult;
 
   // Handle special parameter
@@ -76,4 +76,4 @@ export default async ({ queryResult }, session): Promise<Fulfillment> => {
       language: session.getTranslateTo(),
     },
   };
-};
+}) as AIAction;
