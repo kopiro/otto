@@ -297,7 +297,7 @@ export async function bodyParser(
   session: ISession,
   bag: IOManager.IOBag,
 ): Promise<Fulfillment> {
-  const parsedFromWebhook = body.webhookStatus !== null;
+  const parsedFromWebhook = body.webhookStatus?.code === 0;
 
   if (config().mimicOfflineServer) {
     console.warn(TAG, "!!! Miming an offline webhook server !!!");
