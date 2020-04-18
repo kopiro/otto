@@ -54,6 +54,6 @@ export class GoogleTextToSpeech extends TextToSpeech {
         audioEncoding: (config().audio.encoding as unknown) as google.cloud.texttospeech.v1.AudioEncoding,
       },
     });
-    return data[0];
+    return data[0].audioContent;
   }
 }

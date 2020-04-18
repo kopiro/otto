@@ -67,7 +67,7 @@ export abstract class TextToSpeech {
     const data = this._getAudioFile(text, language, gender);
 
     const file = `${cacheDir}/${this.TAG}_${uuid()}.mp3`;
-    fs.writeFileSync(file, data[0].audioContent, "binary");
+    fs.writeFileSync(file, data, "binary");
 
     // Save this entry onto cache
     this.setCacheForAudio(text, language, gender, file);
