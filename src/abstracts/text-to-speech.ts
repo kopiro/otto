@@ -3,6 +3,7 @@ import { Language, Gender } from "../types";
 import { cacheDir } from "../paths";
 import md5 from "md5";
 import { v4 as uuid } from "uuid";
+import { Blob } from "aws-sdk/lib/dynamodb/document_client";
 
 export type TextToSpeechDriver = "google" | "polly";
 
@@ -56,15 +57,15 @@ export abstract class TextToSpeech {
     this.writeCacheRegistry();
   }
 
-  abstract _getAudioFile(text: string, language: Language, gender: Gender);
+  abstract _getAudioFile(text: string, language: Language, gender: Gender): Promise<string | Blob | Uint8Array>;
 
-  getAudioFile(text: string, language: Language, gender: Gender) {
+  async getAudioFile(text: string, language: Language, gender: Gender) {
     // If file has been downloaded, just serve it
     const cachedFile = this.getCacheForAudio(text, language, gender);
     if (cachedFile) {
       return cachedFile;
     }
-    const data = this._getAudioFile(text, language, gender);
+    const data = await this._getAudioFile(text, language, gender);
 
     const file = `${cacheDir}/${this.TAG}_${uuid()}.mp3`;
     fs.writeFileSync(file, data, "binary");

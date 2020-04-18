@@ -38,7 +38,7 @@ export class GoogleTextToSpeech extends TextToSpeech {
   /**
    * Download the audio file for that sentence and options
    */
-  async _getAudioFile(text: string, language: Language, gender: Gender) {
+  async _getAudioFile(text: string, language: Language, gender: Gender): Promise<string | Uint8Array> {
     // Find the voice title by options
     const voice = await this.getVoice(language, gender);
 
@@ -47,13 +47,13 @@ export class GoogleTextToSpeech extends TextToSpeech {
     isSSML ? (input.ssml = text) : (input.text = text);
 
     // Call the API
-    const data = await this.client.synthesizeSpeech({
+    const [data] = await this.client.synthesizeSpeech({
       input,
       voice,
       audioConfig: {
         audioEncoding: (config().audio.encoding as unknown) as google.cloud.texttospeech.v1.AudioEncoding,
       },
     });
-    return data[0].audioContent;
+    return data.audioContent;
   }
 }
