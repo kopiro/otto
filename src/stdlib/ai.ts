@@ -357,7 +357,7 @@ async function request(
     session: getDFSessionPath(session),
     queryInput,
     queryParams: {
-      payload: bag ? struct.encode(bag) : {},
+      payload: bag.encodable ? struct.encode(bag.encodable) : {},
       sentimentAnalysisRequestConfig: {
         analyzeQueryTextSentiment: true,
       },
@@ -436,13 +436,6 @@ export async function webhookEndpoint(req: Request, res: Response) {
 
   console.info(TAG, "[WEBHOOK]", "output", response);
   return res.status(200).json(response);
-}
-
-/**
- * Attach the AI to the Server
- */
-export function attachToServer(serverInstance) {
-  serverInstance.routerApi.post("/fulfillment", webhookEndpoint);
 }
 
 /**

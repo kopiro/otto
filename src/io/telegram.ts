@@ -3,7 +3,6 @@ import path from "path";
 import request from "request";
 import TelegramBot from "node-telegram-bot-api";
 import Events from "events";
-import bodyParser from "body-parser";
 import config from "../config";
 import * as Server from "../stdlib/server";
 import * as IOManager from "../stdlib/iomanager";
@@ -25,8 +24,10 @@ type TelegramConfig = {
 };
 
 type TelegramBag = {
-  replyToMessageId?: number;
-  respondWithAudioNote?: boolean;
+  encodable: {
+    replyToMessageId?: number;
+    respondWithAudioNote?: boolean;
+  };
 };
 
 class Telegram implements IOManager.IODriverModule {
@@ -198,8 +199,10 @@ class Telegram implements IOManager.IODriverModule {
     // Register the session
     const session = await IOManager.registerSession(DRIVER_ID, sessionId, { from: e.from, chat: e.chat });
 
-    const bag: IOManager.IOBag = {
-      replyToMessageId: e.message_id,
+    const bag: TelegramBag = {
+      encodable: {
+        replyToMessageId: e.message_id,
+      },
     };
 
     // Process a Text object
@@ -290,7 +293,7 @@ class Telegram implements IOManager.IODriverModule {
     // We could attach the webhook to the Router API or via polling
     if (this.config.options.polling === false) {
       this.bot.setWebHook(`${config().server.domain}/io/telegram/bot${this.config.token}`);
-      Server.routerIO.use("/telegram", bodyParser.json(), (req, res) => {
+      Server.routerIO.use("/telegram", (req, res) => {
         this.bot.processUpdate(req.body);
         res.sendStatus(200);
       });
@@ -320,8 +323,8 @@ class Telegram implements IOManager.IODriverModule {
     const chatId = session.ioData.chat.id;
     const botOpt: TelegramBot.SendMessageOptions = {};
 
-    if (bag?.replyToMessageId) {
-      botOpt.reply_to_message_id = bag.replyToMessageId;
+    if (bag?.encodable.replyToMessageId) {
+      botOpt.reply_to_message_id = bag.encodable.replyToMessageId;
     }
 
     // Process a Text Object
@@ -330,7 +333,7 @@ class Telegram implements IOManager.IODriverModule {
         await this.sendMessage(chatId, f.fulfillmentText, botOpt);
         // await this.sendVideoNote(chatId, f, session, botOpt);
 
-        if (bag?.respondWithAudioNote || f.payload?.includeVoice) {
+        if (bag?.encodable.respondWithAudioNote || f.payload?.includeVoice) {
           await this.sendAudioNote(chatId, f, session, botOpt);
         }
         processed = true;

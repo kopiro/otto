@@ -5,3 +5,4 @@ export const etcDir = `${baseDir}/etc`;
 export const keysDir = `${baseDir}/keys`;
 export const storageDir = `${baseDir}/storage`;
 export const logDir = `${baseDir}/log`;
+export const publicDir = `${baseDir}/public`;

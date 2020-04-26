@@ -12,7 +12,6 @@ mongoose.connection.once("open", async () => {
 
   if (config().serverMode) {
     Server.start();
-    AI.attachToServer(Server);
   }
 
   IOManager.start(AI.processInput);

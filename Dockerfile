@@ -31,15 +31,15 @@ RUN yarn install
 
 # Copy my code
 COPY ./src ./src
+COPY ./src-client ./src-client
 COPY ./etc ./etc
 
 # Install workspaces packages
 RUN yarn install
 
-RUN ls -la
-
 # Build code
-RUN yarn build:code
+RUN yarn build:server
+RUN yarn build:client
 
 # Clean src
 RUN rm -rf ./src

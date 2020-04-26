@@ -50,6 +50,7 @@
       "polling": false
     }
   },
+  "web": {},
   "human": {},
   "messenger": {
     "token": null,

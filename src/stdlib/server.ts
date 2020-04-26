@@ -2,23 +2,20 @@ import http from "http";
 import express from "express";
 import bodyParser from "body-parser";
 import config from "../config";
-import { tmpDir } from "../paths";
-import * as pack from "../../package.json";
+import { publicDir } from "../paths";
+import { webhookEndpoint } from "./ai";
 
 const TAG = "Server";
 
 const _config = config().server;
 
-const app = express();
-const server = http.createServer(app);
-
-app.set("title", pack.name);
+export const app = express();
+export const server = http.createServer(app);
 
 // Routers
 
 export const routerIO = express.Router();
 export const routerApi = express.Router();
-export const routerActions = express.Router();
 export const routerListeners = express.Router();
 
 // API Router
@@ -30,12 +27,8 @@ routerApi.use(
   }),
 );
 
-routerApi.get("/", (req, res) => {
-  res.json({
-    name: pack.name,
-    version: pack.version,
-  });
-});
+// Add the fulfillment endpoint for Dialogflow
+routerApi.post("/fulfillment", webhookEndpoint);
 
 // Listeners
 
@@ -46,10 +39,20 @@ routerListeners.use(
   }),
 );
 
+// IO
+
+routerIO.use(bodyParser.json());
+routerIO.use(
+  bodyParser.urlencoded({
+    extended: true,
+  }),
+);
+
+app.use(express.static(publicDir));
+
 // Handle all routers
 app.use("/io", routerIO);
 app.use("/api", routerApi);
-app.use("/actions", routerActions);
 app.use("/listeners", routerListeners);
 
 // Adding policy URL

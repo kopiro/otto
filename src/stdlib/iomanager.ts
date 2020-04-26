@@ -5,7 +5,7 @@ import { EventEmitter } from "events";
 
 const TAG = "IOManager";
 
-export type IODriver = "telegram" | "human";
+export type IODriver = "telegram" | "human" | "web";
 export type IOListener = "io_event";
 export type IOAccessory = "gpio_button" | "leds";
 
@@ -83,6 +83,8 @@ export async function getDriver(e: IODriver): Promise<IODriverModule> {
       return (await import("../io/telegram")).default;
     case "human":
       return (await import("../io/human")).default;
+    case "web":
+      return (await import("../io/web")).default;
     default:
       throw new Error(`Invalid driver: ${e}`);
   }
@@ -278,13 +280,12 @@ function startDrivers(onDriverInput: (params: InputParams, session: Session) => 
  * Write a log of what user said
  */
 export async function writeLogForSession(params: InputParams, session: Session) {
-  const sessionInput = new Data.SessionInput({
-    ...params,
+  return new Data.SessionInput({
+    text: params.text,
+    event: params.event,
     session: session.id,
     createdAt: new Date(),
-  });
-  await sessionInput.save();
-  return sessionInput;
+  }).save();
 }
 
 function getSessionIdByParts(uid: string, ioDriver: string, sessionId: string) {
