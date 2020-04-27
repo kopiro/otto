@@ -6,3 +6,4 @@ export const keysDir = `${baseDir}/keys`;
 export const storageDir = `${baseDir}/storage`;
 export const logDir = `${baseDir}/log`;
 export const publicDir = `${baseDir}/public`;
+export const publicTmpDir = `${baseDir}/public/tmp`;

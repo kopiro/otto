@@ -1,0 +1,19 @@
+{
+  "name": "otto-web-client",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "build": "webpack"
+  },
+  "dependencies": {
+    "audio-recorder-polyfill": "^0.3.6",
+    "recorder-js": "^1.0.7",
+    "ts-loader": "^7.0.1",
+    "webpack": "^4.43.0",
+    "webpack-cli": "^3.3.11"
+  },
+  "devDependencies": {
+    "@types/dom-mediacapture-record": "^1.0.4"
+  }
+}

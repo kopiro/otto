@@ -5,6 +5,7 @@
   "speechRecognizerDriver": "google",
   "textToSpeechDriver": "google",
   "translatorDriver": "google",
+  "storageDriver": "google",
   "ioDrivers": [],
   "ioAccessoriesMap": {},
   "ioListeners": [],
@@ -27,6 +28,7 @@
   },
   "play": {
     "binary": "play",
+    "binaryFs": "sox",
     "addArgs": []
   },
   "server": {

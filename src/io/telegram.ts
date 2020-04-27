@@ -60,7 +60,7 @@ class Telegram implements IOManager.IODriverModule {
         .pipe(fs.createWriteStream(voiceFile))
         .on("close", async () => {
           await Proc.spawn("opusdec", [voiceFile, voiceWavFile, "--rate", SpeechRecognizer.SAMPLE_RATE]);
-          const text = await SpeechRecognizer.recognizeFile(voiceWavFile, session.getTranslateFrom(), false, false);
+          const text = await SpeechRecognizer.recognizeFile(voiceWavFile, session.getTranslateFrom());
           resolve(text);
         });
     });
@@ -104,14 +104,14 @@ class Telegram implements IOManager.IODriverModule {
 
   async getVoiceFile(fulfillment: Fulfillment, session: Session): Promise<string> {
     if (fulfillment.audio) {
-      return Play.playVoiceToTempFile(fulfillment.audio);
+      return Play.playVoiceToFile(fulfillment.audio);
     } else {
       const audioFile = await TextToSpeech.getAudioFile(
         fulfillment.fulfillmentText,
         fulfillment.payload.language || session.getTranslateTo(),
         config().tts.gender,
       );
-      return Play.playVoiceToTempFile(audioFile);
+      return Play.playVoiceToFile(audioFile);
     }
   }
 

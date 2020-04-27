@@ -8,6 +8,7 @@ import Translator from "./stdlib/translator";
 import { cacheDir, tmpDir } from "./paths";
 import { Language, Locale, BufferWithExtension } from "./types";
 import { v4 as uuid } from "uuid";
+import crypto from "crypto";
 
 export function getTmpFile(extension: string) {
   return path.join(tmpDir, `${uuid()}.${extension}`);
@@ -82,23 +83,30 @@ export function getLocalObjectFromURI(uri: string | Buffer | BufferWithExtension
 
   return new Promise((resolve, reject) => {
     if (Buffer.isBuffer(uri)) {
-      const localFile = path.join(cacheDir, `${uuid()}.unknown`);
-      console.debug(TAG, `writing buffer to local file <${localFile}>`);
-      fs.writeFileSync(localFile, uri);
+      const hash = crypto.createHash("md5").update(uri).digest("hex");
+      const localFile = path.join(cacheDir, `${hash}.unknown`);
+      if (!fs.existsSync(localFile)) {
+        console.debug(TAG, `writing buffer to local file <${localFile}>`);
+        fs.writeFileSync(localFile, uri);
+      }
       return resolve(localFile);
     }
 
     if (typeof uri === "object" && uri.buffer) {
-      const localFile = path.join(cacheDir, `${uuid()}.${uri.extension || "unknown"}`);
-      console.debug(TAG, `writing buffer to local file <${localFile}>`);
-      fs.writeFileSync(localFile, Buffer.from(uri.buffer.toString("hex"), "hex"));
+      const hash = crypto.createHash("md5").update(uri.buffer.toString("hex")).digest("hex");
+      const localFile = path.join(cacheDir, `${hash}.${uri.extension || "unknown"}`);
+      if (!fs.existsSync(localFile)) {
+        console.debug(TAG, `writing buffer to local file <${localFile}>`);
+        fs.writeFileSync(localFile, Buffer.from(uri.buffer.toString("hex"), "hex"));
+      }
       return resolve(localFile);
     }
 
     if (typeof uri === "string" && /^https?:\/\//.test(uri)) {
       const extension = uri.split(".").pop() || "unknown";
-      const localFile = path.join(cacheDir, `${md5(uri)}.${extension}`);
-      if (fs.existsSync(localFile)) {
+      const hash = crypto.createHash("md5").update(uri).digest("hex");
+      const localFile = path.join(cacheDir, `${hash}.${extension}`);
+      if (!fs.existsSync(localFile)) {
         return resolve(localFile);
       }
 

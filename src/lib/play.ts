@@ -1,13 +1,16 @@
-import path from "path";
 import { spawn } from "child_process";
 import config from "../config";
-import { tmpDir } from "../paths";
 import { getLocalObjectFromURI } from "../helpers";
-import { v4 as uuid } from "uuid";
 import { BufferWithExtension } from "../types";
+import fs from "fs";
+
+const TAG = "Play";
 
 const _config = config().play;
 
+/**
+ * Map of all processes
+ */
 const processes = {};
 
 /**
@@ -28,19 +31,29 @@ export function kill() {
 export async function playURI(
   uri: string | Buffer | BufferWithExtension,
   addArgs: string[] = [],
+  useFs = false,
   level = 0,
-  program = null,
-) {
+): Promise<string> {
   return new Promise(async (resolve, reject) => {
     const localUri = await getLocalObjectFromURI(uri);
+    let finalUri: string;
 
-    const proc = spawn(program || _config.binary, [localUri].concat(addArgs));
+    let proc;
+    if (useFs) {
+      finalUri = localUri.replace(/\.(.+)$/, "-remixed.$1");
+      if (fs.existsSync(finalUri)) {
+        return resolve(finalUri);
+      }
+      console.debug(TAG, `writing remixed file to ${finalUri}`);
+      proc = spawn(_config.binaryFs, [localUri, finalUri].concat(addArgs));
+    } else {
+      finalUri = localUri;
+      proc = spawn(_config.binary, [localUri].concat(addArgs));
+    }
     processes[proc.pid] = level;
 
     let stderr = "";
-    proc.stderr.on("data", (buf) => {
-      stderr += buf;
-    });
+    proc.stderr.on("data", (buf) => (stderr += buf));
 
     proc.on("close", (err) => {
       delete processes[proc.pid];
@@ -48,7 +61,7 @@ export async function playURI(
         return reject(stderr);
       }
 
-      return resolve(localUri);
+      return resolve(finalUri);
     });
   });
 }
@@ -61,17 +74,8 @@ export async function playVoice(uri: string | Buffer | BufferWithExtension) {
 }
 
 /**
- * Play an item using voice effects to a temporary file
+ * Play an item using voice effects
  */
-export async function playVoiceToFile(uri: string | Buffer | BufferWithExtension, file: string) {
-  await playURI(uri, [file].concat(_config.addArgs), 0, "sox");
-  return file;
-}
-
-/**
- * Play an item using voice effects to a temporary file
- */
-export function playVoiceToTempFile(uri: string | Buffer | BufferWithExtension) {
-  const file = path.join(tmpDir, `${uuid()}.mp3`);
-  return playVoiceToFile(uri, file);
+export async function playVoiceToFile(uri: string | Buffer | BufferWithExtension) {
+  return playURI(uri, _config.addArgs, true);
 }

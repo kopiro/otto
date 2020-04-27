@@ -15,6 +15,7 @@ import {
 import { struct } from "pb-util";
 import { Request, Response } from "express";
 import { Log } from "./log";
+import SpeechRecognizer from "../stdlib/speech-recognizer";
 
 type IDetectIntentResponse = Record<string, any>;
 type IEventInput = Record<string, any>;
@@ -460,8 +461,11 @@ export async function processInput(params: InputParams, session: ISession) {
     fulfillment = await textRequest(params.text, session, params.bag);
   } else if (params.event) {
     fulfillment = await eventRequest(params.event, session, params.bag);
+  } else if (params.audio) {
+    const text = await SpeechRecognizer.recognizeFile(params.audio, session.getTranslateFrom());
+    fulfillment = await textRequest(text, session, params.bag);
   } else {
-    console.warn("Neither { text, event } in params is not null");
+    console.warn("Neither { text, event, audio } in params are not null");
   }
 
   fulfillment = await fulfillmentTransformerForSession(fulfillment, session);

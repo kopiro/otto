@@ -68,6 +68,7 @@ export interface InputParams {
         name: string;
         parameters?: Record<string, string>;
       };
+  audio?: string;
   bag?: any;
 }
 

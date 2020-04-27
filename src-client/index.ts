@@ -1,23 +1,122 @@
-const form = document.querySelector("form");
-form.addEventListener("submit", async (e) => {
-  e.preventDefault();
+import Recorder from "recorder-js";
 
-  const textInputEl = form.querySelector("[name=text]") as HTMLInputElement;
+declare let webkitAudioContext: any; // ADDED
+
+const formConversation = document.querySelector("#conversation") as HTMLFormElement;
+const formRepeat = document.querySelector("#repeat") as HTMLFormElement;
+const audiosSelect = document.querySelector("#audios-select") as HTMLSelectElement;
+
+const audio = document.querySelector("audio") as HTMLAudioElement;
+const responseTextarea = document.getElementById("response") as HTMLTextAreaElement;
+const recordStartBtn = document.getElementById("record-start");
+const recordStopBtn = document.getElementById("record-stop");
+
+async function repeatTextToSpeech(text) {
+  audio.src = "";
+  audio.volume = 0;
+  audio.play();
+
+  const url = new URL("/api/speech", location.href);
+  url.search = new URLSearchParams({ text }).toString();
+
+  responseTextarea.value = text;
+
+  audio.src = url.toString();
+
+  audio.volume = 1;
+  audio.play();
+}
+
+async function sendData(headers, body) {
+  audio.src = "";
+  audio.volume = 0;
+  audio.play();
+
   const response = await fetch("/io/web", {
     method: "POST",
     headers: {
-      "content-type": "application/json",
+      ...headers,
       "x-accept": "audio",
     },
-    body: JSON.stringify({
-      text: textInputEl.value,
-    }),
+    body: body,
   });
 
-  const blob = new Blob([(await response.body.getReader().read()).value], { type: "audio/mp3" });
-  const url = window.URL.createObjectURL(blob);
+  const json = await response.json();
 
-  const audio = new Audio();
-  audio.src = url;
+  responseTextarea.value = json.fulfillmentText;
+  audio.src = json.audio;
+
+  audio.volume = 1;
   audio.play();
+}
+
+async function loadAudios() {
+  const response = await fetch("/api/audios");
+  const json = await response.json();
+
+  json.files.forEach((file) => {
+    const option = document.createElement("button") as HTMLButtonElement;
+    option.value = file.url;
+    option.innerText = file.emoji;
+    audiosSelect.appendChild(option);
+  });
+}
+
+formRepeat.addEventListener("submit", (e) => {
+  e.preventDefault();
+
+  const textInputEl = formRepeat.querySelector("[name=text]") as HTMLInputElement;
+  repeatTextToSpeech(textInputEl.value);
+
+  textInputEl.value = "";
 });
+
+formConversation.addEventListener("submit", (e) => {
+  e.preventDefault();
+
+  const textInputEl = formConversation.querySelector("[name=text]") as HTMLInputElement;
+  sendData(
+    {
+      "content-type": "application/json",
+    },
+    JSON.stringify({
+      text: textInputEl.value,
+    }),
+  );
+
+  textInputEl.value = "";
+});
+
+audiosSelect.addEventListener("click", (e) => {
+  const target = e.target as HTMLButtonElement;
+  if (target.value) {
+    audio.src = target.value;
+    audio.play();
+  }
+});
+
+let recorder;
+
+recordStartBtn.addEventListener("click", async () => {
+  recorder = new Recorder(new (window.AudioContext || window.webkitAudioContext)());
+
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  await recorder.init(stream);
+  await recorder.start();
+
+  recordStopBtn.removeAttribute("disabled");
+  recordStartBtn.setAttribute("disabled", "disabled");
+});
+
+recordStopBtn.addEventListener("click", async () => {
+  const { blob } = await recorder.stop();
+  recordStartBtn.removeAttribute("disabled");
+  recordStopBtn.setAttribute("disabled", "disabled");
+
+  const fd = new FormData();
+  fd.append("audio", blob);
+
+  sendData({}, fd);
+});
+
+loadAudios();

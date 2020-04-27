@@ -5,12 +5,15 @@ import { getLocaleFromLanguageCode } from "../helpers";
 import { SpeechRecognizer } from "../abstracts/speech-recognizer";
 import { SpeechClient } from "@google-cloud/speech/build/src/v1";
 import { Language } from "../types";
+import { promisify } from "util";
+import wavFileInfo from "wav-file-info";
 
 const TAG = "GCSR";
 
+const SAMPLE_RATE = 16000;
+
 export class GoogleSpeechRecognizer extends SpeechRecognizer {
   client: SpeechClient;
-  SAMPLE_RATE = 16000;
 
   constructor() {
     super();
@@ -19,20 +22,16 @@ export class GoogleSpeechRecognizer extends SpeechRecognizer {
   /**
    * Create a recognition stream
    */
-  createRecognizeStream(
-    language: Language,
-    callback: (err: any, text?: string) => void,
-    interimResults = true,
-    singleUtterance = true,
-  ) {
+  createRecognizeStream(language: Language, callback: (err: any, text?: string) => void, audioConfig: any = {}) {
     let resolved = false;
 
     const stream = this.client.streamingRecognize({
-      singleUtterance,
-      interimResults,
+      singleUtterance: true,
+      interimResults: true,
       config: {
         encoding: "LINEAR16",
-        sampleRateHertz: this.SAMPLE_RATE,
+        sampleRateHertz: SAMPLE_RATE,
+        ...audioConfig,
         languageCode: getLocaleFromLanguageCode(language),
       },
     });
@@ -71,7 +70,7 @@ export class GoogleSpeechRecognizer extends SpeechRecognizer {
   /**
    * Recognize a Stream and returns the text
    */
-  async recognizeStream(stream: fs.ReadStream, language: Language): Promise<string> {
+  async recognizeStream(stream: fs.ReadStream, language: Language, audioConfig?: any): Promise<string> {
     return new Promise((resolve, reject) => {
       stream.pipe(
         this.createRecognizeStream(
@@ -83,7 +82,7 @@ export class GoogleSpeechRecognizer extends SpeechRecognizer {
             }
             resolve(text);
           },
-          false,
+          audioConfig,
         ),
       );
     });
@@ -92,33 +91,11 @@ export class GoogleSpeechRecognizer extends SpeechRecognizer {
   /**
    * Recognize a local audio file
    */
-  async recognizeFile(
-    file: string,
-    language: Language,
-    convertFile = false,
-    overrideFileWhenConvert = false,
-  ): Promise<string> {
-    let finalFile;
-
-    if (convertFile) {
-      const newFile = overrideFileWhenConvert ? file : `${file}.wav`;
-      await Proc.spawn("ffmpeg", [
-        overrideFileWhenConvert ? "-y" : "",
-        "-i",
-        file,
-        "-acodec",
-        "pcm_s16le",
-        "-ar",
-        this.SAMPLE_RATE,
-        "-ac",
-        "1",
-        newFile,
-      ]);
-      finalFile = newFile;
-    } else {
-      finalFile = file;
-    }
-
-    return this.recognizeStream(fs.createReadStream(finalFile), language);
+  async recognizeFile(file: string, language: Language): Promise<string> {
+    const wav = await promisify(wavFileInfo.infoByFilename)(file);
+    return this.recognizeStream(fs.createReadStream(file), language, {
+      sampleRateHertz: wav.header.sample_rate,
+      audioChannelCount: wav.header.num_channels,
+    });
   }
 }

@@ -2,8 +2,12 @@ import http from "http";
 import express from "express";
 import bodyParser from "body-parser";
 import config from "../config";
-import { publicDir } from "../paths";
+import { publicDir, cacheDir, baseDir } from "../paths";
 import { webhookEndpoint } from "./ai";
+import TextToSpeech from "./text-to-speech";
+import { playVoiceToFile } from "../lib/play";
+import Storage from "./storage";
+import emoj from "emoj";
 
 const TAG = "Server";
 
@@ -30,6 +34,38 @@ routerApi.use(
 // Add the fulfillment endpoint for Dialogflow
 routerApi.post("/fulfillment", webhookEndpoint);
 
+// API to get an audio
+routerApi.get("/speech", async (req: express.Request, res: express.Response) => {
+  const audioFile = await TextToSpeech.getAudioFile(
+    req.query.text,
+    req.query.language || config().language,
+    req.query.gender || config().tts.gender,
+  );
+  const audioFileMixed = await playVoiceToFile(audioFile);
+  res.redirect(audioFileMixed.replace(baseDir, ""));
+});
+
+// Expose all possible effects
+routerApi.get("/audios", async (req: express.Request, res: express.Response) => {
+  const defaultDirectory = await Storage.getDefaultDirectory();
+  const [files] = await defaultDirectory.getFiles({ prefix: "audios/" });
+  const finalFiles = await Promise.all(
+    files
+      .filter((file) => /\.(mp3|wav)$/.test(file.name))
+      .map(async (file) => {
+        const em = await emoj(file.name.match(/\/(.+)\..+$/)[1]);
+        return {
+          name: file.name,
+          emoji: em[0],
+          url: [Storage.getPublicBaseURL(), file.name].join("/"),
+        };
+      }),
+  );
+  res.json({
+    files: finalFiles,
+  });
+});
+
 // Listeners
 
 routerListeners.use(bodyParser.json());
@@ -49,6 +85,7 @@ routerIO.use(
 );
 
 app.use(express.static(publicDir));
+app.use("/cache", express.static(cacheDir));
 
 // Handle all routers
 app.use("/io", routerIO);

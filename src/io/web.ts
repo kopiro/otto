@@ -3,13 +3,18 @@ import config from "../config";
 import * as IOManager from "../stdlib/iomanager";
 import SpeechRecognizer from "../stdlib/speech-recognizer";
 import * as Play from "../lib/play";
-import { etcDir } from "../paths";
+import { etcDir, publicDir, publicTmpDir, baseDir, tmpDir } from "../paths";
 import TextToSpeech from "../stdlib/text-to-speech";
 import { timeout } from "../helpers";
-import { Fulfillment, Session } from "../types";
+import { Fulfillment, Session, InputParams } from "../types";
 import { Request, Response } from "express";
 import { routerIO } from "../stdlib/server";
-import { start } from "repl";
+import { v4 as uuid } from "uuid";
+import path from "path";
+import { getTmpFile } from "../helpers";
+import fs from "fs";
+
+const formidable = require("formidable");
 
 const TAG = "IO.Web";
 const DRIVER_ID = "web";
@@ -20,7 +25,7 @@ type WebBag = {
   res: Response;
 };
 
-enum RequestedOutput {
+enum AcceptHeader {
   TEXT = "text",
   AUDIO = "audio",
 }
@@ -40,6 +45,7 @@ class Web implements IOManager.IODriverModule {
     const session = await IOManager.registerSession(DRIVER_ID, sessionId, req.headers);
     const bag: WebBag = { req, res };
 
+    // First check if the request contains any text
     if (req.body.text) {
       const text = req.body.text;
       this.emitter.emit("input", {
@@ -47,7 +53,29 @@ class Web implements IOManager.IODriverModule {
         params: {
           text,
           bag,
-        },
+        } as InputParams,
+      });
+      return true;
+    }
+
+    // Otherwise, parse for incoming audio
+    const form = formidable();
+    const { files } = await new Promise((resolve, reject) => {
+      form.parse(req, (err, fields, files) => {
+        if (err) return reject(err);
+        resolve({ files });
+      });
+    });
+
+    if (files.audio) {
+      const audioFile = getTmpFile("wav");
+      fs.renameSync(files.audio.path, audioFile);
+      this.emitter.emit("input", {
+        session,
+        params: {
+          audio: audioFile,
+          bag,
+        } as InputParams,
       });
       return true;
     }
@@ -71,19 +99,16 @@ class Web implements IOManager.IODriverModule {
 
   async output(fulfillment: Fulfillment, session: Session, bag: WebBag) {
     const { req, res } = bag;
+    const jsonResponse: Record<string, any> = {
+      fulfillmentText: fulfillment.fulfillmentText,
+    };
 
-    switch (req.headers["x-accept"] as RequestedOutput) {
-      case RequestedOutput.AUDIO:
-        {
-          const audioFile = await Play.playVoiceToTempFile(fulfillment.audio);
-          res.sendFile(audioFile);
-        }
-        break;
-      case RequestedOutput.TEXT:
-      default:
-        res.send(fulfillment.fulfillmentText);
-        break;
+    if (req.headers["x-accept"] === AcceptHeader.AUDIO) {
+      const audioFile = await Play.playVoiceToFile(fulfillment.audio);
+      jsonResponse.audio = audioFile.replace(baseDir, "");
     }
+
+    res.json(jsonResponse);
   }
 }
 
