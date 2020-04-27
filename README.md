@@ -1,6 +1,4 @@
-# Otto AI
-
-[![Build Status](https://travis-ci.org/kopiro/otto-ai.svg?branch=master)](https://travis-ci.org/kopiro/otto-ai)
+t# Otto AI
 
 ![Logo](image.png?raw=true "Logo")
 
@@ -13,12 +11,6 @@ The app is a monolitich (by design) server and a client app with the same codeba
 It could run as a server to listen via webhook the incoming requests,
 or it could run as a client to interact with the user via voice.
 
-The flow is the following:
-
-```
-Request (client) --> [[ Dialogflow --> Server --> Fulfillment ]] --> Response (client)
-```
-
 ## Development
 
 #### Run with docker
@@ -30,7 +22,7 @@ docker-compose up
 #### Run with naked NodeJS
 
 ```sh
-yarn dev
+yarn start:dev
 ```
 
 #### Run client
@@ -38,8 +30,8 @@ yarn dev
 When running in client mode, you have to satisfy some dependencies
 that can be installed via a script based on your platform.
 
-- _client_deps/macos.sh_ if you run on macOS
-- _client_deps/raspberry.sh_ if you run on a Raspberry (2/3/Zero)
+- _deps/macos.sh_ if you run on macOS
+- _deps/raspberry.sh_ if you run on a Raspberry (2/3/Zero)
 
 You can't run in client mode with Docker because some drivers require access
 to microphone, speaker or other hardware peripherals.
@@ -47,7 +39,7 @@ to microphone, speaker or other hardware peripherals.
 Then:
 
 ```sh
-yarn dev
+yarn start:dev
 ```
 
 ### I/O Drivers
