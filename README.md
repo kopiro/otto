@@ -1,4 +1,4 @@
-t# Otto AI
+# Otto AI
 
 ![Logo](image.png?raw=true "Logo")
 
