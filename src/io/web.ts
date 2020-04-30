@@ -13,6 +13,7 @@ import { v4 as uuid } from "uuid";
 import path from "path";
 import { getTmpFile } from "../helpers";
 import fs from "fs";
+import bodyParser from "body-parser";
 
 const formidable = require("formidable");
 
@@ -88,7 +89,7 @@ class Web implements IOManager.IODriverModule {
     this.started = true;
 
     // Attach the route
-    routerIO.post("/web", async (req, res) => {
+    routerIO.post("/web", bodyParser.json(), async (req, res) => {
       try {
         await this.requestEndpoint(req, res);
       } catch (err) {

@@ -82,6 +82,10 @@ export function getLocalObjectFromURI(uri: string | Buffer | BufferWithExtension
   const TAG = "getLocalObjectFromURI";
 
   return new Promise((resolve, reject) => {
+    if (!uri) {
+      return reject("Invalid URI/Buffer");
+    }
+
     if (Buffer.isBuffer(uri)) {
       const hash = crypto.createHash("md5").update(uri).digest("hex");
       const localFile = path.join(cacheDir, `${hash}.unknown`);

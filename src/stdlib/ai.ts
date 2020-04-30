@@ -320,7 +320,7 @@ export async function bodyParser(
 
   // Otherwise, check if at least an intent is match and direct return that fulfillment
   if (body.queryResult.intent) {
-    console.debug(TAG, "Using body.queryResult object (matched from intent)", body.queryResult);
+    console.debug(TAG, "Using body.queryResult object (matched from intent)", body.queryResult, parsedFromWebhook);
 
     // const fulfillmentMessages = body.queryResult.fulfillmentMessages;
     // const parameters = body.queryResult.parameters;

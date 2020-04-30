@@ -75,15 +75,6 @@ routerListeners.use(
   }),
 );
 
-// IO
-
-routerIO.use(bodyParser.json());
-routerIO.use(
-  bodyParser.urlencoded({
-    extended: true,
-  }),
-);
-
 app.use(express.static(publicDir));
 app.use("/cache", express.static(cacheDir));
 
