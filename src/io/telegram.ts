@@ -14,6 +14,7 @@ import { v4 as uuid } from "uuid";
 import { tmpDir } from "../paths";
 import { Fulfillment, Session } from "../types";
 import { getAiNameRegex, getTmpFile } from "../helpers";
+import bodyParser from "body-parser";
 
 const TAG = "IO.Telegram";
 const DRIVER_ID = "telegram";
@@ -293,7 +294,7 @@ class Telegram implements IOManager.IODriverModule {
     // We could attach the webhook to the Router API or via polling
     if (this.config.options.polling === false) {
       this.bot.setWebHook(`${config().server.domain}/io/telegram/bot${this.config.token}`);
-      Server.routerIO.use("/telegram", (req, res) => {
+      Server.routerIO.use("/telegram", bodyParser.json(), (req, res) => {
         this.bot.processUpdate(req.body);
         res.sendStatus(200);
       });
