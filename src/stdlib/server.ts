@@ -1,13 +1,12 @@
 import http from "http";
 import express from "express";
-import bodyParser from "body-parser";
+
 import config from "../config";
 import { publicDir, cacheDir, baseDir } from "../paths";
 import { webhookEndpoint } from "./ai";
 import TextToSpeech from "./text-to-speech";
 import { playVoiceToFile } from "../lib/play";
-import Storage from "./storage";
-import emoj from "emoj";
+import bodyParser from "body-parser";
 
 const TAG = "Server";
 
@@ -43,27 +42,6 @@ routerApi.get("/speech", async (req: express.Request, res: express.Response) => 
   );
   const audioFileMixed = await playVoiceToFile(audioFile);
   res.redirect(audioFileMixed.replace(baseDir, ""));
-});
-
-// Expose all possible effects
-routerApi.get("/audios", async (req: express.Request, res: express.Response) => {
-  const defaultDirectory = await Storage.getDefaultDirectory();
-  const [files] = await defaultDirectory.getFiles({ prefix: "audios/" });
-  const finalFiles = await Promise.all(
-    files
-      .filter((file) => /\.(mp3|wav)$/.test(file.name))
-      .map(async (file) => {
-        const em = await emoj(file.name.match(/\/(.+)\..+$/)[1]);
-        return {
-          name: file.name,
-          emoji: em[0],
-          url: [Storage.getPublicBaseURL(), file.name].join("/"),
-        };
-      }),
-  );
-  res.json({
-    files: finalFiles,
-  });
 });
 
 // Listeners
