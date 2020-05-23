@@ -306,7 +306,7 @@ class Human implements IOManager.IODriverModule {
     // this.createHotwordDetectorStream();
     // this.registerEORInterval();
 
-    Play.playURI(`${etcDir}/boot.wav`, ["vol", "0.2"], 1);
+    Play.playURI(`${etcDir}/boot.wav`, ["vol", "0.2"]);
   }
 }
 
