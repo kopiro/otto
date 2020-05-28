@@ -6,6 +6,7 @@
   "textToSpeechDriver": "google",
   "translatorDriver": "google",
   "storageDriver": "google",
+  "speakerDriver": "direct",
   "ioDrivers": [],
   "ioAccessoriesMap": {},
   "ioListeners": [],
@@ -27,12 +28,14 @@
   "tts": {
     "gender": "Female"
   },
-  "play": {
-    "binary": "play",
-    "binaryFs": "sox",
+  "voice": {
     "addArgs": []
   },
+  "sonos": {
+    "ip": null
+  },
   "server": {
+    "protocol": "http",
     "domain": null,
     "port": 9000
   },

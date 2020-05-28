@@ -4,25 +4,28 @@
   "description": "Simple AI for Otto",
   "engine": "13",
   "workspaces": [
-    "./src/packages/*"
+    "src/packages/*",
+    "src/lib/*",
+    "src-client"
   ],
   "bin": {
-    "otto": "./build/cli.ts"
+    "otto": "build/cli.ts"
   },
-  "main": "./build/index.js",
+  "main": "build/index.js",
   "private": true,
   "scripts": {
-    "build": "yarn build:server",
-    "start": "node ./build/src",
+    "build": "yarn build:server && yarn build:client",
+    "start": "node build/src",
     "start:dev": "nodemon",
-    "lint": "eslint ./src/**/*.ts",
+    "lint": "eslint src/**/*.ts",
     "lint:fix": "yarn lint --fix",
-    "unitest": "jest ./src --passWithNoTests",
+    "unitest": "jest src --passWithNoTests",
     "test": "yarn lint && yarn unitest",
     "build:server": "tsc",
+    "build:client": "yarn workspace otto-web-client build",
     "build:docker": "docker-compose build",
     "deploy:docker": "docker-compose push",
-    "cli:dev": "ts-node ./src/cli.ts"
+    "cli:dev": "ts-node src/cli.ts"
   },
   "os": [
     "darwin",

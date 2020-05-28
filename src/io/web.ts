@@ -1,20 +1,15 @@
 import Events from "events";
 import config from "../config";
 import * as IOManager from "../stdlib/iomanager";
-import SpeechRecognizer from "../stdlib/speech-recognizer";
-import * as Play from "../lib/play";
-import { etcDir, publicDir, publicTmpDir, baseDir, tmpDir } from "../paths";
-import TextToSpeech from "../stdlib/text-to-speech";
-import { timeout } from "../helpers";
+import Voice from "../stdlib/voice";
 import { Fulfillment, Session, InputParams } from "../types";
 import { Request, Response } from "express";
 import { routerIO } from "../stdlib/server";
-import { v4 as uuid } from "uuid";
-import path from "path";
 import { getTmpFile } from "../helpers";
 import fs from "fs";
 import bodyParser from "body-parser";
 
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const formidable = require("formidable");
 
 const TAG = "IO.Web";
@@ -105,8 +100,7 @@ class Web implements IOManager.IODriverModule {
     };
 
     if (req.headers["x-accept"] === AcceptHeader.AUDIO) {
-      const audioFile = await Play.playVoiceToFile(fulfillment.audio);
-      jsonResponse.audio = audioFile.replace(baseDir, "");
+      jsonResponse.audio = (await Voice.getFile(fulfillment.audio)).getRelativePath();
     }
 
     res.json(jsonResponse);

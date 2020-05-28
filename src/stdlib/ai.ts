@@ -19,6 +19,7 @@ import SpeechRecognizer from "../stdlib/speech-recognizer";
 import Events from "events";
 import { Session } from "../data";
 import { SessionsClient, IntentsClient } from "@google-cloud/dialogflow/build/src/v2";
+import Voice from "./voice";
 
 type IDetectIntentResponse = protos.google.cloud.dialogflow.v2.IDetectIntentResponse;
 type IEventInput = protos.google.cloud.dialogflow.v2.IEventInput;
@@ -346,12 +347,12 @@ class AI {
     session: ISession,
     bag: IOManager.IOBag,
   ): Promise<Fulfillment> {
-    const parsedFromWebhook = "webhookStatus" in body && body.webhookStatus.code === 0;
+    const alreadyParsedByWebhook = "webhookStatus" in body && body.webhookStatus.code === 0;
 
     if (config().mimicOfflineServer) {
       console.warn(TAG, "!!! Miming an offline webhook server !!!");
     } else {
-      if (parsedFromWebhook) {
+      if (alreadyParsedByWebhook) {
         console.debug(TAG, "using response already parsed by the webhook");
         log.write(session.id, "body_parser_parsed_from_webhook", body);
         return this.webhookResponseToFulfillment(body as IDetectIntentResponse, session);
@@ -368,14 +369,19 @@ class AI {
 
     // Otherwise, check if at least an intent is match and direct return that fulfillment
     if (body.queryResult.intent) {
-      console.debug(TAG, "Using body.queryResult object (matched from intent)", body.queryResult, parsedFromWebhook);
+      console.debug(
+        TAG,
+        "Using body.queryResult object (matched from intent)",
+        body.queryResult,
+        alreadyParsedByWebhook,
+      );
 
       // If the intent is a fallback intent, invoke a procedure to ask to be trained
       if (body.queryResult.intent.isFallback) {
         console.debug(TAG, `Training invoked`);
         setImmediate(async () => {
           if (config().trainingSessionId) {
-            const trainingSession = await Session.findById(config().trainingSessionId);
+            const trainingSession = await IOManager.getSession(config().trainingSessionId);
             this.processInput(
               {
                 event: { name: "training", parameters: { queryText: body.queryResult.queryText } },
@@ -388,8 +394,7 @@ class AI {
 
       return {
         fulfillmentText: body.queryResult.fulfillmentText,
-        // Do not add this property when we're parsing this response on the webhook
-        audio: parsedFromWebhook ? this.outputAudioParser(body) : null,
+        audio: this.outputAudioParser(body),
       };
     }
 
@@ -466,9 +471,9 @@ class AI {
 
     let fulfillment = await this.bodyParser(body, session, body.originalDetectIntentRequest?.payload);
     fulfillment = await this.fulfillmentTransformerForSession(fulfillment, session);
-    fulfillment.outputContexts = body.queryResult.outputContexts;
 
     const response = fulfillment as WebhookResponse;
+    response.outputContexts = body.queryResult.outputContexts;
 
     // Trick to use Google-Home only for recording, but forwarding output to my speaker
     // if (body.originalDetectIntentRequest?.source === "google") {

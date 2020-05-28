@@ -5,7 +5,7 @@ import config from "../config";
 import { publicDir, cacheDir, baseDir } from "../paths";
 import AI from "./ai";
 import TextToSpeech from "./text-to-speech";
-import { playVoiceToFile } from "../lib/play";
+import Voice from "../stdlib/voice";
 import bodyParser from "body-parser";
 
 const TAG = "Server";
@@ -31,7 +31,7 @@ routerApi.use(
 );
 
 // Add the fulfillment endpoint for Dialogflow
-routerApi.post("/fulfillment", AI.webhookEndpoint);
+routerApi.post("/fulfillment", (req, res) => AI.webhookEndpoint(req, res));
 
 // API to get an audio
 routerApi.get("/speech", async (req: express.Request, res: express.Response) => {
@@ -40,8 +40,8 @@ routerApi.get("/speech", async (req: express.Request, res: express.Response) => 
     req.query.language || config().language,
     req.query.gender || config().tts.gender,
   );
-  const audioFileMixed = await playVoiceToFile(audioFile);
-  res.redirect(audioFileMixed.replace(baseDir, ""));
+  const audioFileMixed = await Voice.getFile(audioFile);
+  res.redirect(audioFileMixed.getRelativePath());
 });
 
 // Listeners

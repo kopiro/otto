@@ -3,8 +3,8 @@ import * as Rec from "../lib/rec";
 import config from "../config";
 import * as IOManager from "../stdlib/iomanager";
 import SpeechRecognizer from "../stdlib/speech-recognizer";
-import * as Play from "../lib/play";
-import { etcDir } from "../paths";
+import Voice from "../stdlib/voice";
+import Speaker from "../stdlib/speaker";
 import TextToSpeech from "../stdlib/text-to-speech";
 import { timeout } from "../helpers";
 import { Fulfillment, Session } from "../types";
@@ -70,7 +70,7 @@ class Human implements IOManager.IODriverModule {
    */
   stopOutput() {
     // Kill any audible
-    return Play.kill();
+    return Speaker.kill();
   }
 
   /**
@@ -171,7 +171,7 @@ class Human implements IOManager.IODriverModule {
     this.stopOutput(); // Stop any previous output
 
     // Play a recognizable sound
-    Play.playURI(`${etcDir}/wake.wav`);
+    // Speaker.play(`${etcDir}/wake.wav`);
 
     // Reset any timer variable
     this.wakeWordTick = WAKE_WORD_TICKS;
@@ -222,7 +222,8 @@ class Human implements IOManager.IODriverModule {
     // Process an Audio
     try {
       if (fulfillment.audio) {
-        await Play.playVoice(fulfillment.audio);
+        const file = await Voice.getFile(fulfillment.audio);
+        await Speaker.play(file);
         processed = true;
       }
     } catch (err) {
@@ -234,7 +235,8 @@ class Human implements IOManager.IODriverModule {
       if (fulfillment.fulfillmentText && !processed) {
         console.warn(TAG, "using deprecated fulfillmentText instead of using audio");
         const audioFile = await TextToSpeech.getAudioFile(fulfillment.fulfillmentText, language, config().tts.gender);
-        await Play.playVoice(audioFile);
+        const file = await Voice.getFile(audioFile);
+        await Speaker.play(file);
         processed = true;
       }
     } catch (err) {
@@ -244,7 +246,7 @@ class Human implements IOManager.IODriverModule {
     // Process an Audio Object
     try {
       if (fulfillment.payload.audio) {
-        await Play.playURI(fulfillment.payload.audio.uri);
+        await Speaker.play(fulfillment.payload.audio.uri);
         processed = true;
       }
     } catch (err) {
@@ -304,8 +306,6 @@ class Human implements IOManager.IODriverModule {
     // Start all timers
     // this.createHotwordDetectorStream();
     // this.registerEORInterval();
-
-    Play.playURI(`${etcDir}/boot.wav`, ["vol", "0.2"]);
   }
 }
 
