@@ -2,7 +2,7 @@ import "./boot";
 
 import mongoose from "mongoose";
 import config from "./config";
-import * as AI from "./stdlib/ai";
+import AI from "./stdlib/ai";
 import * as Server from "./stdlib/server";
 import * as IOManager from "./stdlib/iomanager";
 import Scheduler from "./stdlib/scheduler";
@@ -14,7 +14,9 @@ mongoose.connection.once("open", async () => {
     Server.start();
   }
 
-  IOManager.start(AI.processInput);
+  IOManager.start((params, session) => {
+    AI.processInput(params, session);
+  });
 
   if (config().scheduler) {
     Scheduler.start();

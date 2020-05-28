@@ -1,4 +1,4 @@
-import * as AI from "../stdlib/ai";
+import AI from "../stdlib/ai";
 import { SchedulerProgramClass } from "../stdlib/scheduler";
 
 export default class InputScheduler extends SchedulerProgramClass {

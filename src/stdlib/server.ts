@@ -3,7 +3,7 @@ import express from "express";
 
 import config from "../config";
 import { publicDir, cacheDir, baseDir } from "../paths";
-import { webhookEndpoint } from "./ai";
+import AI from "./ai";
 import TextToSpeech from "./text-to-speech";
 import { playVoiceToFile } from "../lib/play";
 import bodyParser from "body-parser";
@@ -31,7 +31,7 @@ routerApi.use(
 );
 
 // Add the fulfillment endpoint for Dialogflow
-routerApi.post("/fulfillment", webhookEndpoint);
+routerApi.post("/fulfillment", AI.webhookEndpoint);
 
 // API to get an audio
 routerApi.get("/speech", async (req: express.Request, res: express.Response) => {

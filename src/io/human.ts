@@ -29,7 +29,7 @@ type HumanConfig = {};
 
 class Human implements IOManager.IODriverModule {
   config: HumanConfig;
-  emitter: Events.EventEmitter;
+  emitter: Events.EventEmitter = new Events.EventEmitter();
 
   /**
    * TRUE when the audio is recording and it's submitting to GCP-SR
@@ -63,7 +63,6 @@ class Human implements IOManager.IODriverModule {
 
   constructor(config) {
     this.config = config;
-    this.emitter = new Events.EventEmitter();
   }
 
   /**

@@ -34,7 +34,7 @@ export type TelegramBag = {
 class Telegram implements IOManager.IODriverModule {
   config: TelegramConfig;
 
-  emitter: Events.EventEmitter;
+  emitter: Events.EventEmitter = new Events.EventEmitter();
 
   bot: TelegramBot;
   botMe: TelegramBot.User;
@@ -44,7 +44,6 @@ class Telegram implements IOManager.IODriverModule {
 
   constructor(config: TelegramConfig) {
     this.config = config;
-    this.emitter = new Events.EventEmitter();
     this.bot = new TelegramBot(this.config.token, this.config.options);
   }
 

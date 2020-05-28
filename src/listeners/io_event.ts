@@ -1,5 +1,5 @@
 import * as Server from "../stdlib/server";
-import * as AI from "../stdlib/ai";
+import AI from "../stdlib/ai";
 import * as IOManager from "../stdlib/iomanager";
 import { InputParams } from "../types";
 

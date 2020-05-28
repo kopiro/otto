@@ -1,7 +1,7 @@
 import { program } from "commander";
 import config from "./config";
 import * as IOManager from "./stdlib/iomanager";
-import * as AI from "./stdlib/ai";
+import AI from "./stdlib/ai";
 import "./boot";
 
 program
