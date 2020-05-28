@@ -44,7 +44,7 @@ export async function train(queryText: string, answer: string) {
     parent: dfIntentAgentPath,
     languageCode: config().language,
     intent: {
-      displayName: `M-TRAIN: ${queryText}`,
+      displayName: `M-TRAIN: ${queryText}`.substr(0, 100),
       trainingPhrases: [
         {
           type: "EXAMPLE",
