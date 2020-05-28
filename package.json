@@ -12,15 +12,15 @@
   "main": "./build/index.js",
   "private": true,
   "scripts": {
+    "build": "yarn build:server",
+    "start": "node ./build/src",
     "start:dev": "nodemon",
-    "start:built": "node ./build/src",
     "lint": "eslint ./src/**/*.ts",
     "lint:fix": "yarn lint --fix",
     "unitest": "jest ./src --passWithNoTests",
     "test": "yarn lint && yarn unitest",
     "build:server": "tsc",
     "build:docker": "docker-compose build",
-    "build:client": "webpack",
     "deploy:docker": "docker-compose push",
     "cli:dev": "ts-node ./src/cli.ts"
   },

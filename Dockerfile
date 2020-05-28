@@ -2,9 +2,7 @@ FROM node:12-alpine
 WORKDIR /app
 
 # Instal base packages
-RUN set -ex && \
-    apk update && \
-    apk add ca-certificates && \
+RUN apk add --no-cache ca-certificates && \
     update-ca-certificates && \
     apk add --no-cache \
     openssl \
@@ -22,8 +20,6 @@ RUN apk add --no-cache \
 # Install imagemagick
 RUN apk add --no-cache imagemagick graphicsmagick
 
-# Cleanup
-RUN rm -rf /var/cache/apk/*
 
 # Install node modules
 COPY package.json yarn.lock tsconfig.json .eslintrc jest.config.js .prettierrc ./
@@ -38,12 +34,11 @@ COPY ./etc ./etc
 RUN yarn install
 
 # Build code
-RUN yarn build:server
-RUN yarn build:client
+RUN yarn build
 
 # Clean src
 RUN rm -rf ./src
 
-ENTRYPOINT [ "yarn", "start:built" ]
+ENTRYPOINT [ "yarn", "start" ]
 VOLUME /app/cache /app/log /app/keys /app/tmp
 EXPOSE 80
