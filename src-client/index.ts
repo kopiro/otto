@@ -50,18 +50,6 @@ async function sendData(headers, body) {
   audio.play();
 }
 
-async function loadAudios() {
-  const response = await fetch("/api/audios");
-  const json = await response.json();
-
-  json.files.forEach((file) => {
-    const option = document.createElement("button") as HTMLButtonElement;
-    option.value = file.url;
-    option.innerText = file.emoji;
-    audiosSelect.appendChild(option);
-  });
-}
-
 formRepeat.addEventListener("submit", (e) => {
   e.preventDefault();
 
@@ -118,5 +106,3 @@ recordStopBtn.addEventListener("click", async () => {
 
   sendData({}, fd);
 });
-
-loadAudios();

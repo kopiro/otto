@@ -8,7 +8,6 @@ import { routerIO } from "../stdlib/server";
 import { getTmpFile } from "../helpers";
 import fs from "fs";
 import bodyParser from "body-parser";
-import { baseDir } from "../paths";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const formidable = require("formidable");
@@ -101,7 +100,7 @@ class Web implements IOManager.IODriverModule {
     };
 
     if (req.headers["x-accept"] === AcceptHeader.AUDIO) {
-      jsonResponse.audio = await Voice.getAbsoluteURI(fulfillment.audio);
+      jsonResponse.audio = (await Voice.getFile(fulfillment.audio)).getRelativePath();
     }
 
     res.json(jsonResponse);

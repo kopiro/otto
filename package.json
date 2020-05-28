@@ -5,7 +5,8 @@
   "engine": "13",
   "workspaces": [
     "src/packages/*",
-    "src/lib/*"
+    "src/lib/*",
+    "src-client"
   ],
   "bin": {
     "otto": "build/cli.ts"
@@ -13,7 +14,7 @@
   "main": "build/index.js",
   "private": true,
   "scripts": {
-    "build": "yarn build:server",
+    "build": "yarn build:server && yarn build:client",
     "start": "node build/src",
     "start:dev": "nodemon",
     "lint": "eslint src/**/*.ts",
@@ -21,6 +22,7 @@
     "unitest": "jest src --passWithNoTests",
     "test": "yarn lint && yarn unitest",
     "build:server": "tsc",
+    "build:client": "yarn workspace otto-web-client build",
     "build:docker": "docker-compose build",
     "deploy:docker": "docker-compose push",
     "cli:dev": "ts-node src/cli.ts"
