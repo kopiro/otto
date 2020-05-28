@@ -15,6 +15,7 @@ import { tmpDir } from "../paths";
 import { Fulfillment, Session } from "../types";
 import { getAiNameRegex, getTmpFile } from "../helpers";
 import bodyParser from "body-parser";
+import { File } from "../stdlib/file";
 
 const TAG = "IO.Telegram";
 const DRIVER_ID = "telegram";
@@ -102,7 +103,7 @@ class Telegram implements IOManager.IODriverModule {
     return this.bot.sendMessage(chatId, this.cleanOutputText(text), opt);
   }
 
-  async getVoiceFile(fulfillment: Fulfillment, session: Session): Promise<string> {
+  async getVoiceFile(fulfillment: Fulfillment, session: Session): Promise<File> {
     if (fulfillment.audio) {
       return Voice.getFile(fulfillment.audio);
     } else {
@@ -126,7 +127,7 @@ class Telegram implements IOManager.IODriverModule {
   ) {
     await this.bot.sendChatAction(chatId, "record_audio");
     const voiceFile = await this.getVoiceFile(fulfillment, session);
-    return this.bot.sendVoice(chatId, voiceFile, botOpt);
+    return this.bot.sendVoice(chatId, voiceFile.getAbsoluteFSPath(), botOpt);
   }
 
   async sendVideoNote(
@@ -292,7 +293,9 @@ class Telegram implements IOManager.IODriverModule {
 
     // We could attach the webhook to the Router API or via polling
     if (this.config.options.polling === false) {
-      this.bot.setWebHook(`${config().server.domain}/io/telegram/bot${this.config.token}`);
+      this.bot.setWebHook(
+        [config().server.protocol, "://", config().server.domain, "/io/telegram/bot", this.config.token].join(""),
+      );
       Server.routerIO.use("/telegram", bodyParser.json(), (req, res) => {
         this.bot.processUpdate(req.body);
         res.sendStatus(200);

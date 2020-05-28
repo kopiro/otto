@@ -31,7 +31,7 @@ routerApi.use(
 );
 
 // Add the fulfillment endpoint for Dialogflow
-routerApi.post("/fulfillment", AI.webhookEndpoint);
+routerApi.post("/fulfillment", (req, res) => AI.webhookEndpoint(req, res));
 
 // API to get an audio
 routerApi.get("/speech", async (req: express.Request, res: express.Response) => {
@@ -41,7 +41,7 @@ routerApi.get("/speech", async (req: express.Request, res: express.Response) => 
     req.query.gender || config().tts.gender,
   );
   const audioFileMixed = await Voice.getFile(audioFile);
-  res.redirect(audioFileMixed.replace(baseDir, ""));
+  res.redirect(audioFileMixed.getRelativePath());
 });
 
 // Listeners

@@ -5,7 +5,6 @@ import * as IOManager from "../stdlib/iomanager";
 import SpeechRecognizer from "../stdlib/speech-recognizer";
 import Voice from "../stdlib/voice";
 import Speaker from "../stdlib/speaker";
-import { etcDir } from "../paths";
 import TextToSpeech from "../stdlib/text-to-speech";
 import { timeout } from "../helpers";
 import { Fulfillment, Session } from "../types";
@@ -172,7 +171,7 @@ class Human implements IOManager.IODriverModule {
     this.stopOutput(); // Stop any previous output
 
     // Play a recognizable sound
-    Speaker.playURI(`${etcDir}/wake.wav`);
+    // Speaker.play(`${etcDir}/wake.wav`);
 
     // Reset any timer variable
     this.wakeWordTick = WAKE_WORD_TICKS;
@@ -223,8 +222,8 @@ class Human implements IOManager.IODriverModule {
     // Process an Audio
     try {
       if (fulfillment.audio) {
-        const uri = await Voice.getAbsoluteURI(fulfillment.audio);
-        await Speaker.playURI(uri);
+        const file = await Voice.getFile(fulfillment.audio);
+        await Speaker.play(file);
         processed = true;
       }
     } catch (err) {
@@ -236,8 +235,8 @@ class Human implements IOManager.IODriverModule {
       if (fulfillment.fulfillmentText && !processed) {
         console.warn(TAG, "using deprecated fulfillmentText instead of using audio");
         const audioFile = await TextToSpeech.getAudioFile(fulfillment.fulfillmentText, language, config().tts.gender);
-        const uri = await Voice.getAbsoluteURI(audioFile);
-        await Speaker.playURI(uri);
+        const file = await Voice.getFile(audioFile);
+        await Speaker.play(file);
         processed = true;
       }
     } catch (err) {
@@ -247,7 +246,7 @@ class Human implements IOManager.IODriverModule {
     // Process an Audio Object
     try {
       if (fulfillment.payload.audio) {
-        await Speaker.playURI(fulfillment.payload.audio.uri);
+        await Speaker.play(fulfillment.payload.audio.uri);
         processed = true;
       }
     } catch (err) {

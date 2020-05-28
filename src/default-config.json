@@ -35,6 +35,7 @@
     "ip": null
   },
   "server": {
+    "protocol": "http",
     "domain": null,
     "port": 9000
   },

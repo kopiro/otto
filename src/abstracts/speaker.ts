@@ -1,5 +1,7 @@
+import { File } from "../stdlib/file";
+
 export abstract class Speaker {
-  abstract async playURI(uri: string): Promise<any>;
+  abstract async play(file: string | File): Promise<any>;
   kill() {
     console.error("Killing...");
   }

@@ -1,5 +1,6 @@
 import { Speaker } from "../../abstracts/speaker";
 import { Sonos } from "sonos";
+import { File } from "../../stdlib/file";
 
 type SonosConfig = {
   ip: string;
@@ -15,9 +16,14 @@ export class SonosSpeaker extends Speaker {
     this.device = new Sonos(this.config.ip);
   }
 
-  async playURI(uri: string) {
-    console.log("uri", uri);
-    const a = await this.device.playNotification(uri);
-    return a;
+  async play(file: File | string) {
+    let uri = "";
+    if (typeof file === "string") {
+      uri = file;
+    } else {
+      uri = file.getURI();
+    }
+    this.device.playNotification(uri);
+    return true;
   }
 }
