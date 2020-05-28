@@ -19,12 +19,12 @@ import bodyParser from "body-parser";
 const TAG = "IO.Telegram";
 const DRIVER_ID = "telegram";
 
-type TelegramConfig = {
+export type TelegramConfig = {
   token: string;
   options: TelegramBot.ConstructorOptions;
 };
 
-type TelegramBag = {
+export type TelegramBag = {
   encodable: {
     replyToMessageId?: number;
     respondWithAudioNote?: boolean;

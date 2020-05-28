@@ -1,4 +1,4 @@
-import { v2 as dialogflow } from "dialogflow";
+import dialogflow, { protos } from "@google-cloud/dialogflow";
 import * as IOManager from "./iomanager";
 import Translator from "../stdlib/translator";
 import config from "../config";
@@ -12,26 +12,58 @@ import {
   BufferWithExtension,
   Session as ISession,
 } from "../types";
-import { struct } from "pb-util";
+import { struct, Struct } from "pb-util";
 import { Request, Response } from "express";
 import { Log } from "./log";
 import SpeechRecognizer from "../stdlib/speech-recognizer";
+import Events from "events";
+import { Session } from "../data";
 
-type IDetectIntentResponse = Record<string, any>;
-type IEventInput = Record<string, any>;
-type ITextInput = Record<string, any>;
-type WebhookRequest = Record<string, any>;
-type WebhookResponse = Record<string, any>;
-type IQueryInput = Record<string, any>;
-type OutputAudioEncoding = Record<string, any>;
+type IDetectIntentResponse = protos.google.cloud.dialogflow.v2.IDetectIntentResponse;
+type IEventInput = protos.google.cloud.dialogflow.v2.IEventInput;
+type ITextInput = protos.google.cloud.dialogflow.v2.ITextInput;
+type WebhookRequest = protos.google.cloud.dialogflow.v2.WebhookRequest;
+type WebhookResponse = protos.google.cloud.dialogflow.v2.WebhookResponse;
+type IQueryInput = protos.google.cloud.dialogflow.v2.IQueryInput;
+type OutputAudioEncoding = protos.google.cloud.dialogflow.v2.OutputAudioEncoding;
 
 const _config = config().dialogflow;
 
 const dfSessionClient = new dialogflow.SessionsClient();
-const dfContextsClient = new dialogflow.ContextsClient();
+const dfIntentsClient = new dialogflow.IntentsClient();
+const dfIntentAgentPath = dfIntentsClient.agentPath(_config.projectId);
 
 const TAG = "AI";
 const log = new Log(TAG);
+
+export const emitter: Events.EventEmitter = new Events.EventEmitter();
+
+export async function train(queryText: string, answer: string) {
+  console.debug(TAG, "TRAIN request", { queryText, answer });
+  const response = await dfIntentsClient.createIntent({
+    parent: dfIntentAgentPath,
+    languageCode: config().language,
+    intent: {
+      displayName: `M-TRAIN: ${queryText}`,
+      trainingPhrases: [
+        {
+          type: "EXAMPLE",
+          parts: [{ text: queryText }],
+        },
+      ],
+      messages: [
+        {
+          text: {
+            text: [answer],
+          },
+        },
+      ],
+      webhookState: "WEBHOOK_STATE_ENABLED",
+    },
+  });
+  console.debug(TAG, "TRAIN response", response);
+  return response;
+}
 
 /**
  * Transform a Fulfillment by making some edits based on the current session settings
@@ -40,6 +72,8 @@ export async function fulfillmentTransformerForSession(
   fulfillment: Fulfillment,
   session: ISession,
 ): Promise<Fulfillment> {
+  if (!fulfillment) return;
+
   fulfillment.payload = fulfillment.payload || {};
 
   // If this fulfillment has already been transformed, let's skip this
@@ -78,10 +112,15 @@ export async function fulfillmentTransformerForSession(
 function getDFSessionPath(session: ISession) {
   const dfSessionId = session.id.replace(/\//g, "_");
   if (!_config.environment) {
-    return dfSessionClient.sessionPath(_config.projectId, dfSessionId);
+    return dfSessionClient.projectAgentSessionPath(_config.projectId, dfSessionId);
   }
 
-  return dfSessionClient.environmentSessionPath(_config.projectId, _config.environment, "-", dfSessionId);
+  return dfSessionClient.projectAgentEnvironmentUserSessionPath(
+    _config.projectId,
+    _config.environment,
+    "-",
+    dfSessionId,
+  );
 }
 
 // function setDFContext(sessionId, context) {
@@ -94,7 +133,7 @@ function getDFSessionPath(session: ISession) {
 /**
  * Transform an error into a fulfillment
  */
-function actionErrorTransformer(body: IDetectIntentResponse, error: CustomError): Fulfillment {
+function actionErrorTransformer(body, error: CustomError): Fulfillment {
   const fulfillment: Fulfillment = {};
 
   if (error.message) {
@@ -165,6 +204,13 @@ export async function actionResolver(
 
   try {
     const [pkgName, pkgAction = "index"] = actionName.split(".");
+
+    // Special package names
+    if (pkgName === "train") {
+      train(body.queryResult.outputContexts[0].parameters.queryText, body.queryResult.queryText);
+      return body.queryResult;
+    }
+
     // TODO: avoid code injection
     const pkg = await import(`../packages/${pkgName}/${pkgAction}`);
     if (!pkg) {
@@ -254,7 +300,7 @@ function outputAudioParser(body: IDetectIntentResponse): BufferWithExtension | n
   }
 
   const payloadLanguageCode = body.queryResult.webhookPayload
-    ? (struct.decode(body.queryResult.webhookPayload).language as Language)
+    ? (struct.decode(body.queryResult.webhookPayload as Struct).language as Language)
     : null;
 
   // If the voice language doesn't match the session language, skip
@@ -286,7 +332,7 @@ export function webhookResponseToFulfillment(body: IDetectIntentResponse, sessio
   return {
     fulfillmentText: body.queryResult.fulfillmentText,
     audio: outputAudioParser(body),
-    payload: body.queryResult.webhookPayload ? struct.decode(body.queryResult.webhookPayload) : null,
+    payload: body.queryResult.webhookPayload ? struct.decode(body.queryResult.webhookPayload as Struct) : null,
   };
 }
 
@@ -298,7 +344,7 @@ export async function bodyParser(
   session: ISession,
   bag: IOManager.IOBag,
 ): Promise<Fulfillment> {
-  const parsedFromWebhook = body.webhookStatus?.code === 0;
+  const parsedFromWebhook = "webhookStatus" in body && body.webhookStatus.code === 0;
 
   if (config().mimicOfflineServer) {
     console.warn(TAG, "!!! Miming an offline webhook server !!!");
@@ -332,6 +378,23 @@ export async function bodyParser(
     //   payload = { ...payload, ...message.payload };
     // });
 
+    // If the intent is a fallback intent, invoke a procedure to ask to be trained
+    if (body.queryResult.intent.isFallback) {
+      console.debug(TAG, `Training invoked`);
+      setImmediate(async () => {
+        if (config().trainingSessionId) {
+          const trainingSession = await Session.findById(config().trainingSessionId);
+          // eslint-disable-next-line @typescript-eslint/no-use-before-define
+          processInput(
+            {
+              event: { name: "training", parameters: { queryText: body.queryResult.queryText } },
+            },
+            trainingSession,
+          );
+        }
+      });
+    }
+
     return {
       fulfillmentText: body.queryResult.fulfillmentText,
       // Do not add this property when we're parsing this response on the webhook
@@ -352,13 +415,13 @@ export async function bodyParser(
 async function request(
   queryInput: IQueryInput,
   session: ISession,
-  bag: IOManager.IOBag,
+  bag?: IOManager.IOBag,
 ): Promise<IDetectIntentResponse> {
   const payload = {
     session: getDFSessionPath(session),
     queryInput,
     queryParams: {
-      payload: bag.encodable ? struct.encode(bag.encodable) : {},
+      payload: bag?.encodable ? struct.encode(bag.encodable) : {},
       sentimentAnalysisRequestConfig: {
         analyzeQueryTextSentiment: true,
       },
@@ -420,14 +483,9 @@ export async function webhookEndpoint(req: Request, res: Response) {
 
   let fulfillment = await bodyParser(body, session, body.originalDetectIntentRequest?.payload);
   fulfillment = await fulfillmentTransformerForSession(fulfillment, session);
+  fulfillment.outputContexts = body.queryResult.outputContexts;
 
-  const response = { ...fulfillment } as WebhookResponse;
-  if (response.outputContexts) {
-    response.outputContexts = response.outputContexts.map((ctx) => {
-      ctx.name = dfContextsClient.contextPath(_config.projectId, session.id, ctx.name);
-      return ctx;
-    });
-  }
+  const response = fulfillment as WebhookResponse;
 
   // Trick to use Google-Home only for recording, but forwarding output to my speaker
   // if (body.originalDetectIntentRequest?.source === "google") {
