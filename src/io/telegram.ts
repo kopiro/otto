@@ -8,7 +8,7 @@ import * as Server from "../stdlib/server";
 import * as IOManager from "../stdlib/iomanager";
 import SpeechRecognizer from "../stdlib/speech-recognizer";
 import TextToSpeech from "../stdlib/text-to-speech";
-import * as Play from "../lib/play";
+import Voice from "../stdlib/voice";
 import * as Proc from "../lib/proc";
 import { v4 as uuid } from "uuid";
 import { tmpDir } from "../paths";
@@ -104,14 +104,14 @@ class Telegram implements IOManager.IODriverModule {
 
   async getVoiceFile(fulfillment: Fulfillment, session: Session): Promise<string> {
     if (fulfillment.audio) {
-      return Play.playVoiceToFile(fulfillment.audio);
+      return Voice.getFile(fulfillment.audio);
     } else {
       const audioFile = await TextToSpeech.getAudioFile(
         fulfillment.fulfillmentText,
         fulfillment.payload.language || session.getTranslateTo(),
         config().tts.gender,
       );
-      return Play.playVoiceToFile(audioFile);
+      return Voice.getFile(audioFile);
     }
   }
 

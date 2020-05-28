@@ -5,7 +5,7 @@ import config from "../config";
 import { publicDir, cacheDir, baseDir } from "../paths";
 import AI from "./ai";
 import TextToSpeech from "./text-to-speech";
-import { playVoiceToFile } from "../lib/play";
+import Voice from "../stdlib/voice";
 import bodyParser from "body-parser";
 
 const TAG = "Server";
@@ -40,7 +40,7 @@ routerApi.get("/speech", async (req: express.Request, res: express.Response) => 
     req.query.language || config().language,
     req.query.gender || config().tts.gender,
   );
-  const audioFileMixed = await playVoiceToFile(audioFile);
+  const audioFileMixed = await Voice.getFile(audioFile);
   res.redirect(audioFileMixed.replace(baseDir, ""));
 });
 

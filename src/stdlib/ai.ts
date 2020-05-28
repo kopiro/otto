@@ -19,6 +19,7 @@ import SpeechRecognizer from "../stdlib/speech-recognizer";
 import Events from "events";
 import { Session } from "../data";
 import { SessionsClient, IntentsClient } from "@google-cloud/dialogflow/build/src/v2";
+import Voice from "./voice";
 
 type IDetectIntentResponse = protos.google.cloud.dialogflow.v2.IDetectIntentResponse;
 type IEventInput = protos.google.cloud.dialogflow.v2.IEventInput;
@@ -375,7 +376,7 @@ class AI {
         console.debug(TAG, `Training invoked`);
         setImmediate(async () => {
           if (config().trainingSessionId) {
-            const trainingSession = await Session.findById(config().trainingSessionId);
+            const trainingSession = await IOManager.getSession(config().trainingSessionId);
             this.processInput(
               {
                 event: { name: "training", parameters: { queryText: body.queryResult.queryText } },
@@ -468,16 +469,14 @@ class AI {
     fulfillment = await this.fulfillmentTransformerForSession(fulfillment, session);
     fulfillment.outputContexts = body.queryResult.outputContexts;
 
-    const response = fulfillment as WebhookResponse;
-
     // Trick to use Google-Home only for recording, but forwarding output to my speaker
     // if (body.originalDetectIntentRequest?.source === "google") {
     //   IOManager.output(fulfillment, await IOManager.getSession("ottohome-human"));
     //   response.fulfillmentText = "  ";
     // }
 
-    console.info(TAG, "[WEBHOOK]", "output", response);
-    return res.status(200).json(response);
+    console.info(TAG, "[WEBHOOK]", "output", fulfillment);
+    return res.status(200).json(fulfillment);
   }
 
   /**
