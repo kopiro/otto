@@ -4,28 +4,18 @@
 
 Otto was my monkey plush, now is my personal AI assistant.
 
-## Modes
-
-The app is a monolitich (by design) server and a client app with the same codebase.
-
-It could run as a server to listen via webhook the incoming requests,
-or it could run as a client to interact with the user via voice.
-
 ## Development
 
-When running in client mode, you have to satisfy some dependencies
-that can be installed via a script based on your platform.
+You have to satisfy some dependencies that can be installed via a script based on your platform.
 
-- _deps/macos.sh_ if you run on macOS
-- _deps/raspberry.sh_ if you run on a Raspberry (2/3/Zero)
-
-You can't run in client mode with Docker because some drivers require access
-to microphone, speaker or other hardware peripherals.
+- `./deps/macos.sh` if you run on macOS
+- `./deps/raspberry.sh` if you run on a Raspberry (2/3/4/Zero)
 
 Then:
 
 ```sh
 cp .env.example .env
+yarn install
 yarn start:dev
 ```
 
