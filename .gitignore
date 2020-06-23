@@ -1,6 +1,10 @@
-keys
+.git
+.env
 node_modules
+cache
+tmp
+keys
+log
+storage
 build
 build.tar.gz
-.env
-*.log

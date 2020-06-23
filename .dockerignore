@@ -1,7 +1,1 @@
-.git/
-node_modules/
-cache/
-tmp/
-keys/
-log/
-storage/
+.gitignore

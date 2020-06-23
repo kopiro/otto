@@ -23,8 +23,8 @@
     "test": "yarn lint && yarn unitest",
     "build:server": "tsc",
     "build:client": "yarn workspace otto-web-client build",
-    "build:docker": "docker-compose build",
-    "deploy:docker": "docker-compose push",
+    "build:docker": "docker build .",
+    "deploy:docker": "yarn build:docker && docker push kopiro/otto",
     "cli:dev": "ts-node src/cli.ts"
   },
   "os": [

@@ -13,22 +13,6 @@ or it could run as a client to interact with the user via voice.
 
 ## Development
 
-Rename `.env.example` in `.env`
-
-#### Run with docker
-
-```sh
-docker-compose up
-```
-
-#### Run with naked NodeJS
-
-```sh
-yarn start:dev
-```
-
-#### Run client
-
 When running in client mode, you have to satisfy some dependencies
 that can be installed via a script based on your platform.
 
@@ -41,6 +25,7 @@ to microphone, speaker or other hardware peripherals.
 Then:
 
 ```sh
+cp .env.example .env
 yarn start:dev
 ```
 
