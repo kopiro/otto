@@ -42,6 +42,8 @@ export class Scheduler {
     switch (job.programName) {
       case "input":
         return new (await import("../scheduler/input")).default(job);
+      case "countdown":
+        return new (await import("../scheduler/countdown")).default(job);
     }
   }
 
