@@ -13,6 +13,8 @@ or it could run as a client to interact with the user via voice.
 
 ## Development
 
+Rename `.env.example` in `.env`
+
 #### Run with docker
 
 ```sh

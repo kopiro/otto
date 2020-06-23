@@ -30,7 +30,7 @@ class Voice {
       return finalUri;
     }
 
-    console.debug(TAG, `writing remixed file to ${finalUri}`);
+    console.debug(TAG, `writing remixed file to ${finalUri.getAbsoluteFSPath()}}`);
     await Proc.spawn("sox", [localUri, finalUri.getAbsoluteFSPath()].concat(this.config.addArgs));
     return finalUri;
   }

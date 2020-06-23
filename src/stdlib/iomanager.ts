@@ -330,7 +330,7 @@ export async function registerSession(ioDriver: string, sessionId?: string, ioDa
     console.info(TAG, "new session model registered", freshSession);
     return (freshSession as unknown) as Session;
   } else {
-    await session.update(data);
+    await session.updateOne(data);
   }
 
   return session;
