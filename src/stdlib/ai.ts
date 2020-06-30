@@ -2,7 +2,7 @@ import dialogflow, { protos } from "@google-cloud/dialogflow";
 import * as IOManager from "./iomanager";
 import Translator from "../stdlib/translator";
 import config from "../config";
-import { extractWithPattern, replaceVariablesInStrings } from "../helpers";
+import { extractWithPattern, replaceVariablesInStrings, getAiNameRegex } from "../helpers";
 import {
   Fulfillment,
   CustomError,
@@ -17,9 +17,7 @@ import { Request, Response } from "express";
 import { Log } from "./log";
 import SpeechRecognizer from "../stdlib/speech-recognizer";
 import Events from "events";
-import { Session } from "../data";
 import { SessionsClient, IntentsClient } from "@google-cloud/dialogflow/build/src/v2";
-import Voice from "./voice";
 
 type IDetectIntentResponse = protos.google.cloud.dialogflow.v2.IDetectIntentResponse;
 type IEventInput = protos.google.cloud.dialogflow.v2.IEventInput;
@@ -265,10 +263,13 @@ class AI {
   async textRequestTransformer(text: InputParams["text"], session: ISession): Promise<ITextInput> {
     const trText: ITextInput = {};
 
+    // Remove any reference to the AI name
+    const cleanText = text.replace(getAiNameRegex(), "");
+
     if (config().language !== session.getTranslateTo()) {
-      trText.text = await Translator.translate(text, config().language, session.getTranslateTo());
+      trText.text = await Translator.translate(cleanText, config().language, session.getTranslateTo());
     } else {
-      trText.text = text;
+      trText.text = cleanText;
     }
 
     trText.languageCode = session.getTranslateTo();
