@@ -10,7 +10,10 @@
   "ioDrivers": [],
   "ioAccessoriesMap": {},
   "ioListeners": [],
-  "scheduler": true,
+  "scheduler": {
+    "enabled": true,
+    "polling": 1000
+  },
   "trainingSessionId": "",
   "ioQueue": {
     "enabled": true,

@@ -18,7 +18,7 @@ mongoose.connection.once("open", async () => {
     AI.processInput(params, session);
   });
 
-  if (config().scheduler) {
+  if (config().scheduler?.enabled) {
     Scheduler.start();
   }
 });

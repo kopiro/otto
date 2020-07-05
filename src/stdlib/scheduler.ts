@@ -81,7 +81,7 @@ export class Scheduler {
     jobs.forEach(this.runJob.bind(this));
 
     console.info(TAG, "polling started");
-    setInterval(this.tick.bind(this), 1000);
+    setInterval(this.tick.bind(this), config().scheduler.polling);
   }
 }
 
