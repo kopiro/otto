@@ -1,6 +1,5 @@
 import speech from "@google-cloud/speech";
 import fs from "fs";
-import * as Proc from "./proc";
 import { getLocaleFromLanguageCode } from "../helpers";
 import { SpeechRecognizer } from "../abstracts/speech-recognizer";
 import { SpeechClient } from "@google-cloud/speech/build/src/v1";
