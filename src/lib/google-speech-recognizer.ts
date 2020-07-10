@@ -5,8 +5,7 @@ import { getLocaleFromLanguageCode } from "../helpers";
 import { SpeechRecognizer } from "../abstracts/speech-recognizer";
 import { SpeechClient } from "@google-cloud/speech/build/src/v1";
 import { Language } from "../types";
-import { promisify } from "util";
-import wavFileInfo from "wav-file-info";
+import musicMetadata from "music-metadata";
 
 const TAG = "GCSR";
 
@@ -92,10 +91,10 @@ export class GoogleSpeechRecognizer extends SpeechRecognizer {
    * Recognize a local audio file
    */
   async recognizeFile(file: string, language: Language): Promise<string> {
-    const wav = await promisify(wavFileInfo.infoByFilename)(file);
+    const { format } = await musicMetadata.parseFile(file);
     return this.recognizeStream(fs.createReadStream(file), language, {
-      sampleRateHertz: wav.header.sample_rate,
-      audioChannelCount: wav.header.num_channels,
+      sampleRateHertz: format.sampleRate,
+      audioChannelCount: format.numberOfChannels,
     });
   }
 }
