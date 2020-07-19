@@ -65,7 +65,6 @@ export class Scheduler {
   }
 
   async tick() {
-    console.debug(TAG, `tick at ${new Date()}`);
     const jobs = await this.getJobs(Moment());
     jobs.forEach(this.runJob.bind(this));
   }
