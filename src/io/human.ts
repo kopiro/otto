@@ -8,22 +8,17 @@ import Speaker from "../stdlib/speaker";
 import TextToSpeech from "../stdlib/text-to-speech";
 import { timeout } from "../helpers";
 import { Fulfillment, Session } from "../types";
+import Bumblebee from "bumblebee-hotword-node";
+import { etcDir } from "../paths";
 
 const TAG = "IO.Human";
 const DRIVER_ID = "human";
 
 /**
- * When the wake word has been detected,
- * wait an amount of ticks defined by this constant
- * after that user should be prompted by voice
- */
-const WAKE_WORD_TICKS = 6;
-
-/**
  * Number of seconds of silence after that
  * user should proununce wake word again to activate te SR
  */
-const EOR_MAX = 8;
+const HOTWORD_SILENCE_MAX = 8;
 
 type HumanConfig = {};
 
@@ -47,19 +42,14 @@ class Human implements IOManager.IODriverModule {
   currentSpokenFulfillment = null;
 
   /**
-   * Tick used by WAKE_WORDS_TICKS
+   * ID for setInterval used by HOTWORD_SILENCE_MAX
    */
-  wakeWordTick = -1;
+  hotwordSilenceSecIntv = null;
 
   /**
-   * ID for setInterval used by EOR_MAX
+   * Tick used by HOTWORD_SILENCE_MAX
    */
-  eorInterval = null;
-
-  /**
-   * Tick used by EOR_MAX
-   */
-  eorTick = -1;
+  hotwordSilenceSec = -1;
 
   constructor(config) {
     this.config = config;
@@ -93,6 +83,8 @@ class Human implements IOManager.IODriverModule {
   createRecognizeStream(session: Session) {
     console.log(TAG, "recognizing microphone stream");
 
+    Rec.start();
+
     this.recognizeStream = SpeechRecognizer.createRecognizeStream(session.getTranslateFrom(), (err, text) => {
       this.destroyRecognizeStream();
 
@@ -117,10 +109,10 @@ class Human implements IOManager.IODriverModule {
       });
     });
 
-    // Every time user speaks, reset the EOR timer to the max
+    // Every time user speaks, reset the HWS timer to the max
     this.recognizeStream.on("data", (data) => {
       if (data.results.length > 0) {
-        this.eorTick = EOR_MAX;
+        this.hotwordSilenceSec = HOTWORD_SILENCE_MAX;
       }
     });
 
@@ -139,24 +131,25 @@ class Human implements IOManager.IODriverModule {
   }
 
   /**
-   * Process the EOR ticker
+   * Process the HWS ticker
    */
-  processEOR() {
-    if (this.eorTick === 0) {
-      console.info(TAG, "timeout exceeded for conversation");
-      this.eorTick = -1;
+  processHotwordSilence() {
+    if (this.hotwordSilenceSec === 0) {
+      console.info(TAG, "timeout exceeded, user should pronunce hotword again");
+      this.hotwordSilenceSec = -1;
       this.destroyRecognizeStream();
-    } else if (this.eorTick > 0) {
-      this.eorTick--;
+    } else if (this.hotwordSilenceSec > 0) {
+      console.debug(TAG, `${this.hotwordSilenceSec}s left before reset`);
+      this.hotwordSilenceSec--;
     }
   }
 
   /**
-   * Register the EOR setInterval ID
+   * Register the HWS setInterval ID
    */
-  registerEORInterval() {
-    if (this.eorInterval) clearInterval(this.eorInterval);
-    this.eorInterval = setInterval(this.processEOR.bind(this), 1000);
+  registerHotwordSilenceSecIntv() {
+    if (this.hotwordSilenceSecIntv) clearInterval(this.hotwordSilenceSecIntv);
+    this.hotwordSilenceSecIntv = setInterval(this.processHotwordSilence.bind(this), 1000);
   }
 
   /**
@@ -171,11 +164,10 @@ class Human implements IOManager.IODriverModule {
     this.stopOutput(); // Stop any previous output
 
     // Play a recognizable sound
-    // Speaker.play(`${etcDir}/wake.wav`);
+    Speaker.play(`${etcDir}/wake.wav`);
 
     // Reset any timer variable
-    this.wakeWordTick = WAKE_WORD_TICKS;
-    this.eorTick = EOR_MAX;
+    this.hotwordSilenceSec = HOTWORD_SILENCE_MAX;
 
     // Recreate the SRR-stream
     this.createRecognizeStream(session);
@@ -186,26 +178,29 @@ class Human implements IOManager.IODriverModule {
    */
   stop() {
     console.info(TAG, "stop");
-    this.emitter.emit("stopped");
-
     this.stopOutput();
-
-    // Reset timer variables
-    this.wakeWordTick = -1;
-    this.eorTick = -1;
-
+    this.hotwordSilenceSec = -1;
     this.destroyRecognizeStream();
+    this.emitter.emit("stopped");
   }
 
   /**
    * Create and assign the hotword stream to listen for wake word
    */
-  createHotwordDetectorStream() {
-    // wake();
+  createHotwordDetector() {
+    const bumblebee = new Bumblebee();
+    bumblebee.addHotword("bumblebee");
+
+    bumblebee.on("hotword", (hotword) => {
+      console.log("Hotword Detected:", hotword);
+      this.wake();
+    });
+
+    bumblebee.start();
   }
 
   async _output(fulfillment: Fulfillment, session: Session): Promise<boolean> {
-    this.eorTick = -1; // Temporary disable timer variables
+    this.hotwordSilenceSec = -1; // Temporary disable timer variables
 
     // If there was a recognizer listener, stop it
     // to avoid that the bot listens to itself
@@ -261,12 +256,6 @@ class Human implements IOManager.IODriverModule {
       this.emitter.emit("stop");
     }
 
-    // If that item is not a feedback|welcome, start the recognizer phase again
-    // if (!f.payload.feedback && !f.payload.welcome && queueOutput.length === 0) {
-    //   eorTick = EOR_MAX;
-    //   createRecognizeStream({ session, language: fromLanguage });
-    // }
-
     return processed;
   }
 
@@ -300,12 +289,9 @@ class Human implements IOManager.IODriverModule {
     this.emitter.on("wake", this.wake);
     this.emitter.on("stop", this.stop);
 
-    // this.stopOutput(); // Preventive stop any other output
-    // Rec.start(); // Power on the mic
-
     // Start all timers
-    // this.createHotwordDetectorStream();
-    // this.registerEORInterval();
+    this.createHotwordDetector();
+    this.registerHotwordSilenceSecIntv();
   }
 }
 

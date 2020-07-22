@@ -54,6 +54,7 @@
     "assign-deep": "^1.0.1",
     "aws-sdk": "^2.349.0",
     "body-parser": "^1.18.3",
+    "bumblebee-hotword-node": "^0.0.10",
     "commander": "^5.0.0",
     "console-ultimate": "^3.0.1",
     "detect-rpi": "^1.4.0",
