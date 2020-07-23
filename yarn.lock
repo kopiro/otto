@@ -2188,10 +2188,9 @@ builtin-status-codes@^3.0.0:
   resolved "https://registry.yarnpkg.com/builtin-status-codes/-/builtin-status-codes-3.0.0.tgz#85982878e21b98e1c66425e03d0174788f569ee8"
   integrity sha1-hZgoeOIbmOHGZCXgPQF0eI9Wnug=
 
-bumblebee-hotword-node@^0.0.10:
+"bumblebee-hotword-node@https://github.com/jaxcore/bumblebee-hotword-node":
   version "0.0.10"
-  resolved "https://registry.yarnpkg.com/bumblebee-hotword-node/-/bumblebee-hotword-node-0.0.10.tgz#94860bf44e689cf310a7dd85323ec9dc46f945d6"
-  integrity sha512-ll3PL+ZH8XrTvQdaPw+TIEGI9f+X+JI/2hMvODR7pV0X95LN7AMzVOt4mRMEl9oZrsADIb3SpMAB0yyVTSRZTg==
+  resolved "https://github.com/jaxcore/bumblebee-hotword-node#02b9c00f70a2f6c3652407cb51f659a964f91e2e"
   dependencies:
     node-audiorecorder "^1.4.2"
     pcm-convert "^1.6.5"
