@@ -75,13 +75,13 @@ class Human implements IOManager.IODriverModule {
   /**
    * Destroy current SR stream and detach from mic stream
    */
-  destroyRecognizeStream() {
+  detachRecognizeStream() {
     this.isRecognizing = false;
     this.emitter.emit("notrecognizing");
 
     if (this.recognizeStream != null) {
-      this.audioRecorder.stream().unpipe(this.recognizeStream);
-      this.recognizeStream.destroy();
+      // this.audioRecorder.stream().unpipe(this.recognizeStream);
+      // this.recognizeStream.destroy();
     }
   }
 
@@ -93,7 +93,7 @@ class Human implements IOManager.IODriverModule {
     console.log(TAG, "recognizing microphone stream");
 
     this.recognizeStream = SpeechRecognizer.createRecognizeStream(session.getTranslateFrom(), (err, text) => {
-      this.destroyRecognizeStream();
+      this.detachRecognizeStream();
 
       // If erred, emit an error and exit
       if (err) {
@@ -125,7 +125,6 @@ class Human implements IOManager.IODriverModule {
 
     // Pipe current mic stream to SR stream
     this.audioRecorder.stream().pipe(this.recognizeStream);
-
     this.isRecognizing = true;
     this.emitter.emit("recognizing");
   }
@@ -144,7 +143,7 @@ class Human implements IOManager.IODriverModule {
     if (this.hotwordSilenceSec === 0) {
       console.info(TAG, "timeout exceeded, user should pronunce hotword again");
       this.hotwordSilenceSec = -1;
-      this.destroyRecognizeStream();
+      this.detachRecognizeStream();
     } else if (this.hotwordSilenceSec > 0) {
       console.debug(TAG, `${this.hotwordSilenceSec}s left before reset`);
       this.hotwordSilenceSec--;
@@ -187,7 +186,7 @@ class Human implements IOManager.IODriverModule {
     console.info(TAG, "stop");
     this.stopOutput();
     this.hotwordSilenceSec = -1;
-    this.destroyRecognizeStream();
+    this.detachRecognizeStream();
     this.emitter.emit("stopped");
   }
 
@@ -213,7 +212,7 @@ class Human implements IOManager.IODriverModule {
 
     // If there was a recognizer listener, stop it
     // to avoid that the bot listens to itself
-    this.destroyRecognizeStream();
+    this.detachRecognizeStream();
 
     this.emitter.emit("output", {
       session,
