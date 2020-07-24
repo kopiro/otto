@@ -1,5 +1,4 @@
 import Events from "events";
-import * as Rec from "../lib/rec";
 import config from "../config";
 import * as IOManager from "../stdlib/iomanager";
 import SpeechRecognizer from "../stdlib/speech-recognizer";
@@ -10,6 +9,7 @@ import { timeout } from "../helpers";
 import { Fulfillment, Session } from "../types";
 import Bumblebee from "bumblebee-hotword-node";
 import { etcDir } from "../paths";
+import AudioRecorder from "node-audiorecorder";
 
 const TAG = "IO.Human";
 const DRIVER_ID = "human";
@@ -51,6 +51,15 @@ class Human implements IOManager.IODriverModule {
    */
   hotwordSilenceSec = -1;
 
+  /**
+   * Microphone stream
+   */
+  audioRecorder = null;
+
+  /**
+   * Constructor
+   * @param config
+   */
   constructor(config) {
     this.config = config;
   }
@@ -71,7 +80,7 @@ class Human implements IOManager.IODriverModule {
     this.emitter.emit("notrecognizing");
 
     if (this.recognizeStream != null) {
-      Rec.getStream()?.unpipe(this.recognizeStream);
+      this.audioRecorder.stream().unpipe(this.recognizeStream);
       this.recognizeStream.destroy();
     }
   }
@@ -82,8 +91,6 @@ class Human implements IOManager.IODriverModule {
    */
   createRecognizeStream(session: Session) {
     console.log(TAG, "recognizing microphone stream");
-
-    Rec.start();
 
     this.recognizeStream = SpeechRecognizer.createRecognizeStream(session.getTranslateFrom(), (err, text) => {
       this.destroyRecognizeStream();
@@ -116,11 +123,11 @@ class Human implements IOManager.IODriverModule {
       }
     });
 
+    // Pipe current mic stream to SR stream
+    this.audioRecorder.stream().pipe(this.recognizeStream);
+
     this.isRecognizing = true;
     this.emitter.emit("recognizing");
-
-    // Pipe current mic stream to SR stream
-    Rec.getStream()?.pipe(this.recognizeStream);
   }
 
   /**
@@ -196,7 +203,9 @@ class Human implements IOManager.IODriverModule {
       this.wake();
     });
 
-    bumblebee.start();
+    bumblebee.start({
+      stream: this.audioRecorder.stream(),
+    });
   }
 
   async _output(fulfillment: Fulfillment, session: Session): Promise<boolean> {
@@ -288,6 +297,14 @@ class Human implements IOManager.IODriverModule {
 
     this.emitter.on("wake", this.wake);
     this.emitter.on("stop", this.stop);
+
+    this.audioRecorder = new AudioRecorder(
+      {
+        silence: 0,
+      },
+      console,
+    );
+    this.audioRecorder.start();
 
     // Start all timers
     this.createHotwordDetector();

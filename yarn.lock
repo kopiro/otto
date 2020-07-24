@@ -2188,9 +2188,10 @@ builtin-status-codes@^3.0.0:
   resolved "https://registry.yarnpkg.com/builtin-status-codes/-/builtin-status-codes-3.0.0.tgz#85982878e21b98e1c66425e03d0174788f569ee8"
   integrity sha1-hZgoeOIbmOHGZCXgPQF0eI9Wnug=
 
-"bumblebee-hotword-node@https://github.com/jaxcore/bumblebee-hotword-node":
+bumblebee-hotword-node@^0.0.10:
   version "0.0.10"
-  resolved "https://github.com/jaxcore/bumblebee-hotword-node#02b9c00f70a2f6c3652407cb51f659a964f91e2e"
+  resolved "https://registry.yarnpkg.com/bumblebee-hotword-node/-/bumblebee-hotword-node-0.0.10.tgz#94860bf44e689cf310a7dd85323ec9dc46f945d6"
+  integrity sha512-ll3PL+ZH8XrTvQdaPw+TIEGI9f+X+JI/2hMvODR7pV0X95LN7AMzVOt4mRMEl9oZrsADIb3SpMAB0yyVTSRZTg==
   dependencies:
     node-audiorecorder "^1.4.2"
     pcm-convert "^1.6.5"
@@ -6548,6 +6549,11 @@ node-audiorecorder@^1.4.2:
   version "1.4.2"
   resolved "https://registry.yarnpkg.com/node-audiorecorder/-/node-audiorecorder-1.4.2.tgz#cfd178175b04bd7f8c97d6974d47232f025249fc"
   integrity sha512-Yu6Tyzn6LaKjqXe0lI832OF9CnAEzrgfNz3ofL/zhoHcnAs2DXlDK8GifQTAEA1bA4mMciSsi8nvn8Jye6XCMQ==
+
+node-audiorecorder@^2.2.0:
+  version "2.2.0"
+  resolved "https://registry.yarnpkg.com/node-audiorecorder/-/node-audiorecorder-2.2.0.tgz#6d7f2651fe6d54ea1b6515df16ba0e7fa9996438"
+  integrity sha512-JyBqAZ2b/N+yJFuR/bY0WqVw7wTi4AoarOll16oKqAw5Ma8ooV0+NZn3M9dHbeSkPxBU4H/wy5ZMLLkgDSNq4g==
 
 node-fetch@^2.0.0, node-fetch@^2.2.0, node-fetch@^2.3.0, node-fetch@^2.6.0:
   version "2.6.0"
