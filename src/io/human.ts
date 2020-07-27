@@ -32,11 +32,6 @@ class Human implements IOManager.IODriverModule {
   isRecognizing = false;
 
   /**
-   * Stream object created by GCP-SR
-   */
-  recognizeStream = null;
-
-  /**
    * Current item processed by the queue
    */
   currentSpokenFulfillment = null;
@@ -55,6 +50,7 @@ class Human implements IOManager.IODriverModule {
    * Microphone stream
    */
   audioRecorder = null;
+  bumblebee = null;
 
   /**
    * Constructor
@@ -73,27 +69,15 @@ class Human implements IOManager.IODriverModule {
   }
 
   /**
-   * Destroy current SR stream and detach from mic stream
-   */
-  detachRecognizeStream() {
-    this.isRecognizing = false;
-    this.emitter.emit("notrecognizing");
-
-    if (this.recognizeStream != null) {
-      // this.audioRecorder.stream().unpipe(this.recognizeStream);
-      // this.recognizeStream.destroy();
-    }
-  }
-
-  /**
    * Create and assign the SR stream by attaching
    * the microphone input to GCP-SR stream
    */
-  createRecognizeStream(session: Session) {
+  startRecognition(session: Session) {
     console.log(TAG, "recognizing microphone stream");
 
-    this.recognizeStream = SpeechRecognizer.createRecognizeStream(session.getTranslateFrom(), (err, text) => {
-      this.detachRecognizeStream();
+    const recognizeStream = SpeechRecognizer.createRecognizeStream(session.getTranslateFrom(), (err, text) => {
+      this.isRecognizing = false;
+      this.emitter.emit("notrecognizing");
 
       // If erred, emit an error and exit
       if (err) {
@@ -117,14 +101,14 @@ class Human implements IOManager.IODriverModule {
     });
 
     // Every time user speaks, reset the HWS timer to the max
-    this.recognizeStream.on("data", (data) => {
+    recognizeStream.on("data", (data) => {
       if (data.results.length > 0) {
         this.hotwordSilenceSec = HOTWORD_SILENCE_MAX;
       }
     });
 
     // Pipe current mic stream to SR stream
-    this.audioRecorder.stream().pipe(this.recognizeStream);
+    this.audioRecorder.stream().pipe(recognizeStream);
     this.isRecognizing = true;
     this.emitter.emit("recognizing");
   }
@@ -143,7 +127,6 @@ class Human implements IOManager.IODriverModule {
     if (this.hotwordSilenceSec === 0) {
       console.info(TAG, "timeout exceeded, user should pronunce hotword again");
       this.hotwordSilenceSec = -1;
-      this.detachRecognizeStream();
     } else if (this.hotwordSilenceSec > 0) {
       console.debug(TAG, `${this.hotwordSilenceSec}s left before reset`);
       this.hotwordSilenceSec--;
@@ -176,7 +159,7 @@ class Human implements IOManager.IODriverModule {
     this.hotwordSilenceSec = HOTWORD_SILENCE_MAX;
 
     // Recreate the SRR-stream
-    this.createRecognizeStream(session);
+    this.startRecognition(session);
   }
 
   /**
@@ -186,33 +169,28 @@ class Human implements IOManager.IODriverModule {
     console.info(TAG, "stop");
     this.stopOutput();
     this.hotwordSilenceSec = -1;
-    this.detachRecognizeStream();
     this.emitter.emit("stopped");
   }
 
   /**
    * Create and assign the hotword stream to listen for wake word
    */
-  createHotwordDetector() {
-    const bumblebee = new Bumblebee();
-    bumblebee.addHotword("bumblebee");
+  startHotwordDetection() {
+    this.bumblebee = new Bumblebee();
+    this.bumblebee.addHotword("bumblebee");
 
-    bumblebee.on("hotword", (hotword) => {
+    this.bumblebee.on("hotword", (hotword) => {
       console.log("Hotword Detected:", hotword);
       this.wake();
     });
 
-    bumblebee.start({
+    this.bumblebee.start({
       stream: this.audioRecorder.stream(),
     });
   }
 
   async _output(fulfillment: Fulfillment, session: Session): Promise<boolean> {
     this.hotwordSilenceSec = -1; // Temporary disable timer variables
-
-    // If there was a recognizer listener, stop it
-    // to avoid that the bot listens to itself
-    this.detachRecognizeStream();
 
     this.emitter.emit("output", {
       session,
@@ -306,7 +284,7 @@ class Human implements IOManager.IODriverModule {
     this.audioRecorder.start();
 
     // Start all timers
-    this.createHotwordDetector();
+    this.startHotwordDetection();
     this.registerHotwordSilenceSecIntv();
   }
 }
