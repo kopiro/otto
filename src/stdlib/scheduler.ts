@@ -19,16 +19,17 @@ export abstract class SchedulerProgramClass {
 export class Scheduler {
   started = false;
 
-  async getJobs(time, conditions = []): Promise<SchedulerModel[]> {
+  async getJobs(conditions = []): Promise<SchedulerModel[]> {
+    const time = Moment().seconds(0); //Get current time but reset seconds to zero
     const jobs = await Data.Scheduler.find({
       managerUid: config().uid,
       $or: [
-        { yearly: time.format("DDD HH:mm:ss", { trim: false }) },
-        { monthly: time.format("D HH:mm:ss", { trim: false }) },
-        { weekly: time.format("d HH:mm:ss", { trim: false }) },
-        { daily: time.format("HH:mm:ss", { trim: false }) },
-        { hourly: time.format("mm:ss", { trim: false }) },
-        { minutely: time.format("ss", { trim: false }) },
+        { yearly: time.format("DDD HH:mm:ss") },
+        { monthly: time.format("D HH:mm:ss") },
+        { weekly: time.format("d HH:mm:ss") },
+        { daily: time.format("HH:mm:ss") },
+        { hourly: time.format("mm:ss") },
+        { minutely: time.format("ss") },
         { onDate: time.format(FORMAT) },
         { onTick: true },
         { dailyRandom: true },
@@ -65,7 +66,7 @@ export class Scheduler {
   }
 
   async tick() {
-    const jobs = await this.getJobs(Moment());
+    const jobs = await this.getJobs();
     jobs.forEach(this.runJob.bind(this));
   }
 
@@ -77,11 +78,12 @@ export class Scheduler {
 
     this.started = true;
 
-    const jobs = await this.getJobs(Moment(), [{ onBoot: true }]);
+    const jobs = await this.getJobs([{ onBoot: true }]);
     jobs.forEach(this.runJob.bind(this));
 
-    console.info(TAG, "polling started");
-    setInterval(this.tick.bind(this), config().scheduler.polling);
+    const ms = config().scheduler.polling;
+    console.info(TAG, `polling started every ${ms}ms`);
+    setInterval(this.tick.bind(this), ms);
   }
 }
 

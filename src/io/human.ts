@@ -214,7 +214,10 @@ class Human implements IOManager.IODriverModule {
     // Process a text (should be deprecated)
     try {
       if (fulfillment.fulfillmentText && !processed) {
-        console.warn(TAG, "using deprecated fulfillmentText instead of using audio");
+        console.warn(
+          TAG,
+          "using deprecated fulfillmentText instead of using audio from Dialogflow - this is fine if you're requiring a translation",
+        );
         const audioFile = await TextToSpeech.getAudioFile(fulfillment.fulfillmentText, language, config().tts.gender);
         const file = await Voice.getFile(audioFile);
         await Speaker.play(file);
@@ -272,20 +275,20 @@ class Human implements IOManager.IODriverModule {
     const session = await this.registerInternalSession();
     console.log(TAG, `started, sessionID: ${session.id}`);
 
-    this.emitter.on("wake", this.wake);
+    // this.emitter.on("wake", this.wake);
     this.emitter.on("stop", this.stop);
 
-    this.audioRecorder = new AudioRecorder(
-      {
-        silence: 0,
-      },
-      console,
-    );
-    this.audioRecorder.start();
+    // this.audioRecorder = new AudioRecorder(
+    //   {
+    //     silence: 0,
+    //   },
+    //   console,
+    // );
+    // this.audioRecorder.start();
 
-    // Start all timers
-    this.startHotwordDetection();
-    this.registerHotwordSilenceSecIntv();
+    // // Start all timers
+    // this.startHotwordDetection();
+    // this.registerHotwordSilenceSecIntv();
   }
 }
 
