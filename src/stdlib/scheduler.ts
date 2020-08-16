@@ -20,7 +20,7 @@ export class Scheduler {
   started = false;
 
   async getJobs(conditions = []): Promise<SchedulerModel[]> {
-    const time = Moment().seconds(0); //Get current time but reset seconds to zero
+    const time = Moment().seconds(0); // Get current time but reset seconds to zero
     const query = [
       { yearly: time.format("DDD HH:mm:ss") },
       { monthly: time.format("D HH:mm:ss") },
@@ -79,12 +79,11 @@ export class Scheduler {
 
     this.started = true;
 
-    const jobs = await this.getJobs([{ onBoot: true }]);
-    jobs.forEach(this.runJob.bind(this));
-
     const ms = config().scheduler.polling;
-    console.info(TAG, `polling started every ${ms}ms`);
-    setInterval(this.tick.bind(this), ms);
+    console.info(TAG, `polling started`);
+
+    this.tick();
+    setInterval(this.tick.bind(this), 60 * 1000);
   }
 }
 
