@@ -323,7 +323,7 @@ class AI {
    * Parse the DialogFlow webhook response
    */
   webhookResponseToFulfillment(body: IDetectIntentResponse, session: ISession): Fulfillment {
-    if (body.webhookStatus?.code > 0) {
+    if (body.webhookStatus && body.webhookStatus.code > 0) {
       return {
         payload: {
           error: {
