@@ -323,7 +323,7 @@ class AI {
    * Parse the DialogFlow webhook response
    */
   webhookResponseToFulfillment(body: IDetectIntentResponse, session: ISession): Fulfillment {
-    if (body.webhookStatus && body.webhookStatus.code > 0) {
+    if (body.webhookStatus?.code > 0) {
       return {
         payload: {
           error: {
@@ -348,7 +348,7 @@ class AI {
     session: ISession,
     bag: IOManager.IOBag,
   ): Promise<Fulfillment> {
-    const alreadyParsedByWebhook = "webhookStatus" in body && body.webhookStatus.code === 0;
+    const alreadyParsedByWebhook = "webhookStatus" in body && body.webhookStatus?.code === 0;
 
     if (config().mimicOfflineServer) {
       console.warn(TAG, "!!! Miming an offline webhook server !!!");
@@ -492,7 +492,7 @@ class AI {
   async processInput(params: InputParams, session: ISession) {
     console.info(TAG, "processInput", { params, "session.id": session.id });
 
-    if (session.repeatModeSession && params.text) {
+    if (session.repeatModeSession && params.text && false) {
       console.info(TAG, "using repeatModeSession", session.repeatModeSession);
       const fulfillment = await this.fulfillmentTransformerForSession(
         { fulfillmentText: params.text },

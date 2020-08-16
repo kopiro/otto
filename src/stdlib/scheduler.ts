@@ -79,7 +79,6 @@ export class Scheduler {
 
     this.started = true;
 
-    const ms = config().scheduler.polling;
     console.info(TAG, `polling started`);
 
     this.tick();
