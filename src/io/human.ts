@@ -9,7 +9,6 @@ import { timeout } from "../helpers";
 import { Fulfillment, Session } from "../types";
 import Bumblebee from "bumblebee-hotword-node";
 import { etcDir } from "../paths";
-import AudioRecorder from "node-audiorecorder";
 
 const TAG = "IO.Human";
 const DRIVER_ID = "human";
@@ -211,7 +210,7 @@ class Human implements IOManager.IODriverModule {
       console.error(TAG, err);
     }
 
-    // Process a text (should be deprecated)
+    // Process a text if we do not find a audio
     try {
       if (fulfillment.fulfillmentText && !processed) {
         console.warn(

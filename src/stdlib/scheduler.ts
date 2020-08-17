@@ -66,8 +66,8 @@ export class Scheduler {
     }
   }
 
-  async tick() {
-    const jobs = await this.getJobs();
+  async tick(conditions = []) {
+    const jobs = await this.getJobs(conditions);
     jobs.forEach(this.runJob.bind(this));
   }
 
@@ -81,7 +81,7 @@ export class Scheduler {
 
     console.info(TAG, `polling started`);
 
-    this.tick();
+    this.tick([{ onBoot: true }]);
     setInterval(this.tick.bind(this), 60 * 1000);
   }
 }

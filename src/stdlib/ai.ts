@@ -3,15 +3,7 @@ import * as IOManager from "./iomanager";
 import Translator from "../stdlib/translator";
 import config from "../config";
 import { extractWithPattern, replaceVariablesInStrings, getAiNameRegex } from "../helpers";
-import {
-  Fulfillment,
-  CustomError,
-  AIAction,
-  Language,
-  InputParams,
-  BufferWithExtension,
-  Session as ISession,
-} from "../types";
+import { Fulfillment, CustomError, AIAction, InputParams, BufferWithExtension, Session as ISession } from "../types";
 import { struct, Struct } from "pb-util";
 import { Request, Response } from "express";
 import { Log } from "./log";
@@ -19,13 +11,26 @@ import SpeechRecognizer from "../stdlib/speech-recognizer";
 import Events from "events";
 import { SessionsClient, IntentsClient } from "@google-cloud/dialogflow/build/src/v2";
 
+type IStruct = protos.google.protobuf.IStruct;
+
 type IDetectIntentResponse = protos.google.cloud.dialogflow.v2.IDetectIntentResponse;
 type IEventInput = protos.google.cloud.dialogflow.v2.IEventInput;
 type ITextInput = protos.google.cloud.dialogflow.v2.ITextInput;
+type IContext = protos.google.cloud.dialogflow.v2.IContext;
+type IMessage = protos.google.cloud.dialogflow.v2.Intent.IMessage;
 type WebhookRequest = protos.google.cloud.dialogflow.v2.WebhookRequest;
 type WebhookResponse = protos.google.cloud.dialogflow.v2.WebhookResponse;
 type IQueryInput = protos.google.cloud.dialogflow.v2.IQueryInput;
 type OutputAudioEncoding = protos.google.cloud.dialogflow.v2.OutputAudioEncoding;
+
+type ResponseBody = IDetectIntentResponse & {
+  queryResult: {
+    parameters: Record<string, any> | null;
+    webhookPayload: Record<string, any> | null;
+    outputContexts: (IContext & { parameters: Record<string, any> })[];
+    fulfillmentMessages: (IMessage & { payload: Record<string, any> })[];
+  };
+};
 
 const TAG = "AI";
 const log = new Log(TAG);
@@ -47,6 +52,30 @@ class AI {
   constructor(config: AIConfig) {
     this.config = config;
     this.dfIntentAgentPath = this.dfIntentsClient.agentPath(this.config.projectId);
+  }
+
+  decodeIfStruct(s: IStruct): Record<string, any> {
+    return s && s.fields ? struct.decode(s as Struct) : s;
+  }
+
+  /**
+   * Decode an IDetectIntentResponse into a fully decodable body
+   */
+  decodeDetectIntentResponse(body: IDetectIntentResponse | WebhookRequest): ResponseBody {
+    const { parameters, webhookPayload, fulfillmentMessages = [], outputContexts = [] } = body.queryResult;
+    return {
+      ...body,
+      queryResult: {
+        ...body.queryResult,
+        parameters: this.decodeIfStruct(parameters),
+        webhookPayload: this.decodeIfStruct(webhookPayload),
+        fulfillmentMessages: fulfillmentMessages.map((e) => ({
+          ...e,
+          payload: this.decodeIfStruct(e.payload),
+        })),
+        outputContexts: outputContexts.map((e) => ({ ...e, parameters: this.decodeIfStruct(e.parameters) })),
+      },
+    };
   }
 
   async train(queryText: string, answer: string) {
@@ -134,7 +163,7 @@ class AI {
   /**
    * Transform an error into a fulfillment
    */
-  actionErrorTransformer(body: IDetectIntentResponse, error: CustomError): Fulfillment {
+  actionErrorTransformer(body: ResponseBody, error: CustomError): Fulfillment {
     const fulfillment: Fulfillment = {};
 
     if (error.message) {
@@ -161,7 +190,7 @@ class AI {
    * Accept a Generation action and resolve all outputs
    */
   async generatorResolver(
-    body: IDetectIntentResponse,
+    body: ResponseBody,
     fulfillmentGenerator: IterableIterator<Fulfillment>,
     session: ISession,
     bag: IOManager.IOBag,
@@ -195,7 +224,7 @@ class AI {
    */
   async actionResolver(
     actionName: string,
-    body: Record<string, any>,
+    body: ResponseBody,
     session: ISession,
     bag: IOManager.IOBag,
   ): Promise<Fulfillment> {
@@ -297,19 +326,22 @@ class AI {
   /**
    * Returns a valid audio buffer
    */
-  outputAudioParser(body: IDetectIntentResponse): BufferWithExtension | null {
+  outputAudioParser(body: ResponseBody, session: ISession): BufferWithExtension | null {
     // If there's no audio in the response, skip
     if (!body.outputAudio) {
+      console.warn(TAG, `there is not outputAudio in the response`);
       return null;
     }
 
-    const payloadLanguageCode = body.queryResult.webhookPayload
-      ? (struct.decode(body.queryResult.webhookPayload as Struct).language as Language)
-      : null;
-
     // If the voice language doesn't match the session language, skip
-    if (payloadLanguageCode && config().language !== payloadLanguageCode) {
-      console.warn(TAG, "deleting outputAudio because of a voice language mismatch");
+    const payloadLanguageCode = body.queryResult.webhookPayload?.language;
+    if (payloadLanguageCode && payloadLanguageCode !== config().language) {
+      console.warn(TAG, `deleting outputAudio because of a voice language mismatch (${payloadLanguageCode})`);
+      return null;
+    }
+
+    if (session.getTranslateTo() !== config().language) {
+      console.warn(TAG, `deleting outputAudio because of a voice language mismatch (${session.getTranslateTo()})`);
       return null;
     }
 
@@ -322,7 +354,7 @@ class AI {
   /**
    * Parse the DialogFlow webhook response
    */
-  webhookResponseToFulfillment(body: IDetectIntentResponse, session: ISession): Fulfillment {
+  alreadyParsedByWebhookResponseToFulfillment(body: ResponseBody, session: ISession): Fulfillment {
     if (body.webhookStatus?.code > 0) {
       return {
         payload: {
@@ -335,28 +367,25 @@ class AI {
 
     return {
       fulfillmentText: body.queryResult.fulfillmentText,
-      audio: this.outputAudioParser(body),
-      payload: body.queryResult.webhookPayload ? struct.decode(body.queryResult.webhookPayload as Struct) : null,
+      audio: this.outputAudioParser(body, session),
+      payload: body.queryResult.webhookPayload as Record<string, any>,
     };
   }
 
   /**
    * Parse the DialogFlow body and decide what to do
    */
-  async bodyParser(
-    body: IDetectIntentResponse | WebhookRequest,
-    session: ISession,
-    bag: IOManager.IOBag,
-  ): Promise<Fulfillment> {
+  async bodyParser(body: ResponseBody, session: ISession, bag: IOManager.IOBag, referer = ""): Promise<Fulfillment> {
     const alreadyParsedByWebhook = "webhookStatus" in body && body.webhookStatus?.code === 0;
+    const tmpTag = `${TAG} ${referer}`;
 
     if (config().mimicOfflineServer) {
-      console.warn(TAG, "!!! Miming an offline webhook server !!!");
+      console.warn(tmpTag, "!!! Miming an offline webhook server !!!");
     } else {
       if (alreadyParsedByWebhook) {
-        console.debug(TAG, "using response already parsed by the webhook");
+        console.debug(tmpTag, "using response already parsed by the webhook");
         log.write(session.id, "body_parser_parsed_from_webhook", body);
-        return this.webhookResponseToFulfillment(body as IDetectIntentResponse, session);
+        return this.alreadyParsedByWebhookResponseToFulfillment(body, session);
       }
     }
 
@@ -364,14 +393,14 @@ class AI {
 
     // If we have an "action", call the package with the specified name
     if (body.queryResult.action) {
-      console.debug(TAG, `Resolving action <${body.queryResult.action}>`);
+      console.debug(tmpTag, `Resolving action <${body.queryResult.action}>`);
       return this.actionResolver(body.queryResult.action, body, session, bag);
     }
 
     // Otherwise, check if at least an intent is match and direct return that fulfillment
     if (body.queryResult.intent) {
       console.debug(
-        TAG,
+        tmpTag,
         "Using body.queryResult object (matched from intent)",
         body.queryResult,
         alreadyParsedByWebhook,
@@ -379,7 +408,7 @@ class AI {
 
       // If the intent is a fallback intent, invoke a procedure to ask to be trained
       if (body.queryResult.intent.isFallback) {
-        console.debug(TAG, `Training invoked`);
+        console.debug(tmpTag, `Training invoked`);
         setImmediate(async () => {
           if (config().trainingSessionId) {
             const trainingSession = await IOManager.getSession(config().trainingSessionId);
@@ -395,13 +424,13 @@ class AI {
 
       return {
         fulfillmentText: body.queryResult.fulfillmentText,
-        audio: this.outputAudioParser(body),
+        audio: this.outputAudioParser(body, session),
       };
     }
 
     // If not intentId is returned, this is a unhandled DialogFlow intent
     // So make another event request to inform user (ai_unhandled)
-    console.info(TAG, "Using ai_unhandled followupEventInput");
+    console.info(tmpTag, "Using ai_unhandled followupEventInput");
     return {
       followupEventInput: {
         name: "ai_unhandled",
@@ -423,10 +452,10 @@ class AI {
         audioEncoding: (`OUTPUT_AUDIO_ENCODING_${config().audio.encoding}` as unknown) as OutputAudioEncoding,
       },
     };
-    const response = await this.dfSessionClient.detectIntent(payload);
+    const [response] = await this.dfSessionClient.detectIntent(payload);
     log.write(session.id, "sent_detect_intent", payload);
 
-    return response[0] as IDetectIntentResponse;
+    return response;
   }
 
   /**
@@ -437,7 +466,8 @@ class AI {
 
     const text = await this.textRequestTransformer(_text, session);
     const response = await this.request({ text }, session, bag);
-    const fulfillment = await this.bodyParser(response, session, bag);
+    const body = this.decodeDetectIntentResponse(response);
+    const fulfillment = await this.bodyParser(body, session, bag);
     return fulfillment;
   }
 
@@ -449,7 +479,8 @@ class AI {
 
     const event = await this.eventRequestTransformer(_event, session);
     const response = await this.request({ event }, session, bag);
-    const fulfillment = await this.bodyParser(response, session, bag);
+    const body = this.decodeDetectIntentResponse(response);
+    const fulfillment = await this.bodyParser(body, session, bag);
     return fulfillment;
   }
 
@@ -457,7 +488,7 @@ class AI {
    * The endpoint closure used by the webhook
    */
   async webhookEndpoint(req: Request, res: Response) {
-    console.info(TAG, "[WEBHOOK]", "received request");
+    console.info(TAG, "[WEBHOOK]", "received request", req.body);
 
     if (!req.body || Object.keys(req.body).length === 0) {
       return res.status(400).json({
@@ -465,15 +496,17 @@ class AI {
       });
     }
 
-    const body = req.body as WebhookRequest;
-
-    const sessionId = (body.session as string).split("/").pop();
+    const request = req.body as WebhookRequest;
+    const sessionId = (request.session as string).split("/").pop();
     const session = (await IOManager.getSession(sessionId)) || (await IOManager.registerSession("webhook", sessionId));
 
-    let fulfillment = await this.bodyParser(body, session, body.originalDetectIntentRequest?.payload);
+    const body = this.decodeDetectIntentResponse(request);
+
+    let fulfillment = await this.bodyParser(body, session, request.originalDetectIntentRequest?.payload, "[WEBHOOK]");
     fulfillment = await this.fulfillmentTransformerForSession(fulfillment, session);
 
     const response = fulfillment as WebhookResponse;
+    // Add output context from the action
     response.outputContexts = body.queryResult.outputContexts;
 
     // Trick to use Google-Home only for recording, but forwarding output to my speaker

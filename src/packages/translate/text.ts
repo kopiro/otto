@@ -10,11 +10,8 @@ export default async function main({ queryResult }) {
   const language = languages.find((e) => e.name === p.language);
 
   if (!language) {
-    throw {
-      message: "unknown_language",
-      data: {
-        language: p.language,
-      },
+    return {
+      fulfillmentText: `Non riconosco questa lingua: ${p.language}`,
     };
   }
 
