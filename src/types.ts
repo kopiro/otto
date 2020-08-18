@@ -34,8 +34,10 @@ export interface Fulfillment {
     language?: Language;
     transformerUid?: string;
     transformedAt?: number;
-    translatedTo?: Language;
+    translateTo?: Language;
+    didTranslatedTo?: Language;
     translateFrom?: Language;
+    didTranslatedFrom?: Language;
     error?: CustomError;
     handledByGenerator?: boolean;
     includeVoice?: boolean;
@@ -110,9 +112,9 @@ export interface Session extends Document {
     includeVoice?: boolean;
   };
   fallbackSession: Session | undefined;
-  redirectSession: Session | undefined;
-  forwardSession: Session | undefined;
-  repeatModeSession: Session | undefined;
+  redirectSessions: Session[] | undefined;
+  forwardSessions: Session[] | undefined;
+  repeatModeSessions: Session[] | undefined;
   saveServerSettings: (data: {}) => Promise<boolean>;
   savePipe: (data: {}) => Promise<boolean>;
   getTranslateFrom: () => Language;

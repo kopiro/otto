@@ -120,20 +120,12 @@ class AI {
 
     // Always translate fulfillment speech in the user language
     if (fulfillment.fulfillmentText) {
-      if (session.getTranslateTo() !== config().language) {
-        fulfillment.fulfillmentText = await Translator.translate(
-          fulfillment.fulfillmentText,
-          session.getTranslateTo(),
-          config().language,
-        );
-        fulfillment.payload.translatedTo = session.getTranslateTo();
-      } else if (fulfillment.payload.translateFrom) {
-        fulfillment.fulfillmentText = await Translator.translate(
-          fulfillment.fulfillmentText,
-          session.getTranslateTo(),
-          fulfillment.payload.translateFrom,
-        );
-        fulfillment.payload.translatedTo = session.getTranslateTo();
+      const from = fulfillment.payload.translateFrom || session.getTranslateFrom();
+      const to = fulfillment.payload.translateTo || session.getTranslateTo();
+      if (from !== config().language || to !== config().language) {
+        fulfillment.fulfillmentText = await Translator.translate(fulfillment.fulfillmentText, to, from);
+        fulfillment.payload.didTranslatedFrom = from;
+        fulfillment.payload.didTranslatedTo = to;
       }
     }
 
@@ -377,7 +369,7 @@ class AI {
    */
   async bodyParser(body: ResponseBody, session: ISession, bag: IOManager.IOBag, referer = ""): Promise<Fulfillment> {
     const alreadyParsedByWebhook = "webhookStatus" in body && body.webhookStatus?.code === 0;
-    const tmpTag = `${TAG} ${referer}`;
+    const tmpTag = `${TAG}${referer}`;
 
     if (config().mimicOfflineServer) {
       console.warn(tmpTag, "!!! Miming an offline webhook server !!!");
@@ -523,15 +515,16 @@ class AI {
    * Process a fulfillment to a session
    */
   async processInput(params: InputParams, session: ISession) {
-    console.info(TAG, "processInput", { params, "session.id": session.id });
+    console.info(TAG, "processInput", { params, session });
 
-    if (session.repeatModeSession && params.text && false) {
-      console.info(TAG, "using repeatModeSession", session.repeatModeSession);
-      const fulfillment = await this.fulfillmentTransformerForSession(
-        { fulfillmentText: params.text },
-        session.repeatModeSession,
+    if (session.repeatModeSessions?.length > 0 && params.text) {
+      console.info(TAG, "using repeatModeSessions", session.repeatModeSessions);
+      return Promise.all(
+        session.repeatModeSessions.map(async (e) => {
+          const fulfillment = await this.fulfillmentTransformerForSession({ fulfillmentText: params.text }, e);
+          return IOManager.output(fulfillment, e, params.bag);
+        }),
       );
-      return IOManager.output(fulfillment, session.repeatModeSession, params.bag);
     }
 
     IOManager.writeLogForSession(params, session);

@@ -21,9 +21,9 @@ export const SessionSchema = new Schema({
   pipe: Schema.Types.Mixed,
   authorizations: [String],
   fallbackSession: { type: String, ref: "session", autopopulate: true },
-  redirectSession: { type: String, ref: "session", autopopulate: true },
-  forwardSession: { type: String, ref: "session", autopopulate: true },
-  repeatModeSession: { type: String, ref: "session", autopopulate: true },
+  redirectSessions: [{ type: String, ref: "session", autopopulate: true }],
+  forwardSessions: [{ type: String, ref: "session", autopopulate: true }],
+  repeatModeSessions: [{ type: String, ref: "session", autopopulate: true }],
 });
 
 SessionSchema.plugin(autopopulate);

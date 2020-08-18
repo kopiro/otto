@@ -131,7 +131,7 @@ export async function output(
   session: Session,
   bag: IOBag,
   loadDriverIfNotEnabled = false,
-): Promise<boolean> {
+): Promise<any> {
   if (!fulfillment) {
     console.warn(
       "Do not output to driver because fulfillment is null - this could be intentional, but check your action",
@@ -146,9 +146,9 @@ export async function output(
   }
 
   // Redirecting output to another session
-  if (session.redirectSession) {
-    console.info(TAG, "using redirectSession", session.redirectSession.id);
-    return output(fulfillment, session.redirectSession, bag, loadDriverIfNotEnabled);
+  if (session.redirectSessions?.length > 0) {
+    console.info(TAG, "using redirectSessions", session.redirectSessions);
+    return Promise.all(session.redirectSessions.map((e) => output(fulfillment, e, bag, loadDriverIfNotEnabled)));
   }
 
   let driver: IODriverModule;
@@ -184,11 +184,9 @@ export async function output(
     throw new Error(`Driver <${session.ioDriver}> is not enabled`);
   }
 
-  if (session.forwardSession) {
-    console.info(TAG, "using forwardSession", session.forwardSession.id);
-    setImmediate(() => {
-      output(fulfillment, session.forwardSession, bag, loadDriverIfNotEnabled);
-    });
+  if (session.forwardSessions?.length > 0) {
+    console.info(TAG, "using forwardSessions", session.forwardSessions);
+    Promise.all(session.forwardSessions.map((e) => output(fulfillment, e, bag, loadDriverIfNotEnabled)));
   }
 
   // Transform and clean fulfillment to be suitable for driver output
