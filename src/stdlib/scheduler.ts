@@ -28,7 +28,7 @@ export class Scheduler {
       { daily: time.format("HH:mm:ss") },
       { hourly: time.format("mm:ss") },
       { everyHalfHour: +time.format("m") % 30 === 0 },
-      { everyTenMinutes: +time.format("m") % 10 === 0 },
+      { everyQuartelyHour: +time.format("m") % 15 === 0 },
       { everyFiveMinutes: +time.format("m") % 5 === 0 },
       { minutely: time.format("ss") },
       { onDate: time.format(FORMAT) },
