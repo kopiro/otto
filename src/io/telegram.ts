@@ -326,7 +326,7 @@ class Telegram implements IOManager.IODriverModule {
     const chatId = session.ioData.chat.id;
     const botOpt: TelegramBot.SendMessageOptions = {};
 
-    if (bag?.encodable.replyToMessageId) {
+    if (bag?.encodable?.replyToMessageId) {
       botOpt.reply_to_message_id = bag.encodable.replyToMessageId;
     }
 

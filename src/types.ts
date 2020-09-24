@@ -6,9 +6,9 @@ export type Locale = string;
 export type Gender = string;
 
 export type AIAction = (
-  body: Record<string, any>,
-  session: Session,
-  bag: IOBag,
+  body?: Record<string, any>,
+  session?: Session,
+  bag?: IOBag,
 ) => Promise<Fulfillment | string> | IterableIterator<Fulfillment | string> | Fulfillment | string;
 
 export interface CustomError {

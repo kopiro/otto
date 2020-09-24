@@ -44,6 +44,8 @@ export class Scheduler {
     switch (job.programName) {
       case "input":
         return new (await import("../scheduler/input")).default(job);
+      case "camera":
+        return new (await import("../scheduler/camera")).default(job);
       case "countdown":
         return new (await import("../scheduler/countdown")).default(job);
     }
@@ -58,6 +60,7 @@ export class Scheduler {
 
     try {
       const program = await this.getProgram(job);
+      if (!program) throw new Error(`Program <${job.programName}> not found`);
       const result = await program.run();
       console.debug(TAG, "processed", result);
       return result;

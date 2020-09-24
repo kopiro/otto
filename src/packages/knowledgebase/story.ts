@@ -1,8 +1,7 @@
-import { AIAction } from "../../types";
 import { Storage } from "@google-cloud/storage";
 import config from "../../config";
 
-const main: AIAction = async function (): Promise<string> {
+export default async (): Promise<string> => {
   const bucket = new Storage().bucket((config().gcloud.storage.bucket as unknown) as string);
 
   let [files] = await bucket.getFiles({ prefix: "stories/" });
@@ -12,5 +11,3 @@ const main: AIAction = async function (): Promise<string> {
   const [content] = await chosenFile.download();
   return content.toString("utf8");
 };
-
-export default main;
