@@ -12,7 +12,7 @@ export default async (): Promise<Fulfillment> => {
   });
   const fact = rand(facts.all);
   return {
-    fact,
+    fulfillmentText: fact,
     payload: {
       translateFrom: "en",
     },
