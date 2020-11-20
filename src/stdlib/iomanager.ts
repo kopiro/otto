@@ -151,6 +151,11 @@ export async function output(
     return Promise.all(session.redirectSessions.map((e) => output(fulfillment, e, bag, loadDriverIfNotEnabled)));
   }
 
+  if (session.doNotDisturb) {
+    console.info(TAG, "doNotDisturb is ON", session);
+    return null;
+  }
+
   let driver: IODriverModule;
 
   if (loadDriverIfNotEnabled) {

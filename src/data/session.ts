@@ -24,6 +24,7 @@ export const SessionSchema = new Schema({
   redirectSessions: [{ type: String, ref: "session", autopopulate: true }],
   forwardSessions: [{ type: String, ref: "session", autopopulate: true }],
   repeatModeSessions: [{ type: String, ref: "session", autopopulate: true }],
+  doNotDisturb: Boolean,
 });
 
 SessionSchema.plugin(autopopulate);

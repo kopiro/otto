@@ -211,6 +211,34 @@ class AI {
     return fulfillmentsAndOutputResults;
   }
 
+  handleSystemPackages(pkgName: string, body: ResponseBody, session: ISession): any {
+    const { queryResult } = body;
+
+    switch (pkgName) {
+      case "train":
+        this.train(queryResult.outputContexts[0].parameters.queryText, queryResult.queryText);
+        return body.queryResult;
+
+      case "do_not_disturb_on":
+        this.doNotDisturb(true, session);
+        return body.queryResult;
+        break;
+
+      case "do_not_disturb_off":
+        this.doNotDisturb(false, session);
+        return body.queryResult;
+        break;
+
+      default:
+        return false;
+    }
+  }
+
+  doNotDisturb(value: boolean, session: ISession) {
+    session.doNotDisturb = value;
+    return session.save();
+  }
+
   /**
    * Transform a body from DialogFlow into a Fulfillment by calling the internal action
    */
@@ -227,10 +255,9 @@ class AI {
     try {
       const [pkgName, pkgAction = "index"] = actionName.split(".");
 
-      // Special package names
-      if (pkgName === "train") {
-        this.train(body.queryResult.outputContexts[0].parameters.queryText, body.queryResult.queryText);
-        return body.queryResult;
+      const sysPkgFullfillment = this.handleSystemPackages(pkgName, body, session);
+      if (sysPkgFullfillment !== false) {
+        return sysPkgFullfillment;
       }
 
       // TODO: avoid code injection
