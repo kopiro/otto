@@ -2,7 +2,7 @@
   "name": "otto-ai",
   "version": "3.0.0",
   "description": "Simple AI for Otto",
-  "engine": "13",
+  "engine": ">=13",
   "workspaces": [
     "src/packages/*",
     "src/lib/*",
@@ -23,7 +23,7 @@
     "test": "yarn lint && yarn unitest",
     "build:server": "tsc",
     "build:client": "yarn workspace otto-web-client build",
-    "build:docker": "docker build .",
+    "build:docker": "docker build . -t kopiro/otto",
     "deploy:docker": "yarn build:docker && docker push kopiro/otto",
     "cli:dev": "ts-node src/cli.ts"
   },

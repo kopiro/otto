@@ -115,6 +115,7 @@ export interface Session extends Document {
   redirectSessions: Session[] | undefined;
   forwardSessions: Session[] | undefined;
   repeatModeSessions: Session[] | undefined;
+  doNotDisturb: boolean;
   saveServerSettings: (data: {}) => Promise<boolean>;
   savePipe: (data: {}) => Promise<boolean>;
   getTranslateFrom: () => Language;

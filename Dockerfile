@@ -1,4 +1,4 @@
-FROM node:12-alpine
+FROM node:14-alpine
 WORKDIR /app
 
 # Instal base packages
@@ -13,9 +13,10 @@ RUN apk add --no-cache ca-certificates && \
     openssh-client
 
 # Install additional app packages
+# opus-tools: Used to decode Telegram Audio notes
 RUN apk add --no-cache \
     sox \
-    opus-tools # Used to decode Telegram Audio notes
+    opus-tools 
 
 # Install imagemagick
 RUN apk add --no-cache imagemagick graphicsmagick
