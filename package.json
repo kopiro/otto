@@ -45,7 +45,7 @@
     "@google-cloud/dialogflow": "^3.2.0",
     "@google-cloud/speech": "^3.6.0",
     "@google-cloud/storage": "^4.7.0",
-    "@google-cloud/text-to-speech": "^2.3.0",
+    "@google-cloud/text-to-speech": "^3.0.0",
     "@google-cloud/translate": "^6.0.0",
     "@sentry/node": "^5.15.4",
     "@types/formidable": "^1.0.31",
