@@ -15,6 +15,8 @@ export class Log {
   }
 
   write(directory: string, identifier: string, what: any) {
+    if (!process.env.DEBUG) return;
+
     const secondDir = path.join(this.baseDir, directory);
     if (!fs.existsSync(secondDir)) fs.mkdirSync(secondDir);
 
