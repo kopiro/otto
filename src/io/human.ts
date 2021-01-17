@@ -7,11 +7,21 @@ import Speaker from "../stdlib/speaker";
 import TextToSpeech from "../stdlib/text-to-speech";
 import { timeout } from "../helpers";
 import { Fulfillment, Session } from "../types";
-import Bumblebee from "bumblebee-hotword-node";
+import Porcupine from "@picovoice/porcupine-node";
 import { etcDir } from "../paths";
+import path from "path";
+import recorder from "node-record-lpcm16";
+import { COMPUTER, ALEXA } from "@picovoice/porcupine-node/builtin_keywords";
+import { getPlatform } from "@picovoice/porcupine-node/platforms";
 
 const TAG = "IO.Human";
 const DRIVER_ID = "human";
+
+const PLATFORM_RECORDER_MAP = new Map();
+PLATFORM_RECORDER_MAP.set("linux", "arecord");
+PLATFORM_RECORDER_MAP.set("mac", "sox");
+PLATFORM_RECORDER_MAP.set("raspberry-pi", "arecord");
+PLATFORM_RECORDER_MAP.set("windows", "sox");
 
 /**
  * Number of seconds of silence after that
@@ -20,6 +30,12 @@ const DRIVER_ID = "human";
 const HOTWORD_SILENCE_MAX = 8;
 
 type HumanConfig = {};
+
+function chunkArray(array, size) {
+  return Array.from({ length: Math.ceil(array.length / size) }, (v, index) =>
+    array.slice(index * size, index * size + size),
+  );
+}
 
 class Human implements IOManager.IODriverModule {
   config: HumanConfig;
@@ -48,8 +64,8 @@ class Human implements IOManager.IODriverModule {
   /**
    * Microphone stream
    */
-  audioRecorder = null;
-  bumblebee = null;
+  porcupine = null;
+  mic = null;
 
   /**
    * Constructor
@@ -107,7 +123,7 @@ class Human implements IOManager.IODriverModule {
     });
 
     // Pipe current mic stream to SR stream
-    this.audioRecorder.stream().pipe(recognizeStream);
+    this.mic.stream().pipe(recognizeStream);
     this.isRecognizing = true;
     this.emitter.emit("recognizing");
   }
@@ -175,16 +191,43 @@ class Human implements IOManager.IODriverModule {
    * Create and assign the hotword stream to listen for wake word
    */
   startHotwordDetection() {
-    this.bumblebee = new Bumblebee();
-    this.bumblebee.addHotword("bumblebee");
+    let frameAccumulator = [];
 
-    this.bumblebee.on("hotword", (hotword) => {
-      console.log("Hotword Detected:", hotword);
-      this.wake();
-    });
+    this.porcupine = new Porcupine(
+      [
+        // path.join(etcDir, "porcupine.ppn")
+        COMPUTER,
+        ALEXA,
+      ],
+      [0.5, 0.7],
+    );
 
-    this.bumblebee.start({
-      stream: this.audioRecorder.stream(),
+    this.mic.stream().on("data", (data) => {
+      // Two bytes per Int16 from the data buffer
+      const newFrames16 = new Array(data.length / 2);
+      for (let i = 0; i < data.length; i += 2) {
+        newFrames16[i / 2] = data.readInt16LE(i);
+      }
+
+      // Split the incoming PCM integer data into arrays of size Porcupine.frameLength. If there's insufficient frames, or a remainder,
+      // store it in 'frameAccumulator' for the next iteration, so that we don't miss any audio data
+      frameAccumulator = frameAccumulator.concat(newFrames16);
+      const frames = chunkArray(frameAccumulator, this.porcupine.frameLength);
+
+      if (frames[frames.length - 1].length !== this.porcupine.frameLength) {
+        // store remainder from divisions of frameLength
+        frameAccumulator = frames.pop();
+      } else {
+        frameAccumulator = [];
+      }
+
+      for (const frame of frames) {
+        const index = this.porcupine.process(frame);
+        if (index !== -1) {
+          console.log(TAG, `Detected hotword`);
+          this.wake();
+        }
+      }
     });
   }
 
@@ -274,20 +317,19 @@ class Human implements IOManager.IODriverModule {
     const session = await this.registerInternalSession();
     console.log(TAG, `started, sessionID: ${session.id}`);
 
-    // this.emitter.on("wake", this.wake);
+    this.emitter.on("wake", this.wake);
     this.emitter.on("stop", this.stop);
 
-    // this.audioRecorder = new AudioRecorder(
-    //   {
-    //     silence: 0,
-    //   },
-    //   console,
-    // );
-    // this.audioRecorder.start();
+    this.mic = recorder.record({
+      sampleRate: 16000,
+      channels: 1,
+      audioType: "raw",
+      recorder: PLATFORM_RECORDER_MAP.get(getPlatform()),
+    });
 
     // // Start all timers
-    // this.startHotwordDetection();
-    // this.registerHotwordSilenceSecIntv();
+    this.startHotwordDetection();
+    this.registerHotwordSilenceSecIntv();
   }
 }
 
