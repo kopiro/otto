@@ -12,14 +12,15 @@ import { etcDir } from "../paths";
 import path from "path";
 import recorder from "node-record-lpcm16";
 import { COMPUTER } from "@picovoice/porcupine-node/builtin_keywords";
+import { getPlatform } from "@picovoice/porcupine-node/platforms";
 import os from "os";
+import fs from "fs";
 
 const TAG = "IO.Human";
 const DRIVER_ID = "human";
 
 const PLATFORM_RECORDER_MAP: Map<NodeJS.Platform, string> = new Map();
 PLATFORM_RECORDER_MAP.set("linux", "arecord");
-PLATFORM_RECORDER_MAP.set("darwin", "sox");
 
 /**
  * Number of seconds of silence after that
@@ -191,7 +192,13 @@ class Human implements IOManager.IODriverModule {
   startHotwordDetection() {
     let frameAccumulator = [];
 
-    this.porcupine = new Porcupine([COMPUTER, path.join(etcDir, `hey_otto_${os.platform()}.ppn`)], [0.5, 0.5]);
+    const ppnFile = path.join(etcDir, `hey_otto_${getPlatform()}.ppn`);
+    if (fs.existsSync(ppnFile)) {
+      this.porcupine = new Porcupine([ppnFile], [0.5]);
+    } else {
+      console.error(TAG, 'ppnFile ${ppnFile} not present, fallback to "COMPUTER" keyword');
+      this.porcupine = new Porcupine([COMPUTER], [0.5]);
+    }
 
     this.mic.stream().on("data", (data) => {
       // Two bytes per Int16 from the data buffer
@@ -315,7 +322,7 @@ class Human implements IOManager.IODriverModule {
       sampleRate: 16000,
       channels: 1,
       audioType: "raw",
-      recorder: PLATFORM_RECORDER_MAP.get(os.platform()),
+      recorder: PLATFORM_RECORDER_MAP.get(os.platform()) ?? "sox",
     });
 
     // // Start all timers
