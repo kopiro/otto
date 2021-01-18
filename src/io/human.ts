@@ -11,17 +11,15 @@ import Porcupine from "@picovoice/porcupine-node";
 import { etcDir } from "../paths";
 import path from "path";
 import recorder from "node-record-lpcm16";
-import { COMPUTER, ALEXA } from "@picovoice/porcupine-node/builtin_keywords";
-import { getPlatform } from "@picovoice/porcupine-node/platforms";
+import { COMPUTER } from "@picovoice/porcupine-node/builtin_keywords";
+import os from "os";
 
 const TAG = "IO.Human";
 const DRIVER_ID = "human";
 
-const PLATFORM_RECORDER_MAP = new Map();
+const PLATFORM_RECORDER_MAP: Map<NodeJS.Platform, string> = new Map();
 PLATFORM_RECORDER_MAP.set("linux", "arecord");
-PLATFORM_RECORDER_MAP.set("mac", "sox");
-PLATFORM_RECORDER_MAP.set("raspberry-pi", "arecord");
-PLATFORM_RECORDER_MAP.set("windows", "sox");
+PLATFORM_RECORDER_MAP.set("darwin", "sox");
 
 /**
  * Number of seconds of silence after that
@@ -193,14 +191,7 @@ class Human implements IOManager.IODriverModule {
   startHotwordDetection() {
     let frameAccumulator = [];
 
-    this.porcupine = new Porcupine(
-      [
-        // path.join(etcDir, "porcupine.ppn")
-        COMPUTER,
-        ALEXA,
-      ],
-      [0.5, 0.7],
-    );
+    this.porcupine = new Porcupine([COMPUTER, path.join(etcDir, `hey_otto_${os.platform()}.ppn`)], [0.5, 0.5]);
 
     this.mic.stream().on("data", (data) => {
       // Two bytes per Int16 from the data buffer
@@ -224,7 +215,7 @@ class Human implements IOManager.IODriverModule {
       for (const frame of frames) {
         const index = this.porcupine.process(frame);
         if (index !== -1) {
-          console.log(TAG, `Detected hotword`);
+          console.log(TAG, `Detected hotword!`);
           this.wake();
         }
       }
@@ -324,7 +315,7 @@ class Human implements IOManager.IODriverModule {
       sampleRate: 16000,
       channels: 1,
       audioType: "raw",
-      recorder: PLATFORM_RECORDER_MAP.get(getPlatform()),
+      recorder: PLATFORM_RECORDER_MAP.get(os.platform()),
     });
 
     // // Start all timers
