@@ -37,9 +37,6 @@ RUN yarn install
 # Build code
 RUN yarn build
 
-# Clean src
-RUN rm -rf ./src
-
 ENTRYPOINT [ "yarn", "start" ]
 VOLUME /app/cache /app/log /app/keys /app/tmp
 EXPOSE 80
