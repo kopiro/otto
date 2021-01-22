@@ -28,9 +28,12 @@ PLATFORM_RECORDER_MAP.set("linux", "arecord");
  */
 const HOTWORD_SILENCE_MAX = 8;
 
-type HumanConfig = {};
+type HumanConfig = {
+  enableHotword: boolean;
+  defaultBinaryRecorder: string;
+};
 
-function chunkArray(array, size) {
+function chunkArray(array: any[], size: number) {
   return Array.from({ length: Math.ceil(array.length / size) }, (v, index) =>
     array.slice(index * size, index * size + size),
   );
@@ -322,12 +325,13 @@ class Human implements IOManager.IODriverModule {
       sampleRate: 16000,
       channels: 1,
       audioType: "raw",
-      recorder: PLATFORM_RECORDER_MAP.get(os.platform()) ?? "sox",
+      recorder: PLATFORM_RECORDER_MAP.get(os.platform()) ?? this.config.defaultBinaryRecorder,
     });
 
-    // // Start all timers
-    this.startHotwordDetection();
-    this.registerHotwordSilenceSecIntv();
+    if (this.config.enableHotword) {
+      this.startHotwordDetection();
+      this.registerHotwordSilenceSecIntv();
+    }
   }
 }
 

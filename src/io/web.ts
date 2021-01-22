@@ -93,7 +93,7 @@ class Web implements IOManager.IODriverModule {
     });
   }
 
-  async output(fulfillment: Fulfillment, session: Session, bag: WebBag) {
+  async output(fulfillment: Fulfillment, session: Session, bag: WebBag): Promise<boolean> {
     const { req, res } = bag;
     const jsonResponse: Record<string, any> = {
       fulfillmentText: fulfillment.fulfillmentText,
@@ -104,6 +104,7 @@ class Web implements IOManager.IODriverModule {
     }
 
     res.json(jsonResponse);
+    return true;
   }
 }
 

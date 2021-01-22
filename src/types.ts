@@ -29,6 +29,7 @@ export interface Fulfillment {
     data?: Record<string, string>;
   };
   payload?: {
+    data?: any;
     feedback?: boolean;
     welcome?: boolean;
     language?: Language;

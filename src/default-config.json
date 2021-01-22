@@ -59,7 +59,10 @@
     }
   },
   "web": {},
-  "human": {},
+  "human": {
+    "enableHotword": false,
+    "defaultBinaryRecorder": "sox"
+  },
   "messenger": {
     "token": null,
     "verify": null,

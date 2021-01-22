@@ -186,13 +186,13 @@ class AI {
     fulfillmentGenerator: IterableIterator<Fulfillment>,
     session: ISession,
     bag: IOManager.IOBag,
-  ): Promise<[Fulfillment, boolean][]> {
+  ): Promise<[Fulfillment, IOManager.OutputResult][]> {
     console.info(TAG, "Using generator resolver", fulfillmentGenerator);
 
-    const fulfillmentsAndOutputResults: [Fulfillment, boolean][] = [];
+    const fulfillmentsAndOutputResults: [Fulfillment, IOManager.OutputResult][] = [];
 
     for await (const fulfillment of fulfillmentGenerator) {
-      let outputResult: boolean;
+      let outputResult: IOManager.OutputResult;
       let trFulfillment: Fulfillment;
 
       try {

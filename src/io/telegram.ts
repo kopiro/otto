@@ -12,10 +12,12 @@ import Voice from "../stdlib/voice";
 import * as Proc from "../lib/proc";
 import { v4 as uuid } from "uuid";
 import { tmpDir } from "../paths";
-import { Fulfillment, Session } from "../types";
+import { Fulfillment, Session as ISession } from "../types";
 import { getAiNameRegex, getTmpFile } from "../helpers";
 import bodyParser from "body-parser";
 import { File } from "../stdlib/file";
+import { Session } from "../data";
+import childProcess from "child_process";
 
 const TAG = "IO.Telegram";
 const DRIVER_ID = "telegram";
@@ -32,6 +34,8 @@ export type TelegramBag = {
   };
 };
 
+type CommandFunction = (args: RegExpMatchArray, session: ISession, bag: TelegramBag) => Promise<Fulfillment>;
+
 class Telegram implements IOManager.IODriverModule {
   config: TelegramConfig;
 
@@ -43,6 +47,13 @@ class Telegram implements IOManager.IODriverModule {
 
   started = false;
 
+  commandMapping: [RegExp, CommandFunction][] = [
+    [/^\/out ([^\s]+) (.+)/, this.commandOut],
+    [/^\/findsess (.+)/, this.commandFindSessionByName],
+    [/^\/appstop/, this.commandAppStop],
+    [/^\/.+/, this.commandNotFound],
+  ];
+
   constructor(config: TelegramConfig) {
     this.config = config;
     this.bot = new TelegramBot(this.config.token, this.config.options);
@@ -51,7 +62,7 @@ class Telegram implements IOManager.IODriverModule {
   /**
    * Handle a voice input by recognizing the text
    */
-  async handleInputVoice(e: TelegramBot.Message, session: Session): Promise<string> {
+  async handleInputVoice(e: TelegramBot.Message, session: ISession): Promise<string> {
     return new Promise(async (resolve) => {
       const fileLink = await this.bot.getFileLink(e.voice.file_id);
       const voiceFile = path.join(tmpDir, `${uuid()}.ogg`);
@@ -92,18 +103,12 @@ class Telegram implements IOManager.IODriverModule {
   /**
    * Send a message to the user
    */
-  async sendMessage(
-    chatId: string,
-    text: string,
-    opt: any = {
-      parse_mode: "html",
-    },
-  ) {
+  async sendMessage(chatId: string, text: string, opt: any = {}) {
     await this.bot.sendChatAction(chatId, "typing");
-    return this.bot.sendMessage(chatId, this.cleanOutputText(text), opt);
+    return this.bot.sendMessage(chatId, this.cleanOutputText(text), { ...{ parse_mode: "HTML" }, ...opt });
   }
 
-  async getVoiceFile(fulfillment: Fulfillment, session: Session): Promise<File> {
+  async getVoiceFile(fulfillment: Fulfillment, session: ISession): Promise<File> {
     if (fulfillment.audio) {
       return Voice.getFile(fulfillment.audio);
     } else {
@@ -122,7 +127,7 @@ class Telegram implements IOManager.IODriverModule {
   async sendAudioNote(
     chatId: string,
     fulfillment: Fulfillment,
-    session: Session,
+    session: ISession,
     botOpt: TelegramBot.SendMessageOptions = {},
   ) {
     await this.bot.sendChatAction(chatId, "record_audio");
@@ -133,7 +138,7 @@ class Telegram implements IOManager.IODriverModule {
   async sendVideoNote(
     chatId: string,
     fulfillment: Fulfillment,
-    session: Session,
+    session: ISession,
     botOpt: TelegramBot.SendMessageOptions = {},
   ) {
     await this.bot.sendChatAction(chatId, "record_video_note");
@@ -181,23 +186,34 @@ class Telegram implements IOManager.IODriverModule {
     return getAiNameRegex().test(text);
   }
 
-  getChatIsGroup(msg: TelegramBot.Message) {
+  getIsCommand(
+    e: TelegramBot.Message,
+    session: ISession,
+  ): ((session: ISession, bag: TelegramBag) => Promise<Fulfillment>) | false {
+    for (const [rx, fn] of this.commandMapping) {
+      const matches = e.text.match(rx);
+      if (matches) {
+        if (
+          !session.authorizations.includes(IOManager.Authorizations.COMMAND) &&
+          !session.authorizations.includes(IOManager.Authorizations.ADMIN)
+        ) {
+          return () => this.commandNotAuthorized();
+        }
+
+        return (session: ISession, bag: TelegramBag) => fn(matches, session, bag);
+      }
+    }
+
+    return false;
+  }
+
+  getIsGroup(msg: TelegramBot.Message) {
     return msg.chat.type === "group";
   }
 
-  async onBotInput(e: TelegramBot.Message) {
-    console.info(TAG, "input");
-    console.dir(e, {
-      depth: 2,
-    });
-
+  private async parseMessage(e: TelegramBot.Message) {
     const sessionId = `u${e.from.id}c${e.chat.id}`;
-    const chatIsGroup = this.getChatIsGroup(e);
-    const isMention = this.getIsMention(e.text);
-    const isActivator = this.getIsActivator(e.text);
-    const isReply = e.reply_to_message?.from?.id === this.botMe.id;
 
-    // Register the session
     const session = await IOManager.registerSession(DRIVER_ID, sessionId, { from: e.from, chat: e.chat });
 
     const bag: TelegramBag = {
@@ -206,10 +222,43 @@ class Telegram implements IOManager.IODriverModule {
       },
     };
 
+    const isCommand = this.getIsCommand(e, session);
+
+    const isGroup = this.getIsGroup(e);
+    const isMention = this.getIsMention(e.text);
+    const isActivator = this.getIsActivator(e.text);
+    const isReply = e.reply_to_message?.from?.id === this.botMe.id;
+
+    return { session, bag, isGroup, isMention, isActivator, isReply, isCommand };
+  }
+
+  async onBotInput(e: TelegramBot.Message) {
+    console.info(TAG, "input");
+    console.dir(e, {
+      depth: 2,
+    });
+
+    // Register the session
+    const { session, bag, isGroup, isMention, isReply, isActivator, isCommand } = await this.parseMessage(e);
+
+    console.info(TAG, `session = ${session.id}`);
+
+    // Process a command
+    if (isCommand) {
+      let fulfillment = null;
+      try {
+        fulfillment = await isCommand(session, bag);
+      } catch (err) {
+        fulfillment = { payload: { error: err } };
+      }
+      await IOManager.output(fulfillment, session, bag);
+      return true;
+    }
+
     // Process a Text object
     if (e.text) {
       // If we are in a group, only listen for activators
-      if (chatIsGroup && !(isMention || isReply || isActivator)) {
+      if (isGroup && !(isMention || isReply || isActivator)) {
         console.debug(TAG, "skipping input for missing activator");
         return false;
       }
@@ -232,7 +281,7 @@ class Telegram implements IOManager.IODriverModule {
       const isActivatorInVoice = this.getIsActivator(text);
 
       // If we are in a group, only listen for activators
-      if (chatIsGroup && !isActivatorInVoice) {
+      if (isGroup && !isActivatorInVoice) {
         console.debug(TAG, "skipping input for missing activator");
         return false;
       }
@@ -252,7 +301,7 @@ class Telegram implements IOManager.IODriverModule {
     // Process a Photo Object
     if (e.photo) {
       const photoLink = this.bot.getFileLink(e.photo[e.photo.length - 1].file_id);
-      if (chatIsGroup) return false;
+      if (isGroup) return false;
 
       this.emitter.emit("input", {
         session,
@@ -276,6 +325,30 @@ class Telegram implements IOManager.IODriverModule {
     return true;
   }
 
+  private async commandNotAuthorized(): Promise<Fulfillment> {
+    return { fulfillmentText: "User not authorized" };
+  }
+
+  private async commandNotFound(): Promise<Fulfillment> {
+    return { fulfillmentText: "Command not found" };
+  }
+
+  private async commandAppStop(): Promise<Fulfillment> {
+    setTimeout(() => process.exit(0), 5000);
+    return { fulfillmentText: "Scheduled shutdown in 5 seconds" };
+  }
+
+  private async commandFindSessionByName([, opt]: RegExpMatchArray): Promise<Fulfillment> {
+    const result = await Session.findOne(JSON.parse(opt));
+    return { payload: { data: JSON.stringify(result, null, 2) } };
+  }
+
+  private async commandOut([, cmdSessionId, cmdText]: RegExpMatchArray): Promise<Fulfillment> {
+    const cmdSession = await IOManager.getSession(cmdSessionId);
+    const result = await IOManager.output({ fulfillmentText: cmdText }, cmdSession, {});
+    return { payload: { data: JSON.stringify(result, null, 2) } };
+  }
+
   /**
    * Start the polling/webhook cycle
    */
@@ -287,6 +360,7 @@ class Telegram implements IOManager.IODriverModule {
     this.botMentionRegex = new RegExp(`@${this.botMe.username}`, "i");
 
     this.bot.on("message", this.onBotInput.bind(this));
+
     this.bot.on("webhook_error", (err) => {
       console.error(TAG, "webhook error", err);
     });
@@ -313,7 +387,7 @@ class Telegram implements IOManager.IODriverModule {
   /**
    * Output an object to the user
    */
-  async output(f: Fulfillment, session: Session, bag: TelegramBag) {
+  async output(f: Fulfillment, session: ISession, bag: TelegramBag): Promise<boolean> {
     let processed = false;
 
     // Inform observers
@@ -402,6 +476,15 @@ class Telegram implements IOManager.IODriverModule {
     try {
       if (f.payload?.error?.message) {
         await this.sendMessage(chatId, `<pre>${f.payload.error.toString()}</pre>`, botOpt);
+        processed = true;
+      }
+    } catch (err) {
+      console.error(TAG, err);
+    }
+
+    try {
+      if (f.payload?.data) {
+        await this.sendMessage(chatId, `<pre>${f.payload?.data}</pre>`, botOpt);
         processed = true;
       }
     } catch (err) {

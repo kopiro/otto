@@ -12,14 +12,22 @@ export type IOAccessory = "gpio_button" | "leds";
 export type IOBag = Record<string, any>;
 
 export enum Authorizations {
+  "ADMIN" = "ADMIN",
   "CAMERA" = "CAMERA",
+  "COMMAND" = "COMMAND",
 }
+
+export type OutputResult = {
+  driverOutput?: boolean;
+  driverError?: Error;
+  rejectReason?: string;
+};
 
 // eslint-disable-next-line @typescript-eslint/interface-name-prefix
 export interface IODriverModule {
   emitter: EventEmitter;
   start: () => void;
-  output: (fulfillment: Fulfillment, session: Session, bag: IOBag) => void;
+  output: (fulfillment: Fulfillment, session: Session, bag: IOBag) => Promise<boolean>;
 }
 
 // eslint-disable-next-line @typescript-eslint/interface-name-prefix
@@ -131,29 +139,29 @@ export async function output(
   session: Session,
   bag: IOBag,
   loadDriverIfNotEnabled = false,
-): Promise<any> {
+): Promise<OutputResult> {
   if (!fulfillment) {
     console.warn(
       "Do not output to driver because fulfillment is null - this could be intentional, but check your action",
     );
-    return null;
+    return { rejectReason: "FULFILLMENT_IS_NULL" };
   }
 
   // If this fulfillment has been handled by a generator, simply skip
   if (fulfillment.payload?.handledByGenerator) {
     console.warn(TAG, "Skipping output because is handled by an external generator");
-    return null;
+    return { rejectReason: "HANDLED_BY_GENERATOR" };
   }
 
   // Redirecting output to another session
   if (session.redirectSessions?.length > 0) {
     console.info(TAG, "using redirectSessions", session.redirectSessions);
-    return Promise.all(session.redirectSessions.map((e) => output(fulfillment, e, bag, loadDriverIfNotEnabled)));
+    Promise.all(session.redirectSessions.map((e) => output(fulfillment, e, bag, loadDriverIfNotEnabled)));
   }
 
   if (session.doNotDisturb) {
     console.info(TAG, "doNotDisturb is ON", session);
-    return null;
+    return { rejectReason: "DO_NOT_DISTURB_ON" };
   }
 
   let driver: IODriverModule;
@@ -164,7 +172,7 @@ export async function output(
     // If this driver is not up & running for this configuration,
     // the item could be handled by another platform that has that driver configured,
     // so we'll enqueue it.
-    if (enabledDriverIds.indexOf(session.ioId) === -1) {
+    if (!enabledDriverIds.includes(session.ioId)) {
       console.info(
         TAG,
         `putting in IO queue because driver <${session.ioId}> of session <${
@@ -179,14 +187,17 @@ export async function output(
       });
       await ioQueueElement.save();
 
-      return null;
+      return {
+        rejectReason: "OUTPUT_QUEUED",
+      };
     }
 
     driver = enabledDrivers[session.ioDriver];
   }
 
   if (!driver) {
-    throw new Error(`Driver <${session.ioDriver}> is not enabled`);
+    console.error(`Driver <${session.ioDriver}> is not enabled`);
+    return { rejectReason: "DRIVER_NOT_ENABLED" };
   }
 
   if (session.forwardSessions?.length > 0) {
@@ -198,22 +209,25 @@ export async function output(
   const payload = fulfillmentTransformerForDriverOutput(fulfillment);
 
   // Call the driver
-  let result;
-  let error;
+  let driverOutput;
+  let driverError;
 
   try {
-    result = await driver.output(payload, session, bag);
+    driverOutput = await driver.output(payload, session, bag);
   } catch (err) {
-    error = err;
+    driverError = err;
   }
 
-  if (error && session.fallbackSession) {
+  if (driverError && session.fallbackSession) {
     console.info(TAG, "using fallbackSession", session.fallbackSession.id);
     return output(fulfillment, session.fallbackSession, bag);
   }
 
-  if (error) throw error;
-  return result;
+  if (driverError) {
+    return { driverError };
+  }
+
+  return { driverOutput };
 }
 
 /**
