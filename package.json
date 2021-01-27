@@ -73,6 +73,7 @@
     "moment": "^2.22.2",
     "mongoose": "^5.8.2",
     "mongoose-autopopulate": "^0.12.1",
+    "node-fetch": "^2.6.1",
     "node-record-lpcm16": "^1.0.1",
     "node-telegram-bot-api": "^0.40.0",
     "pb-util": "^0.1.3",

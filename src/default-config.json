@@ -52,6 +52,9 @@
     "projectId": null,
     "environment": null
   },
+  "openai": {
+    "token": null
+  },
   "telegram": {
     "token": null,
     "options": {

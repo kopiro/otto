@@ -10,6 +10,7 @@ import { Log } from "./log";
 import SpeechRecognizer from "../stdlib/speech-recognizer";
 import Events from "events";
 import { SessionsClient, IntentsClient } from "@google-cloud/dialogflow/build/src/v2";
+import openAI from "./openai";
 
 type IStruct = protos.google.protobuf.IStruct;
 
@@ -484,7 +485,7 @@ class AI {
     const alreadyParsedByWebhook = "webhookStatus" in body && body.webhookStatus?.code === 0;
     const tmpTag = `${TAG}${referer}`;
 
-    if (config().mimicOfflineServer) {
+    if (true || config().mimicOfflineServer) {
       console.warn(tmpTag, "!!! Miming an offline webhook server !!!");
     } else {
       if (alreadyParsedByWebhook) {
@@ -514,8 +515,9 @@ class AI {
       // If the intent is a fallback intent, invoke a procedure to ask to be trained
       if (body.queryResult.intent.isFallback) {
         console.debug(tmpTag, `Training invoked`);
-        setImmediate(async () => {
-          if (config().trainingSessionId) {
+
+        if (config().trainingSessionId) {
+          setImmediate(async () => {
             const trainingSession = await IOManager.getSession(config().trainingSessionId);
             this.processInput(
               {
@@ -523,8 +525,28 @@ class AI {
               },
               trainingSession,
             );
+          });
+        }
+
+        // Reset if 5m have passed since last interaction
+        const now = Math.floor(Date.now() / 1000);
+        if (session.pipe?.openAILastInteraction) {
+          if (session.pipe.openAILastInteraction + 60 * 5 < now) {
+            console.log(TAG, "resetting openaiChatLog", session.pipe);
+            session.savePipe({
+              openAIChatLog: "",
+            });
           }
+        }
+
+        const { text, chatLog } = await openAI(body.queryResult.queryText, session, session.pipe?.openAIChatLog);
+        session.savePipe({
+          openAILastInteraction: now,
+          openAIChatLog: chatLog,
         });
+        return {
+          fulfillmentText: `** ${text}`,
+        };
       }
 
       return {

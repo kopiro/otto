@@ -1,5 +1,8 @@
 FROM node:14-alpine
 WORKDIR /app
+VOLUME /app/cache /app/log /app/keys /app/tmp
+EXPOSE 80
+ENTRYPOINT [ "yarn", "start" ]
 
 # Instal base packages
 RUN apk add --no-cache ca-certificates && \
@@ -36,7 +39,3 @@ RUN yarn install
 
 # Build code
 RUN yarn build
-
-ENTRYPOINT [ "yarn", "start" ]
-VOLUME /app/cache /app/log /app/keys /app/tmp
-EXPOSE 80

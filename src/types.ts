@@ -98,6 +98,12 @@ export interface Scheduler extends Document {
   onDate: string; // on a date
 }
 
+export type Pipe = {
+  nextWithVoice?: boolean;
+  includeVoice?: boolean;
+  openAIChatLog?: string;
+  openAILastInteraction?: number;
+};
 export interface Session extends Document {
   id: string;
   uid: string;
@@ -109,17 +115,14 @@ export interface Session extends Document {
   translateFrom: Language;
   translateTo: Language;
   authorizations: Authorizations[];
-  pipe: {
-    nextWithVoice?: boolean;
-    includeVoice?: boolean;
-  };
+  pipe: Pipe;
   fallbackSession: Session | undefined;
   redirectSessions: Session[] | undefined;
   forwardSessions: Session[] | undefined;
   repeatModeSessions: Session[] | undefined;
   doNotDisturb: boolean;
   saveServerSettings: (data: {}) => Promise<boolean>;
-  savePipe: (data: {}) => Promise<boolean>;
+  savePipe: (data: Partial<Pipe>) => Promise<boolean>;
   getTranslateFrom: () => Language;
   getTranslateTo: () => Language;
 }
