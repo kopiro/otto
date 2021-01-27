@@ -16,8 +16,6 @@ import { Fulfillment, Session as ISession } from "../types";
 import { getAiNameRegex, getTmpFile } from "../helpers";
 import bodyParser from "body-parser";
 import { File } from "../stdlib/file";
-import { Session } from "../data";
-import childProcess from "child_process";
 
 const TAG = "IO.Telegram";
 const DRIVER_ID = "telegram";
@@ -34,8 +32,6 @@ export type TelegramBag = {
   };
 };
 
-type CommandFunction = (args: RegExpMatchArray, session: ISession, bag: TelegramBag) => Promise<Fulfillment>;
-
 class Telegram implements IOManager.IODriverModule {
   config: TelegramConfig;
 
@@ -46,13 +42,6 @@ class Telegram implements IOManager.IODriverModule {
   botMentionRegex: RegExp;
 
   started = false;
-
-  commandMapping: [RegExp, CommandFunction][] = [
-    [/^\/out ([^\s]+) (.+)/, this.commandOut],
-    [/^\/findsess (.+)/, this.commandFindSessionByName],
-    [/^\/appstop/, this.commandAppStop],
-    [/^\/.+/, this.commandNotFound],
-  ];
 
   constructor(config: TelegramConfig) {
     this.config = config;
@@ -186,29 +175,12 @@ class Telegram implements IOManager.IODriverModule {
     return getAiNameRegex().test(text);
   }
 
-  getIsCommand(
-    e: TelegramBot.Message,
-    session: ISession,
-  ): ((session: ISession, bag: TelegramBag) => Promise<Fulfillment>) | false {
-    for (const [rx, fn] of this.commandMapping) {
-      const matches = e.text.match(rx);
-      if (matches) {
-        if (
-          !session.authorizations.includes(IOManager.Authorizations.COMMAND) &&
-          !session.authorizations.includes(IOManager.Authorizations.ADMIN)
-        ) {
-          return () => this.commandNotAuthorized();
-        }
-
-        return (session: ISession, bag: TelegramBag) => fn(matches, session, bag);
-      }
-    }
-
-    return false;
-  }
-
   getIsGroup(msg: TelegramBot.Message) {
     return msg.chat.type === "group";
+  }
+
+  getIsCommand(msg: TelegramBot.Message) {
+    return msg.text?.startsWith("/");
   }
 
   private async parseMessage(e: TelegramBot.Message) {
@@ -222,12 +194,11 @@ class Telegram implements IOManager.IODriverModule {
       },
     };
 
-    const isCommand = this.getIsCommand(e, session);
-
     const isGroup = this.getIsGroup(e);
     const isMention = this.getIsMention(e.text);
     const isActivator = this.getIsActivator(e.text);
     const isReply = e.reply_to_message?.from?.id === this.botMe.id;
+    const isCommand = this.getIsCommand(e);
 
     return { session, bag, isGroup, isMention, isActivator, isReply, isCommand };
   }
@@ -245,13 +216,13 @@ class Telegram implements IOManager.IODriverModule {
 
     // Process a command
     if (isCommand) {
-      let fulfillment = null;
-      try {
-        fulfillment = await isCommand(session, bag);
-      } catch (err) {
-        fulfillment = { payload: { error: err } };
-      }
-      await IOManager.output(fulfillment, session, bag);
+      this.emitter.emit("input", {
+        session,
+        params: {
+          command: e.text,
+          bag,
+        },
+      });
       return true;
     }
 
@@ -323,30 +294,6 @@ class Telegram implements IOManager.IODriverModule {
       },
     });
     return true;
-  }
-
-  private async commandNotAuthorized(): Promise<Fulfillment> {
-    return { fulfillmentText: "User not authorized" };
-  }
-
-  private async commandNotFound(): Promise<Fulfillment> {
-    return { fulfillmentText: "Command not found" };
-  }
-
-  private async commandAppStop(): Promise<Fulfillment> {
-    setTimeout(() => process.exit(0), 5000);
-    return { fulfillmentText: "Scheduled shutdown in 5 seconds" };
-  }
-
-  private async commandFindSessionByName([, opt]: RegExpMatchArray): Promise<Fulfillment> {
-    const result = await Session.findOne(JSON.parse(opt));
-    return { payload: { data: JSON.stringify(result, null, 2) } };
-  }
-
-  private async commandOut([, cmdSessionId, cmdText]: RegExpMatchArray): Promise<Fulfillment> {
-    const cmdSession = await IOManager.getSession(cmdSessionId);
-    const result = await IOManager.output({ fulfillmentText: cmdText }, cmdSession, {});
-    return { payload: { data: JSON.stringify(result, null, 2) } };
   }
 
   /**

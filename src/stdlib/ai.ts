@@ -40,6 +40,8 @@ export type AIConfig = {
   environment?: string;
 };
 
+type CommandFunction = (args: RegExpMatchArray, session: ISession, bag: IOManager.IOBag) => Promise<Fulfillment>;
+
 class AI {
   config: AIConfig;
 
@@ -49,9 +51,95 @@ class AI {
 
   dfIntentAgentPath: string;
 
+  commandMapping: Array<{
+    matcher: RegExp;
+    executor: CommandFunction;
+    description: string;
+    authorization?: IOManager.Authorizations;
+  }> = [
+    {
+      matcher: /^\/textout ([^\s]+) (.+)/,
+      executor: this.commandOut,
+      description: "textout - [sessionid] [text] - Send a text message to a specific session",
+      authorization: IOManager.Authorizations.COMMAND,
+    },
+    {
+      matcher: /^\/textin ([^\s]+) (.+)/,
+      executor: this.commandIn,
+      description: "textin - [sessionid] [text] - Process an input text for a specific session",
+      authorization: IOManager.Authorizations.COMMAND,
+    },
+    {
+      matcher: /^\/appstop/,
+      executor: this.commandAppStop,
+      description: "appstop - Cause the application to crash",
+      authorization: IOManager.Authorizations.COMMAND,
+    },
+    {
+      matcher: /^\/whoami/,
+      executor: this.commandWhoami,
+      description: "whoami - Get your session",
+    },
+  ];
+
   constructor(config: AIConfig) {
     this.config = config;
     this.dfIntentAgentPath = this.dfIntentsClient.agentPath(this.config.projectId);
+  }
+
+  getCommandMappingDescription() {
+    return this.commandMapping.map(({ description }) => `${description}`).join("\n");
+  }
+
+  private async commandNotAuthorized(): Promise<Fulfillment> {
+    return { fulfillmentText: "User not authorized" };
+  }
+
+  private async commandNotFound(): Promise<Fulfillment> {
+    return { fulfillmentText: "Command not found" };
+  }
+
+  private async commandAppStop(): Promise<Fulfillment> {
+    setTimeout(() => process.exit(0), 5000);
+    return { fulfillmentText: "Scheduled shutdown in 5 seconds" };
+  }
+
+  private async commandWhoami(_: RegExpMatchArray, session: ISession): Promise<Fulfillment> {
+    return { payload: { data: JSON.stringify(session, null, 2) } };
+  }
+
+  private async commandIn([, cmdSessionId, cmdText]: RegExpMatchArray): Promise<Fulfillment> {
+    const cmdSession = await IOManager.getSession(cmdSessionId);
+    const result = await this.processInput({ text: cmdText }, cmdSession);
+    return { payload: { data: JSON.stringify(result, null, 2) } };
+  }
+
+  private async commandOut([, cmdSessionId, cmdText]: RegExpMatchArray): Promise<Fulfillment> {
+    const cmdSession = await IOManager.getSession(cmdSessionId);
+    const result = await IOManager.output({ fulfillmentText: cmdText }, cmdSession, {});
+    return { payload: { data: JSON.stringify(result, null, 2) } };
+  }
+
+  getCommandExecutor(
+    text: string,
+    session: ISession,
+  ): (session: ISession, bag: IOManager.IOBag) => Promise<Fulfillment> {
+    for (const cmd of this.commandMapping) {
+      const matches = text.match(cmd.matcher);
+      if (matches) {
+        if (
+          session.authorizations.includes(cmd.authorization) ||
+          session.authorizations.includes(IOManager.Authorizations.ADMIN) ||
+          cmd.authorization == null
+        ) {
+          return (session: ISession, bag: IOManager.IOBag) => cmd.executor(matches, session, bag);
+        } else {
+          return () => this.commandNotAuthorized();
+        }
+      }
+    }
+
+    return () => this.commandNotFound();
   }
 
   decodeIfStruct(s: IStruct): Record<string, any> {
@@ -222,12 +310,10 @@ class AI {
       case "do_not_disturb_on":
         this.doNotDisturb(true, session);
         return body.queryResult;
-        break;
 
       case "do_not_disturb_off":
         this.doNotDisturb(false, session);
         return body.queryResult;
-        break;
 
       default:
         return false;
@@ -478,6 +564,20 @@ class AI {
   }
 
   /**
+   * Get the command to execute and return an executor
+   */
+  async commandRequest(_command: string, session: ISession, bag: IOManager.IOBag): Promise<Fulfillment> {
+    console.info(TAG, "command request:", _command);
+
+    const commandExecutor = this.getCommandExecutor(_command, session);
+    try {
+      return commandExecutor(session, bag);
+    } catch (err) {
+      return { payload: { error: err } };
+    }
+  }
+
+  /**
    * Make a text request to DialogFlow and let the flow begin
    */
   async textRequest(_text: string, session: ISession, bag: IOManager.IOBag): Promise<Fulfillment> {
@@ -486,8 +586,7 @@ class AI {
     const text = await this.textRequestTransformer(_text, session);
     const response = await this.request({ text }, session, bag);
     const body = this.decodeDetectIntentResponse(response);
-    const fulfillment = await this.bodyParser(body, session, bag);
-    return fulfillment;
+    return this.bodyParser(body, session, bag);
   }
 
   /**
@@ -499,8 +598,7 @@ class AI {
     const event = await this.eventRequestTransformer(_event, session);
     const response = await this.request({ event }, session, bag);
     const body = this.decodeDetectIntentResponse(response);
-    const fulfillment = await this.bodyParser(body, session, bag);
-    return fulfillment;
+    return this.bodyParser(body, session, bag);
   }
 
   /**
@@ -564,8 +662,10 @@ class AI {
     } else if (params.audio) {
       const text = await SpeechRecognizer.recognizeFile(params.audio, session.getTranslateFrom());
       fulfillment = await this.textRequest(text, session, params.bag);
+    } else if (params.command) {
+      fulfillment = await this.commandRequest(params.command, session, params.bag);
     } else {
-      console.warn("Neither { text, event, audio } in params are not null");
+      console.warn("Neither { text, event, command, audio } in params are not null");
     }
 
     fulfillment = await this.fulfillmentTransformerForSession(fulfillment, session);
