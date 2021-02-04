@@ -14,9 +14,6 @@ mongoose.connection.once("open", async () => {
     Server.start();
   }
 
-  console.debug("AI commandMapping");
-  console.debug(AI.getCommandMappingDescription());
-
   IOManager.start((params, session) => {
     AI.processInput(params, session);
   });

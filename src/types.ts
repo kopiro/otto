@@ -9,20 +9,15 @@ export type AIAction = (
   body?: Record<string, any>,
   session?: Session,
   bag?: IOBag,
-) => Promise<Fulfillment | string> | IterableIterator<Fulfillment | string> | Fulfillment | string;
+) => Promise<Fulfillment> | IterableIterator<Fulfillment> | Fulfillment;
 
 export interface CustomError {
   message?: string;
   data?: Record<string, any>;
 }
 
-export interface BufferWithExtension {
-  buffer: Uint8Array | string | { toString: (encoding?: string) => string };
-  extension: string;
-}
-
 export interface Fulfillment {
-  fulfillmentText?: string;
+  text?: string;
   outputContexts?: Array<{}>;
   followupEventInput?: {
     name: string;
@@ -36,9 +31,7 @@ export interface Fulfillment {
     transformerUid?: string;
     transformedAt?: number;
     translateTo?: Language;
-    didTranslatedTo?: Language;
     translateFrom?: Language;
-    didTranslatedFrom?: Language;
     error?: CustomError;
     handledByGenerator?: boolean;
     includeVoice?: boolean;
@@ -60,9 +53,7 @@ export interface Fulfillment {
       sticker: string;
     };
   };
-  audio?: BufferWithExtension;
 }
-
 export interface InputParams {
   text?: string;
   event?:
@@ -98,12 +89,6 @@ export interface Scheduler extends Document {
   onDate: string; // on a date
 }
 
-export type Pipe = {
-  nextWithVoice?: boolean;
-  includeVoice?: boolean;
-  openAIChatLog?: string;
-  openAILastInteraction?: number;
-};
 export interface Session extends Document {
   id: string;
   uid: string;
@@ -115,14 +100,14 @@ export interface Session extends Document {
   translateFrom: Language;
   translateTo: Language;
   authorizations: Authorizations[];
-  pipe: Pipe;
   fallbackSession: Session | undefined;
   redirectSessions: Session[] | undefined;
   forwardSessions: Session[] | undefined;
   repeatModeSessions: Session[] | undefined;
   doNotDisturb: boolean;
-  saveServerSettings: (data: {}) => Promise<boolean>;
-  savePipe: (data: Partial<Pipe>) => Promise<boolean>;
+  openaiChatLog?: string;
+  openaiLastInteraction?: number;
   getTranslateFrom: () => Language;
   getTranslateTo: () => Language;
+  getName(): () => string;
 }

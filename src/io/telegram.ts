@@ -98,16 +98,12 @@ class Telegram implements IOManager.IODriverModule {
   }
 
   async getVoiceFile(fulfillment: Fulfillment, session: ISession): Promise<File> {
-    if (fulfillment.audio) {
-      return Voice.getFile(fulfillment.audio);
-    } else {
-      const audioFile = await TextToSpeech.getAudioFile(
-        fulfillment.fulfillmentText,
-        fulfillment.payload.language || session.getTranslateTo(),
-        config().tts.gender,
-      );
-      return Voice.getFile(audioFile);
-    }
+    const audioFile = await TextToSpeech.getAudioFile(
+      fulfillment.text,
+      fulfillment.payload.language || session.getTranslateTo(),
+      config().tts.gender,
+    );
+    return Voice.getFile(audioFile);
   }
 
   /**
@@ -204,10 +200,7 @@ class Telegram implements IOManager.IODriverModule {
   }
 
   async onBotInput(e: TelegramBot.Message) {
-    console.info(TAG, "input");
-    console.dir(e, {
-      depth: 2,
-    });
+    console.info(TAG, "input", e);
 
     // Register the session
     const { session, bag, isGroup, isMention, isReply, isActivator, isCommand } = await this.parseMessage(e);
@@ -287,12 +280,6 @@ class Telegram implements IOManager.IODriverModule {
       return true;
     }
 
-    this.emitter.emit("input", {
-      session,
-      error: {
-        unkownInputType: true,
-      },
-    });
     return true;
   }
 
@@ -334,8 +321,8 @@ class Telegram implements IOManager.IODriverModule {
   /**
    * Output an object to the user
    */
-  async output(f: Fulfillment, session: ISession, bag: TelegramBag): Promise<boolean> {
-    let processed = false;
+  async output(f: Fulfillment, session: ISession, bag: TelegramBag) {
+    const results = [];
 
     // Inform observers
     this.emitter.emit("output", {
@@ -353,88 +340,89 @@ class Telegram implements IOManager.IODriverModule {
 
     // Process a Text Object
     try {
-      if (f.fulfillmentText) {
-        await this.sendMessage(chatId, f.fulfillmentText, botOpt);
+      if (f.text) {
+        this.bot.sendChatAction(chatId, "typing");
+        results.push(["message", await this.sendMessage(chatId, f.text, botOpt)]);
         // await this.sendVideoNote(chatId, f, session, botOpt);
 
         if (bag?.encodable.respondWithAudioNote || f.payload?.includeVoice) {
-          await this.sendAudioNote(chatId, f, session, botOpt);
+          results.push(["audionote", await this.sendAudioNote(chatId, f, session, botOpt)]);
         }
-        processed = true;
       }
     } catch (err) {
+      results.push(["error", err]);
       console.error(TAG, err);
     }
 
     // Process a URL Object
     try {
       if (f.payload?.url) {
-        await this.bot.sendMessage(chatId, f.payload.url, botOpt);
-        processed = true;
+        results.push(["message", await this.bot.sendMessage(chatId, f.payload.url, botOpt)]);
       }
     } catch (err) {
+      results.push(["error", err]);
       console.error(TAG, err);
     }
 
     // Process a Video object
     try {
       if (f.payload?.video?.uri) {
-        await this.bot.sendChatAction(chatId, "upload_video");
-        await this.bot.sendVideo(chatId, f.payload.video.uri, botOpt);
+        this.bot.sendChatAction(chatId, "upload_video");
+        results.push(["video", await this.bot.sendVideo(chatId, f.payload.video.uri, botOpt)]);
       }
-      processed = true;
     } catch (err) {
+      results.push(["error", err]);
       console.error(TAG, err);
     }
 
     // Process an Image Object
     try {
       if (f.payload?.image?.uri) {
-        await this.bot.sendChatAction(chatId, "upload_photo");
-        await this.bot.sendPhoto(chatId, f.payload.image.uri, botOpt);
+        this.bot.sendChatAction(chatId, "upload_photo");
+        results.push(["photo", await this.bot.sendPhoto(chatId, f.payload.image.uri, botOpt)]);
       }
-      processed = true;
     } catch (err) {
+      results.push(["error", err]);
       console.error(TAG, err);
     }
 
     // Process an Audio Object
     try {
       if (f.payload?.audio?.uri) {
-        await this.bot.sendChatAction(chatId, "upload_audio");
-        await this.bot.sendAudio(chatId, f.payload.audio.uri, botOpt);
+        this.bot.sendChatAction(chatId, "upload_audio");
+        results.push(["audio", await this.bot.sendAudio(chatId, f.payload.audio.uri, botOpt)]);
       }
-      processed = true;
     } catch (err) {
+      results.push(["error", err]);
       console.error(TAG, err);
     }
 
     // Process a Document Object
     try {
       if (f.payload?.document?.uri) {
-        await this.bot.sendChatAction(chatId, "upload_document");
-        await this.bot.sendDocument(chatId, f.payload.document.uri, botOpt);
+        this.bot.sendChatAction(chatId, "upload_document");
+        results.push(["document", await this.bot.sendDocument(chatId, f.payload.document.uri, botOpt)]);
       }
-      processed = true;
     } catch (err) {
+      results.push(["error", err]);
       console.error(TAG, err);
     }
 
     try {
       if (f.payload?.error?.message) {
-        await this.sendMessage(chatId, `<pre>${f.payload.error.toString()}</pre>`, botOpt);
-        processed = true;
+        results.push(["message", await this.sendMessage(chatId, `<pre>${f.payload.error.toString()}</pre>`, botOpt)]);
       }
     } catch (err) {
+      results.push(["error", err]);
       console.error(TAG, err);
     }
 
     try {
       if (f.payload?.data) {
-        await this.sendMessage(chatId, `<pre>${f.payload?.data}</pre>`, botOpt);
-        processed = true;
+        results.push(["message", await this.sendMessage(chatId, `<pre>${f.payload?.data}</pre>`, botOpt)]);
       }
     } catch (err) {
+      results.push(["error", err]);
       console.error(TAG, err);
     }
 
@@ -443,14 +431,14 @@ class Telegram implements IOManager.IODriverModule {
     // Process a Sticker Object
     try {
       if (f.payload?.telegram?.sticker) {
-        await this.bot.sendSticker(chatId, f.payload.telegram.sticker, botOpt);
-        processed = true;
+        results.push(["sticker", await this.bot.sendSticker(chatId, f.payload.telegram.sticker, botOpt)]);
       }
     } catch (err) {
+      results.push(["error", err]);
       console.error(TAG, err);
     }
 
-    return processed;
+    return results;
   }
 }
 

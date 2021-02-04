@@ -2,46 +2,52 @@ import dialogflow, { protos } from "@google-cloud/dialogflow";
 import * as IOManager from "./iomanager";
 import Translator from "../stdlib/translator";
 import config from "../config";
-import { extractWithPattern, replaceVariablesInStrings, getAiNameRegex } from "../helpers";
-import { Fulfillment, CustomError, AIAction, InputParams, BufferWithExtension, Session as ISession } from "../types";
+import { extractWithPattern, getLocalObjectFromURI, replaceVariablesInStrings } from "../helpers";
+import { Fulfillment, CustomError, AIAction, InputParams, Session } from "../types";
 import { struct, Struct } from "pb-util";
-import { Request, Response } from "express";
-import { Log } from "./log";
 import SpeechRecognizer from "../stdlib/speech-recognizer";
 import Events from "events";
 import { SessionsClient, IntentsClient } from "@google-cloud/dialogflow/build/src/v2";
-import openAI from "./openai";
+import fetch from "node-fetch";
+import fs from "fs";
 
 type IStruct = protos.google.protobuf.IStruct;
 
 type IDetectIntentResponse = protos.google.cloud.dialogflow.v2.IDetectIntentResponse;
-type IEventInput = protos.google.cloud.dialogflow.v2.IEventInput;
-type ITextInput = protos.google.cloud.dialogflow.v2.ITextInput;
 type IContext = protos.google.cloud.dialogflow.v2.IContext;
 type IMessage = protos.google.cloud.dialogflow.v2.Intent.IMessage;
-type WebhookRequest = protos.google.cloud.dialogflow.v2.WebhookRequest;
-type WebhookResponse = protos.google.cloud.dialogflow.v2.WebhookResponse;
 type IQueryInput = protos.google.cloud.dialogflow.v2.IQueryInput;
-type OutputAudioEncoding = protos.google.cloud.dialogflow.v2.OutputAudioEncoding;
 
 type ResponseBody = IDetectIntentResponse & {
   queryResult: {
     parameters: Record<string, any> | null;
-    webhookPayload: Record<string, any> | null;
     outputContexts: (IContext & { parameters: Record<string, any> })[];
     fulfillmentMessages: (IMessage & { payload: Record<string, any> })[];
   };
 };
 
 const TAG = "AI";
-const log = new Log(TAG);
 
-export type AIConfig = {
-  projectId: string;
-  environment?: string;
+type AIConfig = {
+  aiName: string;
+  uid: string;
+  language: string;
+  trainingSessionId: string;
+  dialogflow: {
+    projectId: string;
+    environment?: string;
+    language: string;
+  };
+  openai: {
+    token: string;
+    language: string;
+    interactionTTL: number;
+    engine: string;
+    brainTxtUrl: string;
+  };
 };
 
-type CommandFunction = (args: RegExpMatchArray, session: ISession, bag: IOManager.IOBag) => Promise<Fulfillment>;
+type CommandFunction = (args: RegExpMatchArray, session: Session, bag: IOManager.IOBag) => Promise<Fulfillment>;
 
 class AI {
   config: AIConfig;
@@ -65,6 +71,13 @@ class AI {
       authorization: IOManager.Authorizations.COMMAND,
     },
     {
+      matcher: /^\/eventin ([^\s]+) (.+)/,
+      executor: this.eventIn,
+      description:
+        "eventin - [sessionid] [name] [event_object_or_name] - Process an input event for a specific session",
+      authorization: IOManager.Authorizations.COMMAND,
+    },
+    {
       matcher: /^\/textin ([^\s]+) (.+)/,
       executor: this.commandIn,
       description: "textin - [sessionid] [text] - Process an input text for a specific session",
@@ -85,7 +98,7 @@ class AI {
 
   constructor(config: AIConfig) {
     this.config = config;
-    this.dfIntentAgentPath = this.dfIntentsClient.agentPath(this.config.projectId);
+    this.dfIntentAgentPath = this.dfIntentsClient.agentPath(this.config.dialogflow.projectId);
   }
 
   getCommandMappingDescription() {
@@ -93,19 +106,19 @@ class AI {
   }
 
   private async commandNotAuthorized(): Promise<Fulfillment> {
-    return { fulfillmentText: "User not authorized" };
+    return { text: "User not authorized" };
   }
 
   private async commandNotFound(): Promise<Fulfillment> {
-    return { fulfillmentText: "Command not found" };
+    return { text: "Command not found" };
   }
 
   private async commandAppStop(): Promise<Fulfillment> {
     setTimeout(() => process.exit(0), 5000);
-    return { fulfillmentText: "Scheduled shutdown in 5 seconds" };
+    return { text: "Scheduled shutdown in 5 seconds" };
   }
 
-  private async commandWhoami(_: RegExpMatchArray, session: ISession): Promise<Fulfillment> {
+  private async commandWhoami(_: RegExpMatchArray, session: Session): Promise<Fulfillment> {
     return { payload: { data: JSON.stringify(session, null, 2) } };
   }
 
@@ -115,16 +128,20 @@ class AI {
     return { payload: { data: JSON.stringify(result, null, 2) } };
   }
 
-  private async commandOut([, cmdSessionId, cmdText]: RegExpMatchArray): Promise<Fulfillment> {
+  private async eventIn([, cmdSessionId, cmdEvent]: RegExpMatchArray): Promise<Fulfillment> {
     const cmdSession = await IOManager.getSession(cmdSessionId);
-    const result = await IOManager.output({ fulfillmentText: cmdText }, cmdSession, {});
+    const event = cmdEvent.startsWith("{") ? JSON.parse(cmdEvent) : cmdEvent;
+    const result = await this.processInput({ event: event }, cmdSession);
     return { payload: { data: JSON.stringify(result, null, 2) } };
   }
 
-  getCommandExecutor(
-    text: string,
-    session: ISession,
-  ): (session: ISession, bag: IOManager.IOBag) => Promise<Fulfillment> {
+  private async commandOut([, cmdSessionId, cmdText]: RegExpMatchArray): Promise<Fulfillment> {
+    const cmdSession = await IOManager.getSession(cmdSessionId);
+    const result = await IOManager.output({ text: cmdText }, cmdSession, {});
+    return { payload: { data: JSON.stringify(result, null, 2) } };
+  }
+
+  getCommandExecutor(text: string, session: Session): (session: Session, bag: IOManager.IOBag) => Promise<Fulfillment> {
     for (const cmd of this.commandMapping) {
       const matches = text.match(cmd.matcher);
       if (matches) {
@@ -133,7 +150,7 @@ class AI {
           session.authorizations.includes(IOManager.Authorizations.ADMIN) ||
           cmd.authorization == null
         ) {
-          return (session: ISession, bag: IOManager.IOBag) => cmd.executor(matches, session, bag);
+          return (session: Session, bag: IOManager.IOBag) => cmd.executor.call(this, matches, session, bag);
         } else {
           return () => this.commandNotAuthorized();
         }
@@ -150,28 +167,15 @@ class AI {
   /**
    * Decode an IDetectIntentResponse into a fully decodable body
    */
-  decodeDetectIntentResponse(body: IDetectIntentResponse | WebhookRequest): ResponseBody {
-    const { parameters, webhookPayload, fulfillmentMessages = [], outputContexts = [] } = body.queryResult;
-    return {
-      ...body,
-      queryResult: {
-        ...body.queryResult,
-        parameters: this.decodeIfStruct(parameters),
-        webhookPayload: this.decodeIfStruct(webhookPayload),
-        fulfillmentMessages: fulfillmentMessages.map((e) => ({
-          ...e,
-          payload: this.decodeIfStruct(e.payload),
-        })),
-        outputContexts: outputContexts.map((e) => ({ ...e, parameters: this.decodeIfStruct(e.parameters) })),
-      },
-    };
+  dfDecodeDetectIntentResponse(body: IDetectIntentResponse): ResponseBody {
+    return body as ResponseBody;
   }
 
   async train(queryText: string, answer: string) {
     console.debug(TAG, "TRAIN request", { queryText, answer });
     const response = await this.dfIntentsClient.createIntent({
       parent: this.dfIntentAgentPath,
-      languageCode: config().language,
+      languageCode: this.config.dialogflow.language,
       intent: {
         displayName: `M-TRAIN: ${queryText}`.substr(0, 100),
         trainingPhrases: [
@@ -187,7 +191,6 @@ class AI {
             },
           },
         ],
-        webhookState: "WEBHOOK_STATE_ENABLED",
       },
     });
     console.debug(TAG, "TRAIN response", response);
@@ -197,7 +200,7 @@ class AI {
   /**
    * Transform a Fulfillment by making some edits based on the current session settings
    */
-  async fulfillmentTransformerForSession(fulfillment: Fulfillment, session: ISession): Promise<Fulfillment> {
+  async fulfillmentTransformerForSession(fulfillment: Fulfillment, session: Session): Promise<Fulfillment> {
     if (!fulfillment) return;
 
     fulfillment.payload = fulfillment.payload || {};
@@ -208,17 +211,15 @@ class AI {
     }
 
     // Always translate fulfillment speech in the user language
-    if (fulfillment.fulfillmentText) {
-      const from = fulfillment.payload.translateFrom || session.getTranslateFrom();
-      const to = fulfillment.payload.translateTo || session.getTranslateTo();
-      if (from !== config().language || to !== config().language) {
-        fulfillment.fulfillmentText = await Translator.translate(fulfillment.fulfillmentText, to, from);
-        fulfillment.payload.didTranslatedFrom = from;
-        fulfillment.payload.didTranslatedTo = to;
+    if (fulfillment.text) {
+      const fromLanguage = fulfillment.payload.translateFrom ?? this.config.language;
+      const toLanguage = fulfillment.payload.translateTo || session.getTranslateTo();
+      if (toLanguage !== fromLanguage) {
+        fulfillment.text = await Translator.translate(fulfillment.text, toLanguage, fromLanguage);
       }
     }
 
-    fulfillment.payload.transformerUid = config().uid;
+    fulfillment.payload.transformerUid = this.config.uid;
     fulfillment.payload.transformedAt = Date.now();
 
     return fulfillment;
@@ -227,15 +228,15 @@ class AI {
   /**
    * Get the session path suitable for DialogFlow
    */
-  getDFSessionPath(session: ISession) {
+  getDFSessionPath(session: Session) {
     const dfSessionId = session.id.replace(/\//g, "_");
-    if (!this.config.environment) {
-      return this.dfSessionClient.projectAgentSessionPath(this.config.projectId, dfSessionId);
+    if (!this.config.dialogflow.environment) {
+      return this.dfSessionClient.projectAgentSessionPath(this.config.dialogflow.projectId, dfSessionId);
     }
 
     return this.dfSessionClient.projectAgentEnvironmentUserSessionPath(
-      this.config.projectId,
-      this.config.environment,
+      this.config.dialogflow.projectId,
+      this.config.dialogflow.environment,
       "-",
       dfSessionId,
     );
@@ -257,7 +258,7 @@ class AI {
         if (error.data) {
           text = replaceVariablesInStrings(text, error.data);
         }
-        fulfillment.fulfillmentText = text;
+        fulfillment.text = text;
       }
     }
 
@@ -273,7 +274,7 @@ class AI {
   async generatorResolver(
     body: ResponseBody,
     fulfillmentGenerator: IterableIterator<Fulfillment>,
-    session: ISession,
+    session: Session,
     bag: IOManager.IOBag,
   ): Promise<[Fulfillment, IOManager.OutputResult][]> {
     console.info(TAG, "Using generator resolver", fulfillmentGenerator);
@@ -300,7 +301,7 @@ class AI {
     return fulfillmentsAndOutputResults;
   }
 
-  handleSystemPackages(pkgName: string, body: ResponseBody, session: ISession): any {
+  handleSystemPackages(pkgName: string, body: ResponseBody, session: Session): Fulfillment | null {
     const { queryResult } = body;
 
     switch (pkgName) {
@@ -317,11 +318,12 @@ class AI {
         return body.queryResult;
 
       default:
-        return false;
+        return null;
     }
   }
 
-  doNotDisturb(value: boolean, session: ISession) {
+  doNotDisturb(value: boolean, session: Session) {
+    console.log(TAG, `setting doNotDisturb to ${value}`, session);
     session.doNotDisturb = value;
     return session.save();
   }
@@ -332,22 +334,20 @@ class AI {
   async actionResolver(
     actionName: string,
     body: ResponseBody,
-    session: ISession,
+    session: Session,
     bag: IOManager.IOBag,
   ): Promise<Fulfillment> {
     console.info(TAG, `calling action <${actionName}>`);
-
-    let fulfillment: Fulfillment = null;
 
     try {
       const [pkgName, pkgAction = "index"] = actionName.split(".");
 
       const sysPkgFullfillment = this.handleSystemPackages(pkgName, body, session);
-      if (sysPkgFullfillment !== false) {
+      if (sysPkgFullfillment !== null) {
         return sysPkgFullfillment;
       }
 
-      // TODO: avoid code injection
+      // TODO: avoid possible code injection
       const pkg = await import(`../packages/${pkgName}/${pkgAction}`);
       if (!pkg) {
         throw new Error(`Invalid action name <${actionName}>`);
@@ -365,199 +365,71 @@ class AI {
       const actionResult = await pkgCallable(body, session, bag);
 
       // Now check if this action is a Promise or a Generator
-      if (actionResult.constructor.name === "GeneratorFunction") {
+      if (actionResult.constructor.name !== "GeneratorFunction") {
         // Call the generator async
         setImmediate(() => {
           this.generatorResolver(body, actionResult as IterableIterator<Fulfillment>, session, bag);
         });
 
         // And immediately resolve
-        fulfillment = {
+        return {
           payload: {
             handledByGenerator: true,
           },
         };
       } else {
-        if (typeof actionResult === "string") {
-          fulfillment = { fulfillmentText: actionResult };
-        } else {
-          fulfillment = actionResult as Fulfillment;
-        }
+        return actionResult as Fulfillment;
       }
     } catch (err) {
       console.error(TAG, "error while executing action:", err);
-      fulfillment = this.actionErrorTransformer(body, err);
+      return this.actionErrorTransformer(body, err);
     }
-
-    return fulfillment;
   }
 
-  /**
-   * Transform a text request to make it compatible and translating it
-   */
-  async textRequestTransformer(text: InputParams["text"], session: ISession): Promise<ITextInput> {
-    const trText: ITextInput = {};
-
-    // Remove any reference to the AI name
-    const cleanText = text.replace(getAiNameRegex(), "");
-
-    if (config().language !== session.getTranslateTo()) {
-      trText.text = await Translator.translate(cleanText, config().language, session.getTranslateTo());
-    } else {
-      trText.text = cleanText;
-    }
-
-    trText.languageCode = session.getTranslateTo();
-
-    return trText;
+  async getOpenAIBrainText(): Promise<string> {
+    const txtFile = await getLocalObjectFromURI(this.config.openai.brainTxtUrl, ".txt");
+    return (await fs.promises.readFile(txtFile, "utf8")).toString().replace(/\r\n/g, "\n");
   }
 
-  /**
-   * Transform an event by making compatible
-   */
-  async eventRequestTransformer(event: InputParams["event"], session: ISession): Promise<IEventInput> {
-    let trEvent: IEventInput;
+  async invokeTrain(body: ResponseBody) {
+    if (this.config.trainingSessionId) {
+      console.debug(TAG, `Training invoked on sessionId ${this.config.trainingSessionId}`);
 
-    if (typeof event === "string") {
-      trEvent = { name: event };
-    } else {
-      trEvent = { name: event.name, parameters: event.parameters ? struct.encode(event.parameters) : {} };
-    }
-
-    trEvent.languageCode = session.getTranslateTo();
-
-    return trEvent;
-  }
-
-  /**
-   * Returns a valid audio buffer
-   */
-  outputAudioParser(body: ResponseBody, session: ISession): BufferWithExtension | null {
-    // If there's no audio in the response, skip
-    if (!body.outputAudio) {
-      console.warn(TAG, `there is not outputAudio in the response`);
-      return null;
-    }
-
-    // If the voice language doesn't match the session language, skip
-    const payloadLanguageCode = body.queryResult.webhookPayload?.language;
-    if (payloadLanguageCode && payloadLanguageCode !== config().language) {
-      console.warn(TAG, `deleting outputAudio because of a voice language mismatch (${payloadLanguageCode})`);
-      return null;
-    }
-
-    if (session.getTranslateTo() !== config().language) {
-      console.warn(TAG, `deleting outputAudio because of a voice language mismatch (${session.getTranslateTo()})`);
-      return null;
-    }
-
-    return {
-      buffer: body.outputAudio,
-      extension: config().audio.extension,
-    };
-  }
-
-  /**
-   * Parse the DialogFlow webhook response
-   */
-  alreadyParsedByWebhookResponseToFulfillment(body: ResponseBody, session: ISession): Fulfillment {
-    if (body.webhookStatus?.code > 0) {
-      return {
-        payload: {
-          error: {
-            message: body.webhookStatus.message,
-          },
+      const trainingSession = await IOManager.getSession(this.config.trainingSessionId);
+      this.processInput(
+        {
+          event: { name: "training", parameters: { queryText: body.queryResult.queryText } },
         },
-      };
+        trainingSession,
+      );
     }
-
-    return {
-      fulfillmentText: body.queryResult.fulfillmentText,
-      audio: this.outputAudioParser(body, session),
-      payload: body.queryResult.webhookPayload as Record<string, any>,
-    };
   }
 
   /**
    * Parse the DialogFlow body and decide what to do
    */
-  async bodyParser(body: ResponseBody, session: ISession, bag: IOManager.IOBag, referer = ""): Promise<Fulfillment> {
-    const alreadyParsedByWebhook = "webhookStatus" in body && body.webhookStatus?.code === 0;
-    const tmpTag = `${TAG}${referer}`;
-
-    if (true || config().mimicOfflineServer) {
-      console.warn(tmpTag, "!!! Miming an offline webhook server !!!");
-    } else {
-      if (alreadyParsedByWebhook) {
-        console.debug(tmpTag, "using response already parsed by the webhook");
-        log.write(session.id, "body_parser_parsed_from_webhook", body);
-        return this.alreadyParsedByWebhookResponseToFulfillment(body, session);
-      }
-    }
-
-    log.write(session.id, "body_parser", body);
-
+  async dfBodyParser(body: ResponseBody, session: Session, bag: IOManager.IOBag): Promise<Fulfillment> {
     // If we have an "action", call the package with the specified name
     if (body.queryResult.action) {
-      console.debug(tmpTag, `Resolving action <${body.queryResult.action}>`);
+      console.debug(TAG, `Resolving action: ${body.queryResult.action}`);
       return this.actionResolver(body.queryResult.action, body, session, bag);
     }
 
     // Otherwise, check if at least an intent is match and direct return that fulfillment
     if (body.queryResult.intent) {
-      console.debug(
-        tmpTag,
-        "Using body.queryResult object (matched from intent)",
-        body.queryResult,
-        alreadyParsedByWebhook,
-      );
+      console.debug(TAG, "Using body.queryResult object (matched from intent)");
 
-      // If the intent is a fallback intent, invoke a procedure to ask to be trained
       if (body.queryResult.intent.isFallback) {
-        console.debug(tmpTag, `Training invoked`);
-
-        if (config().trainingSessionId) {
-          setImmediate(async () => {
-            const trainingSession = await IOManager.getSession(config().trainingSessionId);
-            this.processInput(
-              {
-                event: { name: "training", parameters: { queryText: body.queryResult.queryText } },
-              },
-              trainingSession,
-            );
-          });
-        }
-
-        // Reset if 5m have passed since last interaction
-        const now = Math.floor(Date.now() / 1000);
-        if (session.pipe?.openAILastInteraction) {
-          if (session.pipe.openAILastInteraction + 60 * 5 < now) {
-            console.log(TAG, "resetting openaiChatLog", session.pipe);
-            session.savePipe({
-              openAIChatLog: "",
-            });
-          }
-        }
-
-        const { text, chatLog } = await openAI(body.queryResult.queryText, session, session.pipe?.openAIChatLog);
-        session.savePipe({
-          openAILastInteraction: now,
-          openAIChatLog: chatLog,
-        });
-        return {
-          fulfillmentText: `** ${text}`,
-        };
+        this.invokeTrain(body);
       }
-
       return {
-        fulfillmentText: body.queryResult.fulfillmentText,
-        audio: this.outputAudioParser(body, session),
+        text: body.queryResult.fulfillmentText,
       };
     }
 
     // If not intentId is returned, this is a unhandled DialogFlow intent
     // So make another event request to inform user (ai_unhandled)
-    console.info(tmpTag, "Using ai_unhandled followupEventInput");
+    console.info(TAG, "Using ai_unhandled followupEventInput");
     return {
       followupEventInput: {
         name: "ai_unhandled",
@@ -565,22 +437,24 @@ class AI {
     };
   }
 
-  async request(queryInput: IQueryInput, session: ISession, bag?: IOManager.IOBag): Promise<IDetectIntentResponse> {
+  async dfRequest(queryInput: IQueryInput, session: Session, bag?: IOManager.IOBag): Promise<IDetectIntentResponse> {
+    if (queryInput.text) {
+      queryInput.text.text = await Translator.translate(
+        queryInput.text.text,
+        this.config.dialogflow.language,
+        session.getTranslateFrom(),
+      );
+    }
+
+    const sessionPath = this.getDFSessionPath(session);
     const payload = {
-      session: this.getDFSessionPath(session),
+      session: sessionPath,
       queryInput,
       queryParams: {
         payload: bag?.encodable ? struct.encode(bag.encodable) : {},
-        sentimentAnalysisRequestConfig: {
-          analyzeQueryTextSentiment: true,
-        },
-      },
-      outputAudioConfig: {
-        audioEncoding: (`OUTPUT_AUDIO_ENCODING_${config().audio.encoding}` as unknown) as OutputAudioEncoding,
       },
     };
     const [response] = await this.dfSessionClient.detectIntent(payload);
-    log.write(session.id, "sent_detect_intent", payload);
 
     return response;
   }
@@ -588,10 +462,10 @@ class AI {
   /**
    * Get the command to execute and return an executor
    */
-  async commandRequest(_command: string, session: ISession, bag: IOManager.IOBag): Promise<Fulfillment> {
-    console.info(TAG, "command request:", _command);
+  async commandRequest(command: InputParams["command"], session: Session, bag: IOManager.IOBag): Promise<Fulfillment> {
+    console.info(TAG, "command request:", command);
 
-    const commandExecutor = this.getCommandExecutor(_command, session);
+    const commandExecutor = this.getCommandExecutor(command, session);
     try {
       return commandExecutor(session, bag);
     } catch (err) {
@@ -602,73 +476,123 @@ class AI {
   /**
    * Make a text request to DialogFlow and let the flow begin
    */
-  async textRequest(_text: string, session: ISession, bag: IOManager.IOBag): Promise<Fulfillment> {
-    console.info(TAG, "text request:", _text);
+  async textRequestDF(text: InputParams["text"], session: Session, bag: IOManager.IOBag): Promise<Fulfillment> {
+    console.info(TAG, "[df] text request:", text);
 
-    const text = await this.textRequestTransformer(_text, session);
-    const response = await this.request({ text }, session, bag);
-    const body = this.decodeDetectIntentResponse(response);
-    return this.bodyParser(body, session, bag);
+    const queryInput: IQueryInput = { text: { text } };
+    queryInput.text.languageCode = this.config.dialogflow.language;
+
+    const body = await this.dfRequest(queryInput, session, bag);
+    return this.dfBodyParser(body as ResponseBody, session, bag);
+  }
+
+  /**
+   * Make a text request to OpenAI
+   */
+  async textRequestOpenAI(text: InputParams["text"], session: Session, bag: IOManager.IOBag): Promise<Fulfillment> {
+    console.info(TAG, "[openai] text request:", text);
+
+    const now = Math.floor(Date.now() / 1000);
+    if ((session.openaiLastInteraction ?? 0) + this.config.openai.interactionTTL < now) {
+      console.log(TAG, "resetting openaiChatLog");
+      session.openaiChatLog = "";
+    }
+
+    const who = session.getName();
+
+    const [brain, textTr] = await Promise.all([
+      this.getOpenAIBrainText(),
+      Translator.translate(text, "en", session.getTranslateFrom()),
+    ]);
+
+    const brainHeader = `This is a chat between ${who} and an AI called ${this.config.aiName}\n###`;
+    const brainModified = brain;
+    const chatLog = (session.openaiChatLog ?? "") + `\n${who}: ${textTr.trim()}\n${this.config.aiName}: `;
+
+    console.log(TAG, `chatLog`, chatLog);
+
+    const prompt = brainHeader + "\n" + brainModified + "\n###\n" + chatLog;
+    const params = {
+      prompt: prompt,
+      stop: [`${who}:`],
+      temperature: 0.9,
+      top_p: 1,
+      frequency_penalty: 0,
+      presence_penalty: 0.6,
+      best_of: 1,
+      max_tokens: 100,
+      n: 1,
+    };
+
+    const url = `https://api.openai.com/v1/engines/${this.config.openai.engine}/completions`;
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${this.config.openai.token}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(params),
+    });
+
+    fs.writeFileSync(
+      "openai-curl.txt",
+      `curl -X POST ${url} -H "authorization: Bearer ${
+        this.config.openai.token
+      }" -H "content-type: application/json" -d "${JSON.stringify(params)}"`,
+    );
+
+    const json = await response.json();
+    console.log(TAG, "response", json);
+
+    const answer = json.choices[0].text.trim();
+
+    if (answer) {
+      session.openaiLastInteraction = now;
+      session.openaiChatLog = chatLog + answer;
+      session.save();
+
+      return {
+        text: answer,
+        payload: { translateFrom: this.config.openai.language },
+      };
+    }
+
+    return {
+      text: "[empty_openai_text]",
+    };
   }
 
   /**
    * Make an event request to DialogFlow and let the flow begin
    */
-  async eventRequest(_event: InputParams["event"], session: ISession, bag: IOManager.IOBag): Promise<Fulfillment> {
-    console.info(TAG, "event request:", _event);
+  async eventRequestDF(event: InputParams["event"], session: Session, bag: IOManager.IOBag): Promise<Fulfillment> {
+    console.info(TAG, "[df] event request:", event);
 
-    const event = await this.eventRequestTransformer(_event, session);
-    const response = await this.request({ event }, session, bag);
-    const body = this.decodeDetectIntentResponse(response);
-    return this.bodyParser(body, session, bag);
-  }
+    const queryInput: IQueryInput = { event: {} };
 
-  /**
-   * The endpoint closure used by the webhook
-   */
-  async webhookEndpoint(req: Request, res: Response) {
-    console.info(TAG, "[WEBHOOK]", "received request", req.body);
-
-    if (!req.body || Object.keys(req.body).length === 0) {
-      return res.status(400).json({
-        error: "ERR_EMPTY_BODY",
-      });
+    if (typeof event === "string") {
+      queryInput.event.name = event;
+    } else {
+      queryInput.event.name = event.name;
+      queryInput.event.parameters = event.parameters ? struct.encode(event.parameters) : {};
     }
+    queryInput.event.languageCode = this.config.dialogflow.language;
 
-    const request = req.body as WebhookRequest;
-    const sessionId = (request.session as string).split("/").pop();
-    const session = (await IOManager.getSession(sessionId)) || (await IOManager.registerSession("webhook", sessionId));
-
-    const body = this.decodeDetectIntentResponse(request);
-
-    let fulfillment = await this.bodyParser(body, session, request.originalDetectIntentRequest?.payload, "[WEBHOOK]");
-    fulfillment = await this.fulfillmentTransformerForSession(fulfillment, session);
-
-    const response = fulfillment as WebhookResponse;
-    // Add output context from the action
-    response.outputContexts = body.queryResult.outputContexts;
-
-    // Trick to use Google-Home only for recording, but forwarding output to my speaker
-    // if (body.originalDetectIntentRequest?.source === "google") {
-    //   IOManager.output(fulfillment, await IOManager.getSession("ottohome-human"));
-    //   response.fulfillmentText = "  ";
-    // }
-
-    console.info(TAG, "[WEBHOOK]", "output", response);
-    return res.status(200).json(response);
+    const body = await this.dfRequest(queryInput, session, bag);
+    return this.dfBodyParser(body as ResponseBody, session, bag);
   }
 
   /**
    * Process a fulfillment to a session
    */
-  async processInput(params: InputParams, session: ISession) {
+  async processInput(params: InputParams, session: Session) {
     console.info(TAG, "processInput", { params, session });
 
     if (session.repeatModeSessions?.length > 0 && params.text) {
       console.info(TAG, "using repeatModeSessions", session.repeatModeSessions);
       return Promise.all(
         session.repeatModeSessions.map(async (e) => {
-          const fulfillment = await this.fulfillmentTransformerForSession({ fulfillmentText: params.text }, e);
+          const fulfillment = await this.fulfillmentTransformerForSession({ text: params.text }, e);
           return IOManager.output(fulfillment, e, params.bag);
         }),
       );
@@ -678,12 +602,12 @@ class AI {
 
     let fulfillment: any = null;
     if (params.text) {
-      fulfillment = await this.textRequest(params.text, session, params.bag);
+      fulfillment = await this.textRequestDF(params.text, session, params.bag);
     } else if (params.event) {
-      fulfillment = await this.eventRequest(params.event, session, params.bag);
+      fulfillment = await this.eventRequestDF(params.event, session, params.bag);
     } else if (params.audio) {
       const text = await SpeechRecognizer.recognizeFile(params.audio, session.getTranslateFrom());
-      fulfillment = await this.textRequest(text, session, params.bag);
+      fulfillment = await this.textRequestDF(text, session, params.bag);
     } else if (params.command) {
       fulfillment = await this.commandRequest(params.command, session, params.bag);
     } else {
@@ -695,4 +619,4 @@ class AI {
   }
 }
 
-export default new AI(config().dialogflow);
+export default new AI(config());

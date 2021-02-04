@@ -1,4 +1,6 @@
-export default async function ({ queryResult }) {
+import { Fulfillment } from "../../types";
+
+export default function ({ queryResult }): Fulfillment {
   const { fulfillmentText } = queryResult;
-  return fulfillmentText.replace("$_platform", process.platform);
+  return { text: fulfillmentText.replace("$_platform", process.platform) };
 }

@@ -7,14 +7,6 @@ const { Schema } = mongoose;
 
 export const Session = mongoose.model<ISession>("session", SessionSchema);
 
-export const ServerSettings = mongoose.model(
-  "server_settings",
-  new Schema({
-    _id: String,
-    data: Schema.Types.Mixed,
-  }),
-);
-
 const SessionInputSchema = new Schema({
   session: { type: String, ref: "session", autopopulate: true },
   createdAt: Date,

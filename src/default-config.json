@@ -1,6 +1,7 @@
 {
   "uid": "",
   "aiNameRegex": "",
+  "aiName": "",
   "mimicOfflineServer": false,
   "speechRecognizerDriver": "google",
   "textToSpeechDriver": "google",
@@ -10,15 +11,15 @@
   "ioDrivers": [],
   "ioAccessoriesMap": {},
   "ioListeners": [],
+  "language": "it",
+  "trainingSessionId": "",
   "scheduler": {
     "enabled": true
   },
-  "trainingSessionId": "",
   "ioQueue": {
     "enabled": true,
     "timeout": 1000
   },
-  "language": "en",
   "sentry": {
     "dsn": ""
   },
@@ -50,10 +51,15 @@
   },
   "dialogflow": {
     "projectId": null,
-    "environment": null
+    "environment": null,
+    "language": "it"
   },
   "openai": {
-    "token": null
+    "token": null,
+    "interactionTTL": 20,
+    "language": "en",
+    "engine": "davinci",
+    "brainTxtUrl": null
   },
   "telegram": {
     "token": null,

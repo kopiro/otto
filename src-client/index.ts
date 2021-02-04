@@ -43,7 +43,7 @@ async function sendData(headers, body) {
 
   const json = await response.json();
 
-  responseTextarea.value = json.fulfillmentText;
+  responseTextarea.value = json.text;
   audio.src = json.audio;
 
   audio.volume = 1;

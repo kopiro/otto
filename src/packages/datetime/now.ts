@@ -1,8 +1,9 @@
 import Moment from "../../lib/moment";
+import { Fulfillment } from "../../types";
 
 export const id = "datetime.now";
 
-export default async function main({ queryResult }) {
+export default function main({ queryResult }): Fulfillment {
   const { fulfillmentText } = queryResult;
-  return fulfillmentText.replace("$_time", Moment().format("LT"));
+  return { text: fulfillmentText.replace("$_time", Moment().format("LT")) };
 }

@@ -199,7 +199,7 @@ class Human implements IOManager.IODriverModule {
     if (fs.existsSync(ppnFile)) {
       this.porcupine = new Porcupine([ppnFile], [0.5]);
     } else {
-      console.error(TAG, 'ppnFile ${ppnFile} not present, fallback to "COMPUTER" keyword');
+      console.error(TAG, `ppnFile ${ppnFile} not present, fallback to "COMPUTER" keyword`);
       this.porcupine = new Porcupine([COMPUTER], [0.5]);
     }
 
@@ -232,7 +232,9 @@ class Human implements IOManager.IODriverModule {
     });
   }
 
-  async _output(fulfillment: Fulfillment, session: Session): Promise<boolean> {
+  async _output(fulfillment: Fulfillment, session: Session) {
+    const results = [];
+
     this.hotwordSilenceSec = -1; // Temporary disable timer variables
 
     this.emitter.emit("output", {
@@ -240,33 +242,20 @@ class Human implements IOManager.IODriverModule {
       fulfillment,
     });
 
-    let processed = false;
-    const language = fulfillment.payload.language || session.getTranslateTo();
-
-    // Process an Audio
-    try {
-      if (fulfillment.audio) {
-        const file = await Voice.getFile(fulfillment.audio);
-        await Speaker.play(file);
-        processed = true;
-      }
-    } catch (err) {
-      console.error(TAG, err);
-    }
-
     // Process a text if we do not find a audio
     try {
-      if (fulfillment.fulfillmentText && !processed) {
-        console.warn(
-          TAG,
-          "using deprecated fulfillmentText instead of using audio from Dialogflow - this is fine if you're requiring a translation",
+      if (fulfillment.text) {
+        const audioFile = await TextToSpeech.getAudioFile(
+          fulfillment.text,
+          session.getTranslateTo(),
+          config().tts.gender,
         );
-        const audioFile = await TextToSpeech.getAudioFile(fulfillment.fulfillmentText, language, config().tts.gender);
         const file = await Voice.getFile(audioFile);
         await Speaker.play(file);
-        processed = true;
+        results.push(["file", file]);
       }
     } catch (err) {
+      results.push(["error", err]);
       console.error(TAG, err);
     }
 
@@ -274,9 +263,10 @@ class Human implements IOManager.IODriverModule {
     try {
       if (fulfillment.payload.audio) {
         await Speaker.play(fulfillment.payload.audio.uri);
-        processed = true;
+        results.push(["file", fulfillment.payload.audio.uri]);
       }
     } catch (err) {
+      results.push(["error", err]);
       console.error(TAG, err);
     }
 
@@ -288,33 +278,40 @@ class Human implements IOManager.IODriverModule {
       this.emitter.emit("stop");
     }
 
-    return processed;
+    return results;
   }
+
+  static SLEEP_WAIT_STILL_SPEAKING = 2000;
 
   /**
    * Process the item in the output queue
    */
-  async output(fulfillment: Fulfillment, session: Session): Promise<boolean> {
+  async output(fulfillment: Fulfillment, session: Session): Promise<any[]> {
+    let results = [];
+
     // If we have a current processed item, let's wait until it's null
     while (this.currentSpokenFulfillment) {
       console.log(TAG, "waiting until agent is not speaking...");
       // eslint-disable-next-line no-await-in-loop
-      await timeout(2000);
+      results.push(["timeout", Human.SLEEP_WAIT_STILL_SPEAKING]);
+      await timeout(Human.SLEEP_WAIT_STILL_SPEAKING);
     }
 
     this.currentSpokenFulfillment = fulfillment;
 
     try {
-      return await this._output(fulfillment, session);
+      results = results.concat(await this._output(fulfillment, session));
     } finally {
       this.currentSpokenFulfillment = null;
     }
+
+    return results;
   }
 
   /**
    * Start the session
    */
-  async start() {
+  async start(): Promise<boolean> {
     const session = await this.registerInternalSession();
     console.log(TAG, `started, sessionID: ${session.id}`);
 
@@ -332,6 +329,8 @@ class Human implements IOManager.IODriverModule {
       this.startHotwordDetection();
       this.registerHotwordSilenceSecIntv();
     }
+
+    return true;
   }
 }
 

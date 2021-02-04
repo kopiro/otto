@@ -79,8 +79,8 @@ class Web implements IOManager.IODriverModule {
     throw new Error("Unable to find a suitable input");
   }
 
-  start() {
-    if (this.started) return;
+  async start() {
+    if (this.started) return true;
     this.started = true;
 
     // Attach the route
@@ -91,20 +91,26 @@ class Web implements IOManager.IODriverModule {
         res.status(400).json({ error: { message: err.message } });
       }
     });
+
+    return true;
   }
 
-  async output(fulfillment: Fulfillment, session: Session, bag: WebBag): Promise<boolean> {
+  async output(fulfillment: Fulfillment, session: Session, bag: WebBag) {
+    const results = [];
+
     const { req, res } = bag;
     const jsonResponse: Record<string, any> = {
-      fulfillmentText: fulfillment.fulfillmentText,
+      text: fulfillment.text,
     };
 
     if (req.headers["x-accept"] === AcceptHeader.AUDIO) {
-      jsonResponse.audio = (await Voice.getFile(fulfillment.audio)).getRelativePath();
+      jsonResponse.audio = (await Voice.getFile(fulfillment.text)).getRelativePath();
     }
 
     res.json(jsonResponse);
-    return true;
+
+    results.push(["response", jsonResponse]);
+    return results;
   }
 }
 

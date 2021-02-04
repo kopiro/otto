@@ -26,8 +26,8 @@ export type OutputResult = {
 // eslint-disable-next-line @typescript-eslint/interface-name-prefix
 export interface IODriverModule {
   emitter: EventEmitter;
-  start: () => void;
-  output: (fulfillment: Fulfillment, session: Session, bag: IOBag) => Promise<boolean>;
+  start: () => Promise<boolean>;
+  output: (fulfillment: Fulfillment, session: Session, bag: IOBag) => Promise<Array<[string, any]>>;
 }
 
 // eslint-disable-next-line @typescript-eslint/interface-name-prefix
@@ -160,7 +160,7 @@ export async function output(
   }
 
   if (session.doNotDisturb) {
-    console.info(TAG, "doNotDisturb is ON", session);
+    console.info(TAG, "rejecting because doNotDisturb is ON", session);
     return { rejectReason: "DO_NOT_DISTURB_ON" };
   }
 

@@ -30,9 +30,6 @@ routerApi.use(
   }),
 );
 
-// Add the fulfillment endpoint for Dialogflow
-routerApi.post("/fulfillment", (req, res) => AI.webhookEndpoint(req, res));
-
 // API to get an audio
 routerApi.get("/speech", async (req: express.Request, res: express.Response) => {
   const audioFile = await TextToSpeech.getAudioFile(

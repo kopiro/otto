@@ -1,9 +1,7 @@
 import config from "../config";
 import { getLocalObjectFromURI } from "../helpers";
-import { BufferWithExtension } from "../types";
 import fs from "fs";
 import * as Proc from "../lib/proc";
-import { baseDir } from "../paths";
 import { File } from "./file";
 
 const TAG = "Voice";
@@ -22,8 +20,8 @@ class Voice {
   /**
    * Play an item
    */
-  async getFile(uri: string | Buffer | BufferWithExtension): Promise<File> {
-    const localUri = await getLocalObjectFromURI(uri);
+  async getFile(uri: string | Buffer): Promise<File> {
+    const localUri = await getLocalObjectFromURI(uri, ".mp3");
 
     const finalUri = new File(localUri.replace(/\.(.+)$/, "-remixed.$1"));
     if (fs.existsSync(finalUri.getAbsoluteFSPath())) {

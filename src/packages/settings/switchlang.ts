@@ -60,18 +60,18 @@ export default async ({ queryResult }, session: Session): Promise<Fulfillment> =
   const from = languages.filter((e) => e.code === session.getTranslateFrom())[0]?.name;
   const to = languages.filter((e) => e.code === session.getTranslateTo())[0]?.name;
 
-  let fulfillmentText;
+  let text: string;
 
   if (session.getTranslateFrom() === session.getTranslateTo()) {
-    fulfillmentText = extractWithPattern(fulfillmentMessages, "[].payload.text.single").replace("$_language", from);
+    text = extractWithPattern(fulfillmentMessages, "[].payload.text.single").replace("$_language", from);
   } else {
-    fulfillmentText = extractWithPattern(fulfillmentMessages, "[].payload.text.plural")
+    text = extractWithPattern(fulfillmentMessages, "[].payload.text.plural")
       .replace("$_from", from)
       .replace("$_to", to);
   }
 
   return {
-    fulfillmentText,
+    text,
     payload: {
       language: session.getTranslateTo(),
     },

@@ -1,12 +1,11 @@
 import { remove as diacriticsRemove } from "diacritics";
 import request from "request";
 import fs from "fs";
-import md5 from "md5";
 import path from "path";
 import config from "./config";
 import Translator from "./stdlib/translator";
 import { cacheDir, tmpDir } from "./paths";
-import { Language, Locale, BufferWithExtension } from "./types";
+import { Language, Locale } from "./types";
 import { v4 as uuid } from "uuid";
 import crypto from "crypto";
 
@@ -78,7 +77,7 @@ export function getLocaleFromLanguageCode(language: Language): Locale {
 /**
  * Get the local URI of a remote object by downloading it
  */
-export function getLocalObjectFromURI(uri: string | Buffer | BufferWithExtension): Promise<string> {
+export function getLocalObjectFromURI(uri: string | Buffer, extension: string): Promise<string> {
   const TAG = "getLocalObjectFromURI";
 
   return new Promise((resolve, reject) => {
@@ -86,40 +85,29 @@ export function getLocalObjectFromURI(uri: string | Buffer | BufferWithExtension
       return reject("Invalid URI/Buffer");
     }
 
-    if (Buffer.isBuffer(uri)) {
-      const hash = crypto.createHash("md5").update(uri).digest("hex");
-      const localFile = path.join(cacheDir, `${hash}.unknown`);
-      if (!fs.existsSync(localFile)) {
-        console.debug(TAG, `writing buffer to local file <${localFile}>`);
-        fs.writeFileSync(localFile, uri);
-      }
-      return resolve(localFile);
-    }
+    const hash = crypto.createHash("md5").update(uri).digest("hex");
+    const localFile = path.join(cacheDir, `${hash}${extension}`);
 
-    if (typeof uri === "object" && uri.buffer) {
-      const hash = crypto.createHash("md5").update(uri.buffer.toString("hex")).digest("hex");
-      const localFile = path.join(cacheDir, `${hash}.${uri.extension || "unknown"}`);
+    if (Buffer.isBuffer(uri)) {
       if (!fs.existsSync(localFile)) {
         console.debug(TAG, `writing buffer to local file <${localFile}>`);
-        fs.writeFileSync(localFile, Buffer.from(uri.buffer.toString("hex"), "hex"));
+        return fs.promises.writeFile(localFile, uri).then(() => {
+          resolve(localFile);
+        });
       }
       return resolve(localFile);
     }
 
     if (typeof uri === "string" && /^https?:\/\//.test(uri)) {
-      const extension = uri.split(".").pop() || "unknown";
-      const hash = crypto.createHash("md5").update(uri).digest("hex");
-      const localFile = path.join(cacheDir, `${hash}.${extension}`);
       if (!fs.existsSync(localFile)) {
-        return resolve(localFile);
+        console.debug(TAG, `writing ${uri} to local file <${localFile}>`);
+        return request(uri)
+          .pipe(fs.createWriteStream(localFile))
+          .on("close", () => {
+            resolve(localFile);
+          });
       }
-
-      return request(uri)
-        .pipe(fs.createWriteStream(localFile))
-        .on("close", () => {
-          if (!fs.existsSync(localFile)) return reject();
-          return resolve(localFile);
-        });
+      return resolve(localFile);
     }
 
     return resolve(uri as string);
