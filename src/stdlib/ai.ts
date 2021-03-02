@@ -598,7 +598,7 @@ class AI {
       );
     }
 
-    IOManager.writeLogForSession(params, session);
+    // IOManager.writeLogForSession(params, session);
 
     let fulfillment: any = null;
     if (params.text) {
