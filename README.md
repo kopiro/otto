@@ -47,7 +47,7 @@ There are 4 I/O drivers available at the moment:
 
 - **Human**: handle input using microphone and speech recognizer and output using a TTS via a speaker
 - **Telegram**: handle I/O for a Telegram bot
-- **Web**: handle I/O via Socket.IO
+- **Web**: handle I/O via Rest API
 
 #### IO.Human
 

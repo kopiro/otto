@@ -1,15 +1,10 @@
 {
+  "extends": "@tsconfig/node14/tsconfig.json",
   "compilerOptions": {
-    "allowJs": false,
+    "strict": false,
     "resolveJsonModule": true,
-    "noImplicitAny": false,
-    "module": "commonjs",
-    "esModuleInterop": true,
     "moduleResolution": "node",
-    "target": "es2017",
-    "outDir": "build",
-    "lib": ["es6"],
-    "sourceMap": true
+    "outDir": "build"
   },
   "include": ["./src/**/*"]
 }

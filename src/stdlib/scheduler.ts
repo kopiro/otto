@@ -13,7 +13,7 @@ export abstract class SchedulerProgramClass {
   constructor(job: SchedulerModel) {
     this.job = job;
   }
-  abstract async run();
+  abstract run();
 }
 
 export class Scheduler {

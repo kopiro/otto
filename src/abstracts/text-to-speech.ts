@@ -1,9 +1,8 @@
 import fs from "fs";
 import { Language, Gender } from "../types";
 import { cacheDir } from "../paths";
-import md5 from "md5";
 import { v4 as uuid } from "uuid";
-import { Blob } from "aws-sdk/lib/dynamodb/document_client";
+import crypto from "crypto";
 
 export type TextToSpeechDriver = "google" | "polly";
 
@@ -35,7 +34,8 @@ export abstract class TextToSpeech {
   }
 
   getCacheKeyForVoice(language: Language, gender: Gender) {
-    return md5([language, gender].filter((e) => e).join());
+    const e = [language, gender].filter((e) => e).join();
+    return crypto.createHash("md5").update(e).digest("hex");
   }
 
   abstract _getVoice(language: Language, gender: Gender);
@@ -57,7 +57,7 @@ export abstract class TextToSpeech {
     this.writeCacheRegistry();
   }
 
-  abstract _getAudioFile(text: string, language: Language, gender: Gender): Promise<string | Blob | Uint8Array>;
+  abstract _getAudioFile(text: string, language: Language, gender: Gender): Promise<crypto.BinaryLike>;
 
   async getAudioFile(text: string, language: Language, gender: Gender) {
     // If file has been downloaded, just serve it
@@ -77,7 +77,8 @@ export abstract class TextToSpeech {
   }
 
   getCacheKeyForAudio(text: string, language: Language, gender: Gender) {
-    return md5([text, language, gender].filter((e) => e).join());
+    const e = [text, language, gender].filter((e) => e).join();
+    return crypto.createHash("md5").update(e).digest("hex");
   }
 
   /**

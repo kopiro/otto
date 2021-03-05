@@ -336,7 +336,7 @@ export async function registerSession(ioDriver: string, sessionId?: string, ioDa
     _id: sessionIdComposite,
     uid: config().uid,
     ioId,
-    ioDriver,
+    ioDriver: ioDriver as IODriver,
     ioData,
   };
 

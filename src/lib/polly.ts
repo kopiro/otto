@@ -4,8 +4,7 @@ import { getLocaleFromLanguageCode } from "../helpers";
 import Polly, { Voice } from "aws-sdk/clients/polly";
 import { TextToSpeech } from "../abstracts/text-to-speech";
 import { Language, Gender } from "../types";
-import { Blob } from "aws-sdk/lib/dynamodb/document_client";
-
+import crypto from "crypto";
 export class PollyTextToSpeech extends TextToSpeech {
   client: Polly;
 
@@ -51,7 +50,7 @@ export class PollyTextToSpeech extends TextToSpeech {
   /**
    * Download the audio file for that sentence and options
    */
-  _getAudioFile(text: string, language: Language, gender: Gender): Promise<Blob> {
+  _getAudioFile(text: string, language: Language, gender: Gender): Promise<crypto.BinaryLike> {
     return new Promise(async (resolve, reject) => {
       // Find the voice title by options
       const voice = await this.getVoice(language, gender);
@@ -70,7 +69,7 @@ export class PollyTextToSpeech extends TextToSpeech {
             return reject(err);
           }
 
-          resolve(data.AudioStream);
+          resolve(data.AudioStream as crypto.BinaryLike);
         },
       );
     });

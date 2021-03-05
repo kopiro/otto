@@ -38,7 +38,7 @@ export class GoogleTextToSpeech extends TextToSpeech {
   /**
    * Download the audio file for that sentence and options
    */
-  async _getAudioFile(text: string, language: Language, gender: Gender): Promise<string | Uint8Array> {
+  async _getAudioFile(text: string, language: Language, gender: Gender) {
     // Find the voice title by options
     const voice = await this.getVoice(language, gender);
 

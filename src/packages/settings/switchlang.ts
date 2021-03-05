@@ -1,4 +1,3 @@
-import _ from "underscore";
 import levenshtein from "fast-levenshtein";
 import config from "../../config";
 import Translator from "../../stdlib/translator";
