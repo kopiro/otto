@@ -8,6 +8,7 @@ import { routerIO } from "../stdlib/server";
 import { getTmpFile } from "../helpers";
 import fs from "fs";
 import bodyParser from "body-parser";
+import TextToSpeech from "../stdlib/text-to-speech";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const formidable = require("formidable");
@@ -42,12 +43,11 @@ class Web implements IOManager.IODriverModule {
     const bag: WebBag = { req, res };
 
     // First check if the request contains any text
-    if (req.body.text) {
-      const text = req.body.text;
+    if (req.body.text || req.body.event) {
       this.emitter.emit("input", {
         session,
         params: {
-          text,
+          ...req.body,
           bag,
         } as InputParams,
       });
@@ -97,19 +97,34 @@ class Web implements IOManager.IODriverModule {
 
   async output(fulfillment: Fulfillment, session: Session, bag: WebBag) {
     const results = [];
-
     const { req, res } = bag;
+
+    let audio;
+    if (req.headers.accept.split(",").includes(AcceptHeader.AUDIO)) {
+      const tmpAudioFile = await TextToSpeech.getAudioFile(
+        fulfillment.text,
+        session.getTranslateTo(),
+        config().tts.gender,
+      );
+      const audioFile = await Voice.getFile(tmpAudioFile);
+      audio = audioFile.getRelativePath();
+    }
+
+    if (req.headers.accept.split(",")[0] === AcceptHeader.AUDIO) {
+      return res.redirect(audio);
+    }
+
     const jsonResponse: Record<string, any> = {
       text: fulfillment.text,
     };
 
-    if (req.headers["x-accept"] === AcceptHeader.AUDIO) {
-      jsonResponse.audio = (await Voice.getFile(fulfillment.text)).getRelativePath();
+    if (req.headers.accept.split(",").includes(AcceptHeader.AUDIO)) {
+      jsonResponse.audio = audio;
     }
 
     res.json(jsonResponse);
-
     results.push(["response", jsonResponse]);
+
     return results;
   }
 }

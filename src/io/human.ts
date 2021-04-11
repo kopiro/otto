@@ -326,8 +326,12 @@ class Human implements IOManager.IODriverModule {
     });
 
     if (this.config.enableHotword) {
-      this.startHotwordDetection();
-      this.registerHotwordSilenceSecIntv();
+      try {
+        this.startHotwordDetection();
+        this.registerHotwordSilenceSecIntv();
+      } catch (err) {
+        console.warn(err);
+      }
     }
 
     return true;
