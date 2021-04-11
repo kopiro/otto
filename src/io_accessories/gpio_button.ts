@@ -1,4 +1,3 @@
-import rpio from "rpio";
 import config from "../config";
 import { IOAccessoryModule, IODriverModule } from "../stdlib/iomanager";
 
@@ -12,6 +11,7 @@ class GPIOButton implements IOAccessoryModule {
   }
 
   start() {
+    const rpio = require("rpio");
     rpio.open(config().gpio_button.pin, rpio.INPUT, rpio.PULL_UP);
     rpio.poll(config().gpio_button.pin, (pin) => {
       const pressed = rpio.read(pin);
