@@ -5,7 +5,8 @@
 body {
   padding: 16px;
   margin: 0;
-  background: #fff;
+  color: #fff;
+  background: #000;
   width: 100%;
   height: 100%;
   display: block;
@@ -16,7 +17,7 @@ body {
 h1,
 h2,
 h3 {
-  margin-bottom: 0;
+  margin-bottom: 0.5em;
 }
 
 input[type="text"] {
@@ -24,19 +25,41 @@ input[type="text"] {
   width: 100%;
   height: 2em;
   display: block;
+  margin-bottom: 1em;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid #444;
+  color: #fff;
+  padding: 0.2em;
 }
 
 #response {
   display: block;
   width: 100%;
-  font-size: 16px;
+  max-width: 100%;
+  min-width: 100%;
   margin-top: 60px;
   height: 80px;
-  background: #eee;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border: none;
+  height: 3em;
+  min-height: 3em;
+  max-height: 3em;
+  font-family: -apple-system, system-ui, BlinkMacSystemFont, sans-serif;
+  font-size: 16px;
+}
+
+button {
+  background-color: #333;
+  border-radius: 3px;
+  border: 1px solid #ddd;
+  color: #fff;
+  font-size: 0.8em;
+  padding: 0.2em 1em;
 }
 
 audio {
-  margin-top: 10px;
+  margin-top: 1em;
   width: 100%;
   height: 30px;
 }
