@@ -31,6 +31,7 @@ RUN yarn install
 
 # Copy my code
 COPY ./src ./src
+COPY ./public ./public
 COPY ./src-client ./src-client
 COPY ./etc ./etc
 
