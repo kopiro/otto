@@ -17,18 +17,23 @@ export enum Authorizations {
   "COMMAND" = "COMMAND",
 }
 
-export type OutputResult = {
-  driverOutput?: boolean;
-  driverError?: Error;
-  rejectReason?: string;
-};
+export type IODriverOutput = [string, any][];
 
 // eslint-disable-next-line @typescript-eslint/interface-name-prefix
 export interface IODriverModule {
   emitter: EventEmitter;
   start: () => Promise<boolean>;
-  output: (fulfillment: Fulfillment, session: Session, bag: IOBag) => Promise<Array<[string, any]>>;
+  output: (fulfillment: Fulfillment, session: Session, bag: IOBag) => Promise<IODriverOutput>;
 }
+
+export type OutputResult = {
+  driverOutput?: IODriverOutput;
+  driverError?: Error;
+  rejectReason?: {
+    message: string;
+    data?: Record<string, any>;
+  };
+};
 
 // eslint-disable-next-line @typescript-eslint/interface-name-prefix
 export interface IOListenerModule {
@@ -144,13 +149,13 @@ export async function output(
     console.warn(
       "Do not output to driver because fulfillment is null - this could be intentional, but check your action",
     );
-    return { rejectReason: "FULFILLMENT_IS_NULL" };
+    return { rejectReason: { message: "FULFILLMENT_IS_NULL" } };
   }
 
   // If this fulfillment has been handled by a generator, simply skip
   if (fulfillment.payload?.handledByGenerator) {
     console.warn(TAG, "Skipping output because is handled by an external generator");
-    return { rejectReason: "HANDLED_BY_GENERATOR" };
+    return { rejectReason: { message: "HANDLED_BY_GENERATOR" } };
   }
 
   // Redirecting output to another session
@@ -161,7 +166,7 @@ export async function output(
 
   if (session.doNotDisturb) {
     console.info(TAG, "rejecting because doNotDisturb is ON", session);
-    return { rejectReason: "DO_NOT_DISTURB_ON" };
+    return { rejectReason: { message: "DO_NOT_DISTURB_ON" } };
   }
 
   let driver: IODriverModule;
@@ -188,7 +193,10 @@ export async function output(
       await ioQueueElement.save();
 
       return {
-        rejectReason: "OUTPUT_QUEUED",
+        rejectReason: {
+          message: "OUTPUT_QUEUED",
+          data: { enabledDriverIds, sessionId: session.id, sessionIoId: session.ioId },
+        },
       };
     }
 
@@ -197,7 +205,7 @@ export async function output(
 
   if (!driver) {
     console.error(`Driver <${session.ioDriver}> is not enabled`);
-    return { rejectReason: "DRIVER_NOT_ENABLED" };
+    return { rejectReason: { message: "DRIVER_NOT_ENABLED" } };
   }
 
   if (session.forwardSessions?.length > 0) {
@@ -209,8 +217,8 @@ export async function output(
   const payload = fulfillmentTransformerForDriverOutput(fulfillment);
 
   // Call the driver
-  let driverOutput;
-  let driverError;
+  let driverOutput: IODriverOutput;
+  let driverError: any;
 
   try {
     driverOutput = await driver.output(payload, session, bag);
@@ -236,9 +244,9 @@ export async function output(
 export async function startAccessoriesForDriver(driverName: IODriver, driver: IODriverModule) {
   const accessoriesToLoad = getAccessoriesToLoadForDriver((driverName as unknown) as IODriver);
   return Promise.all(
-    accessoriesToLoad.map((accessory) => {
-      return getAccessoryForDriver(accessory, driver).then((accessoryModule) => accessoryModule.start());
-    }),
+    accessoriesToLoad.map((accessory) =>
+      getAccessoryForDriver(accessory, driver).then((accessoryModule) => accessoryModule.start()),
+    ),
   );
 }
 
@@ -254,13 +262,13 @@ export async function configureDriver(driverName: IODriver): Promise<[IODriverMo
 
 function startListeners() {
   return Promise.all(
-    getListenersToLoad().map((listenerName) => {
-      return getListener(listenerName)
+    getListenersToLoad().map((listenerName) =>
+      getListener(listenerName)
         .then((listener) => listener.start())
         .then(() => {
           console.log(TAG, `listener ${listenerName} started`);
-        });
-    }),
+        }),
+    ),
   );
 }
 

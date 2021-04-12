@@ -38,7 +38,8 @@ routerApi.get("/speech", async (req: express.Request, res: express.Response) => 
     req.query.gender || config().tts.gender,
   );
   const audioFileMixed = await Voice.getFile(audioFile);
-  res.redirect(audioFileMixed.getRelativePath());
+  const audioFilePath = audioFileMixed.getRelativePath();
+  res.redirect(audioFilePath);
 });
 
 // Listeners

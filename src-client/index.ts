@@ -4,7 +4,6 @@ declare let webkitAudioContext: any; // ADDED
 
 const formConversation = document.querySelector("#conversation") as HTMLFormElement;
 const formRepeat = document.querySelector("#repeat") as HTMLFormElement;
-const audiosSelect = document.querySelector("#audios-select") as HTMLSelectElement;
 
 const audio = document.querySelector("audio") as HTMLAudioElement;
 const responseTextarea = document.getElementById("response") as HTMLTextAreaElement;
@@ -36,7 +35,7 @@ async function sendData(headers, body) {
     method: "POST",
     headers: {
       ...headers,
-      "x-accept": "audio",
+      Accept: "text, audio",
     },
     body: body,
   });
@@ -44,10 +43,11 @@ async function sendData(headers, body) {
   const json = await response.json();
 
   responseTextarea.value = json.text;
-  audio.src = json.audio;
-
-  audio.volume = 1;
-  audio.play();
+  if (json.audio) {
+    audio.src = json.audio;
+    audio.volume = 1;
+    audio.play();
+  }
 }
 
 formRepeat.addEventListener("submit", (e) => {
@@ -73,14 +73,6 @@ formConversation.addEventListener("submit", (e) => {
   );
 
   textInputEl.value = "";
-});
-
-audiosSelect.addEventListener("click", (e) => {
-  const target = e.target as HTMLButtonElement;
-  if (target.value) {
-    audio.src = target.value;
-    audio.play();
-  }
 });
 
 let recorder;

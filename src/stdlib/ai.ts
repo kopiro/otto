@@ -427,14 +427,7 @@ class AI {
       };
     }
 
-    // If not intentId is returned, this is a unhandled DialogFlow intent
-    // So make another event request to inform user (ai_unhandled)
-    console.info(TAG, "Using ai_unhandled followupEventInput");
-    return {
-      followupEventInput: {
-        name: "ai_unhandled",
-      },
-    };
+    return null;
   }
 
   async dfRequest(queryInput: IQueryInput, session: Session, bag?: IOManager.IOBag): Promise<IDetectIntentResponse> {

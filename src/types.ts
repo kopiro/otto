@@ -19,10 +19,6 @@ export interface CustomError {
 export interface Fulfillment {
   text?: string;
   outputContexts?: Array<{}>;
-  followupEventInput?: {
-    name: string;
-    data?: Record<string, string>;
-  };
   payload?: {
     data?: any;
     feedback?: boolean;
