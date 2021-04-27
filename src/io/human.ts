@@ -262,8 +262,9 @@ class Human implements IOManager.IODriverModule {
     // Process an Audio Object
     try {
       if (fulfillment.payload.audio) {
-        await Speaker.play(fulfillment.payload.audio.uri);
-        results.push(["file", fulfillment.payload.audio.uri]);
+        const file = await Voice.getFile(fulfillment.payload.audio.uri);
+        await Speaker.play(file);
+        results.push(["file", file]);
       }
     } catch (err) {
       results.push(["error", err]);
