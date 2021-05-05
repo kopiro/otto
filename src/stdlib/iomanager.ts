@@ -189,6 +189,7 @@ export async function output(
         session: session.id,
         ioId: session.ioId,
         fulfillment,
+        dateAdded: new Date(),
       });
       await ioQueueElement.save();
 
@@ -364,12 +365,16 @@ export async function registerSession(ioDriver: string, sessionId?: string, ioDa
 /**
  * Get the next item into the queue to proces
  */
-export async function getNextInQueue(): Promise<IOQueue> {
-  return await Data.IOQueue.findOne({
-    ioId: {
-      $in: enabledDriverIds,
-    },
-  });
+export async function getNextInQueue(): Promise<IOQueue | null> {
+  return (
+    await Data.IOQueue.find({
+      ioId: {
+        $in: enabledDriverIds,
+      },
+    })
+      .sort({ dateAdded: +1 })
+      .limit(1)
+  )?.[0];
 }
 
 /**
