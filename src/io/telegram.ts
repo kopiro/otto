@@ -172,7 +172,7 @@ class Telegram implements IOManager.IODriverModule {
   }
 
   getIsGroup(msg: TelegramBot.Message) {
-    return msg.chat.type === "group";
+    return msg.chat.type === "group" || msg.chat.type === "supergroup";
   }
 
   getIsCommand(msg: TelegramBot.Message) {
