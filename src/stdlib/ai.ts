@@ -18,7 +18,7 @@ type IContext = protos.google.cloud.dialogflow.v2.IContext;
 type IMessage = protos.google.cloud.dialogflow.v2.Intent.IMessage;
 type IQueryInput = protos.google.cloud.dialogflow.v2.IQueryInput;
 
-type ResponseBody = IDetectIntentResponse & {
+export type ResponseBody = IDetectIntentResponse & {
   queryResult: {
     parameters: Record<string, any> | null;
     outputContexts: (IContext & { parameters: Record<string, any> })[];
@@ -161,7 +161,7 @@ class AI {
   }
 
   decodeIfStruct(s: IStruct): Record<string, any> {
-    return s && s.fields ? struct.decode(s as Struct) : s;
+    return s?.fields ? struct.decode(s as Struct) : s;
   }
 
   /**
@@ -365,7 +365,7 @@ class AI {
       const actionResult = await pkgCallable(body, session, bag);
 
       // Now check if this action is a Promise or a Generator
-      if (actionResult.constructor.name !== "GeneratorFunction") {
+      if (actionResult.constructor.name === "GeneratorFunction") {
         // Call the generator async
         setImmediate(() => {
           this.generatorResolver(body, actionResult as IterableIterator<Fulfillment>, session, bag);
@@ -409,6 +409,10 @@ class AI {
    * Parse the DialogFlow body and decide what to do
    */
   async dfBodyParser(body: ResponseBody, session: Session, bag: IOManager.IOBag): Promise<Fulfillment> {
+    // The parameters coming from Dialogflow when running without the fulfillment server
+    // are in a Struct (.fields) that needs decoding
+    body.queryResult.parameters = this.decodeIfStruct(body.queryResult.parameters);
+
     // If we have an "action", call the package with the specified name
     if (body.queryResult.action) {
       console.debug(TAG, `Resolving action: ${body.queryResult.action}`);

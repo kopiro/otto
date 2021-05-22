@@ -151,17 +151,17 @@ export function getAiNameRegex(): RegExp {
 }
 
 /**
- * Replace any ${} into a string literal with provided data as second arg
+ * Replace any %var% into a string literal with provided data as second arg
  */
 export function replaceVariablesInStrings(text: string, data: Record<string, string>): string {
   let reLoop = null;
   let textCopy = text;
-  const re = /\$_(\w+)/g;
+  const re = /\%(\w+)\%/g;
   // eslint-disable-next-line no-cond-assign
   while ((reLoop = re.exec(text))) {
     const inVar = reLoop[1];
     if (data[inVar]) {
-      textCopy = textCopy.replace(`$_${inVar}`, data[inVar] || "");
+      textCopy = textCopy.replace(`%${inVar}%`, data[inVar] || "");
     }
   }
   return textCopy;

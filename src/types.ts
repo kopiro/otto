@@ -1,4 +1,5 @@
 import { Document } from "mongoose";
+import { ResponseBody } from "./stdlib/ai";
 import { IODriver, IOBag, Authorizations } from "./stdlib/iomanager";
 
 export type Language = string;
@@ -6,7 +7,7 @@ export type Locale = string;
 export type Gender = string;
 
 export type AIAction = (
-  body?: Record<string, any>,
+  body?: ResponseBody,
   session?: Session,
   bag?: IOBag,
 ) => Promise<Fulfillment> | IterableIterator<Fulfillment> | Fulfillment;
@@ -37,6 +38,7 @@ export interface Fulfillment {
     };
     image?: {
       uri: string;
+      caption?: string;
     };
     audio?: {
       uri: string;

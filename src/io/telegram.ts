@@ -343,7 +343,6 @@ class Telegram implements IOManager.IODriverModule {
       if (f.text) {
         this.bot.sendChatAction(chatId, "typing");
         results.push(["message", await this.sendMessage(chatId, f.text, botOpt)]);
-        // await this.sendVideoNote(chatId, f, session, botOpt);
 
         if (bag?.encodable.respondWithAudioNote || f.payload?.includeVoice) {
           results.push(["audionote", await this.sendAudioNote(chatId, f, session, botOpt)]);
@@ -379,7 +378,13 @@ class Telegram implements IOManager.IODriverModule {
     try {
       if (f.payload?.image?.uri) {
         this.bot.sendChatAction(chatId, "upload_photo");
-        results.push(["photo", await this.bot.sendPhoto(chatId, f.payload.image.uri, botOpt)]);
+        results.push([
+          "photo",
+          await this.bot.sendPhoto(chatId, f.payload.image.uri, {
+            ...botOpt,
+            caption: f.payload.image.caption,
+          }),
+        ]);
       }
     } catch (err) {
       results.push(["error", err]);
