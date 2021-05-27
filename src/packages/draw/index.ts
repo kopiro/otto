@@ -1,12 +1,12 @@
-import { client } from "../../lib/imagesearch";
 import { rand } from "../../helpers";
+import imageSearch from "../../lib/image-search";
 
 export const id = "draw";
 
 export default async function main({ queryResult }) {
   const { parameters: p } = queryResult;
 
-  const images = await client.search(`"${p.q}"`);
+  const images = await imageSearch().search(`"${p.q}"`);
   const img = rand(images);
 
   return {

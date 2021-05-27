@@ -1,12 +1,12 @@
-import AI from "../stdlib/ai";
-import Moment from "../lib/moment";
+import moment from "../lib/moment";
+import ai from "../stdlib/ai";
 
 import { SchedulerProgramClass } from "../stdlib/scheduler";
 
 export default class CountdownScheduler extends SchedulerProgramClass {
   async run() {
     const { date, name, eventName } = this.job.programArgs;
-    const momentDate = Moment(date);
+    const momentDate = moment()(date);
     if (new Date() > momentDate.toDate()) {
       return;
     }
@@ -14,7 +14,7 @@ export default class CountdownScheduler extends SchedulerProgramClass {
     const time = momentDate.fromNow();
     const timeNoSuffix = momentDate.fromNow(true);
 
-    return AI.processInput(
+    return ai().processInput(
       {
         event: {
           name: eventName,

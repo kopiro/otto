@@ -1,5 +1,10 @@
 import awsSDK from "aws-sdk";
 
-awsSDK.config.loadFromPath(process.env.AWS_KEY_PATH);
-
-export const client = awsSDK;
+let _instance: typeof awsSDK;
+export default (): typeof _instance => {
+  if (!_instance) {
+    awsSDK.config.loadFromPath(process.env.AWS_KEY_PATH);
+    _instance = awsSDK;
+  }
+  return _instance;
+};

@@ -1,6 +1,6 @@
 import levenshtein from "fast-levenshtein";
 import config from "../../config";
-import Translator from "../../stdlib/translator";
+import translator from "../../stdlib/translator";
 import { extractWithPattern } from "../../helpers";
 import { Session, Fulfillment } from "../../types";
 
@@ -19,7 +19,7 @@ export default async ({ queryResult }, session: Session): Promise<Fulfillment> =
   // because all input requests are translated, and the language is translated too!
   // Example: "ние говорим английски" --> "Parliamo in inglese"
   // So we should request the languages in Italiano to match "inglese"
-  const languages = await Translator.getLanguages(config().language);
+  const languages = await translator().getLanguages(config().language);
 
   for (const x of ["From", "To"]) {
     const langReq = p[`translate${x}`];

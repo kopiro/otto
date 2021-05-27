@@ -1,11 +1,11 @@
 import { Fulfillment } from "../../types";
-import Camera from "../../stdlib/camera";
+import camera from "../../stdlib/camera";
 import { Authorizations } from "../../stdlib/iomanager";
 
 export const authorizations = [Authorizations.CAMERA];
 
 export default async (): Promise<Fulfillment> => {
-  const uri = await Camera.takeVideo();
+  const uri = await camera().takeVideo();
   return {
     payload: {
       video: {

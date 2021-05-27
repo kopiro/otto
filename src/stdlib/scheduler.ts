@@ -1,7 +1,7 @@
-import Moment from "../lib/moment";
 import * as Data from "../data";
 import config from "../config";
 import { Scheduler as SchedulerModel } from "../types";
+import moment from "../lib/moment";
 
 const TAG = "Scheduler";
 const FORMAT = "YYYY-MM-DD HH:mm:ss";
@@ -16,11 +16,17 @@ export abstract class SchedulerProgramClass {
   abstract run();
 }
 
+type SchedulerConfig = { uid: string };
 export class Scheduler {
-  started = false;
+  private started = false;
+  private _config: SchedulerConfig;
+
+  constructor(_config: SchedulerConfig) {
+    this._config = _config;
+  }
 
   async getJobs(conditions = []): Promise<SchedulerModel[]> {
-    const time = Moment().seconds(0); // Get current time but reset seconds to zero
+    const time = moment()().seconds(0); // Get current time but reset seconds to zero
     const query = [
       { yearly: time.format("DDD HH:mm:ss") },
       { monthly: time.format("D HH:mm:ss") },
@@ -36,7 +42,7 @@ export class Scheduler {
       ...conditions,
     ];
     const jobs = await Data.Scheduler.find({
-      managerUid: config().uid,
+      managerUid: this._config.uid,
       $or: query,
     });
     return jobs;
@@ -91,4 +97,8 @@ export class Scheduler {
   }
 }
 
-export default new Scheduler();
+let _instance: Scheduler;
+export default (): Scheduler => {
+  _instance = _instance || new Scheduler(config());
+  return _instance;
+};

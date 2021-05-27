@@ -1,8 +1,8 @@
-import Camera from "./camera";
+import camera from "./camera";
 
 describe("Camera", () => {
   test("it works", async () => {
-    const file = Camera.takePhoto();
+    const file = camera().takePhoto();
     console.log("file", file);
   });
 });

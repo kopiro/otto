@@ -1,7 +1,7 @@
 import defaultConfig from "./default-config.json";
 import fs from "fs";
 
-let config: typeof defaultConfig = null;
+let _instance: typeof defaultConfig = null;
 
 function parseLocalConfig(config, localConfig, path = "") {
   for (const [key, value] of Object.entries(localConfig)) {
@@ -19,13 +19,12 @@ function parseLocalConfig(config, localConfig, path = "") {
 }
 
 export default () => {
-  if (config) return config;
-
-  if (process.env.CONFIG_FILE) {
-    config = parseLocalConfig(defaultConfig, JSON.parse(fs.readFileSync(process.env.CONFIG_FILE, "utf8")));
-  } else {
-    config = defaultConfig;
+  if (!_instance) {
+    if (process.env.CONFIG_FILE) {
+      _instance = parseLocalConfig(defaultConfig, JSON.parse(fs.readFileSync(process.env.CONFIG_FILE, "utf8")));
+    } else {
+      _instance = defaultConfig;
+    }
   }
-
-  return config;
+  return _instance;
 };

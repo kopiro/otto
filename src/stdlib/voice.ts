@@ -34,4 +34,8 @@ class Voice {
   }
 }
 
-export default new Voice(config().voice);
+let _instance: Voice;
+export default (): Voice => {
+  _instance = _instance || new Voice(config().voice);
+  return _instance;
+};

@@ -25,7 +25,7 @@
     "build:client": "yarn workspace otto-web-client build",
     "build:docker": "docker build . -t kopiro/otto",
     "deploy:docker": "yarn build:docker && docker push kopiro/otto",
-    "cli:dev": "ts-node src/cli.ts"
+    "configure:oauth": "ts-node ./src/cli/oauth.ts"
   },
   "os": [
     "darwin",
@@ -49,6 +49,7 @@
     "@google-cloud/translate": "^6.0.0",
     "@picovoice/porcupine-node": "^1.9.0",
     "@sentry/node": "^5.15.4",
+    "@types/express": "^4.17.11",
     "@types/node-fetch": "^2.5.10",
     "@types/node-telegram-bot-api": "^0.51.1",
     "aws-sdk": "^2.349.0",
@@ -63,6 +64,7 @@
     "fb": "^2.0.0",
     "formidable": "^1.2.2",
     "google-images": "^2.0.0",
+    "googleapis": "^74.0.0",
     "moment": "^2.22.2",
     "mongoose": "^5.8.2",
     "mongoose-autopopulate": "^0.12.1",

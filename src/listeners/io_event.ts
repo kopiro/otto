@@ -1,7 +1,7 @@
 import * as Server from "../stdlib/server";
-import AI from "../stdlib/ai";
 import * as IOManager from "../stdlib/iomanager";
 import { InputParams } from "../types";
+import ai from "../stdlib/ai";
 
 class IOEvent implements IOManager.IOListenerModule {
   async processSingle(sessionStr: string, event: InputParams["event"]) {
@@ -18,7 +18,7 @@ class IOEvent implements IOManager.IOListenerModule {
       throw new Error("SESSION_NOT_FOUND");
     }
 
-    return AI.processInput({ event }, session);
+    return ai().processInput({ event }, session);
   }
 
   start() {
@@ -47,4 +47,8 @@ class IOEvent implements IOManager.IOListenerModule {
   }
 }
 
-export default new IOEvent();
+let _instance: IOEvent;
+export default (): IOEvent => {
+  _instance = _instance || new IOEvent();
+  return _instance;
+};

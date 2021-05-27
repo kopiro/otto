@@ -13,6 +13,13 @@
   "ioListeners": [],
   "language": "it",
   "trainingSessionId": "",
+  "oauth": {
+    "google": {
+      "clientId": "",
+      "clientSecret": "",
+      "scopes": []
+    }
+  },
   "scheduler": {
     "enabled": true
   },

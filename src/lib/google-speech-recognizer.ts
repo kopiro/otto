@@ -1,6 +1,5 @@
 import speech from "@google-cloud/speech";
 import fs from "fs";
-import * as Proc from "./proc";
 import { getLocaleFromLanguageCode } from "../helpers";
 import { SpeechRecognizer } from "../abstracts/speech-recognizer";
 import { SpeechClient } from "@google-cloud/speech/build/src/v1";
@@ -9,11 +8,9 @@ import { promisify } from "util";
 import wavFileInfo from "wav-file-info";
 
 const TAG = "GCSR";
-
-const SAMPLE_RATE = 16000;
-
 export class GoogleSpeechRecognizer extends SpeechRecognizer {
   client: SpeechClient;
+  SAMPLE_RATE = 16000;
 
   constructor() {
     super();
@@ -30,7 +27,7 @@ export class GoogleSpeechRecognizer extends SpeechRecognizer {
       interimResults: true,
       config: {
         encoding: "LINEAR16",
-        sampleRateHertz: SAMPLE_RATE,
+        sampleRateHertz: this.SAMPLE_RATE,
         ...audioConfig,
         languageCode: getLocaleFromLanguageCode(language),
       },

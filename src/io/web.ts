@@ -1,15 +1,15 @@
 import Events from "events";
 import config from "../config";
 import * as IOManager from "../stdlib/iomanager";
-import Voice from "../stdlib/voice";
+import voice from "../stdlib/voice";
 import { Fulfillment, Session, InputParams } from "../types";
 import { Request, Response } from "express";
 import { routerIO } from "../stdlib/server";
 import { getTmpFile } from "../helpers";
 import fs from "fs";
 import bodyParser from "body-parser";
-import TextToSpeech from "../stdlib/text-to-speech";
 import { File } from "../stdlib/file";
+import textToSpeech from "../stdlib/text-to-speech";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const formidable = require("formidable");
@@ -29,7 +29,7 @@ enum AcceptHeader {
   AUDIO = "audio",
 }
 
-class Web implements IOManager.IODriverModule {
+export class Web implements IOManager.IODriverModule {
   config: WebConfig;
   emitter: Events.EventEmitter;
   started = false;
@@ -101,15 +101,15 @@ class Web implements IOManager.IODriverModule {
   }
 
   async getVoiceFile(fulfillment: Fulfillment, session: Session): Promise<File> {
-    const audioFile = await TextToSpeech.getAudioFile(
+    const audioFile = await textToSpeech().getAudioFile(
       fulfillment.text,
       fulfillment.payload.language || session.getTranslateTo(),
       config().tts.gender,
     );
-    return Voice.getFile(audioFile);
+    return voice().getFile(audioFile);
   }
 
-  async output(fulfillment: Fulfillment, session: Session, bag: WebBag) {
+  async output(fulfillment: Fulfillment, session: Session, bag: WebBag): Promise<IOManager.IODriverOutput> {
     const { req, res } = bag;
     const accepts = req.headers.accept.split(",").map((e: string) => e.trim());
 
@@ -120,14 +120,19 @@ class Web implements IOManager.IODriverModule {
     }
 
     if (accepts[0] === AcceptHeader.AUDIO) {
-      return res.redirect(audio);
+      res.redirect(audio);
+      return [["redirect", audio]];
     }
 
     const jsonResponse: Record<string, any> = { ...fulfillment, audio };
     res.json(jsonResponse);
 
-    return ["response", jsonResponse];
+    return [["response", jsonResponse]];
   }
 }
 
-export default new Web(config().web);
+let _instance: Web;
+export default (): Web => {
+  _instance = _instance || new Web(config().web);
+  return _instance;
+};

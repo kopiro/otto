@@ -1,24 +1,29 @@
 import "./boot";
 
-import mongoose from "mongoose";
 import config from "./config";
-import AI from "./stdlib/ai";
+import ai from "./stdlib/ai";
 import * as Server from "./stdlib/server";
 import * as IOManager from "./stdlib/iomanager";
-import Scheduler from "./stdlib/scheduler";
+import * as Database from "./stdlib/database";
+import scheduler from "./stdlib/scheduler";
 
-mongoose.connection.once("open", async () => {
-  console.info("Database connection succeded");
+Database.connect()
+  .then(() => {
+    console.info("Database connection succeded");
 
-  if (config().serverMode) {
-    Server.start();
-  }
+    if (config().serverMode) {
+      Server.start();
+    }
 
-  IOManager.start((params, session) => {
-    AI.processInput(params, session);
+    if (config().scheduler?.enabled) {
+      scheduler().start();
+    }
+
+    IOManager.start((params, session) => {
+      ai().processInput(params, session);
+    });
+  })
+  .catch((err) => {
+    console.error("Database connection error", err);
+    process.exit(1);
   });
-
-  if (config().scheduler?.enabled) {
-    Scheduler.start();
-  }
-});

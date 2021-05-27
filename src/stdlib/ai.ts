@@ -1,15 +1,15 @@
 import dialogflow, { protos } from "@google-cloud/dialogflow";
 import * as IOManager from "./iomanager";
-import Translator from "../stdlib/translator";
 import config from "../config";
 import { extractWithPattern, getLocalObjectFromURI, replaceVariablesInStrings } from "../helpers";
 import { Fulfillment, CustomError, AIAction, InputParams, Session } from "../types";
 import { struct, Struct } from "pb-util";
-import SpeechRecognizer from "../stdlib/speech-recognizer";
 import Events from "events";
 import { SessionsClient, IntentsClient } from "@google-cloud/dialogflow/build/src/v2";
 import fetch from "node-fetch";
 import fs from "fs";
+import speechRecognizer from "../stdlib/speech-recognizer";
+import translator from "../stdlib/translator";
 
 type IStruct = protos.google.protobuf.IStruct;
 
@@ -215,7 +215,7 @@ class AI {
       const fromLanguage = fulfillment.payload.translateFrom ?? this.config.language;
       const toLanguage = fulfillment.payload.translateTo || session.getTranslateTo();
       if (toLanguage !== fromLanguage) {
-        fulfillment.text = await Translator.translate(fulfillment.text, toLanguage, fromLanguage);
+        fulfillment.text = await translator().translate(fulfillment.text, toLanguage, fromLanguage);
       }
     }
 
@@ -436,7 +436,7 @@ class AI {
 
   async dfRequest(queryInput: IQueryInput, session: Session, bag?: IOManager.IOBag): Promise<IDetectIntentResponse> {
     if (queryInput.text) {
-      queryInput.text.text = await Translator.translate(
+      queryInput.text.text = await translator().translate(
         queryInput.text.text,
         this.config.dialogflow.language,
         session.getTranslateFrom(),
@@ -499,7 +499,7 @@ class AI {
 
     const [brain, textTr] = await Promise.all([
       this.getOpenAIBrainText(),
-      Translator.translate(text, "en", session.getTranslateFrom()),
+      translator().translate(text, "en", session.getTranslateFrom()),
     ]);
 
     const brainHeader = `This is a chat between ${who} and an AI called ${this.config.aiName}\n###`;
@@ -603,7 +603,7 @@ class AI {
     } else if (params.event) {
       fulfillment = await this.eventRequestDF(params.event, session, params.bag);
     } else if (params.audio) {
-      const text = await SpeechRecognizer.recognizeFile(params.audio, session.getTranslateFrom());
+      const text = await speechRecognizer().recognizeFile(params.audio, session.getTranslateFrom());
       fulfillment = await this.textRequestDF(text, session, params.bag);
     } else if (params.command) {
       fulfillment = await this.commandRequest(params.command, session, params.bag);
@@ -616,4 +616,8 @@ class AI {
   }
 }
 
-export default new AI(config());
+let _instance: AI;
+export default (): AI => {
+  _instance = _instance || new AI(config());
+  return _instance;
+};

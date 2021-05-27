@@ -1,20 +1,20 @@
 import Events from "events";
 import config from "../config";
 import * as IOManager from "../stdlib/iomanager";
-import SpeechRecognizer from "../stdlib/speech-recognizer";
-import Voice from "../stdlib/voice";
-import Speaker from "../stdlib/speaker";
-import TextToSpeech from "../stdlib/text-to-speech";
+import voice from "../stdlib/voice";
 import { timeout } from "../helpers";
 import { Fulfillment, Session } from "../types";
-import Porcupine from "@picovoice/porcupine-node";
 import { etcDir } from "../paths";
 import path from "path";
+import Porcupine from "@picovoice/porcupine-node";
 import recorder from "node-record-lpcm16";
 import { COMPUTER } from "@picovoice/porcupine-node/builtin_keywords";
 import { getPlatform } from "@picovoice/porcupine-node/platforms";
 import os from "os";
 import fs from "fs";
+import textToSpeech from "../stdlib/text-to-speech";
+import speechRecognizer from "../stdlib/speech-recognizer";
+import speaker from "../stdlib/speaker";
 
 const TAG = "IO.Human";
 const DRIVER_ID = "human";
@@ -39,7 +39,7 @@ function chunkArray(array: any[], size: number) {
   );
 }
 
-class Human implements IOManager.IODriverModule {
+export class Human implements IOManager.IODriverModule {
   config: HumanConfig;
   emitter: Events.EventEmitter = new Events.EventEmitter();
 
@@ -73,7 +73,7 @@ class Human implements IOManager.IODriverModule {
    * Constructor
    * @param config
    */
-  constructor(config) {
+  constructor(config: HumanConfig) {
     this.config = config;
   }
 
@@ -82,7 +82,7 @@ class Human implements IOManager.IODriverModule {
    */
   stopOutput() {
     // Kill any audible
-    return Speaker.kill();
+    return speaker().kill();
   }
 
   /**
@@ -92,7 +92,7 @@ class Human implements IOManager.IODriverModule {
   startRecognition(session: Session) {
     console.log(TAG, "recognizing microphone stream");
 
-    const recognizeStream = SpeechRecognizer.createRecognizeStream(session.getTranslateFrom(), (err, text) => {
+    const recognizeStream = speechRecognizer().createRecognizeStream(session.getTranslateFrom(), (err, text) => {
       this.isRecognizing = false;
       this.emitter.emit("notrecognizing");
 
@@ -170,7 +170,7 @@ class Human implements IOManager.IODriverModule {
     this.stopOutput(); // Stop any previous output
 
     // Play a recognizable sound
-    Speaker.play(`${etcDir}/wake.wav`);
+    speaker().play(`${etcDir}/wake.wav`);
 
     // Reset any timer variable
     this.hotwordSilenceSec = HOTWORD_SILENCE_MAX;
@@ -245,13 +245,13 @@ class Human implements IOManager.IODriverModule {
     // Process a text if we do not find a audio
     try {
       if (fulfillment.text) {
-        const audioFile = await TextToSpeech.getAudioFile(
+        const audioFile = await textToSpeech().getAudioFile(
           fulfillment.text,
           session.getTranslateTo(),
           config().tts.gender,
         );
-        const file = await Voice.getFile(audioFile);
-        await Speaker.play(file);
+        const file = await voice().getFile(audioFile);
+        await speaker().play(file);
         results.push(["file", file]);
       }
     } catch (err) {
@@ -262,8 +262,8 @@ class Human implements IOManager.IODriverModule {
     // Process an Audio Object
     try {
       if (fulfillment.payload.audio) {
-        const file = await Voice.getFile(fulfillment.payload.audio.uri);
-        await Speaker.play(file);
+        const file = await voice().getFile(fulfillment.payload.audio.uri);
+        await speaker().play(file);
         results.push(["file", file]);
       }
     } catch (err) {
@@ -339,4 +339,8 @@ class Human implements IOManager.IODriverModule {
   }
 }
 
-export default new Human(config().human);
+let _instance: Human;
+export default (): Human => {
+  _instance = _instance || new Human(config().human);
+  return _instance;
+};

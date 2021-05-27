@@ -1,11 +1,11 @@
-import { Fulfillment } from "../../types";
-import Camera from "../../stdlib/camera";
+import { AIAction, Fulfillment } from "../../types";
+import camera from "../../stdlib/camera";
 import { Authorizations } from "../../stdlib/iomanager";
 
 export const authorizations = [Authorizations.CAMERA];
 
-const main = async (): Promise<Fulfillment> => {
-  const uri = await Camera.takePhoto();
+const cameraAction: AIAction = async () => {
+  const uri = await camera().takePhoto();
   return {
     payload: {
       image: {
@@ -15,4 +15,4 @@ const main = async (): Promise<Fulfillment> => {
   };
 };
 
-export default main;
+export default cameraAction;

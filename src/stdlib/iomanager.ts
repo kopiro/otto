@@ -9,7 +9,7 @@ export type IODriver = "telegram" | "human" | "web";
 export type IOListener = "io_event";
 export type IOAccessory = "gpio_button" | "leds";
 
-export type IOBag = Record<string, any>;
+export type IOBag = any;
 
 export enum Authorizations {
   "ADMIN" = "ADMIN",
@@ -93,11 +93,11 @@ export function getListenersToLoad(): IOListener[] {
 export async function getDriver(e: IODriver): Promise<IODriverModule> {
   switch (e) {
     case "telegram":
-      return (await import("../io/telegram")).default;
+      return (await import("../io/telegram")).default();
     case "human":
-      return (await import("../io/human")).default;
+      return (await import("../io/human")).default();
     case "web":
-      return (await import("../io/web")).default;
+      return (await import("../io/web")).default();
     default:
       throw new Error(`Invalid driver: ${e}`);
   }
@@ -109,7 +109,7 @@ export async function getDriver(e: IODriver): Promise<IODriverModule> {
 export async function getListener(e: IOListener): Promise<IOListenerModule> {
   switch (e) {
     case "io_event":
-      return (await import("../listeners/io_event")).default;
+      return (await import("../listeners/io_event")).default();
     default:
       throw new Error(`Invalid listener: ${e}`);
   }

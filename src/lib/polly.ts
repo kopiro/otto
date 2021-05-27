@@ -1,16 +1,16 @@
-import { client as aws } from "./aws";
 import config from "../config";
 import { getLocaleFromLanguageCode } from "../helpers";
 import Polly, { Voice } from "aws-sdk/clients/polly";
 import { TextToSpeech } from "../abstracts/text-to-speech";
 import { Language, Gender } from "../types";
 import crypto from "crypto";
+import aws from "./aws";
 export class PollyTextToSpeech extends TextToSpeech {
   client: Polly;
 
   constructor() {
     super();
-    this.client = new aws.Polly({
+    this.client = new (aws().Polly)({
       signatureVersion: "v4",
       region: "eu-west-1",
     });

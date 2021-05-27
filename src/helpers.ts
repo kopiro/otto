@@ -3,7 +3,7 @@ import request from "request";
 import fs from "fs";
 import path from "path";
 import config from "./config";
-import Translator from "./stdlib/translator";
+import translator from "./stdlib/translator";
 import { cacheDir, tmpDir } from "./paths";
 import { Language, Locale } from "./types";
 import { v4 as uuid } from "uuid";
@@ -168,7 +168,7 @@ export function replaceVariablesInStrings(text: string, data: Record<string, str
 }
 
 export async function getLanguageCodeFromLanguageLongString(languageLongString: string): Promise<Language> {
-  const languages = await Translator.getLanguages(config().language);
+  const languages = await translator().getLanguages(config().language);
   return languages.find((e) => e.name === languageLongString)?.code;
 }
 

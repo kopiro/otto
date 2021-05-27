@@ -6,9 +6,7 @@ import Events from "events";
 import config from "../config";
 import * as Server from "../stdlib/server";
 import * as IOManager from "../stdlib/iomanager";
-import SpeechRecognizer from "../stdlib/speech-recognizer";
-import TextToSpeech from "../stdlib/text-to-speech";
-import Voice from "../stdlib/voice";
+import voice from "../stdlib/voice";
 import * as Proc from "../lib/proc";
 import { v4 as uuid } from "uuid";
 import { tmpDir } from "../paths";
@@ -16,6 +14,8 @@ import { Fulfillment, Session as ISession } from "../types";
 import { getAiNameRegex, getTmpFile } from "../helpers";
 import bodyParser from "body-parser";
 import { File } from "../stdlib/file";
+import textToSpeech from "../stdlib/text-to-speech";
+import speechRecognizer from "../stdlib/speech-recognizer";
 
 const TAG = "IO.Telegram";
 const DRIVER_ID = "telegram";
@@ -32,7 +32,7 @@ export type TelegramBag = {
   };
 };
 
-class Telegram implements IOManager.IODriverModule {
+export class Telegram implements IOManager.IODriverModule {
   config: TelegramConfig;
 
   emitter: Events.EventEmitter = new Events.EventEmitter();
@@ -60,8 +60,8 @@ class Telegram implements IOManager.IODriverModule {
       request(fileLink)
         .pipe(fs.createWriteStream(voiceFile))
         .on("close", async () => {
-          await Proc.spawn("opusdec", [voiceFile, voiceWavFile, "--rate", SpeechRecognizer.SAMPLE_RATE]);
-          const text = await SpeechRecognizer.recognizeFile(voiceWavFile, session.getTranslateFrom());
+          await Proc.spawn("opusdec", [voiceFile, voiceWavFile, "--rate", speechRecognizer().SAMPLE_RATE]);
+          const text = await speechRecognizer().recognizeFile(voiceWavFile, session.getTranslateFrom());
           resolve(text);
         });
     });
@@ -98,12 +98,12 @@ class Telegram implements IOManager.IODriverModule {
   }
 
   async getVoiceFile(fulfillment: Fulfillment, session: ISession): Promise<File> {
-    const audioFile = await TextToSpeech.getAudioFile(
+    const audioFile = await textToSpeech().getAudioFile(
       fulfillment.text,
       fulfillment.payload.language || session.getTranslateTo(),
       config().tts.gender,
     );
-    return Voice.getFile(audioFile);
+    return voice().getFile(audioFile);
   }
 
   /**
@@ -301,10 +301,8 @@ class Telegram implements IOManager.IODriverModule {
 
     // We could attach the webhook to the Router API or via polling
     if (this.config.options.polling === false) {
-      this.bot.setWebHook(
-        [config().server.protocol, "://", config().server.domain, "/io/telegram/bot", this.config.token].join(""),
-      );
-      Server.routerIO.use("/telegram", bodyParser.json(), (req, res) => {
+      this.bot.setWebHook(`${Server.getDomain()}/io/telegram/bot${this.config.token}`);
+      const endpoint = Server.routerIO.use("/telegram", bodyParser.json(), (req, res) => {
         this.bot.processUpdate(req.body);
         res.sendStatus(200);
       });
@@ -447,4 +445,8 @@ class Telegram implements IOManager.IODriverModule {
   }
 }
 
-export default new Telegram(config().telegram);
+let _instance: Telegram;
+export default (): Telegram => {
+  _instance = _instance || new Telegram(config().telegram);
+  return _instance;
+};
