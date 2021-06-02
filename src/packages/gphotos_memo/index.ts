@@ -13,7 +13,6 @@ const gPhotosMemoAction: AIAction = async ({ queryResult }) => {
     },
   });
   const albumsResponseJson = await albumsResponse.json();
-  console.log(`albumsResponseJson`, albumsResponseJson);
 
   const response = await fetch("https://photoslibrary.googleapis.com/v1/mediaItems:search", {
     method: "POST",
@@ -32,11 +31,12 @@ const gPhotosMemoAction: AIAction = async ({ queryResult }) => {
   // Since Math.random is failing at me, let's do an incremental circular sequence based on the day since 1970
   const index = Math.floor(Date.now() / (1000 * 60 * 60 * 24)) % images.length;
   const media = images[index];
+  const url = `${media.baseUrl}=w2000-h2000`;
 
   return {
     payload: {
       image: {
-        uri: media.baseUrl,
+        uri: url,
         caption: queryResult.fulfillmentText,
       },
     },
@@ -44,13 +44,16 @@ const gPhotosMemoAction: AIAction = async ({ queryResult }) => {
 };
 
 if (process.env.RUN_ACTION === "1") {
-  gPhotosMemoAction(({
-    queryResult: {
-      parameters: {
-        album_id: "AGXs7FJLS7pM_-Xk4XaRZE3icyWLUYtpY-SIM-gVsYAWHeHxqc-LwrvyyLvAhUQcyQiJmE6IQCCKZmWt5OzTk63FojNWm9HEFw",
+  (async () => {
+    const data = await gPhotosMemoAction(({
+      queryResult: {
+        parameters: {
+          album_id: "",
+        },
       },
-    },
-  } as unknown) as ResponseBody);
+    } as unknown) as ResponseBody);
+    console.log(data);
+  })();
 }
 
 export default gPhotosMemoAction;
