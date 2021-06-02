@@ -29,11 +29,7 @@ const gPhotosMemoAction: AIAction = async ({ queryResult }) => {
   const responseJson = await response.json();
 
   const images = responseJson.mediaItems.filter((e) => /image/.test(e.mimeType));
-  shuffle(images);
-
-  // Since Math.random is failing at me, let's do an incremental circular sequence based on the day since 1970
-  const index = Math.floor(Date.now() / (1000 * 60 * 60 * 24)) % images.length;
-  const media = images[index];
+  const media = images[Math.floor(Math.random() * images.length)];
   const url = `${media.baseUrl}=w2000-h2000`;
 
   return {
