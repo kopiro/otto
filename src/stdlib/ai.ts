@@ -65,6 +65,12 @@ class AI {
     authorization?: IOManager.Authorizations;
   }> = [
     {
+      matcher: /^\/start$/,
+      executor: this.commandStart,
+      description: "start - Start the bot",
+      authorization: IOManager.Authorizations.COMMAND,
+    },
+    {
       matcher: /^\/textout ([^\s]+) (.+)/,
       executor: this.commandOut,
       description: "textout - [sessionid] [text] - Send a text message to a specific session",
@@ -116,6 +122,10 @@ class AI {
   private async commandAppStop(): Promise<Fulfillment> {
     setTimeout(() => process.exit(0), 5000);
     return { text: "Scheduled shutdown in 5 seconds" };
+  }
+
+  private async commandStart(_: RegExpMatchArray, session: Session): Promise<Fulfillment> {
+    return { text: "HELO" };
   }
 
   private async commandWhoami(_: RegExpMatchArray, session: Session): Promise<Fulfillment> {
