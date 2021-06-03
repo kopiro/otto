@@ -46,6 +46,17 @@ export interface Fulfillment {
     document?: {
       uri: string;
     };
+    poll?: {
+      question: string;
+      choices: string[];
+      is_anonymous?: boolean;
+      type?: "regular" | "quiz";
+      allows_multiple_answers?: boolean;
+      correct_option_id?: number;
+      explanation?: string;
+      close_date?: number;
+      is_closed?: boolean;
+    };
     telegram?: {
       game: string;
       sticker: string;
@@ -70,7 +81,7 @@ export interface IOQueue extends Document {
   id: string;
   fulfillment: Fulfillment;
   session: Session;
-  bag: any;
+  bag?: any;
 }
 
 export interface Scheduler extends Document {
@@ -78,13 +89,15 @@ export interface Scheduler extends Document {
   managerUid: string;
   programName: string;
   programArgs: any;
-  yearly: string; // set "dayofyear hour:minute"
-  monthly: string; // set "dayofmonth hour:minute"
-  weekly: string; // set "dayofweek hour:minute"
-  daily: string; // set "hour:minute"
-  hourly: string; // set minute
-  onTick: boolean; // every second
-  onDate: string; // on a date
+  yearly?: string; // set "dayofyear hour:minute"
+  monthly?: string; // set "dayofmonth hour:minute"
+  weekly?: string; // set "dayofweek hour:minute"
+  daily?: string; // set "hour:minute"
+  hourly?: string; // set minute
+  onTick?: boolean; // every second
+  onDate?: string; // on a date
+  onDateISOString?: string;
+  deleteAfterRun?: boolean;
 }
 
 export interface Session extends Document {
@@ -102,7 +115,7 @@ export interface Session extends Document {
   redirectSessions: Session[] | undefined;
   forwardSessions: Session[] | undefined;
   repeatModeSessions: Session[] | undefined;
-  doNotDisturb: boolean;
+  doNotDisturb?: boolean;
   openaiChatLog?: string;
   openaiLastInteraction?: number;
   getTranslateFrom: () => Language;

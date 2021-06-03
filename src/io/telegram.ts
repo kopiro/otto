@@ -120,49 +120,6 @@ export class Telegram implements IOManager.IODriverModule {
     return this.bot.sendVoice(chatId, voiceFile.getAbsoluteFSPath(), botOpt);
   }
 
-  async sendVideoNote(
-    chatId: string,
-    fulfillment: Fulfillment,
-    session: ISession,
-    botOpt: TelegramBot.SendMessageOptions = {},
-  ) {
-    await this.bot.sendChatAction(chatId, "record_video_note");
-    const voiceFile = await this.getVoiceFile(fulfillment, session);
-    const imageFile = getTmpFile("jpg");
-    await Proc.spawn("convert", [
-      "/Users/flaviod/Desktop/Empty/IMG_0317.HEIC",
-      "-resize",
-      "600x600^",
-      "-gravity",
-      "center",
-      "-crop",
-      "600x600+0+0",
-      imageFile,
-    ]);
-    const videoNoteFile = getTmpFile("mp4");
-    await Proc.spawn("ffmpeg", [
-      "-loop",
-      "1",
-      "-i",
-      imageFile,
-      "-i",
-      voiceFile,
-      "-c:v",
-      "libx264",
-      "-tune",
-      "stillimage",
-      "-c:a",
-      "aac",
-      "-b:a",
-      "192k",
-      "-pix_fmt",
-      "yuv420p",
-      "-shortest",
-      videoNoteFile,
-    ]);
-    return this.bot.sendVideoNote(chatId, videoNoteFile, botOpt);
-  }
-
   getIsMention(text: string) {
     return this.botMentionRegex.test(text);
   }
@@ -294,6 +251,7 @@ export class Telegram implements IOManager.IODriverModule {
     this.botMentionRegex = new RegExp(`@${this.botMe.username}`, "i");
 
     this.bot.on("message", this.onBotInput.bind(this));
+    this.bot.on("poll_answer", this.onBotInput.bind(this));
 
     this.bot.on("webhook_error", (err) => {
       console.error(TAG, "webhook error", err);
@@ -302,7 +260,7 @@ export class Telegram implements IOManager.IODriverModule {
     // We could attach the webhook to the Router API or via polling
     if (this.config.options.polling === false) {
       this.bot.setWebHook(`${Server.getDomain()}/io/telegram/bot${this.config.token}`);
-      const endpoint = Server.routerIO.use("/telegram", bodyParser.json(), (req, res) => {
+      Server.routerIO.use("/telegram", bodyParser.json(), (req, res) => {
         this.bot.processUpdate(req.body);
         res.sendStatus(200);
       });
@@ -340,10 +298,12 @@ export class Telegram implements IOManager.IODriverModule {
     try {
       if (f.text) {
         this.bot.sendChatAction(chatId, "typing");
-        results.push(["message", await this.sendMessage(chatId, f.text, botOpt)]);
+        const r = await this.sendMessage(chatId, f.text, botOpt);
+        results.push(["message", r]);
 
         if (bag?.encodable.respondWithAudioNote || f.payload?.includeVoice) {
-          results.push(["audionote", await this.sendAudioNote(chatId, f, session, botOpt)]);
+          const r = await this.sendAudioNote(chatId, f, session, botOpt);
+          results.push(["audionote", r]);
         }
       }
     } catch (err) {
@@ -354,7 +314,8 @@ export class Telegram implements IOManager.IODriverModule {
     // Process a URL Object
     try {
       if (f.payload?.url) {
-        results.push(["message", await this.bot.sendMessage(chatId, f.payload.url, botOpt)]);
+        const r = await this.bot.sendMessage(chatId, f.payload.url, botOpt);
+        results.push(["message", r]);
       }
     } catch (err) {
       results.push(["error", err]);
@@ -365,7 +326,8 @@ export class Telegram implements IOManager.IODriverModule {
     try {
       if (f.payload?.video?.uri) {
         this.bot.sendChatAction(chatId, "upload_video");
-        results.push(["video", await this.bot.sendVideo(chatId, f.payload.video.uri, botOpt)]);
+        const r = await this.bot.sendVideo(chatId, f.payload.video.uri, botOpt);
+        results.push(["video", r]);
       }
     } catch (err) {
       results.push(["error", err]);
@@ -376,13 +338,11 @@ export class Telegram implements IOManager.IODriverModule {
     try {
       if (f.payload?.image?.uri) {
         this.bot.sendChatAction(chatId, "upload_photo");
-        results.push([
-          "photo",
-          await this.bot.sendPhoto(chatId, f.payload.image.uri, {
-            ...botOpt,
-            caption: f.payload.image.caption,
-          }),
-        ]);
+        const r = await this.bot.sendPhoto(chatId, f.payload.image.uri, {
+          ...botOpt,
+          caption: f.payload.image.caption,
+        });
+        results.push(["photo", r]);
       }
     } catch (err) {
       results.push(["error", err]);
@@ -393,7 +353,8 @@ export class Telegram implements IOManager.IODriverModule {
     try {
       if (f.payload?.audio?.uri) {
         this.bot.sendChatAction(chatId, "upload_audio");
-        results.push(["audio", await this.bot.sendAudio(chatId, f.payload.audio.uri, botOpt)]);
+        const r = await this.bot.sendAudio(chatId, f.payload.audio.uri, botOpt);
+        results.push(["audio", r]);
       }
     } catch (err) {
       results.push(["error", err]);
@@ -404,7 +365,8 @@ export class Telegram implements IOManager.IODriverModule {
     try {
       if (f.payload?.document?.uri) {
         this.bot.sendChatAction(chatId, "upload_document");
-        results.push(["document", await this.bot.sendDocument(chatId, f.payload.document.uri, botOpt)]);
+        const r = await this.bot.sendDocument(chatId, f.payload.document.uri, botOpt);
+        results.push(["document"]);
       }
     } catch (err) {
       results.push(["error", err]);
@@ -413,7 +375,8 @@ export class Telegram implements IOManager.IODriverModule {
 
     try {
       if (f.payload?.error?.message) {
-        results.push(["message", await this.sendMessage(chatId, `<pre>${f.payload.error.toString()}</pre>`, botOpt)]);
+        const r = await this.sendMessage(chatId, `<pre>${f.payload.error.toString()}</pre>`, botOpt);
+        results.push(["message", r]);
       }
     } catch (err) {
       results.push(["error", err]);
@@ -422,7 +385,21 @@ export class Telegram implements IOManager.IODriverModule {
 
     try {
       if (f.payload?.data) {
-        results.push(["message", await this.sendMessage(chatId, `<pre>${f.payload?.data}</pre>`, botOpt)]);
+        const r = await this.sendMessage(chatId, `<pre>${f.payload?.data}</pre>`, botOpt);
+        results.push(["data"]);
+      }
+    } catch (err) {
+      results.push(["message", err]);
+      console.error(TAG, err);
+    }
+
+    try {
+      if (f.payload?.poll) {
+        const r = await this.bot.sendPoll(chatId, f.payload.poll.question, f.payload.poll.choices, {
+          ...botOpt,
+          ...f.payload.poll,
+        });
+        results.push(["poll", r]);
       }
     } catch (err) {
       results.push(["error", err]);

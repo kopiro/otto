@@ -1,10 +1,14 @@
-import { AIAction } from "../../types";
+import { AIAction, Fulfillment } from "../../types";
 import gogleOAuthService from "../../oauth-services/google";
-import { ResponseBody } from "../../stdlib/ai";
 import fetch from "node-fetch";
 import { shuffle } from "../../lib/ utils";
+import moment from "../../lib/moment";
 
-const gPhotosMemoAction: AIAction = async ({ queryResult }) => {
+const POLL_DATE_CHOICES_COUNT = 4;
+const POLL_DATE_RANGE_DAYS = 1460;
+const POLL_DATE_ANSWER_MINUTES = 10;
+
+const gPhotosMemoAction: AIAction = async ({ queryResult }, session) => {
   const token = await gogleOAuthService().getAccessToken();
 
   // // De-comment this to have the full list
@@ -28,11 +32,11 @@ const gPhotosMemoAction: AIAction = async ({ queryResult }) => {
   });
   const responseJson = await response.json();
 
-  const images = responseJson.mediaItems.filter((e) => /image/.test(e.mimeType));
+  const images = responseJson.mediaItems.filter((e) => e.mimeType.includes("image"));
   const media = images[Math.floor(Math.random() * images.length)];
   const url = `${media.baseUrl}=w2000-h2000`;
 
-  return {
+  const fulfillment: Fulfillment = {
     payload: {
       image: {
         uri: url,
@@ -40,19 +44,56 @@ const gPhotosMemoAction: AIAction = async ({ queryResult }) => {
       },
     },
   };
-};
 
-if (process.env.RUN_ACTION === "1") {
-  (async () => {
-    const data = await gPhotosMemoAction(({
-      queryResult: {
-        parameters: {
-          album_id: "",
-        },
-      },
-    } as unknown) as ResponseBody);
-    console.log(data);
-  })();
-}
+  const pollDateQuestion: string = queryResult.parameters.poll_date_question;
+  if (pollDateQuestion) {
+    const creationTime = moment()(media.mediaMetadata?.creationTime);
+    if (creationTime.isValid()) {
+      const creationTimeStr = creationTime.format("LL");
+      const choices = [creationTimeStr];
+
+      const pollDateAnswer = (queryResult.parameters.poll_date_answer || "").replace("%date%", creationTimeStr);
+      const pollDateChoicesCount = Number(queryResult.parameters.poll_date_choices_count) || POLL_DATE_CHOICES_COUNT;
+      const pollDateRangeDays = Number(queryResult.parameters.poll_date_range_days) || POLL_DATE_RANGE_DAYS;
+      const pollDateAnswerMinutes = Number(queryResult.parameters.poll_date_answer_minutes) || POLL_DATE_ANSWER_MINUTES;
+
+      const daysFromNow = moment()().diff(creationTime, "days");
+      const dateRangeDays = Math.min(daysFromNow / 2, pollDateRangeDays);
+      for (let i = 0; i < pollDateChoicesCount; i++) {
+        const randomDate = creationTime
+          .clone()
+          .add(-dateRangeDays + Math.floor(Math.random() * dateRangeDays * 2), "days")
+          .format("LL");
+        choices.push(randomDate);
+      }
+      shuffle(choices);
+
+      const pollCloseAt = moment()().add(pollDateAnswerMinutes, "minutes");
+
+      fulfillment.payload.poll = {
+        question: pollDateQuestion,
+        choices,
+        is_anonymous: false,
+        type: "quiz",
+        allows_multiple_answers: false,
+        correct_option_id: choices.findIndex((e) => e === creationTimeStr),
+        explanation: pollDateAnswer,
+        close_date: pollCloseAt.unix(),
+      };
+
+      // setImmediate(() => {
+      //   scheduler().scheduleFulfillment(
+      //     {
+      //       text: pollDateAnswer,
+      //     },
+      //     session,
+      //     pollCloseAt.toDate(),
+      //   );
+      // });
+    }
+  }
+
+  return fulfillment;
+};
 
 export default gPhotosMemoAction;
