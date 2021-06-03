@@ -9,6 +9,8 @@ const POLL_DATE_RANGE_DAYS = 1460;
 const POLL_DATE_ANSWER_MINUTES = 10;
 
 const gPhotosMemoAction: AIAction = async ({ queryResult }, session) => {
+  const { parameters: p } = queryResult;
+
   const token = await gogleOAuthService().getAccessToken();
 
   // // De-comment this to have the full list
@@ -27,7 +29,7 @@ const gPhotosMemoAction: AIAction = async ({ queryResult }, session) => {
     },
     body: JSON.stringify({
       pageSize: 100,
-      albumId: queryResult.parameters.album_id,
+      albumId: p.album_id,
     }),
   });
   const responseJson = await response.json();
@@ -45,20 +47,22 @@ const gPhotosMemoAction: AIAction = async ({ queryResult }, session) => {
     },
   };
 
-  const pollDateQuestion: string = queryResult.parameters.poll_date_question;
+  const pollDateQuestion: string = p.poll_date_question;
   if (pollDateQuestion) {
     const creationTime = moment()(media.mediaMetadata?.creationTime);
     if (creationTime.isValid()) {
       const creationTimeStr = creationTime.format("LL");
       const choices = [creationTimeStr];
 
-      const pollDateAnswer = (queryResult.parameters.poll_date_answer || "").replace("%date%", creationTimeStr);
-      const pollDateChoicesCount = Number(queryResult.parameters.poll_date_choices_count) || POLL_DATE_CHOICES_COUNT;
-      const pollDateRangeDays = Number(queryResult.parameters.poll_date_range_days) || POLL_DATE_RANGE_DAYS;
-      const pollDateAnswerMinutes = Number(queryResult.parameters.poll_date_answer_minutes) || POLL_DATE_ANSWER_MINUTES;
+      const pollDateAnswer = (p.poll_date_answer || "").replace("%date%", creationTimeStr);
+      const pollDateChoicesCount = Number(p.poll_date_choices_count) || POLL_DATE_CHOICES_COUNT;
+      const pollDateRangeDays = Number(p.poll_date_range_days) || POLL_DATE_RANGE_DAYS;
+      const pollDateAnswerMinutes = Number(p.poll_date_answer_minutes) || POLL_DATE_ANSWER_MINUTES;
 
+      // Make sure we don't go into the future
       const daysFromNow = moment()().diff(creationTime, "days");
       const dateRangeDays = Math.min(daysFromNow / 2, pollDateRangeDays);
+
       for (let i = 0; i < pollDateChoicesCount; i++) {
         const randomDate = creationTime
           .clone()
