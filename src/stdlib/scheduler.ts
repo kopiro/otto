@@ -1,6 +1,6 @@
 import * as Data from "../data";
 import config from "../config";
-import { Scheduler as SchedulerModel } from "../types";
+import { Fulfillment, Scheduler as SchedulerModel, Session } from "../types";
 import moment from "../lib/moment";
 
 const TAG = "Scheduler";
@@ -25,8 +25,29 @@ export class Scheduler {
     this._config = _config;
   }
 
+  getManagerUid(): string {
+    return this._config.uid;
+  }
+
+  flatDate(date: moment.Moment) {
+    return date.seconds(0).milliseconds(0);
+  }
+
+  async scheduleFulfillment(fulfillment: Fulfillment, session: Session, date: Date) {
+    const job = new Data.Scheduler({
+      managerUid: this.getManagerUid(),
+      session: session.id,
+      onDateISOString: this.flatDate(moment()(date)).toISOString(),
+      programName: "output",
+      programArgs: { date, fulfillment },
+      deleteAfterRun: true,
+    });
+    console.log(TAG, "scheduled fulfillment", job);
+    return job.save();
+  }
+
   async getJobs(conditions = []): Promise<SchedulerModel[]> {
-    const time = moment()().seconds(0); // Get current time but reset seconds to zero
+    const time = this.flatDate(moment()());
     const query = [
       { yearly: time.format("DDD HH:mm:ss") },
       { monthly: time.format("D HH:mm:ss") },
@@ -38,11 +59,12 @@ export class Scheduler {
       { everyFiveMinutes: +time.format("m") % 5 === 0 },
       { minutely: time.format("ss") },
       { onDate: time.format(FORMAT) },
+      { onDateISOString: time.toISOString() },
       { onTick: true },
       ...conditions,
     ];
     const jobs = await Data.Scheduler.find({
-      managerUid: this._config.uid,
+      managerUid: this.getManagerUid(),
       $or: query,
     });
     return jobs;
@@ -52,6 +74,8 @@ export class Scheduler {
     switch (job.programName) {
       case "input":
         return new (await import("../scheduler/input")).default(job);
+      case "output":
+        return new (await import("../scheduler/output")).default(job);
       case "camera":
         return new (await import("../scheduler/camera")).default(job);
       case "countdown":
@@ -68,9 +92,17 @@ export class Scheduler {
 
     try {
       const program = await this.getProgram(job);
-      if (!program) throw new Error(`Program <${job.programName}> not found`);
+      if (!program) {
+        throw new Error(`Program <${job.programName}> not found`);
+      }
+
       const result = await program.run();
       console.debug(TAG, "processed", result);
+
+      if (job.deleteAfterRun) {
+        job.delete();
+      }
+
       return result;
     } catch (err) {
       console.error(TAG, "error", err);
@@ -79,6 +111,7 @@ export class Scheduler {
 
   async tick(conditions = []) {
     const jobs = await this.getJobs(conditions);
+    if (process.env.NODE_ENV === "development") console.log(TAG, "jobs", jobs);
     jobs.forEach(this.runJob.bind(this));
   }
 

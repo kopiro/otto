@@ -142,7 +142,7 @@ export function fulfillmentTransformerForDriverOutput(fulfillment: Fulfillment):
 export async function output(
   fulfillment: Fulfillment,
   session: Session,
-  bag: IOBag,
+  bag?: IOBag,
   loadDriverIfNotEnabled = false,
 ): Promise<OutputResult> {
   if (!fulfillment) {
