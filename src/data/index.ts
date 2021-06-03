@@ -37,6 +37,8 @@ const SchedulerSchema = new Schema({
   hourly: String, // set minute
   onTick: Boolean, // every second
   onDate: String, // on a date
+  onDateISOString: String, // on a date iso strin
+  deleteAfterRun: Boolean,
 });
 SchedulerSchema.plugin(autopopulate);
 export const Scheduler = mongoose.model<IScheduler>("scheduler", SchedulerSchema);
