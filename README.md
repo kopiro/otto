@@ -1,6 +1,6 @@
 # Otto AI
 
-![Logo](image.png?raw=true "Logo")
+<img src="image.png" width="200" />
 
 Otto was my monkey plush, now is my personal AI assistant.
 
