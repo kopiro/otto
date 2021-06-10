@@ -29,7 +29,7 @@ routerApi.use(
 routerApi.get("/speech", async (req: express.Request, res: express.Response) => {
   const audioFile = await textToSpeech().getAudioFile(
     req.query.text.toString(),
-    req.query.languages?.toString() || config().language,
+    req.query.language?.toString() || config().language,
     req.query.gender?.toString() || config().tts.gender,
   );
   const audioFileMixed = await voice().getFile(audioFile);
