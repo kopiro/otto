@@ -53,9 +53,11 @@ routerApi.post("/input", async (req, res) => {
     const output = await ai().processInput(obj.params, session);
     return res.json({ data: output });
   } catch (err) {
-    console.error("IO Text", err);
+    console.error("/api/input error", err);
     return res.status(400).json({
-      error: err,
+      error: {
+        message: err.message,
+      },
     });
   }
 });
