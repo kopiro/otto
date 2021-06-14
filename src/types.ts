@@ -65,6 +65,7 @@ export interface Fulfillment {
 }
 export interface InputParams {
   text?: string;
+  repeatText?: string;
   event?:
     | string
     | {

@@ -617,8 +617,10 @@ class AI {
       fulfillment = await this.textRequestDF(text, session, params.bag);
     } else if (params.command) {
       fulfillment = await this.commandRequest(params.command, session, params.bag);
+    } else if (params.repeatText) {
+      fulfillment = { text: params.repeatText };
     } else {
-      console.warn("Neither { text, event, command, audio } in params are not null");
+      console.warn("Neither { text, event, command, repeatText, audio } in params are not null");
     }
 
     fulfillment = await this.fulfillmentTransformerForSession(fulfillment, session);

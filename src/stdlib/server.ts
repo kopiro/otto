@@ -6,6 +6,8 @@ import { publicDir, cacheDir } from "../paths";
 import voice from "../stdlib/voice";
 import bodyParser from "body-parser";
 import textToSpeech from "./text-to-speech";
+import { getSession } from "./iomanager";
+import ai from "./ai";
 
 const TAG = "Server";
 
@@ -27,14 +29,35 @@ routerApi.use(
 
 // API to get an audio
 routerApi.get("/speech", async (req: express.Request, res: express.Response) => {
-  const audioFile = await textToSpeech().getAudioFile(
-    req.query.text.toString(),
-    req.query.language?.toString() || config().language,
-    req.query.gender?.toString() || config().tts.gender,
-  );
-  const audioFileMixed = await voice().getFile(audioFile);
-  const audioFilePath = audioFileMixed.getRelativePath();
-  res.redirect(audioFilePath);
+  try {
+    const audioFile = await textToSpeech().getAudioFile(
+      req.query.text.toString(),
+      req.query.language?.toString() || config().language,
+      req.query.gender?.toString() || config().tts.gender,
+    );
+    const audioFileMixed = await voice().getFile(audioFile);
+    const audioFilePath = audioFileMixed.getRelativePath();
+    res.redirect(audioFilePath);
+  } catch (err) {
+    return res.status(400).json({
+      error: err,
+    });
+  }
+});
+
+// API to kick-in input
+routerApi.post("/input", async (req, res) => {
+  try {
+    const obj = req.body;
+    const session = await getSession(obj.session);
+    const output = await ai().processInput(obj.params, session);
+    return res.json({ data: output });
+  } catch (err) {
+    console.error("IO Text", err);
+    return res.status(400).json({
+      error: err,
+    });
+  }
 });
 
 // Listeners
@@ -74,7 +97,7 @@ export function initializeRoutes() {
 export function start() {
   return new Promise<void>((resolve, reject) => {
     const _config = config().server;
-    const { app, server } = initializeRoutes();
+    const { server } = initializeRoutes();
     server.listen(
       {
         port: _config.port,
