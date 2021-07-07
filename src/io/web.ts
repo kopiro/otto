@@ -40,17 +40,16 @@ export class Web implements IOManager.IODriverModule {
   }
 
   async requestEndpoint(req: Request, res: Response) {
-    const sessionId = req.body.sessionId;
-    const session = await IOManager.registerSession(DRIVER_ID, sessionId, req.headers);
+    const session = await IOManager.registerSession(DRIVER_ID, req.body.session, req.headers);
 
     const bag: WebBag = { req, res };
 
     // First check if the request contains any text or event
-    if (req.body.text || req.body.event) {
+    if (req.body.params) {
       this.emitter.emit("input", {
         session,
         params: {
-          ...req.body,
+          ...req.body.params,
           bag,
         } as InputParams,
       });
@@ -81,7 +80,7 @@ export class Web implements IOManager.IODriverModule {
       return true;
     }
 
-    throw new Error("Unable to find a suitable input: body.text, body.event, files.audio");
+    throw new Error("Unable to find a suitable input: body.params OR files.audio");
   }
 
   async start() {
@@ -92,8 +91,8 @@ export class Web implements IOManager.IODriverModule {
     routerIO.post("/web", bodyParser.json(), async (req: Request, res: Response) => {
       try {
         await this.requestEndpoint(req, res);
-      } catch (error) {
-        res.status(400).json({ error });
+      } catch (ex) {
+        res.status(400).json({ error: { message: ex.message } });
       }
     });
 

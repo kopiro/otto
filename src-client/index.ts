@@ -3,6 +3,7 @@ import Recorder from "recorder-js";
 declare let webkitAudioContext: any; // ADDED
 
 const formConversation = document.querySelector("#conversation") as HTMLFormElement;
+const formEvent = document.querySelector("#event") as HTMLFormElement;
 const formRepeat = document.querySelector("#repeat") as HTMLFormElement;
 
 const audio = document.querySelector("audio") as HTMLAudioElement;
@@ -68,7 +69,24 @@ formConversation.addEventListener("submit", (e) => {
       "content-type": "application/json",
     },
     JSON.stringify({
-      text: textInputEl.value,
+      params: {text: textInputEl.value}
+    }),
+  );
+
+  textInputEl.value = "";
+});
+
+
+formEvent.addEventListener("submit", (e) => {
+  e.preventDefault();
+
+  const textInputEl = formConversation.querySelector("[name=event]") as HTMLInputElement;
+  sendData(
+    {
+      "content-type": "appliceation/json",
+    },
+    JSON.stringify({
+      params: {event:{name:textInputEl.value}}
     }),
   );
 

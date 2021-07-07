@@ -1,29 +1,38 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf8" />
-    <title>Otto Web Client</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="stylesheet" href="/style.css" />
-  </head>
-  <body>
-    <form id="conversation">
-      <h3>Conversation</h3>
-      <input name="text" type="text" />
-      <button type="submit">Send</button>
-      <button id="record-start">Record</button>
-      <button id="record-stop" disabled>Stop</button>
-    </form>
 
-    <form id="repeat">
-      <h3>Repeat</h3>
-      <input name="text" type="text" />
-      <button type="submit">Send</button>
-    </form>
+<head>
+  <meta charset="utf8" />
+  <title>Otto Web Client</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
 
-    <textarea readonly id="response"></textarea>
-    <audio controls></audio>
+<body>
+  <form id="conversation">
+    <h3>Conversation</h3>
+    <input name="text" type="text" />
+    <button type="submit">Send</button>
+    <button id="record-start">Record</button>
+    <button id="record-stop" disabled>Stop</button>
+  </form>
 
-    <script async defer src="./build/bundle.js"></script>
-  </body>
+  <form id="event">
+    <h3>Event</h3>
+    <input name="event" type="text" />
+    <button type="submit">Send</button>
+  </form>
+
+  <form id="repeat">
+    <h3>Repeat</h3>
+    <input name="text" type="text" />
+    <button type="submit">Send</button>
+  </form>
+
+  <textarea readonly id="response"></textarea>
+  <audio controls></audio>
+
+  <script async defer src="./build/bundle.js"></script>
+</body>
+
 </html>
