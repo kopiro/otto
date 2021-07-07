@@ -27,13 +27,12 @@ routerApi.use(
   }),
 );
 
-// API to get an audio
-routerApi.get("/speech", async (req: express.Request, res: express.Response) => {
+async function speech(res: express.Response, obj: Record<string,any>) {
   try {
     const audioFile = await textToSpeech().getAudioFile(
-      req.query.text.toString(),
-      req.query.language?.toString() || config().language,
-      req.query.gender?.toString() || config().tts.gender,
+      obj.text.toString(),
+      obj.language?.toString() || config().language,
+      obj.gender?.toString() || config().tts.gender,
     );
     const audioFileMixed = await voice().getFile(audioFile);
     const audioFilePath = audioFileMixed.getRelativePath();
@@ -43,7 +42,11 @@ routerApi.get("/speech", async (req: express.Request, res: express.Response) => 
       error: err,
     });
   }
-});
+}
+
+// API to get an audio
+routerApi.get("/speech", (req: express.Request, res: express.Response) => speech(res, req.query));
+routerApi.post("/speech", (req: express.Request, res: express.Response) => speech(res, req.body));
 
 // API to kick-in input
 routerApi.post("/input", async (req, res) => {
