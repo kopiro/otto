@@ -318,24 +318,9 @@ class AI {
       case "train":
         this.train(queryResult.outputContexts[0].parameters.queryText, queryResult.queryText);
         return body.queryResult;
-
-      case "do_not_disturb_on":
-        this.doNotDisturb(true, session);
-        return body.queryResult;
-
-      case "do_not_disturb_off":
-        this.doNotDisturb(false, session);
-        return body.queryResult;
-
       default:
         return null;
     }
-  }
-
-  doNotDisturb(value: boolean, session: Session) {
-    console.log(TAG, `setting doNotDisturb to ${value}`, session);
-    session.doNotDisturb = value;
-    return session.save();
   }
 
   /**

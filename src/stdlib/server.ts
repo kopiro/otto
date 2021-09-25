@@ -72,9 +72,28 @@ routerApi.post("/input", async (req, res) => {
 
 routerApi.get("/dnd", async (req, res) => {
   try {
-    if (!req.query) throw new Error("'session' key not provided");
+    if (!req.query.session) throw new Error("'session' key not provided");
     const session = await getSession(req.query.session.toString());
     if (!session) throw new Error("Session not found");
+    return res.json({ status: Boolean(session.doNotDisturb) });
+  } catch (err) {
+    console.error("/api/dnd error", err);
+    return res.status(400).json({
+      error: {
+        message: err.message,
+      },
+    });
+  }
+});
+
+routerApi.post("/dnd", async (req, res) => {
+  try {
+    if (!req.body.session) throw new Error("'session' key not provided");
+    if (!("status" in req.body)) throw new Error("'status' key not provided");
+    const session = await getSession(req.body.session);
+    if (!session) throw new Error("Session not found");
+    session.doNotDisturb = Boolean(req.body.status);
+    await session.save();
     return res.json({ status: Boolean(session.doNotDisturb) });
   } catch (err) {
     console.error("/api/dnd error", err);
