@@ -27,7 +27,7 @@ routerApi.use(
   }),
 );
 
-async function speech(res: express.Response, obj: Record<string,any>) {
+async function speech(res: express.Response, obj: Record<string, any>) {
   try {
     const audioFile = await textToSpeech().getAudioFile(
       obj.text.toString(),
@@ -52,7 +52,12 @@ routerApi.post("/speech", (req: express.Request, res: express.Response) => speec
 routerApi.post("/input", async (req, res) => {
   try {
     const obj = req.body;
+    if (!obj.session) throw new Error("'session' key not provided");
+    if (!obj.params) throw new Error("'params' key not provided");
+
     const session = await getSession(obj.session);
+    if (!session) throw new Error("Session not found");
+
     const output = await ai().processInput(obj.params, session);
     return res.json({ data: output });
   } catch (err) {
