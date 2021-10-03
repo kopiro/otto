@@ -1,0 +1,17 @@
+[Unit]
+Description=Otto
+After=network-online.target
+Wants=network-online.target systemd-networkd-wait-online.service
+StartLimitIntervalSec=500
+StartLimitBurst=5
+
+[Service]
+User=otto
+Group=otto
+Restart=on-failure
+RestartSec=5s
+WorkingDirectory=/home/otto/ai
+ExecStart=./deps/pi/start.sh
+
+[Install]
+WantedBy=default.target
