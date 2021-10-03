@@ -16,6 +16,7 @@
   "scripts": {
     "build": "yarn build:server && yarn build:client",
     "start": "node build",
+    "start:pi": "play ./etc/boot.wav && yarn start",
     "start:dev": "nodemon",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "yarn lint --fix",
