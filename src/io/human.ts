@@ -30,6 +30,7 @@ const HOTWORD_SILENCE_MAX = 8;
 
 type HumanConfig = {
   enableHotword: boolean;
+  enableMic: boolean;
   defaultBinaryRecorder: string;
 };
 
@@ -319,19 +320,21 @@ export class Human implements IOManager.IODriverModule {
     this.emitter.on("wake", this.wake);
     this.emitter.on("stop", this.stop);
 
-    this.mic = recorder.record({
-      sampleRate: 16000,
-      channels: 1,
-      audioType: "raw",
-      recorder: PLATFORM_RECORDER_MAP.get(os.platform()) ?? this.config.defaultBinaryRecorder,
-    });
+    if (this.config.enableMic) {
+      this.mic = recorder.record({
+        sampleRate: 16000,
+        channels: 1,
+        audioType: "raw",
+        recorder: PLATFORM_RECORDER_MAP.get(os.platform()) ?? this.config.defaultBinaryRecorder,
+      });
 
-    if (this.config.enableHotword) {
-      try {
-        this.startHotwordDetection();
-        this.registerHotwordSilenceSecIntv();
-      } catch (err) {
-        console.warn(err);
+      if (this.config.enableHotword) {
+        try {
+          this.startHotwordDetection();
+          this.registerHotwordSilenceSecIntv();
+        } catch (err) {
+          console.warn(err);
+        }
       }
     }
 
