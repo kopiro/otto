@@ -109,16 +109,11 @@ routerApi.post("/dnd", async (req, res) => {
 routerApi.post("/findmydevice", async (req, res) => {
   try {
     if (!req.body.name) throw new Error("'name' key not provided");
-    let fresh = false;
-    const ip = req.connection.remoteAddress;
-    let device = await FindMyDevice.findOne({ name: req.body.name, ip });
-    if (!device) {
-      fresh = true;
-      device = new FindMyDevice({ name: req.body.name, ip });
-    }
+    const record = { name: req.body.name, ip: req.connection.remoteAddress };
+    const device = (await FindMyDevice.findOne(record)) || new FindMyDevice(record);
     device.createdAt = new Date();
     await device.save();
-    return res.json({ status: true, id: device.id, fresh });
+    return res.json({ status: true, id: device.id });
   } catch (err) {
     console.error("/findmydevice error", err);
     return res.status(400).json({
