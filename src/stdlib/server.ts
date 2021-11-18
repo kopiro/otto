@@ -110,10 +110,11 @@ routerApi.post("/findmydevice", async (req, res) => {
   try {
     if (!req.body.name) throw new Error("'name' key not provided");
     let fresh = false;
-    let device = await FindMyDevice.findOne({ name: req.body.name, ip: req.ip });
+    const ip = req.connection.remoteAddress;
+    let device = await FindMyDevice.findOne({ name: req.body.name, ip });
     if (!device) {
       fresh = true;
-      device = new FindMyDevice({ name: req.body.name, ip: req.ip });
+      device = new FindMyDevice({ name: req.body.name, ip });
     }
     device.createdAt = new Date();
     await device.save();
