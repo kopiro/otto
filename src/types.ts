@@ -129,5 +129,6 @@ export interface FindMyDevice extends Document {
   name: string;
   ip: string;
   createdAt: Date;
+  updatedAt: Date;
   data?: Record<string, any>;
 }

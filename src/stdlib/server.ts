@@ -110,8 +110,8 @@ routerApi.post("/findmydevice", async (req, res) => {
   try {
     if (!req.body.name) throw new Error("'name' key not provided");
     const record = { name: req.body.name, ip: String(req.headers["x-forwarded-for"]) || req.socket.remoteAddress };
-    const device = (await FindMyDevice.findOne(record)) || new FindMyDevice(record);
-    device.createdAt = new Date();
+    const device = (await FindMyDevice.findOne(record)) || new FindMyDevice({ ...record, createdAt: new Date() });
+    device.updatedAt = new Date();
     await device.save();
     return res.json({ status: true, id: device.id });
   } catch (err) {

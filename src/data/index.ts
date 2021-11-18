@@ -59,5 +59,6 @@ const FindMyDeviceSchema = new Schema({
   name: String,
   ip: String,
   createdAt: Date,
+  updatedAt: Date,
 });
 export const FindMyDevice = mongoose.model<IFindMyDevice>("findmydevice", FindMyDeviceSchema);
