@@ -123,3 +123,11 @@ export interface Session extends Document {
   getTranslateTo: () => Language;
   getName(): () => string;
 }
+
+export interface FindMyDevice extends Document {
+  id: string;
+  name: string;
+  ip: string;
+  createdAt: Date;
+  data?: Record<string, any>;
+}
