@@ -6,18 +6,21 @@ const formConversation = document.querySelector("#conversation") as HTMLFormElem
 const formEvent = document.querySelector("#event") as HTMLFormElement;
 const formRepeat = document.querySelector("#repeat") as HTMLFormElement;
 
+const inputSessionId = document.querySelector("#sessionid") as HTMLInputElement;
+const inputLanguage = document.querySelector("#language") as HTMLInputElement;
+
 const audio = document.querySelector("audio") as HTMLAudioElement;
 const responseTextarea = document.getElementById("response") as HTMLTextAreaElement;
 const recordStartBtn = document.getElementById("record-start");
 const recordStopBtn = document.getElementById("record-stop");
 
-async function repeatTextToSpeech(text) {
+async function repeatTextToSpeech(text: string, language: string) {
   audio.src = "";
   audio.volume = 0;
   audio.play();
 
   const url = new URL("/api/speech", location.href);
-  url.search = new URLSearchParams({ text }).toString();
+  url.search = new URLSearchParams({ text, language }).toString();
 
   responseTextarea.value = text;
 
@@ -43,19 +46,29 @@ async function sendData(headers, body) {
 
   const json = await response.json();
 
-  responseTextarea.value = json.text;
-  if (json.audio) {
-    audio.src = json.audio;
-    audio.volume = 1;
-    audio.play();
+  if (json.error) {
+    responseTextarea.style.color = "red";
+    responseTextarea.value = json.error?.message ?? JSON.stringify(json);
+  } else {
+    responseTextarea.style.color = "white";
+    if (json.text) {
+      responseTextarea.value = json.text;
+    }
+    if (json.audio) {
+      audio.src = json.audio;
+      audio.volume = 1;
+      audio.play();
+    }
   }
 }
 
 formRepeat.addEventListener("submit", (e) => {
   e.preventDefault();
 
-  const textInputEl = formRepeat.querySelector("[name=text]") as HTMLInputElement;
-  repeatTextToSpeech(textInputEl.value);
+  const textInputEl = formRepeat.querySelector("input[type=text]") as HTMLInputElement;
+  if (!textInputEl.value) return;
+
+  repeatTextToSpeech(textInputEl.value, inputLanguage.value);
 
   textInputEl.value = "";
 });
@@ -63,30 +76,37 @@ formRepeat.addEventListener("submit", (e) => {
 formConversation.addEventListener("submit", (e) => {
   e.preventDefault();
 
-  const textInputEl = formConversation.querySelector("[name=text]") as HTMLInputElement;
+  const textInputEl = formConversation.querySelector("input[type=text]") as HTMLInputElement;
+  if (!textInputEl.value) return;
+
   sendData(
     {
       "content-type": "application/json",
     },
     JSON.stringify({
-      params: {text: textInputEl.value}
+      params: { text: textInputEl.value },
+      language: inputLanguage.value,
+      session: inputSessionId.value,
     }),
   );
 
   textInputEl.value = "";
 });
 
-
 formEvent.addEventListener("submit", (e) => {
   e.preventDefault();
 
-  const textInputEl = formConversation.querySelector("[name=event]") as HTMLInputElement;
+  const textInputEl = formEvent.querySelector("input[type=text]") as HTMLInputElement;
+  if (!textInputEl.value) return;
+
   sendData(
     {
-      "content-type": "appliceation/json",
+      "content-type": "application/json",
     },
     JSON.stringify({
-      params: {event:{name:textInputEl.value}}
+      params: { event: { name: textInputEl.value } },
+      language: inputLanguage.value,
+      session: inputSessionId.value,
     }),
   );
 
