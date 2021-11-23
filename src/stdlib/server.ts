@@ -4,7 +4,6 @@ import express from "express";
 import config from "../config";
 import { publicDir, cacheDir } from "../paths";
 import voice from "../stdlib/voice";
-import bodyParser from "body-parser";
 import textToSpeech from "./text-to-speech";
 import { getSession } from "./iomanager";
 import ai from "./ai";
@@ -21,12 +20,8 @@ export const routerOAuth = express.Router();
 
 // API Router
 
-routerApi.use(bodyParser.json());
-routerApi.use(
-  bodyParser.urlencoded({
-    extended: true,
-  }),
-);
+routerApi.use(express.json());
+routerApi.use(express.urlencoded({ extended: true }));
 
 // API to get an audio
 // GET /api/speech?text=Hello&language=en

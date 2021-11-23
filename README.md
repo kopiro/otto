@@ -8,14 +8,21 @@ Otto was my monkey plush, now is my personal AI assistant.
 
 You have to satisfy some dependencies that can be installed via a script based on your platform.
 
-- `./deps/macos.sh` if you run on macOS
-- `./deps/raspberry.sh` if you run on a Raspberry (2/3/4/Zero)
+- `./deps/macos/install.sh` if you run on macOS
+- `./deps/pi/install.sh` if you run on a Raspberry Pi
 
 Then:
 
 ```sh
 cp .env.example .env
 yarn install
+yarn start:dev
+```
+
+If you're gonna work on the client:
+
+```sh
+cd src-client
 yarn start:dev
 ```
 
@@ -80,21 +87,12 @@ Params:
 
 ## I/O Accessories
 
-I/O Accessories are similar to drivers, but don't handle input and output direclty. They can be attached to I/O driver to perform additional things.
-
-Accessories listen for I/O drivers events and, when an output to a driver is request, this output could be forwarded to accessories.
-
-Each accessory has a method called `canHandleOutput` that should return constant from `IOManager.CAN_HANDLE_OUTPUT.*`:
-
-- `YES_AND_BREAK`
-- `YES_AND_CONTINUE`
-- `NO`
-
-Depending on this constant, the IOManager forward the output to the next configured driver or stops the chain.
+I/O Accessories are similar to drivers, but don't handle input and output direclty.
+They can be attached to I/O driver to perform additional things.
 
 You can temporary use a accessory without altering your configuration by setting an environment var:
 
-```
+```sh
 export OTTO_IO_ACCESSORIES=telegram,test
 ```
 

@@ -17,8 +17,6 @@ export enum Authorizations {
 }
 
 export type IODriverOutput = [string, any][];
-
-// eslint-disable-next-line @typescript-eslint/interface-name-prefix
 export interface IODriverModule {
   emitter: EventEmitter;
   start: () => Promise<boolean>;
@@ -33,8 +31,6 @@ export type OutputResult = {
     data?: Record<string, any>;
   };
 };
-
-// eslint-disable-next-line @typescript-eslint/interface-name-prefix
 export interface IOAccessoryModule {
   start: () => void;
 }

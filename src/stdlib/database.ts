@@ -1,10 +1,9 @@
 import mongoose from "mongoose";
 import config from "../config";
 
-function getUrl() {
-  return `mongodb://${config().mongo.user}:${config().mongo.password}@${config().mongo.host}:${config().mongo.port}/${
-    config().mongo.database
-  }`;
+export function getUrl() {
+  const { user, password, host, port, database } = config().mongo;
+  return `mongodb://${user}:${password}@${host}:${port}/${database}`;
 }
 
 export function connect(): Promise<void> {
