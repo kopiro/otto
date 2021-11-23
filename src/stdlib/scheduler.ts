@@ -65,8 +65,7 @@ export class Scheduler {
     ];
     const jobs = await Data.Scheduler.find({
       managerUid: this.getManagerUid(),
-      $or: query,
-    });
+    }).or(query);
     return jobs;
   }
 
@@ -111,7 +110,9 @@ export class Scheduler {
 
   async tick(conditions = []) {
     const jobs = await this.getJobs(conditions);
-    if (process.env.NODE_ENV === "development") console.log(TAG, "jobs", jobs);
+    if (process.env.NODE_ENV === "development") {
+      console.log(TAG, "jobs", jobs);
+    }
     jobs.forEach(this.runJob.bind(this));
   }
 
