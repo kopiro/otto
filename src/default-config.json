@@ -10,7 +10,6 @@
   "speakerDriver": "direct",
   "ioDrivers": [],
   "ioAccessoriesMap": {},
-  "ioListeners": [],
   "language": "it",
   "trainingSessionId": "",
   "oauth": {

@@ -6,7 +6,6 @@ import { EventEmitter } from "events";
 const TAG = "IOManager";
 
 export type IODriver = "telegram" | "human" | "web";
-export type IOListener = "io_event";
 export type IOAccessory = "gpio_button" | "leds";
 
 export type IOBag = any;
@@ -34,11 +33,6 @@ export type OutputResult = {
     data?: Record<string, any>;
   };
 };
-
-// eslint-disable-next-line @typescript-eslint/interface-name-prefix
-export interface IOListenerModule {
-  start: () => void;
-}
 
 // eslint-disable-next-line @typescript-eslint/interface-name-prefix
 export interface IOAccessoryModule {
@@ -78,16 +72,6 @@ export function getAccessoriesToLoadForDriver(driver: IODriver): IOAccessory[] {
 }
 
 /**
- * Return an array of listeners strings to load
- */
-export function getListenersToLoad(): IOListener[] {
-  if (process.env.OTTO_IO_LISTENERS) {
-    return (process.env.OTTO_IO_LISTENERS.split(",") as unknown) as IOListener[];
-  }
-  return config().ioListeners || [];
-}
-
-/**
  * Load the driver module
  */
 export async function getDriver(e: IODriver): Promise<IODriverModule> {
@@ -100,18 +84,6 @@ export async function getDriver(e: IODriver): Promise<IODriverModule> {
       return (await import("../io/web")).default();
     default:
       throw new Error(`Invalid driver: ${e}`);
-  }
-}
-
-/**
- * Load the listener module
- */
-export async function getListener(e: IOListener): Promise<IOListenerModule> {
-  switch (e) {
-    case "io_event":
-      return (await import("../listeners/io_event")).default();
-    default:
-      throw new Error(`Invalid listener: ${e}`);
   }
 }
 
@@ -261,18 +233,6 @@ export async function configureDriver(driverName: IODriver): Promise<[IODriverMo
   return [driver, driverId];
 }
 
-function startListeners() {
-  return Promise.all(
-    getListenersToLoad().map((listenerName) =>
-      getListener(listenerName)
-        .then((listener) => listener.start())
-        .then(() => {
-          console.log(TAG, `listener ${listenerName} started`);
-        }),
-    ),
-  );
-}
-
 function startDrivers(onDriverInput: (params: InputParams, session: Session) => void) {
   return Promise.all(
     getDriversToLoad().map(async (driverName) => {
@@ -402,20 +362,10 @@ export async function processIOQueue(): Promise<IOQueue | null> {
 }
 
 /**
- * Start drivers, accessories and listeners
+ * Start drivers and start processing the queue
  */
 export async function start(onDriverInput: (params: InputParams, session: Session) => void) {
-  try {
-    await startDrivers(onDriverInput);
-  } catch (err) {
-    console.error(err);
-  }
-
-  try {
-    await startListeners();
-  } catch (err) {
-    console.error(TAG, err);
-  }
+  await startDrivers(onDriverInput);
 
   if (config().ioQueue?.enabled) {
     setInterval(processIOQueue, config().ioQueue.timeout);

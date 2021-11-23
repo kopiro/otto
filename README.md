@@ -78,10 +78,6 @@ Params:
 - `sessionId`: required
 - `outputType`: optional, define an additional output type (example: `voice`)
 
-## Listeners
-
-A listener is a file that listen for incoming requests and can trigger output.
-
 ## I/O Accessories
 
 I/O Accessories are similar to drivers, but don't handle input and output direclty. They can be attached to I/O driver to perform additional things.

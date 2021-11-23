@@ -48,13 +48,6 @@ const SchedulerSchema = new Schema({
 SchedulerSchema.plugin(autopopulate);
 export const Scheduler = mongoose.model<IScheduler>("scheduler", SchedulerSchema);
 
-const ListenerSchema = new Schema({
-  session: { type: String, ref: "session", autopopulate: true },
-  listener: String,
-});
-ListenerSchema.plugin(autopopulate);
-export const Listener = mongoose.model("listener", ListenerSchema);
-
 const FindMyDeviceSchema = new Schema({
   name: String,
   ip: String,
