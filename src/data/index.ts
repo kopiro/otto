@@ -40,7 +40,12 @@ const SchedulerSchema = new Schema({
   weekly: String, // set "dayofweek hour:minute"
   daily: String, // set "hour:minute"
   hourly: String, // set minute
+  minutely: String, // set second
+  everyHalfHour: Boolean,
+  everyQuartelyHour: Boolean,
+  everyFiveMinutes: Boolean,
   onTick: Boolean, // every second
+  onBoot: Boolean, // every boot
   onDate: String, // on a date
   onDateISOString: String, // on a date iso strin
   deleteAfterRun: Boolean,

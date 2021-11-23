@@ -54,10 +54,10 @@ export class Scheduler {
       { weekly: time.format("d HH:mm:ss") },
       { daily: time.format("HH:mm:ss") },
       { hourly: time.format("mm:ss") },
+      { minutely: time.format("ss") },
       { everyHalfHour: +time.format("m") % 30 === 0 },
       { everyQuartelyHour: +time.format("m") % 15 === 0 },
       { everyFiveMinutes: +time.format("m") % 5 === 0 },
-      { minutely: time.format("ss") },
       { onDate: time.format(FORMAT) },
       { onDateISOString: time.toISOString() },
       { onTick: true },
@@ -65,7 +65,8 @@ export class Scheduler {
     ];
     const jobs = await Data.Scheduler.find({
       managerUid: this.getManagerUid(),
-    }).or(query);
+      $or: query,
+    });
     return jobs;
   }
 
@@ -110,7 +111,7 @@ export class Scheduler {
 
   async tick(conditions = []) {
     const jobs = await this.getJobs(conditions);
-    if (process.env.NODE_ENV === "development") {
+    if (jobs.length > 0) {
       console.log(TAG, "jobs", jobs);
     }
     jobs.forEach(this.runJob.bind(this));
