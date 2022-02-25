@@ -533,7 +533,7 @@ class AI {
       }" -H "content-type: application/json" -d "${JSON.stringify(params)}"`,
     );
 
-    const json = await response.json();
+    const json = (await response.json()) as { choices: { text }[] };
     console.log(TAG, "response", json);
 
     const answer = json.choices[0].text.trim();

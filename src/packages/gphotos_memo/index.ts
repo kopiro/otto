@@ -32,7 +32,9 @@ const gPhotosMemoAction: AIAction = async ({ queryResult }, session) => {
       albumId: p.album_id,
     }),
   });
-  const responseJson = await response.json();
+  const responseJson = (await response.json()) as {
+    mediaItems: { mimeType: string; baseUrl: string; mediaMetadata?: {creationTime:string} }[];
+  };
 
   const images = responseJson.mediaItems.filter((e) => e.mimeType.includes("image"));
   const media = images[Math.floor(Math.random() * images.length)];
