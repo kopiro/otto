@@ -1,4 +1,4 @@
-FROM node:14-alpine
+FROM node:16-alpine
 WORKDIR /app
 VOLUME /app/cache /app/log /app/keys /app/tmp
 EXPOSE 80

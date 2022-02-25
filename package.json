@@ -81,7 +81,7 @@
     "wav-file-info": "^0.0.8"
   },
   "devDependencies": {
-    "@tsconfig/node14": "^1.0.0",
+    "@tsconfig/node16": "^1.0.2",
     "@types/jest": "^26.0.20",
     "@types/mocha": "^8.2.1",
     "@types/mongoose-autopopulate": "^0.10.1",
