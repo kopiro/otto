@@ -44,7 +44,7 @@
   },
   "dependencies": {
     "@google-cloud/dialogflow": "^3.2.0",
-    "@google-cloud/speech": "^3.6.0",
+    "@google-cloud/speech": "^4.0.0",
     "@google-cloud/storage": "^5.0.0",
     "@google-cloud/text-to-speech": "^3.0.0",
     "@google-cloud/translate": "^6.0.0",
@@ -65,7 +65,7 @@
     "formidable": "^1.2.2",
     "google-images": "^2.0.0",
     "googleapis": "^74.0.0",
-    "moment": "^2.22.2",
+    "moment": "^2.29.2",
     "mongoose": "^6.0.13",
     "mongoose-autopopulate": "^0.16.0",
     "node-fetch": "^2",
