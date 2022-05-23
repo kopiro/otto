@@ -121,7 +121,7 @@ export async function output(
   }
 
   // If this fulfillment has been handled by a generator, simply skip
-  if (fulfillment.payload?.handledByGenerator) {
+  if (fulfillment.options?.handledByGenerator) {
     console.warn(TAG, "Skipping output because is handled by an external generator");
     return { rejectReason: { message: "HANDLED_BY_GENERATOR" } };
   }
