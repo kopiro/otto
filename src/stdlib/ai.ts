@@ -225,7 +225,11 @@ class AI {
       const fromLanguage = fulfillment.options.translateFrom ?? this.config.language;
       const toLanguage = fulfillment.options.translateTo || session.getTranslateTo();
       if (toLanguage !== fromLanguage) {
-        fulfillment.text = await translator().translate(fulfillment.text, toLanguage, fromLanguage);
+        try {
+          fulfillment.text = await translator().translate(fulfillment.text, toLanguage, fromLanguage);
+        } catch (err) {
+          fulfillment.text += ` [untranslated]`;
+        }
       }
     }
 
@@ -257,24 +261,7 @@ class AI {
    */
   actionErrorTransformer(body: ResponseBody, error: CustomError): Fulfillment {
     const fulfillment: Fulfillment = {};
-
-    if (error.message) {
-      const errMessage = error.message;
-      const textInPayload = extractWithPattern(body.queryResult.fulfillmentMessages, `[].payload.error.${errMessage}`);
-      if (textInPayload) {
-        // If an error occurs, try to intercept this error
-        // in the fulfillmentMessages that comes from DialogFlow
-        let text = textInPayload;
-        if (error.data) {
-          text = replaceVariablesInStrings(text, error.data);
-        }
-        fulfillment.text = text;
-      }
-    }
-
-    // Add anyway the complete error
     fulfillment.error = error;
-
     return fulfillment;
   }
 
@@ -292,19 +279,8 @@ class AI {
     const fulfillmentsAndOutputResults: [Fulfillment, IOManager.OutputResult][] = [];
 
     for await (const fulfillment of fulfillmentGenerator) {
-      let outputResult: IOManager.OutputResult;
-      let trFulfillment: Fulfillment;
-
-      try {
-        trFulfillment = await this.fulfillmentTransformerForSession(fulfillment, session);
-        outputResult = await IOManager.output(trFulfillment, session, bag);
-      } catch (err) {
-        console.error(TAG, "error while executing action generator", err);
-        trFulfillment = this.actionErrorTransformer(body, err);
-        trFulfillment = await this.fulfillmentTransformerForSession(trFulfillment, session);
-        outputResult = await IOManager.output(trFulfillment, session, bag);
-      }
-
+      let trFulfillment = await this.fulfillmentTransformerForSession(fulfillment, session);
+      let outputResult = await IOManager.output(trFulfillment, session, bag);
       fulfillmentsAndOutputResults.push([trFulfillment, outputResult]);
     }
 
@@ -376,7 +352,7 @@ class AI {
         return actionResult as Fulfillment;
       }
     } catch (err) {
-      console.error(TAG, "error while executing action:", err);
+      console.error(TAG, "error while executing action", err);
       return this.actionErrorTransformer(body, err);
     }
   }
@@ -598,8 +574,8 @@ class AI {
       console.info(TAG, "using repeatModeSessions", session.repeatModeSessions);
       return Promise.all(
         session.repeatModeSessions.map(async (e) => {
-          const fulfillment = await this.fulfillmentTransformerForSession({ text: params.text }, e);
-          return IOManager.output(fulfillment, e, params.bag);
+          const trFulfillment = await this.fulfillmentTransformerForSession({ text: params.text }, e);
+          return IOManager.output(trFulfillment, e, params.bag);
         }),
       );
     }
@@ -622,8 +598,8 @@ class AI {
       console.warn("Neither { text, event, command, repeatText, audio } in params are not null");
     }
 
-    fulfillment = await this.fulfillmentTransformerForSession(fulfillment, session);
-    return IOManager.output(fulfillment, session, params.bag);
+    const trFulfillment = await this.fulfillmentTransformerForSession(fulfillment, session);
+    return IOManager.output(trFulfillment, session, params.bag);
   }
 }
 
