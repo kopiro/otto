@@ -5,12 +5,5 @@ import { Authorizations } from "../../stdlib/iomanager";
 export const authorizations = [Authorizations.CAMERA];
 
 export default async (): Promise<Fulfillment> => {
-  const uri = await camera().takeVideo();
-  return {
-    payload: {
-      video: {
-        uri,
-      },
-    },
-  };
+  return { video: await camera().takeVideo() };
 };

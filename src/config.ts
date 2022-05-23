@@ -1,5 +1,5 @@
 import defaultConfig from "./default-config.json";
-import fs from "fs";
+import { readFileSync } from "fs";
 
 let _instance: typeof defaultConfig = null;
 
@@ -21,7 +21,7 @@ function parseLocalConfig(config, localConfig, path = "") {
 export default () => {
   if (!_instance) {
     if (process.env.CONFIG_FILE) {
-      _instance = parseLocalConfig(defaultConfig, JSON.parse(fs.readFileSync(process.env.CONFIG_FILE, "utf8")));
+      _instance = parseLocalConfig(defaultConfig, JSON.parse(readFileSync(process.env.CONFIG_FILE, "utf8")));
     } else {
       _instance = defaultConfig;
     }

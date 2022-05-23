@@ -6,7 +6,6 @@ import { timeout } from "../helpers";
 import { Fulfillment, Session } from "../types";
 import { etcDir } from "../paths";
 import path from "path";
-import Porcupine from "@picovoice/porcupine-node";
 import recorder from "node-record-lpcm16";
 import { COMPUTER } from "@picovoice/porcupine-node/builtin_keywords";
 import { getPlatform } from "@picovoice/porcupine-node/platforms";
@@ -194,6 +193,8 @@ export class Human implements IOManager.IODriverModule {
    * Create and assign the hotword stream to listen for wake word
    */
   startHotwordDetection() {
+    const Porcupine = require("@picovoice/porcupine-node");
+
     let frameAccumulator = [];
 
     const ppnFile = path.join(etcDir, `hey_otto_${getPlatform()}.ppn`);
@@ -262,22 +263,14 @@ export class Human implements IOManager.IODriverModule {
 
     // Process an Audio Object
     try {
-      if (fulfillment.payload.audio) {
-        const file = await voice().getFile(fulfillment.payload.audio.uri);
+      if (fulfillment.audio) {
+        const file = await voice().getFile(fulfillment.audio);
         await speaker().play(file);
         results.push(["file", file]);
       }
     } catch (err) {
       results.push(["error", err]);
       console.error(TAG, err);
-    }
-
-    if (fulfillment.payload.feedback) {
-      this.emitter.emit("thinking");
-    }
-
-    if (fulfillment.payload.welcome) {
-      this.emitter.emit("stop");
     }
 
     return results;

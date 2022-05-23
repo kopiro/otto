@@ -19,11 +19,25 @@ export interface CustomError {
 
 export interface Fulfillment {
   text?: string;
+  audio?: string;
+  video?: string;
+  image?: string;
+  document?: string;
+  caption?: string;
+  poll?: {
+    question: string;
+    choices: string[];
+    is_anonymous?: boolean;
+    type?: "regular" | "quiz";
+    allows_multiple_answers?: boolean;
+    correct_option_id?: number;
+    explanation?: string;
+    close_date?: number;
+    is_closed?: boolean;
+  };
   outputContexts?: Array<{}>;
   payload?: {
     data?: any;
-    feedback?: boolean;
-    welcome?: boolean;
     language?: Language;
     transformerUid?: string;
     transformedAt?: number;
@@ -32,35 +46,6 @@ export interface Fulfillment {
     error?: CustomError;
     handledByGenerator?: boolean;
     includeVoice?: boolean;
-    url?: string;
-    video?: {
-      uri: string;
-    };
-    image?: {
-      uri: string;
-      caption?: string;
-    };
-    audio?: {
-      uri: string;
-    };
-    document?: {
-      uri: string;
-    };
-    poll?: {
-      question: string;
-      choices: string[];
-      is_anonymous?: boolean;
-      type?: "regular" | "quiz";
-      allows_multiple_answers?: boolean;
-      correct_option_id?: number;
-      explanation?: string;
-      close_date?: number;
-      is_closed?: boolean;
-    };
-    telegram?: {
-      game: string;
-      sticker: string;
-    };
   };
 }
 export interface InputParams {

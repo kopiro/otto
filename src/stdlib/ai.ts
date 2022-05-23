@@ -407,6 +407,7 @@ class AI {
     // The parameters coming from Dialogflow when running without the fulfillment server
     // are in a Struct (.fields) that needs decoding
     body.queryResult.parameters = this.decodeIfStruct(body.queryResult.parameters);
+    const decodedResponses = body.queryResult.fulfillmentMessages.map((msg) => this.decodeIfStruct(msg.payload));
 
     // If we have an "action", call the package with the specified name
     if (body.queryResult.action) {
@@ -416,13 +417,24 @@ class AI {
 
     // Otherwise, check if at least an intent is match and direct return that fulfillment
     if (body.queryResult.intent) {
-      console.debug(TAG, "Using body.queryResult object (matched from intent)");
+      console.debug(
+        TAG,
+        "Using body.queryResult object (matched from intent)",
+        JSON.stringify(body.queryResult, null, 2),
+      );
 
       if (body.queryResult.intent.isFallback) {
         this.invokeTrain(body);
       }
+
       return {
         text: body.queryResult.fulfillmentText,
+        audio: decodedResponses.find((e) => e.audio)?.audio,
+        video: decodedResponses.find((e) => e.video)?.video,
+        image: decodedResponses.find((e) => e.image)?.image,
+        caption: decodedResponses.find((e) => e.caption)?.caption,
+        document: decodedResponses.find((e) => e.document)?.document,
+        poll: decodedResponses.find((e) => e.poll)?.poll,
       };
     }
 

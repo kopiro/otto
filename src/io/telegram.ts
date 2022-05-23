@@ -311,22 +311,11 @@ export class Telegram implements IOManager.IODriverModule {
       console.error(TAG, err);
     }
 
-    // Process a URL Object
-    try {
-      if (f.payload?.url) {
-        const r = await this.bot.sendMessage(chatId, f.payload.url, botOpt);
-        results.push(["message", r]);
-      }
-    } catch (err) {
-      results.push(["error", err]);
-      console.error(TAG, err);
-    }
-
     // Process a Video object
     try {
-      if (f.payload?.video?.uri) {
+      if (f.video) {
         this.bot.sendChatAction(chatId, "upload_video");
-        const r = await this.bot.sendVideo(chatId, f.payload.video.uri, botOpt);
+        const r = await this.bot.sendVideo(chatId, f.video, botOpt);
         results.push(["video", r]);
       }
     } catch (err) {
@@ -336,11 +325,11 @@ export class Telegram implements IOManager.IODriverModule {
 
     // Process an Image Object
     try {
-      if (f.payload?.image?.uri) {
+      if (f.image) {
         this.bot.sendChatAction(chatId, "upload_photo");
-        const r = await this.bot.sendPhoto(chatId, f.payload.image.uri, {
+        const r = await this.bot.sendPhoto(chatId, f.image, {
           ...botOpt,
-          caption: f.payload.image.caption,
+          caption: f.caption,
         });
         results.push(["photo", r]);
       }
@@ -351,9 +340,9 @@ export class Telegram implements IOManager.IODriverModule {
 
     // Process an Audio Object
     try {
-      if (f.payload?.audio?.uri) {
+      if (f.audio) {
         this.bot.sendChatAction(chatId, "upload_audio");
-        const r = await this.bot.sendAudio(chatId, f.payload.audio.uri, botOpt);
+        const r = await this.bot.sendAudio(chatId, f.audio, botOpt);
         results.push(["audio", r]);
       }
     } catch (err) {
@@ -363,9 +352,9 @@ export class Telegram implements IOManager.IODriverModule {
 
     // Process a Document Object
     try {
-      if (f.payload?.document?.uri) {
+      if (f.document) {
         this.bot.sendChatAction(chatId, "upload_document");
-        const r = await this.bot.sendDocument(chatId, f.payload.document.uri, botOpt);
+        const r = await this.bot.sendDocument(chatId, f.document, botOpt);
         results.push(["document"]);
       }
     } catch (err) {
@@ -390,31 +379,6 @@ export class Telegram implements IOManager.IODriverModule {
       }
     } catch (err) {
       results.push(["message", err]);
-      console.error(TAG, err);
-    }
-
-    try {
-      if (f.payload?.poll) {
-        const r = await this.bot.sendPoll(chatId, f.payload.poll.question, f.payload.poll.choices, {
-          ...botOpt,
-          ...f.payload.poll,
-        });
-        results.push(["poll", r]);
-      }
-    } catch (err) {
-      results.push(["error", err]);
-      console.error(TAG, err);
-    }
-
-    // ---- Telegram specific Objects ----
-
-    // Process a Sticker Object
-    try {
-      if (f.payload?.telegram?.sticker) {
-        results.push(["sticker", await this.bot.sendSticker(chatId, f.payload.telegram.sticker, botOpt)]);
-      }
-    } catch (err) {
-      results.push(["error", err]);
       console.error(TAG, err);
     }
 

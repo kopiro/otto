@@ -33,7 +33,7 @@ const gPhotosMemoAction: AIAction = async ({ queryResult }, session) => {
     }),
   });
   const responseJson = (await response.json()) as {
-    mediaItems: { mimeType: string; baseUrl: string; mediaMetadata?: {creationTime:string} }[];
+    mediaItems: { mimeType: string; baseUrl: string; mediaMetadata?: { creationTime: string } }[];
   };
 
   const images = responseJson.mediaItems.filter((e) => e.mimeType.includes("image"));
@@ -41,12 +41,8 @@ const gPhotosMemoAction: AIAction = async ({ queryResult }, session) => {
   const url = `${media.baseUrl}=w2000-h2000`;
 
   const fulfillment: Fulfillment = {
-    payload: {
-      image: {
-        uri: url,
-        caption: queryResult.fulfillmentText,
-      },
-    },
+    image: url,
+    caption: queryResult.fulfillmentText,
   };
 
   const pollDateQuestion: string = p.poll_date_question;
@@ -76,7 +72,7 @@ const gPhotosMemoAction: AIAction = async ({ queryResult }, session) => {
 
       const pollCloseAt = moment()().add(pollDateAnswerMinutes, "minutes");
 
-      fulfillment.payload.poll = {
+      fulfillment.poll = {
         question: pollDateQuestion,
         choices,
         is_anonymous: false,
