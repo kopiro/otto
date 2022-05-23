@@ -24,6 +24,8 @@ export interface Fulfillment {
   image?: string;
   document?: string;
   caption?: string;
+  error?: CustomError;
+  data?: string;
   poll?: {
     question: string;
     choices: string[];
@@ -36,14 +38,12 @@ export interface Fulfillment {
     is_closed?: boolean;
   };
   outputContexts?: Array<{}>;
-  payload?: {
-    data?: any;
+  options?: {
     language?: Language;
     transformerUid?: string;
     transformedAt?: number;
     translateTo?: Language;
     translateFrom?: Language;
-    error?: CustomError;
     handledByGenerator?: boolean;
     includeVoice?: boolean;
   };

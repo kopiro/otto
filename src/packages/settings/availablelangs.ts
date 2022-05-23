@@ -1,10 +1,12 @@
 import config from "../../config";
 import translator from "../../stdlib/translator";
-import { Fulfillment } from "../../types";
+import { AIAction, Fulfillment } from "../../types";
 
 export const id = "settings.availablelangs";
 
-export default async (): Promise<Fulfillment> => {
+const availableLangs: AIAction = async () => {
   const languages = await translator().getLanguages(config().language);
   return { text: languages.map((e) => e.name).join(", ") };
 };
+
+export default availableLangs;

@@ -2,12 +2,12 @@ import levenshtein from "fast-levenshtein";
 import config from "../../config";
 import translator from "../../stdlib/translator";
 import { extractWithPattern } from "../../helpers";
-import { Session, Fulfillment } from "../../types";
+import { Session, Fulfillment, AIAction } from "../../types";
 
 export const id = "settings.switchlang";
 
-export default async ({ queryResult }, session: Session): Promise<Fulfillment> => {
-  const { parameters: p, fulfillmentMessages } = queryResult;
+const switchLang: AIAction = async ({ queryResult }, session: Session) => {
+  const { parameters: p } = queryResult;
 
   // Handle special parameter
   if (p.translateBoth) {
@@ -59,20 +59,12 @@ export default async ({ queryResult }, session: Session): Promise<Fulfillment> =
   const from = languages.filter((e) => e.code === session.getTranslateFrom())[0]?.name;
   const to = languages.filter((e) => e.code === session.getTranslateTo())[0]?.name;
 
-  let text: string;
-
-  if (session.getTranslateFrom() === session.getTranslateTo()) {
-    text = extractWithPattern(fulfillmentMessages, "[].payload.text.single").replace("$_language", from);
-  } else {
-    text = extractWithPattern(fulfillmentMessages, "[].payload.text.plural")
-      .replace("$_from", from)
-      .replace("$_to", to);
-  }
-
   return {
-    text,
-    payload: {
+    text: queryResult.fulfillmentText,
+    options: {
       language: session.getTranslateTo(),
     },
   };
 };
+
+export default switchLang;

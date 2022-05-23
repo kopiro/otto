@@ -1,8 +1,10 @@
-import { Fulfillment } from "../../types";
+import { AIAction, Fulfillment } from "../../types";
 
 export const id = "repeat";
 
-export default async ({ queryResult }): Promise<Fulfillment> => {
+const repeat: AIAction = async ({ queryResult }) => {
   const { parameters: p } = queryResult;
   return p.q;
 };
+
+export default repeat;

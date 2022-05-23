@@ -22,7 +22,7 @@ export type ResponseBody = IDetectIntentResponse & {
   queryResult: {
     parameters: Record<string, any> | null;
     outputContexts: (IContext & { parameters: Record<string, any> })[];
-    fulfillmentMessages: (IMessage & { payload: Record<string, any> })[];
+    fulfillmentMessages: IMessage[];
   };
 };
 
@@ -129,26 +129,26 @@ class AI {
   }
 
   private async commandWhoami(_: RegExpMatchArray, session: Session): Promise<Fulfillment> {
-    return { payload: { data: JSON.stringify(session, null, 2) } };
+    return { data: JSON.stringify(session, null, 2) };
   }
 
   private async commandIn([, cmdSessionId, cmdText]: RegExpMatchArray): Promise<Fulfillment> {
     const cmdSession = await IOManager.getSession(cmdSessionId);
     const result = await this.processInput({ text: cmdText }, cmdSession);
-    return { payload: { data: JSON.stringify(result, null, 2) } };
+    return { data: JSON.stringify(result, null, 2) };
   }
 
   private async eventIn([, cmdSessionId, cmdEvent]: RegExpMatchArray): Promise<Fulfillment> {
     const cmdSession = await IOManager.getSession(cmdSessionId);
     const event = cmdEvent.startsWith("{") ? JSON.parse(cmdEvent) : cmdEvent;
     const result = await this.processInput({ event: event }, cmdSession);
-    return { payload: { data: JSON.stringify(result, null, 2) } };
+    return { data: JSON.stringify(result, null, 2) };
   }
 
   private async commandOut([, cmdSessionId, cmdText]: RegExpMatchArray): Promise<Fulfillment> {
     const cmdSession = await IOManager.getSession(cmdSessionId);
     const result = await IOManager.output({ text: cmdText }, cmdSession, {});
-    return { payload: { data: JSON.stringify(result, null, 2) } };
+    return { data: JSON.stringify(result, null, 2) };
   }
 
   getCommandExecutor(text: string, session: Session): (session: Session, bag: IOManager.IOBag) => Promise<Fulfillment> {
@@ -213,24 +213,24 @@ class AI {
   async fulfillmentTransformerForSession(fulfillment: Fulfillment, session: Session): Promise<Fulfillment> {
     if (!fulfillment) return;
 
-    fulfillment.payload = fulfillment.payload || {};
+    fulfillment.options = fulfillment.options || {};
 
     // If this fulfillment has already been transformed, let's skip this
-    if (fulfillment.payload.transformerUid) {
+    if (fulfillment.options.transformerUid) {
       return fulfillment;
     }
 
     // Always translate fulfillment speech in the user language
     if (fulfillment.text) {
-      const fromLanguage = fulfillment.payload.translateFrom ?? this.config.language;
-      const toLanguage = fulfillment.payload.translateTo || session.getTranslateTo();
+      const fromLanguage = fulfillment.options.translateFrom ?? this.config.language;
+      const toLanguage = fulfillment.options.translateTo || session.getTranslateTo();
       if (toLanguage !== fromLanguage) {
         fulfillment.text = await translator().translate(fulfillment.text, toLanguage, fromLanguage);
       }
     }
 
-    fulfillment.payload.transformerUid = this.config.uid;
-    fulfillment.payload.transformedAt = Date.now();
+    fulfillment.options.transformerUid = this.config.uid;
+    fulfillment.options.transformedAt = Date.now();
 
     return fulfillment;
   }
@@ -273,7 +273,7 @@ class AI {
     }
 
     // Add anyway the complete error
-    fulfillment.payload = { error };
+    fulfillment.error = error;
 
     return fulfillment;
   }
@@ -368,7 +368,7 @@ class AI {
 
         // And immediately resolve
         return {
-          payload: {
+          options: {
             handledByGenerator: true,
           },
         };
@@ -473,7 +473,7 @@ class AI {
     try {
       return commandExecutor(session, bag);
     } catch (err) {
-      return { payload: { error: err } };
+      return { error: err };
     }
   }
 
@@ -557,7 +557,9 @@ class AI {
 
       return {
         text: answer,
-        payload: { translateFrom: this.config.openai.language },
+        options: {
+          translateFrom: this.config.openai.language,
+        },
       };
     }
 

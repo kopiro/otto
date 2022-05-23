@@ -102,7 +102,7 @@ export class Web implements IOManager.IODriverModule {
   async getVoiceFile(fulfillment: Fulfillment, session: Session): Promise<File> {
     const audioFile = await textToSpeech().getAudioFile(
       fulfillment.text,
-      fulfillment.payload.language || session.getTranslateTo(),
+      fulfillment.options.language || session.getTranslateTo(),
       config().tts.gender,
     );
     return voice().getFile(audioFile);
