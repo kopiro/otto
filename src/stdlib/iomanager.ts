@@ -146,19 +146,21 @@ export async function output(
     // the item could be handled by another platform that has that driver configured,
     // so we'll enqueue it.
     if (!enabledDriverIds.includes(session.ioId)) {
+      const el = {
+        session: session.id,
+        ioId: session.ioId,
+        fulfillment,
+        dateAdded: new Date(),
+      };
       console.info(
         TAG,
         `putting in IO queue because driver <${session.ioId}> of session <${
           session.id
         }> is not this list [${enabledDriverIds.join()}]`,
+        JSON.stringify(el, null, 2),
       );
 
-      const ioQueueElement = new Data.IOQueue({
-        session: session.id,
-        ioId: session.ioId,
-        fulfillment,
-        dateAdded: new Date(),
-      });
+      const ioQueueElement = new Data.IOQueue(el);
       await ioQueueElement.save();
 
       return {
