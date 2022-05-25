@@ -9,6 +9,7 @@ import { getSession } from "./iomanager";
 import ai from "./ai";
 import rateLimit from "express-rate-limit";
 import { FindMyDevice } from "../data";
+import * as IOManager from "./iomanager";
 
 const TAG = "Server";
 
@@ -63,6 +64,13 @@ routerApi.post("/input", async (req, res) => {
       },
     });
   }
+});
+
+// Inform the Queue to process new elements immediately
+routerApi.post("/signal/queue", (_, res) => {
+  IOManager.processIOQueue((item) => {
+    res.json({ item });
+  });
 });
 
 // Retrieve the DNS status for a session

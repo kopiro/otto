@@ -338,9 +338,10 @@ export async function getNextInQueue(): Promise<IOQueue | null> {
 /**
  * Process items in the queue based on configured drivers
  */
-export async function processIOQueue(): Promise<IOQueue | null> {
+export async function processIOQueue(callback?: (item: IOQueue | null) => void): Promise<IOQueue | null> {
   const qitem = await getNextInQueue();
   if (!qitem || ioQueueInProcess[qitem.id]) {
+    callback?.(null);
     return null;
   }
 
@@ -351,6 +352,7 @@ export async function processIOQueue(): Promise<IOQueue | null> {
     "session.id": qitem.session,
     bag: qitem.bag,
   });
+  callback?.(qitem);
 
   qitem.remove();
 
