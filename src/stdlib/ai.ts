@@ -1,30 +1,17 @@
-import dialogflow, { protos } from "@google-cloud/dialogflow";
+import dialogflow, { protos, SessionsClient, IntentsClient } from "@google-cloud/dialogflow";
 import * as IOManager from "./iomanager";
 import config from "../config";
-import { extractWithPattern, getLocalObjectFromURI, replaceVariablesInStrings } from "../helpers";
-import { Fulfillment, CustomError, AIAction, InputParams, Session } from "../types";
+import { getLocalObjectFromURI } from "../helpers";
+import { Fulfillment, CustomError, AIAction, InputParams, Session, FullfillmentStringKeys } from "../types";
 import { struct, Struct } from "pb-util";
 import Events from "events";
-import { SessionsClient, IntentsClient } from "@google-cloud/dialogflow/build/src/v2";
 import fetch from "node-fetch";
 import fs from "fs";
 import speechRecognizer from "../stdlib/speech-recognizer";
 import translator from "../stdlib/translator";
 
-type IStruct = protos.google.protobuf.IStruct;
-
-type IDetectIntentResponse = protos.google.cloud.dialogflow.v2.IDetectIntentResponse;
-type IContext = protos.google.cloud.dialogflow.v2.IContext;
-type IMessage = protos.google.cloud.dialogflow.v2.Intent.IMessage;
-type IQueryInput = protos.google.cloud.dialogflow.v2.IQueryInput;
-
-export type ResponseBody = IDetectIntentResponse & {
-  queryResult: {
-    parameters: Record<string, any> | null;
-    outputContexts: (IContext & { parameters: Record<string, any> })[];
-    fulfillmentMessages: IMessage[];
-  };
-};
+export type IDetectIntentResponse = protos.google.cloud.dialogflow.v2.IDetectIntentResponse;
+export type IQueryInput = protos.google.cloud.dialogflow.v2.IQueryInput;
 
 const TAG = "AI";
 
@@ -104,7 +91,7 @@ class AI {
 
   constructor(config: AIConfig) {
     this.config = config;
-    this.dfIntentAgentPath = this.dfIntentsClient.agentPath(this.config.dialogflow.projectId);
+    this.dfIntentAgentPath = this.dfIntentsClient.projectAgentPath(this.config.dialogflow.projectId);
   }
 
   getCommandMappingDescription() {
@@ -169,25 +156,13 @@ class AI {
 
     return () => this.commandNotFound();
   }
-
-  decodeIfStruct(s: IStruct): Record<string, any> {
-    return s?.fields ? struct.decode(s as Struct) : s;
-  }
-
-  /**
-   * Decode an IDetectIntentResponse into a fully decodable body
-   */
-  dfDecodeDetectIntentResponse(body: IDetectIntentResponse): ResponseBody {
-    return body as ResponseBody;
-  }
-
   async train(queryText: string, answer: string) {
     console.debug(TAG, "TRAIN request", { queryText, answer });
     const response = await this.dfIntentsClient.createIntent({
       parent: this.dfIntentAgentPath,
       languageCode: this.config.dialogflow.language,
       intent: {
-        displayName: `M-TRAIN: ${queryText}`.substr(0, 100),
+        displayName: `M-TRAIN: ${queryText}`.substring(0, 100),
         trainingPhrases: [
           {
             type: "EXAMPLE",
@@ -259,7 +234,7 @@ class AI {
   /**
    * Transform an error into a fulfillment
    */
-  actionErrorTransformer(body: ResponseBody, error: CustomError): Fulfillment {
+  actionErrorTransformer(error: CustomError): Fulfillment {
     const fulfillment: Fulfillment = {};
     fulfillment.error = error;
     return fulfillment;
@@ -269,7 +244,6 @@ class AI {
    * Accept a Generation action and resolve all outputs
    */
   async generatorResolver(
-    body: ResponseBody,
     fulfillmentGenerator: IterableIterator<Fulfillment>,
     session: Session,
     bag: IOManager.IOBag,
@@ -287,12 +261,12 @@ class AI {
     return fulfillmentsAndOutputResults;
   }
 
-  handleSystemPackages(pkgName: string, body: ResponseBody, session: Session): Fulfillment | null {
+  handleSystemPackages(pkgName: string, body: IDetectIntentResponse, session: Session): Fulfillment | null {
     const { queryResult } = body;
 
     switch (pkgName) {
       case "train":
-        this.train(queryResult.outputContexts[0].parameters.queryText, queryResult.queryText);
+        this.train(queryResult.outputContexts[0].parameters.fields.queryText.stringValue, queryResult.queryText);
         return body.queryResult;
       default:
         return null;
@@ -304,7 +278,7 @@ class AI {
    */
   async actionResolver(
     actionName: string,
-    body: ResponseBody,
+    body: IDetectIntentResponse,
     session: Session,
     bag: IOManager.IOBag,
   ): Promise<Fulfillment> {
@@ -339,7 +313,7 @@ class AI {
       if (actionResult.constructor.name === "GeneratorFunction") {
         // Call the generator async
         setImmediate(() => {
-          this.generatorResolver(body, actionResult as IterableIterator<Fulfillment>, session, bag);
+          this.generatorResolver(actionResult as IterableIterator<Fulfillment>, session, bag);
         });
 
         // And immediately resolve
@@ -353,7 +327,7 @@ class AI {
       }
     } catch (err) {
       console.error(TAG, "error while executing action", err);
-      return this.actionErrorTransformer(body, err);
+      return this.actionErrorTransformer(err);
     }
   }
 
@@ -362,28 +336,29 @@ class AI {
     return (await fs.promises.readFile(txtFile, "utf8")).toString().replace(/\r\n/g, "\n");
   }
 
-  async invokeTrain(body: ResponseBody) {
+  async invokeTrain(queryText: string) {
     if (this.config.trainingSessionId) {
       console.debug(TAG, `Training invoked on sessionId ${this.config.trainingSessionId}`);
 
       const trainingSession = await IOManager.getSession(this.config.trainingSessionId);
       this.processInput(
         {
-          event: { name: "training", parameters: { queryText: body.queryResult.queryText } },
+          event: { name: "training", parameters: { queryText } },
         },
         trainingSession,
       );
     }
   }
 
+  private extractMessages(fulfillmentMessages: protos.google.cloud.dialogflow.v2.Intent.IMessage[], key: string) {
+    return fulfillmentMessages.find((m) => key in m.payload.fields)?.[key].stringValue;
+  }
+
   /**
    * Parse the DialogFlow body and decide what to do
    */
-  async dfBodyParser(body: ResponseBody, session: Session, bag: IOManager.IOBag): Promise<Fulfillment> {
-    // The parameters coming from Dialogflow when running without the fulfillment server
-    // are in a Struct (.fields) that needs decoding
-    body.queryResult.parameters = this.decodeIfStruct(body.queryResult.parameters);
-    const decodedResponses = body.queryResult.fulfillmentMessages.map((msg) => this.decodeIfStruct(msg.payload)) ?? [];
+  async dfBodyParser(body: IDetectIntentResponse, session: Session, bag: IOManager.IOBag): Promise<Fulfillment> {
+    const { fulfillmentText, fulfillmentMessages } = body.queryResult;
 
     // If we have an "action", call the package with the specified name
     if (body.queryResult.action) {
@@ -400,24 +375,25 @@ class AI {
       );
 
       if (body.queryResult.intent.isFallback) {
-        this.invokeTrain(body);
+        this.invokeTrain(body.queryResult.queryText);
       }
 
       return {
-        text: body.queryResult.fulfillmentText,
-        audio: decodedResponses.find((e) => e?.audio)?.audio,
-        video: decodedResponses.find((e) => e?.video)?.video,
-        image: decodedResponses.find((e) => e?.image)?.image,
-        caption: decodedResponses.find((e) => e?.caption)?.caption,
-        document: decodedResponses.find((e) => e?.document)?.document,
-        poll: decodedResponses.find((e) => e?.poll)?.poll,
-      };
+        text: fulfillmentText,
+        ...FullfillmentStringKeys.reduce((acc, key) => {
+          const value = this.extractMessages(fulfillmentMessages, key);
+          if (value) {
+            acc[key] = value;
+          }
+          return acc;
+        }, {}),
+      } as Fulfillment;
     }
 
     return null;
   }
 
-  async dfRequest(queryInput: IQueryInput, session: Session, bag?: IOManager.IOBag): Promise<IDetectIntentResponse> {
+  async dfRequest(queryInput: IQueryInput, session: Session, bag?: IOManager.IOBag) {
     if (queryInput.text) {
       queryInput.text.text = await translator().translate(
         queryInput.text.text,
@@ -463,7 +439,7 @@ class AI {
     queryInput.text.languageCode = this.config.dialogflow.language;
 
     const body = await this.dfRequest(queryInput, session, bag);
-    return this.dfBodyParser(body as ResponseBody, session, bag);
+    return this.dfBodyParser(body, session, bag);
   }
 
   /**
@@ -561,7 +537,7 @@ class AI {
     queryInput.event.languageCode = this.config.dialogflow.language;
 
     const body = await this.dfRequest(queryInput, session, bag);
-    return this.dfBodyParser(body as ResponseBody, session, bag);
+    return this.dfBodyParser(body, session, bag);
   }
 
   /**

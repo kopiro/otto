@@ -1,6 +1,6 @@
 import config from "../../config";
 import translator from "../../stdlib/translator";
-import { AIAction, Fulfillment, Session } from "../../types";
+import { AIAction, Session } from "../../types";
 
 export const id = "settings.switchlang";
 

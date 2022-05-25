@@ -1,18 +1,20 @@
 import levenshtein from "fast-levenshtein";
 import config from "../../config";
 import translator from "../../stdlib/translator";
-import { extractWithPattern } from "../../helpers";
-import { Session, Fulfillment, AIAction } from "../../types";
+import { Session, AIAction } from "../../types";
 
 export const id = "settings.switchlang";
 
 const switchLang: AIAction = async ({ queryResult }, session: Session) => {
   const { parameters: p } = queryResult;
 
+  let translateFrom = p.fields.translateFrom.stringValue;
+  let translateTo = p.fields.translateTo.stringValue;
+
   // Handle special parameter
-  if (p.translateBoth) {
-    p.translateFrom = p.translateBoth;
-    p.translateTo = p.translateBoth;
+  if (p.fields.translateBoth?.stringValue) {
+    translateFrom = p.fields.translateBoth.stringValue;
+    translateTo = p.fields.translateBoth.stringValue;
   }
 
   // Get languages every time the original language (IT),
@@ -21,8 +23,10 @@ const switchLang: AIAction = async ({ queryResult }, session: Session) => {
   // So we should request the languages in Italiano to match "inglese"
   const languages = await translator().getLanguages(config().language);
 
-  for (const x of ["From", "To"]) {
-    const langReq = p[`translate${x}`];
+  for (const [attr, langReq] of [
+    ["translateFrom", translateFrom],
+    ["translateTo", translateTo],
+  ]) {
     if (!langReq) continue;
 
     let prefLang = {
@@ -51,13 +55,10 @@ const switchLang: AIAction = async ({ queryResult }, session: Session) => {
       langToSet = null;
     }
 
-    session[`translate${x}`] = langToSet;
+    session[attr] = langToSet;
   }
 
   await session.save();
-
-  const from = languages.filter((e) => e.code === session.getTranslateFrom())[0]?.name;
-  const to = languages.filter((e) => e.code === session.getTranslateTo())[0]?.name;
 
   return {
     text: queryResult.fulfillmentText,

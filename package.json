@@ -16,7 +16,7 @@
   "scripts": {
     "build": "yarn build:server && yarn build:client",
     "start": "node build",
-    "start:pi": "play ./etc/boot.wav && yarn start",
+    "start:pi": "play ./etc/boot.wav; yarn start",
     "start:dev": "nodemon",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "yarn lint --fix",
@@ -43,12 +43,12 @@
     "url": "https://github.com/kopiro/otto-ai/issues"
   },
   "dependencies": {
-    "@google-cloud/dialogflow": "^3.2.0",
-    "@google-cloud/speech": "^3.6.0",
+    "@google-cloud/dialogflow": "^4.7.0",
+    "@google-cloud/speech": "^4.10.2",
     "@google-cloud/storage": "^5.0.0",
-    "@google-cloud/text-to-speech": "^3.0.0",
-    "@google-cloud/translate": "^6.0.0",
-    "@picovoice/porcupine-node": "^1.9.0",
+    "@google-cloud/text-to-speech": "^3.4.0",
+    "@google-cloud/translate": "^6.3.1",
+    "@picovoice/porcupine-node": "^1",
     "@sentry/node": "^5.15.4",
     "@types/node-fetch": "^2.5.10",
     "@types/node-telegram-bot-api": "^0.51.1",
@@ -77,7 +77,7 @@
     "transmission": "^0.4.9",
     "ts-node": "^9.1.1",
     "typescript": "^4.5.5",
-    "uuid": "^7.0.3",
+    "uuid": "^8.3.2",
     "wav-file-info": "^0.0.8"
   },
   "devDependencies": {
@@ -85,6 +85,7 @@
     "@types/jest": "^26.0.20",
     "@types/mocha": "^8.2.1",
     "@types/mongoose-autopopulate": "^0.10.1",
+    "@types/uuid": "^8.3.4",
     "@typescript-eslint/eslint-plugin": "^4.16.1",
     "@typescript-eslint/parser": "^4.16.1",
     "eslint": "^7.21.0",

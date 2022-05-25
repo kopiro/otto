@@ -1,6 +1,6 @@
 import config from "../../config";
 import translator from "../../stdlib/translator";
-import { AIAction, Fulfillment } from "../../types";
+import { AIAction } from "../../types";
 
 export const id = "settings.availablelangs";
 

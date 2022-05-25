@@ -1,13 +1,13 @@
-import { Document } from "mongoose";
-import { ResponseBody } from "./stdlib/ai";
-import { IODriver, IOBag, Authorizations } from "./stdlib/iomanager";
+import type { Document } from "mongoose";
+import type { IDetectIntentResponse } from "./stdlib/ai";
+import type { IODriver, IOBag, Authorizations } from "./stdlib/iomanager";
 
 export type Language = string;
 export type Locale = string;
 export type Gender = string;
 
 export type AIAction = (
-  body?: ResponseBody,
+  body?: IDetectIntentResponse,
   session?: Session,
   bag?: IOBag,
 ) => Promise<Fulfillment> | IterableIterator<Fulfillment> | Fulfillment;
@@ -16,6 +16,8 @@ export interface CustomError {
   message?: string;
   data?: Record<string, any>;
 }
+
+export const FullfillmentStringKeys = ["audio", "video", "image", "caption", "document"];
 
 export interface Fulfillment {
   text?: string;

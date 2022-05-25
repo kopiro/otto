@@ -1,10 +1,10 @@
-import { AIAction, Fulfillment } from "../../types";
+import { AIAction } from "../../types";
 
 export const id = "repeat";
 
 const repeat: AIAction = async ({ queryResult }) => {
   const { parameters: p } = queryResult;
-  return p.q;
+  return { text: p.fields.q.stringValue };
 };
 
 export default repeat;

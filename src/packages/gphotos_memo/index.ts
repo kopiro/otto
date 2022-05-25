@@ -29,7 +29,7 @@ const gPhotosMemoAction: AIAction = async ({ queryResult }, session) => {
     },
     body: JSON.stringify({
       pageSize: 100,
-      albumId: p.album_id,
+      albumId: p.fields.album_id.stringValue,
     }),
   });
   const responseJson = (await response.json()) as {
@@ -45,17 +45,17 @@ const gPhotosMemoAction: AIAction = async ({ queryResult }, session) => {
     caption: queryResult.fulfillmentText,
   };
 
-  const pollDateQuestion: string = p.poll_date_question;
+  const pollDateQuestion: string = p.fields.poll_date_question.stringValue;
   if (pollDateQuestion) {
     const creationTime = moment()(media.mediaMetadata?.creationTime);
     if (creationTime.isValid()) {
       const creationTimeStr = creationTime.format("LL");
       const choices = [creationTimeStr];
 
-      const pollDateAnswer = (p.poll_date_answer || "").replace("%date%", creationTimeStr);
-      const pollDateChoicesCount = Number(p.poll_date_choices_count) || POLL_DATE_CHOICES_COUNT;
-      const pollDateRangeDays = Number(p.poll_date_range_days) || POLL_DATE_RANGE_DAYS;
-      const pollDateAnswerMinutes = Number(p.poll_date_answer_minutes) || POLL_DATE_ANSWER_MINUTES;
+      const pollDateAnswer = (p.fields.poll_date_answer.stringValue || "").replace("%date%", creationTimeStr);
+      const pollDateChoicesCount = Number(p.fields.poll_date_choices_count.stringValue) || POLL_DATE_CHOICES_COUNT;
+      const pollDateRangeDays = Number(p.fields.poll_date_range_days.stringValue) || POLL_DATE_RANGE_DAYS;
+      const pollDateAnswerMinutes = Number(p.fields.poll_date_answer_minutes.stringValue) || POLL_DATE_ANSWER_MINUTES;
 
       // Make sure we don't go into the future
       const daysFromNow = moment()().diff(creationTime, "days");

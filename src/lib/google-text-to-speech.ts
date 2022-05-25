@@ -3,7 +3,7 @@ import config from "../config";
 import { Language, Gender } from "../types";
 import { google } from "@google-cloud/text-to-speech/build/protos/protos";
 import { TextToSpeech } from "../abstracts/text-to-speech";
-import { TextToSpeechClient } from "@google-cloud/text-to-speech/build/src/v1";
+import { TextToSpeechClient } from "@google-cloud/text-to-speech";
 
 export class GoogleTextToSpeech extends TextToSpeech {
   client: TextToSpeechClient;
@@ -13,14 +13,25 @@ export class GoogleTextToSpeech extends TextToSpeech {
     this.client = new GCTTS.TextToSpeechClient();
   }
 
+  getVoice(language: Language, gender: Gender) {
+    const key = this.getCacheKeyForVoice(language, gender);
+    if (this.cache.voices[key]) {
+      return this.cache.voices[key];
+    }
+
+    const voice = this._getVoice(language, gender);
+    this.cache.voices[key] = voice;
+    return voice;
+  }
+
   /**
    * Retrieve the voice title based on language and gender
    */
   async _getVoice(language: Language, gender: Gender) {
-    const response = await this.client.listVoices({ languageCode: language });
-    const availableVoices = response[0].voices.filter((voice) => voice.ssmlGender === gender.toUpperCase());
+    const [response] = await this.client.listVoices({ languageCode: language });
+    const availableVoices = response.voices?.filter((voice) => voice.ssmlGender === gender.toUpperCase());
 
-    if (availableVoices.length > 0) {
+    if (availableVoices?.[0]) {
       const { ssmlGender, name } = availableVoices[0];
       const voice = {
         languageCode: language,
@@ -42,18 +53,16 @@ export class GoogleTextToSpeech extends TextToSpeech {
     // Find the voice title by options
     const voice = await this.getVoice(language, gender);
 
-    const isSSML = /<speak>/.test(text);
-    const input: any = {};
-    isSSML ? (input.ssml = text) : (input.text = text);
-
     // Call the API
-    const [data] = await this.client.synthesizeSpeech({
-      input,
+    const [{ audioContent }] = await this.client.synthesizeSpeech({
+      input: {
+        [/<speak>/.test(text) ? "ssml" : "text"]: text,
+      },
       voice,
       audioConfig: {
         audioEncoding: (config().audio.encoding as unknown) as google.cloud.texttospeech.v1.AudioEncoding,
       },
     });
-    return data.audioContent;
+    return audioContent;
   }
 }

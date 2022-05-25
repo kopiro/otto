@@ -54,14 +54,12 @@ export class PollyTextToSpeech extends TextToSpeech {
     return new Promise(async (resolve, reject) => {
       // Find the voice title by options
       const voice = await this.getVoice(language, gender);
-      const isSSML = /<speak>/.test(text);
-
       // Call the API
       return this.client.synthesizeSpeech(
         {
           VoiceId: voice.Id,
           Text: text,
-          TextType: isSSML ? "ssml" : "text",
+          TextType: /<speak>/.test(text) ? "ssml" : "text",
           OutputFormat: config().audio.encoding,
         },
         async (err, data) => {

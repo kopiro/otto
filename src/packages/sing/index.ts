@@ -1,19 +1,18 @@
 import Musixmatch from "musixmatch-node";
 import config from "../../config";
 import { getLanguageCodeFromLanguageLongString } from "../../helpers";
-import { AIAction, Fulfillment } from "../../types";
+import { AIAction } from "../../types";
 
 const mxm = new Musixmatch(config().musixmatch.apiKey);
 
 const sing: AIAction = async ({ queryResult }) => {
-  const { parameters } = queryResult;
-  const { track, artist, language } = parameters;
+  const { parameters: p } = queryResult;
   const [response, languageCode] = await Promise.all([
     mxm.getLyricsMatcher({
-      q_track: track,
-      ...(artist ? { q_artist: artist } : {}),
+      q_track: p.fields.track?.stringValue,
+      ...(p.fields.artist?.stringValue ? { q_artist: p.fields.artist.stringValue } : {}),
     }),
-    getLanguageCodeFromLanguageLongString(language),
+    getLanguageCodeFromLanguageLongString(p.fields.language?.stringValue),
   ]);
   const text = response.message.body.lyrics.lyrics_body.replace(/\*\*\*.+\*\*\*/g, "");
   return {

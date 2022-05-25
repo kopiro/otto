@@ -15,18 +15,17 @@ export abstract class TextToSpeech {
   CACHE_REGISTRY_FILE = `${cacheDir}/${this.TAG}.json`;
 
   constructor() {
+    this.cache = {
+      audio: {},
+      voices: {},
+    };
     this.loadCacheRegistry();
   }
 
   loadCacheRegistry() {
     try {
       this.cache = JSON.parse(fs.readFileSync(this.CACHE_REGISTRY_FILE).toString());
-    } catch (ex) {
-      this.cache = {
-        audio: {},
-        voices: {},
-      };
-    }
+    } catch (ex) {}
   }
 
   writeCacheRegistry() {
@@ -57,7 +56,7 @@ export abstract class TextToSpeech {
     this.writeCacheRegistry();
   }
 
-  abstract _getAudioFile(text: string, language: Language, gender: Gender): Promise<crypto.BinaryLike>;
+  abstract _getAudioFile(text: string, language: Language, gender: Gender): Promise<crypto.BinaryLike | undefined>;
 
   async getAudioFile(text: string, language: Language, gender: Gender) {
     // If file has been downloaded, just serve it
@@ -66,6 +65,7 @@ export abstract class TextToSpeech {
       return cachedFile;
     }
     const data = await this._getAudioFile(text, language, gender);
+    if (!data) return null;
 
     const file = `${cacheDir}/${this.TAG}_${uuid()}.mp3`;
     fs.writeFileSync(file, data, "binary");
