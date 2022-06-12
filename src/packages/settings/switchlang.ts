@@ -8,13 +8,13 @@ export const id = "settings.switchlang";
 const switchLang: AIAction = async ({ queryResult }, session: Session) => {
   const { parameters: p } = queryResult;
 
-  let translateFrom = p.fields.translateFrom.stringValue;
-  let translateTo = p.fields.translateTo.stringValue;
+  let translateFrom = p?.fields?.translateFrom.stringValue;
+  let translateTo = p?.fields?.translateTo.stringValue;
 
   // Handle special parameter
   if (p.fields.translateBoth?.stringValue) {
-    translateFrom = p.fields.translateBoth.stringValue;
-    translateTo = p.fields.translateBoth.stringValue;
+    translateFrom = p?.fields?.translateBoth.stringValue;
+    translateTo = p?.fields?.translateBoth.stringValue;
   }
 
   // Get languages every time the original language (IT),

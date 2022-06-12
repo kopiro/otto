@@ -9,10 +9,10 @@ const sing: AIAction = async ({ queryResult }) => {
   const { parameters: p } = queryResult;
   const [response, languageCode] = await Promise.all([
     mxm.getLyricsMatcher({
-      q_track: p.fields.track?.stringValue,
-      ...(p.fields.artist?.stringValue ? { q_artist: p.fields.artist.stringValue } : {}),
+      q_track: p?.fields?.track?.stringValue,
+      ...(p?.fields?.artist?.stringValue ? { q_artist: p?.fields?.artist.stringValue } : {}),
     }),
-    getLanguageCodeFromLanguageLongString(p.fields.language?.stringValue),
+    getLanguageCodeFromLanguageLongString(p?.fields?.language?.stringValue),
   ]);
   const text = response.message.body.lyrics.lyrics_body.replace(/\*\*\*.+\*\*\*/g, "");
   return {

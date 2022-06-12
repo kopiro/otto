@@ -266,7 +266,7 @@ class AI {
 
     switch (pkgName) {
       case "train":
-        this.train(queryResult.outputContexts[0].parameters?.fields?.queryText?.stringValue, queryResult.queryText);
+        this.train(queryResult.outputContexts?.[0]?.parameters?.fields?.queryText?.stringValue, queryResult.queryText);
         return body.queryResult;
       default:
         return null;
@@ -351,7 +351,7 @@ class AI {
   }
 
   private extractMessages(fulfillmentMessages: protos.google.cloud.dialogflow.v2.Intent.IMessage[], key: string) {
-    return fulfillmentMessages.find((m) => key in m.payload?.fields)?.[key].stringValue;
+    return fulfillmentMessages.find((m) => key in m?.payload?.fields)?.[key].stringValue;
   }
 
   /**
