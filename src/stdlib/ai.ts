@@ -350,8 +350,8 @@ class AI {
     }
   }
 
-  private extractMessages(fulfillmentMessages: protos.google.cloud.dialogflow.v2.Intent.IMessage[], key: string) {
-    return fulfillmentMessages.find((m) => m?.payload?.fields?.[key] !== undefined)?.[key]?.stringValue;
+  extractMessages(fulfillmentMessages: protos.google.cloud.dialogflow.v2.Intent.IMessage[], key: string) {
+    return fulfillmentMessages.find((m) => m?.payload?.fields?.[key] !== undefined)?.payload.fields[key].stringValue;
   }
 
   /**
