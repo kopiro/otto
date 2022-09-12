@@ -361,7 +361,7 @@ export class Telegram implements IOManager.IODriverModule {
       if (f.document) {
         this.bot.sendChatAction(chatId, "upload_document");
         const r = await this.bot.sendDocument(chatId, f.document, botOpt);
-        results.push(["document"]);
+        results.push(["document", r]);
       }
     } catch (err) {
       results.push(["error", err]);

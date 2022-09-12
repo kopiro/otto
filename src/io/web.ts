@@ -63,7 +63,7 @@ export class Web implements IOManager.IODriverModule {
 
     // Otherwise, parse for incoming audio
     const form = formidable();
-    const { files } = await new Promise((resolve, reject) => {
+    const { files } = await new Promise<{ files: { audio: { path: string } } }>((resolve, reject) => {
       form.parse(req, (err: any, _: any, files: any) => {
         if (err) {
           return reject(err);
@@ -137,6 +137,6 @@ export class Web implements IOManager.IODriverModule {
 
 let _instance: Web;
 export default (): Web => {
-  _instance = _instance || new Web(config().web);
+  _instance = _instance || new Web(null);
   return _instance;
 };
