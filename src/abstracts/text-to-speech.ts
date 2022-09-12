@@ -29,12 +29,11 @@ export abstract class TextToSpeech {
   }
 
   writeCacheRegistry() {
-    return fs.writeFileSync(this.CACHE_REGISTRY_FILE, JSON.stringify(this.cache));
+    return fs.writeFileSync(this.CACHE_REGISTRY_FILE, JSON.stringify(this.cache, null, 2));
   }
 
   getCacheKeyForVoice(language: Language, gender: Gender) {
-    const e = [language, gender].filter((e) => e).join();
-    return crypto.createHash("md5").update(e).digest("hex");
+    return `${String(language)}$${String(gender)}`;
   }
 
   abstract _getVoice(language: Language, gender: Gender);

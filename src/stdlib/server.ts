@@ -135,11 +135,11 @@ routerApi.post("/findmydevice", async (req, res) => {
   }
 });
 
-export function getDomain() {
+export function getDomain(): string {
   return `${config().server.protocol}://${config().server.domain}`;
 }
 
-export function initializeRoutes() {
+export function initializeRoutes(): { app: any; server: any } {
   const app = express();
   const server = http.createServer(app);
 
@@ -163,8 +163,8 @@ export function initializeRoutes() {
   return { app, server };
 }
 
-export function start() {
-  return new Promise<void>((resolve, reject) => {
+export function start(): Promise<void> {
+  return new Promise<void>((resolve) => {
     const _config = config().server;
     const { server } = initializeRoutes();
     server.listen(

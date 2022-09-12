@@ -1,3 +1,4 @@
+import { Struct } from "pb-util/build";
 import AI from "./ai";
 
 describe("AI", () => {
@@ -11,12 +12,10 @@ describe("AI", () => {
               fields: {
                 audio: {
                   stringValue: "URL",
-                  // @ts-ignore
                   kind: "stringValue",
                 },
               },
-            },
-            message: "payload",
+            } as Struct,
           },
         ],
         "audio",

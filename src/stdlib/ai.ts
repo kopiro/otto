@@ -3,7 +3,7 @@ import * as IOManager from "./iomanager";
 import config from "../config";
 import { getLocalObjectFromURI } from "../helpers";
 import { Fulfillment, CustomError, AIAction, InputParams, Session, FullfillmentStringKeys } from "../types";
-import { struct, Struct } from "pb-util";
+import { struct } from "pb-util";
 import Events from "events";
 import fetch from "node-fetch";
 import fs from "fs";
@@ -111,7 +111,8 @@ class AI {
     return { text: "Scheduled shutdown in 5 seconds" };
   }
 
-  private async commandStart(_: RegExpMatchArray, session: Session): Promise<Fulfillment> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  private async commandStart(_: RegExpMatchArray, _session: Session): Promise<Fulfillment> {
     return { text: "HELO" };
   }
 
@@ -253,15 +254,16 @@ class AI {
     const fulfillmentsAndOutputResults: [Fulfillment, IOManager.OutputResult][] = [];
 
     for await (const fulfillment of fulfillmentGenerator) {
-      let trFulfillment = await this.fulfillmentTransformerForSession(fulfillment, session);
-      let outputResult = await IOManager.output(trFulfillment, session, bag);
+      const trFulfillment = await this.fulfillmentTransformerForSession(fulfillment, session);
+      const outputResult = await IOManager.output(trFulfillment, session, bag);
       fulfillmentsAndOutputResults.push([trFulfillment, outputResult]);
     }
 
     return fulfillmentsAndOutputResults;
   }
 
-  handleSystemPackages(pkgName: string, body: IDetectIntentResponse, session: Session): Fulfillment | null {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  handleSystemPackages(pkgName: string, body: IDetectIntentResponse, _session: Session): Fulfillment | null {
     const { queryResult } = body;
 
     switch (pkgName) {
@@ -337,10 +339,16 @@ class AI {
   }
 
   async invokeTrain(queryText: string) {
-    if (this.config.trainingSessionId) {
-      console.debug(TAG, `Training invoked on sessionId ${this.config.trainingSessionId}`);
+    const { trainingSessionId } = this.config;
 
-      const trainingSession = await IOManager.getSession(this.config.trainingSessionId);
+    if (this.config.trainingSessionId) {
+      console.debug(TAG, `Training invoked on sessionId ${trainingSessionId}`);
+
+      const trainingSession = await IOManager.getSession(trainingSessionId);
+      if (!trainingSession) {
+        console.error(TAG, `Unable to find traning session ID (${trainingSessionId})`);
+        return;
+      }
       this.processInput(
         {
           event: { name: "training", parameters: { queryText } },
@@ -445,7 +453,8 @@ class AI {
   /**
    * Make a text request to OpenAI
    */
-  async textRequestOpenAI(text: InputParams["text"], session: Session, bag: IOManager.IOBag): Promise<Fulfillment> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async textRequestOpenAI(text: InputParams["text"], session: Session, _bag: IOManager.IOBag): Promise<Fulfillment> {
     console.info(TAG, "[openai] text request:", text);
 
     const now = Math.floor(Date.now() / 1000);
