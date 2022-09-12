@@ -2,8 +2,12 @@ import * as Data from "../data/index";
 import config from "../config";
 import { Session, Fulfillment, InputParams, IOQueue } from "../types";
 import { EventEmitter } from "events";
+import { Signale } from "signale";
 
 const TAG = "IOManager";
+const console = new Signale({
+  scope: TAG,
+});
 
 export type IODriver = "telegram" | "human" | "web";
 export type IOAccessory = "gpio_button" | "leds";
@@ -122,18 +126,18 @@ export async function output(
 
   // If this fulfillment has been handled by a generator, simply skip
   if (fulfillment.options?.handledByGenerator) {
-    console.warn(TAG, "Skipping output because is handled by an external generator");
+    console.warn("Skipping output because is handled by an external generator");
     return { rejectReason: { message: "HANDLED_BY_GENERATOR" } };
   }
 
   // Redirecting output to another session
   if (session.redirectSessions?.length > 0) {
-    console.info(TAG, "using redirectSessions", session.redirectSessions);
+    console.info("using redirectSessions", session.redirectSessions);
     Promise.all(session.redirectSessions.map((e) => output(fulfillment, e, bag, loadDriverIfNotEnabled)));
   }
 
   if (session.doNotDisturb) {
-    console.info(TAG, "rejecting because doNotDisturb is ON", session);
+    console.info("rejecting because doNotDisturb is ON", session);
     return { rejectReason: { message: "DO_NOT_DISTURB_ON" } };
   }
 
@@ -180,7 +184,7 @@ export async function output(
   }
 
   if (session.forwardSessions?.length > 0) {
-    console.info(TAG, "using forwardSessions", session.forwardSessions);
+    console.info("using forwardSessions", session.forwardSessions);
     Promise.all(session.forwardSessions.map((e) => output(fulfillment, e, bag, loadDriverIfNotEnabled)));
   }
 
@@ -198,7 +202,7 @@ export async function output(
   }
 
   if (driverError && session.fallbackSession) {
-    console.info(TAG, "using fallbackSession", session.fallbackSession.id);
+    console.info("using fallbackSession", session.fallbackSession.id);
     return output(fulfillment, session.fallbackSession, bag);
   }
 
@@ -246,14 +250,14 @@ function startDrivers(onDriverInput: (params: InputParams, session: Session) => 
             if (input.params) {
               onDriverInput(input.params as InputParams, input.session as Session);
             } else {
-              console.error(TAG, "driver emitted unkown events", input);
+              console.error("driver emitted unkown events", input);
             }
           });
 
           enabledDrivers[driverName] = driver;
           enabledDriverIds.push(driverId);
 
-          console.log(TAG, `driver ${driverName} started with id: <${driverId}>`);
+          console.log(`driver ${driverName} started with id: <${driverId}>`);
           return true;
         });
     }),
@@ -311,7 +315,7 @@ export async function registerSession(ioDriver: string, sessionId?: string, ioDa
     // TODO: remove this and calculate it
     const freshSession = new Data.Session(data);
     await freshSession.save();
-    console.info(TAG, "new session model registered", freshSession);
+    console.info("new session model registered", freshSession);
     return (freshSession as unknown) as Session;
   } else {
     await session.updateOne(data);
@@ -347,7 +351,7 @@ export async function processIOQueue(callback?: (item: IOQueue | null) => void):
 
   ioQueueInProcess[qitem.id] = true;
 
-  console.info(TAG, "processing queue item", {
+  console.info("processing queue item", {
     fulfillment: qitem.fulfillment,
     "session.id": qitem.session,
     bag: qitem.bag,

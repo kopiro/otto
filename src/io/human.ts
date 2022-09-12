@@ -14,8 +14,13 @@ import fs from "fs";
 import textToSpeech from "../stdlib/text-to-speech";
 import speechRecognizer from "../stdlib/speech-recognizer";
 import speaker from "../stdlib/speaker";
+import { Signale } from "signale";
 
 const TAG = "IO.Human";
+const console = new Signale({
+  scope: TAG,
+});
+
 const DRIVER_ID = "human";
 
 const PLATFORM_RECORDER_MAP: Map<NodeJS.Platform, string> = new Map();
@@ -90,7 +95,7 @@ export class Human implements IOManager.IODriverModule {
    * the microphone input to GCP-SR stream
    */
   startRecognition(session: Session) {
-    console.log(TAG, "recognizing microphone stream");
+    console.log("recognizing microphone stream");
 
     const recognizeStream = speechRecognizer().createRecognizeStream(session.getTranslateFrom(), (err, text) => {
       this.isRecognizing = false;
@@ -142,10 +147,10 @@ export class Human implements IOManager.IODriverModule {
    */
   processHotwordSilence() {
     if (this.hotwordSilenceSec === 0) {
-      console.info(TAG, "timeout exceeded, user should pronunce hotword again");
+      console.info("timeout exceeded, user should pronunce hotword again");
       this.hotwordSilenceSec = -1;
     } else if (this.hotwordSilenceSec > 0) {
-      console.debug(TAG, `${this.hotwordSilenceSec}s left before reset`);
+      console.debug(`${this.hotwordSilenceSec}s left before reset`);
       this.hotwordSilenceSec--;
     }
   }
@@ -164,7 +169,7 @@ export class Human implements IOManager.IODriverModule {
   async wake() {
     const session = await this.registerInternalSession();
 
-    console.info(TAG, "wake");
+    console.info("wake");
     this.emitter.emit("woken");
 
     this.stopOutput(); // Stop any previous output
@@ -183,7 +188,7 @@ export class Human implements IOManager.IODriverModule {
    * Stop the recognizer
    */
   stop() {
-    console.info(TAG, "stop");
+    console.info("stop");
     this.stopOutput();
     this.hotwordSilenceSec = -1;
     this.emitter.emit("stopped");
@@ -193,6 +198,8 @@ export class Human implements IOManager.IODriverModule {
    * Create and assign the hotword stream to listen for wake word
    */
   startHotwordDetection() {
+    // We need to dynamically load this as it may be not necessary to include it
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const Porcupine = require("@picovoice/porcupine-node");
 
     let frameAccumulator = [];
@@ -201,7 +208,7 @@ export class Human implements IOManager.IODriverModule {
     if (fs.existsSync(ppnFile)) {
       this.porcupine = new Porcupine([ppnFile], [0.5]);
     } else {
-      console.error(TAG, `ppnFile ${ppnFile} not present, fallback to "COMPUTER" keyword`);
+      console.error(`ppnFile ${ppnFile} not present, fallback to "COMPUTER" keyword`);
       this.porcupine = new Porcupine([COMPUTER], [0.5]);
     }
 
@@ -227,7 +234,7 @@ export class Human implements IOManager.IODriverModule {
       for (const frame of frames) {
         const index = this.porcupine.process(frame);
         if (index !== -1) {
-          console.log(TAG, `Detected hotword!`);
+          console.log(`Detected hotword!`);
           this.wake();
         }
       }
@@ -258,7 +265,7 @@ export class Human implements IOManager.IODriverModule {
       }
     } catch (err) {
       results.push(["error", err]);
-      console.error(TAG, err);
+      console.error(err);
     }
 
     // Process an Audio Object
@@ -270,7 +277,7 @@ export class Human implements IOManager.IODriverModule {
       }
     } catch (err) {
       results.push(["error", err]);
-      console.error(TAG, err);
+      console.error(err);
     }
 
     return results;
@@ -286,7 +293,7 @@ export class Human implements IOManager.IODriverModule {
 
     // If we have a current processed item, let's wait until it's null
     while (this.currentSpokenFulfillment) {
-      console.log(TAG, "waiting until agent is not speaking...");
+      console.log("waiting until agent is not speaking...");
       // eslint-disable-next-line no-await-in-loop
       results.push(["timeout", Human.SLEEP_WAIT_STILL_SPEAKING]);
       await timeout(Human.SLEEP_WAIT_STILL_SPEAKING);
@@ -308,7 +315,7 @@ export class Human implements IOManager.IODriverModule {
    */
   async start(): Promise<boolean> {
     const session = await this.registerInternalSession();
-    console.log(TAG, `started, sessionID: ${session.id}`);
+    console.log(`started, sessionID: ${session.id}`);
 
     this.emitter.on("wake", this.wake);
     this.emitter.on("stop", this.stop);

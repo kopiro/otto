@@ -11,7 +11,12 @@ import rateLimit from "express-rate-limit";
 import { FindMyDevice } from "../data";
 import * as IOManager from "./iomanager";
 
+import { Signale } from "signale";
+
 const TAG = "Server";
+const console = new Signale({
+  scope: TAG,
+});
 
 export const routerIO = express.Router();
 export const routerApi = express.Router();
@@ -173,7 +178,7 @@ export function start(): Promise<void> {
         server: "0.0.0.0",
       },
       () => {
-        console.info(TAG, `started: http://0.0.0.0:${_config.port}`);
+        console.info(`started: http://0.0.0.0:${_config.port}`);
         resolve();
       },
     );

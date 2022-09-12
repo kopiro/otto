@@ -1,7 +1,12 @@
 import { spawn, ChildProcess } from "child_process";
 import stream from "stream";
 
+import { Signale } from "signale";
+
 const TAG = "Rec";
+const console = new Signale({
+  scope: TAG,
+});
 
 let proc: ChildProcess = null;
 
@@ -18,7 +23,7 @@ export function start(sampleRate = 16000, threshold = 3, stopOnSilence = false, 
     args = args.concat("trim", "0", time.toString());
   }
 
-  console.debug(TAG, "Recording...");
+  console.debug("Recording...");
   if (proc) {
     proc.kill();
   }
@@ -26,7 +31,7 @@ export function start(sampleRate = 16000, threshold = 3, stopOnSilence = false, 
   proc = spawn("rec", args);
 
   proc.stdout.on("end", () => {
-    console.debug(TAG, "end");
+    console.debug("end");
   });
 
   return proc.stdout;
@@ -43,6 +48,6 @@ export function getStream(): stream.Readable {
 export function stop() {
   if (proc == null) return;
 
-  console.log(TAG, "stop");
+  console.log("stop");
   proc.kill();
 }

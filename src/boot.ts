@@ -8,7 +8,7 @@ import * as Sentry from "@sentry/node";
 dotEnvConfig();
 
 if (!config().uid) {
-  console.error("Please define config.uid with your Universal ID (username)");
+  process.stdout.write("Please define config.uid with your Universal ID (username)");
   process.exit(1);
 }
 

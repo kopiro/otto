@@ -4,7 +4,12 @@ import fs from "fs";
 import * as Proc from "../lib/proc";
 import { File } from "./file";
 
+import { Signale } from "signale";
+
 const TAG = "Voice";
+const console = new Signale({
+  scope: TAG,
+});
 
 type VoiceConfig = {
   addArgs: string[];
@@ -28,8 +33,8 @@ class Voice {
       return finalUri;
     }
 
-    console.debug(TAG, `writing remixed file to ${finalUri.getAbsoluteFSPath()}}`);
-    await Proc.spawn("sox", [localUri, finalUri.getAbsoluteFSPath()].concat(this.config.addArgs));
+    console.debug(`writing remixed file to ${finalUri.getAbsoluteFSPath()}}`);
+    await Proc.spawn("sox", [localUri, finalUri.getAbsoluteFSPath()].concat(this.config.addArgs)).result;
     return finalUri;
   }
 }

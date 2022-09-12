@@ -2,8 +2,12 @@ import { RaspiCamera } from "../lib/raspi-camera";
 import isPi from "detect-rpi";
 import { MacOSCamera } from "../lib/macos-camera";
 import { Camera } from "../abstracts/camera";
+import { Signale } from "signale";
 
 const TAG = "Camera";
+const console = new Signale({
+  scope: TAG,
+});
 
 let _instance: Camera;
 export default () => {

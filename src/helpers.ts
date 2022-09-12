@@ -8,6 +8,7 @@ import { cacheDir, tmpDir } from "./paths";
 import { Language, Locale } from "./types";
 import { v4 as uuid } from "uuid";
 import crypto from "crypto";
+import { Signale } from "signale";
 
 export function getTmpFile(extension: string) {
   return path.join(tmpDir, `${uuid()}.${extension}`);
@@ -79,6 +80,9 @@ export function getLocaleFromLanguageCode(language: Language): Locale {
  */
 export function getLocalObjectFromURI(uri: string | Buffer, extension: string): Promise<string> {
   const TAG = "getLocalObjectFromURI";
+  const console = new Signale({
+    scope: TAG,
+  });
 
   return new Promise((resolve, reject) => {
     if (!uri) {
@@ -90,7 +94,7 @@ export function getLocalObjectFromURI(uri: string | Buffer, extension: string): 
 
     if (Buffer.isBuffer(uri)) {
       if (!fs.existsSync(localFile)) {
-        console.debug(TAG, `writing buffer to local file <${localFile}>`);
+        console.debug(`writing buffer to local file <${localFile}>`);
         return fs.promises.writeFile(localFile, uri).then(() => {
           resolve(localFile);
         });
@@ -100,7 +104,7 @@ export function getLocalObjectFromURI(uri: string | Buffer, extension: string): 
 
     if (typeof uri === "string" && /^https?:\/\//.test(uri)) {
       if (!fs.existsSync(localFile)) {
-        console.debug(TAG, `writing ${uri} to local file <${localFile}>`);
+        console.debug(`writing ${uri} to local file <${localFile}>`);
         return request(uri)
           .pipe(fs.createWriteStream(localFile))
           .on("close", () => {
@@ -156,7 +160,7 @@ export function getAiNameRegex(): RegExp {
 export function replaceVariablesInStrings(text: string, data: Record<string, string>): string {
   let reLoop = null;
   let textCopy = text;
-  const re = /\%(\w+)\%/g;
+  const re = /%(\w+)%/g;
   // eslint-disable-next-line no-cond-assign
   while ((reLoop = re.exec(text))) {
     const inVar = reLoop[1];

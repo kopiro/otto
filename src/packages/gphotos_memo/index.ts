@@ -8,7 +8,7 @@ const POLL_DATE_CHOICES_COUNT = 4;
 const POLL_DATE_RANGE_DAYS = 1460;
 const POLL_DATE_ANSWER_MINUTES = 10;
 
-const gPhotosMemoAction: AIAction = async ({ queryResult }, session) => {
+const gPhotosMemoAction: AIAction = async ({ queryResult }, _session) => {
   const { parameters: p } = queryResult;
 
   const token = await gogleOAuthService().getAccessToken();

@@ -1,4 +1,4 @@
-import { AIAction, Fulfillment } from "../../types";
+import { AIAction } from "../../types";
 import camera from "../../stdlib/camera";
 import { Authorizations } from "../../stdlib/iomanager";
 

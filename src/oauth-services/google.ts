@@ -1,8 +1,9 @@
 import { google } from "googleapis";
 import { OAuthService } from "../abstracts/oauth-service";
 import * as Server from "../stdlib/server";
-import { OAuth2Client, Credentials } from "google-auth-library";
+import { Credentials } from "google-auth-library";
 import config from "../config";
+import { OAuth2Client } from "googleapis-common";
 
 type OAuthConfig = { clientId: string; clientSecret: string; scopes: string[] };
 
@@ -13,7 +14,6 @@ export class GoogleOAuthService extends OAuthService {
   constructor(_config: OAuthConfig) {
     super();
     this._config = _config;
-    // @ts-ignore
     this.oauth2Client = new google.auth.OAuth2(this._config.clientId, this._config.clientSecret, this.getRedirectUrl());
   }
 
@@ -24,8 +24,7 @@ export class GoogleOAuthService extends OAuthService {
     return (await this.oauth2Client.getAccessToken()).token;
   }
 
-  async initializeForAuthorization() {
-    // @ts-ignore
+  async initializeForAuthorization(): Promise<void> {
     Server.routerOAuth.get("/google", async (req, res) => {
       try {
         const { tokens } = await this.oauth2Client.getToken(req.query.code.toString());
@@ -37,15 +36,15 @@ export class GoogleOAuthService extends OAuthService {
     });
   }
 
-  getName() {
+  getName(): string {
     return "google";
   }
 
-  getRedirectUrl() {
+  getRedirectUrl(): string {
     return `${Server.getDomain()}/oauth/google`;
   }
 
-  getAuthUrl() {
+  getAuthUrl(): string {
     return this.oauth2Client.generateAuthUrl({
       access_type: "offline", // needed to receive the refresh_token
       prompt: "consent", // needed to always receive the refresh_token, not only 1st req

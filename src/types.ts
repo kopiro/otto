@@ -39,7 +39,7 @@ export interface Fulfillment {
     close_date?: number;
     is_closed?: boolean;
   };
-  outputContexts?: Array<{}>;
+  outputContexts?: Array<Record<string,any>>;
   options?: {
     language?: Language;
     transformerUid?: string;
@@ -63,8 +63,6 @@ export interface InputParams {
   command?: string;
   bag?: any;
 }
-
-// eslint-disable-next-line @typescript-eslint/interface-name-prefix
 export interface IOQueue extends Document {
   id: string;
   fulfillment: Fulfillment;
@@ -94,8 +92,8 @@ export interface Session extends Document {
   ioDriver: IODriver;
   ioId: string;
   ioData: Record<string, any>;
-  serverSettings: {};
-  settings: {};
+  serverSettings: Record<string, any>;
+  settings: Record<string, any>;
   translateFrom: Language;
   translateTo: Language;
   authorizations: Authorizations[];

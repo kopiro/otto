@@ -2,8 +2,13 @@ import * as Data from "../data";
 import config from "../config";
 import { Fulfillment, Scheduler as SchedulerModel, Session } from "../types";
 import moment from "../lib/moment";
+import { Signale } from "signale";
 
 const TAG = "Scheduler";
+const console = new Signale({
+  scope: TAG,
+});
+
 const FORMAT = "YYYY-MM-DD HH:mm:ss";
 
 export type SchedulerProgramName = "input";
@@ -42,7 +47,7 @@ export class Scheduler {
       programArgs: { date, fulfillment },
       deleteAfterRun: true,
     });
-    console.log(TAG, "scheduled fulfillment", job);
+    console.log("scheduled fulfillment", job);
     return job.save();
   }
 
@@ -84,7 +89,7 @@ export class Scheduler {
   }
 
   async runJob(job: SchedulerModel) {
-    console.log(TAG, Date.now(), "running job", {
+    console.log(Date.now(), "running job", {
       programName: job.programName,
       programArgs: job.programArgs,
       "session.id": job.session.id,
@@ -97,7 +102,7 @@ export class Scheduler {
       }
 
       const result = await program.run();
-      console.debug(TAG, "processed", result);
+      console.debug("processed", result);
 
       if (job.deleteAfterRun) {
         job.delete();
@@ -105,27 +110,27 @@ export class Scheduler {
 
       return result;
     } catch (err) {
-      console.error(TAG, "error", err);
+      console.error("error", err);
     }
   }
 
   async tick(conditions = []) {
     const jobs = await this.getJobs(conditions);
     if (jobs.length > 0) {
-      console.log(TAG, "jobs", jobs);
+      console.log("jobs", jobs);
     }
     jobs.forEach(this.runJob.bind(this));
   }
 
   async start() {
     if (this.started) {
-      console.warn(TAG, "attempted to start an already started instance");
+      console.warn("attempted to start an already started instance");
       return;
     }
 
     this.started = true;
 
-    console.info(TAG, `polling started`);
+    console.info(`polling started`);
 
     this.tick([{ onBoot: true }]);
     setInterval(this.tick.bind(this), 60 * 1000);

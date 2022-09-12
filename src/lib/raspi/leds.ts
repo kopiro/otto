@@ -1,7 +1,11 @@
 import Apa102spi from "apa102-spi";
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const TAG = "Raspi/Leds";
+import { Signale } from "signale";
+
+const TAG = "Camera";
+const console = new Signale({
+  scope: TAG,
+});
 
 const BRIGHTNESS_MAX = 30;
 const LEDS_COUNT = 3;

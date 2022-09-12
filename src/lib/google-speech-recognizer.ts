@@ -6,8 +6,13 @@ import { SpeechClient } from "@google-cloud/speech/build/src/v1";
 import { Language } from "../types";
 import { promisify } from "util";
 import wavFileInfo from "wav-file-info";
+import { Signale } from "signale";
 
-const TAG = "GCSR";
+const TAG = "GoogleSpeechRecognizer";
+const console = new Signale({
+  scope: TAG,
+});
+
 export class GoogleSpeechRecognizer extends SpeechRecognizer {
   client: SpeechClient;
   SAMPLE_RATE = 16000;
@@ -42,7 +47,7 @@ export class GoogleSpeechRecognizer extends SpeechRecognizer {
     });
 
     stream.on("error", (err) => {
-      console.error(TAG, err);
+      console.error(err);
       callback(err);
     });
 
@@ -50,11 +55,11 @@ export class GoogleSpeechRecognizer extends SpeechRecognizer {
       if (data.results.length > 0) {
         const r = data.results[0];
         if (r.alternatives) {
-          console.debug(TAG, r.alternatives[0].transcript);
+          console.debug(r.alternatives[0].transcript);
         }
         if (r.isFinal) {
           const text = r.alternatives[0].transcript;
-          console.info(TAG, "recognized", text);
+          console.info("recognized", text);
           resolved = true;
           callback(null, text);
         }

@@ -1,26 +1,37 @@
-import { spawn as systemSpawn } from "child_process";
+import { ChildProcess, spawn as systemSpawn } from "child_process";
+
+import { Signale } from "signale";
 
 const TAG = "Proc";
+const console = new Signale({
+  scope: TAG,
+});
 
-export function spawn(program: string, args: Array<any> = []): Promise<string> {
-  return new Promise((resolve, reject) => {
-    console.log(TAG, program, args.join(" "));
+export function spawn(program: string, args: Array<any> = []): { child: ChildProcess; result: Promise<string> } {
+  console.log(program, args.join(" "));
 
-    const spawned = systemSpawn(program, args);
+  const child = systemSpawn(program, args);
 
-    let stdout = "";
-    let stderr = "";
+  let stdout = "";
+  let stderr = "";
 
-    spawned.stdout.on("data", (buf) => {
-      stdout += buf;
-    });
+  child.stdout.on("data", (buf) => {
+    stdout += buf;
+  });
 
-    spawned.stderr.on("data", (buf) => {
-      stderr += buf;
-    });
+  child.stderr.on("data", (buf) => {
+    stderr += buf;
+  });
 
-    spawned.on("close", (err) => {
-      err ? reject(stderr) : resolve(stdout);
+  const result = new Promise<string>((resolve, reject) => {
+    child.on("close", (err) => {
+      if (err) {
+        reject(stderr);
+        return;
+      }
+      resolve(stdout);
     });
   });
+
+  return { child, result };
 }

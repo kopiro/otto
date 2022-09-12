@@ -2,6 +2,13 @@ import { Speaker } from "../../abstracts/speaker";
 import { Sonos } from "sonos";
 import { File } from "../../stdlib/file";
 
+import { Signale } from "signale";
+
+const TAG = "SonosSpeaker";
+const console = new Signale({
+  scope: TAG,
+});
+
 type SonosConfig = {
   ip: string;
 };
@@ -25,5 +32,9 @@ export class SonosSpeaker extends Speaker {
     }
     this.device.playNotification(uri);
     return true;
+  }
+
+  kill() {
+    console.error("kill is not supported");
   }
 }

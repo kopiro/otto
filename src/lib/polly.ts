@@ -51,25 +51,27 @@ export class PollyTextToSpeech extends TextToSpeech {
    * Download the audio file for that sentence and options
    */
   _getAudioFile(text: string, language: Language, gender: Gender): Promise<crypto.BinaryLike> {
-    return new Promise(async (resolve, reject) => {
-      // Find the voice title by options
-      const voice = await this.getVoice(language, gender);
-      // Call the API
-      return this.client.synthesizeSpeech(
-        {
-          VoiceId: voice.Id,
-          Text: text,
-          TextType: /<speak>/.test(text) ? "ssml" : "text",
-          OutputFormat: config().audio.encoding,
-        },
-        async (err, data) => {
-          if (err) {
-            return reject(err);
-          }
+    return new Promise((resolve, reject) => {
+      (async () => {
+        // Find the voice title by options
+        const voice = await this.getVoice(language, gender);
+        // Call the API
+        return this.client.synthesizeSpeech(
+          {
+            VoiceId: voice.Id,
+            Text: text,
+            TextType: /<speak>/.test(text) ? "ssml" : "text",
+            OutputFormat: config().audio.encoding,
+          },
+          async (err, data) => {
+            if (err) {
+              return reject(err);
+            }
 
-          resolve(data.AudioStream as crypto.BinaryLike);
-        },
-      );
+            resolve(data.AudioStream as crypto.BinaryLike);
+          },
+        );
+      })();
     });
   }
 }

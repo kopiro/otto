@@ -1,5 +1,5 @@
 export function shuffle<T>(array: T[]): T[] {
-  var currentIndex = array.length,
+  let currentIndex = array.length,
     randomIndex;
 
   // While there remain elements to shuffle...

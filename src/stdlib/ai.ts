@@ -13,7 +13,12 @@ import translator from "../stdlib/translator";
 export type IDetectIntentResponse = protos.google.cloud.dialogflow.v2.IDetectIntentResponse;
 export type IQueryInput = protos.google.cloud.dialogflow.v2.IQueryInput;
 
+import { Signale } from "signale";
+
 const TAG = "AI";
+const console = new Signale({
+  scope: TAG,
+});
 
 type AIConfig = {
   aiName: string;
@@ -158,7 +163,7 @@ class AI {
     return () => this.commandNotFound();
   }
   async train(queryText: string, answer: string) {
-    console.debug(TAG, "TRAIN request", { queryText, answer });
+    console.debug("TRAIN request", { queryText, answer });
     const response = await this.dfIntentsClient.createIntent({
       parent: this.dfIntentAgentPath,
       languageCode: this.config.dialogflow.language,
@@ -179,7 +184,7 @@ class AI {
         ],
       },
     });
-    console.debug(TAG, "TRAIN response", response);
+    console.debug("TRAIN response", response);
     return response;
   }
 
@@ -249,7 +254,7 @@ class AI {
     session: Session,
     bag: IOManager.IOBag,
   ): Promise<[Fulfillment, IOManager.OutputResult][]> {
-    console.info(TAG, "Using generator resolver", fulfillmentGenerator);
+    console.info("Using generator resolver", fulfillmentGenerator);
 
     const fulfillmentsAndOutputResults: [Fulfillment, IOManager.OutputResult][] = [];
 
@@ -284,7 +289,7 @@ class AI {
     session: Session,
     bag: IOManager.IOBag,
   ): Promise<Fulfillment> {
-    console.info(TAG, `calling action <${actionName}>`);
+    console.info(`calling action <${actionName}>`);
 
     try {
       const [pkgName, pkgAction = "index"] = actionName.split(".");
@@ -328,7 +333,7 @@ class AI {
         return actionResult as Fulfillment;
       }
     } catch (err) {
-      console.error(TAG, "error while executing action", err);
+      console.error("error while executing action", err);
       return this.actionErrorTransformer(err);
     }
   }
@@ -342,11 +347,11 @@ class AI {
     const { trainingSessionId } = this.config;
 
     if (this.config.trainingSessionId) {
-      console.debug(TAG, `Training invoked on sessionId ${trainingSessionId}`);
+      console.debug(`Training invoked on sessionId ${trainingSessionId}`);
 
       const trainingSession = await IOManager.getSession(trainingSessionId);
       if (!trainingSession) {
-        console.error(TAG, `Unable to find traning session ID (${trainingSessionId})`);
+        console.error(`Unable to find traning session ID (${trainingSessionId})`);
         return;
       }
       this.processInput(
@@ -370,7 +375,7 @@ class AI {
 
     // If we have an "action", call the package with the specified name
     if (body.queryResult.action) {
-      console.debug(TAG, `Resolving action: ${body.queryResult.action}`);
+      console.debug(`Resolving action: ${body.queryResult.action}`);
       return this.actionResolver(body.queryResult.action, body, session, bag);
     }
 
@@ -427,7 +432,7 @@ class AI {
    * Get the command to execute and return an executor
    */
   async commandRequest(command: InputParams["command"], session: Session, bag: IOManager.IOBag): Promise<Fulfillment> {
-    console.info(TAG, "command request:", command);
+    console.info("command request:", command);
 
     const commandExecutor = this.getCommandExecutor(command, session);
     try {
@@ -441,7 +446,7 @@ class AI {
    * Make a text request to DialogFlow and let the flow begin
    */
   async textRequestDF(text: InputParams["text"], session: Session, bag: IOManager.IOBag): Promise<Fulfillment> {
-    console.info(TAG, "[df] text request:", text);
+    console.info("[df] text request:", text);
 
     const queryInput: IQueryInput = { text: { text } };
     queryInput.text.languageCode = this.config.dialogflow.language;
@@ -455,11 +460,11 @@ class AI {
    */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async textRequestOpenAI(text: InputParams["text"], session: Session, _bag: IOManager.IOBag): Promise<Fulfillment> {
-    console.info(TAG, "[openai] text request:", text);
+    console.info("[openai] text request:", text);
 
     const now = Math.floor(Date.now() / 1000);
     if ((session.openaiLastInteraction ?? 0) + this.config.openai.interactionTTL < now) {
-      console.log(TAG, "resetting openaiChatLog");
+      console.log("resetting openaiChatLog");
       session.openaiChatLog = "";
     }
 
@@ -474,7 +479,7 @@ class AI {
     const brainModified = brain;
     const chatLog = (session.openaiChatLog ?? "") + `\n${who}: ${textTr.trim()}\n${this.config.aiName}: `;
 
-    console.log(TAG, `chatLog`, chatLog);
+    console.log(`chatLog`, chatLog);
 
     const prompt = brainHeader + "\n" + brainModified + "\n###\n" + chatLog;
     const params = {
@@ -507,7 +512,7 @@ class AI {
     );
 
     const json = (await response.json()) as { choices: { text }[] };
-    console.log(TAG, "response", json);
+    console.log("response", json);
 
     const answer = json.choices[0].text.trim();
 
@@ -533,7 +538,7 @@ class AI {
    * Make an event request to DialogFlow and let the flow begin
    */
   async eventRequestDF(event: InputParams["event"], session: Session, bag: IOManager.IOBag): Promise<Fulfillment> {
-    console.info(TAG, "[df] event request:", event);
+    console.info("[df] event request:", event);
 
     const queryInput: IQueryInput = { event: {} };
 
@@ -553,10 +558,10 @@ class AI {
    * Process a fulfillment to a session
    */
   async processInput(params: InputParams, session: Session) {
-    console.info(TAG, "processInput", { params, session });
+    console.info("processInput", { params, session });
 
     if (session.repeatModeSessions?.length > 0 && params.text) {
-      console.info(TAG, "using repeatModeSessions", session.repeatModeSessions);
+      console.info("using repeatModeSessions", session.repeatModeSessions);
       return Promise.all(
         session.repeatModeSessions.map(async (e) => {
           const trFulfillment = await this.fulfillmentTransformerForSession({ text: params.text }, e);

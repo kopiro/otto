@@ -3,6 +3,12 @@ import { Language, Gender } from "../types";
 import { cacheDir } from "../paths";
 import { v4 as uuid } from "uuid";
 import crypto from "crypto";
+import { Signale } from "signale";
+
+const TAG = "TextToSpeech";
+const console = new Signale({
+  scope: TAG,
+});
 
 export type TextToSpeechDriver = "google" | "polly";
 
@@ -25,7 +31,9 @@ export abstract class TextToSpeech {
   loadCacheRegistry() {
     try {
       this.cache = JSON.parse(fs.readFileSync(this.CACHE_REGISTRY_FILE).toString());
-    } catch (ex) {}
+    } catch (ex) {
+      console.warn("failed to load cache registry");
+    }
   }
 
   writeCacheRegistry() {

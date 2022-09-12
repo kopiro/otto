@@ -11,13 +11,17 @@ import * as Proc from "../lib/proc";
 import { v4 as uuid } from "uuid";
 import { tmpDir } from "../paths";
 import { Fulfillment, Session as ISession } from "../types";
-import { getAiNameRegex, getTmpFile } from "../helpers";
+import { getAiNameRegex } from "../helpers";
 import bodyParser from "body-parser";
 import { File } from "../stdlib/file";
 import textToSpeech from "../stdlib/text-to-speech";
 import speechRecognizer from "../stdlib/speech-recognizer";
+import { Signale } from "signale";
 
 const TAG = "IO.Telegram";
+const console = new Signale({
+  scope: TAG,
+});
 const DRIVER_ID = "telegram";
 
 export type TelegramConfig = {
@@ -52,18 +56,20 @@ export class Telegram implements IOManager.IODriverModule {
    * Handle a voice input by recognizing the text
    */
   async handleInputVoice(e: TelegramBot.Message, session: ISession): Promise<string> {
-    return new Promise(async (resolve) => {
-      const fileLink = await this.bot.getFileLink(e.voice.file_id);
-      const voiceFile = path.join(tmpDir, `${uuid()}.ogg`);
-      const voiceWavFile = `${voiceFile}.wav`;
+    return new Promise((resolve) => {
+      (async () => {
+        const fileLink = await this.bot.getFileLink(e.voice.file_id);
+        const voiceFile = path.join(tmpDir, `${uuid()}.ogg`);
+        const voiceWavFile = `${voiceFile}.wav`;
 
-      request(fileLink)
-        .pipe(fs.createWriteStream(voiceFile))
-        .on("close", async () => {
-          await Proc.spawn("opusdec", [voiceFile, voiceWavFile, "--rate", speechRecognizer().SAMPLE_RATE]);
-          const text = await speechRecognizer().recognizeFile(voiceWavFile, session.getTranslateFrom());
-          resolve(text);
-        });
+        request(fileLink)
+          .pipe(fs.createWriteStream(voiceFile))
+          .on("close", async () => {
+            await Proc.spawn("opusdec", [voiceFile, voiceWavFile, "--rate", speechRecognizer().SAMPLE_RATE]).result;
+            const text = await speechRecognizer().recognizeFile(voiceWavFile, session.getTranslateFrom());
+            resolve(text);
+          });
+      })();
     });
   }
 
@@ -157,12 +163,12 @@ export class Telegram implements IOManager.IODriverModule {
   }
 
   async onBotInput(e: TelegramBot.Message) {
-    console.info(TAG, "input", e);
+    console.info("input", e);
 
     // Register the session
     const { session, bag, isGroup, isMention, isReply, isActivator, isCommand } = await this.parseMessage(e);
 
-    console.info(TAG, `session = ${session.id}`);
+    console.info(`session = ${session.id}`);
 
     // Process a command
     if (isCommand) {
@@ -180,7 +186,7 @@ export class Telegram implements IOManager.IODriverModule {
     if (e.text) {
       // If we are in a group, only listen for activators
       if (isGroup && !(isMention || isReply || isActivator)) {
-        console.debug(TAG, "skipping input for missing activator");
+        console.debug("skipping input for missing activator");
         return false;
       }
 
@@ -203,7 +209,7 @@ export class Telegram implements IOManager.IODriverModule {
 
       // If we are in a group, only listen for activators
       if (isGroup && !isActivatorInVoice) {
-        console.debug(TAG, "skipping input for missing activator");
+        console.debug("skipping input for missing activator");
         return false;
       }
 
@@ -254,7 +260,7 @@ export class Telegram implements IOManager.IODriverModule {
     this.bot.on("poll_answer", this.onBotInput.bind(this));
 
     this.bot.on("webhook_error", (err) => {
-      console.error(TAG, "webhook error", err);
+      console.error("webhook error", err);
     });
 
     // We could attach the webhook to the Router API or via polling
@@ -308,7 +314,7 @@ export class Telegram implements IOManager.IODriverModule {
       }
     } catch (err) {
       results.push(["error", err]);
-      console.error(TAG, err);
+      console.error(err);
     }
 
     // Process a Video object
@@ -320,7 +326,7 @@ export class Telegram implements IOManager.IODriverModule {
       }
     } catch (err) {
       results.push(["error", err]);
-      console.error(TAG, err);
+      console.error(err);
     }
 
     // Process an Image Object
@@ -335,7 +341,7 @@ export class Telegram implements IOManager.IODriverModule {
       }
     } catch (err) {
       results.push(["error", err]);
-      console.error(TAG, err);
+      console.error(err);
     }
 
     // Process an Audio Object
@@ -347,7 +353,7 @@ export class Telegram implements IOManager.IODriverModule {
       }
     } catch (err) {
       results.push(["error", err]);
-      console.error(TAG, err);
+      console.error(err);
     }
 
     // Process a Document Object
@@ -359,7 +365,7 @@ export class Telegram implements IOManager.IODriverModule {
       }
     } catch (err) {
       results.push(["error", err]);
-      console.error(TAG, err);
+      console.error(err);
     }
 
     try {
@@ -369,7 +375,7 @@ export class Telegram implements IOManager.IODriverModule {
       }
     } catch (err) {
       results.push(["error", err]);
-      console.error(TAG, err);
+      console.error(err);
     }
 
     try {
@@ -379,7 +385,7 @@ export class Telegram implements IOManager.IODriverModule {
       }
     } catch (err) {
       results.push(["message", err]);
-      console.error(TAG, err);
+      console.error(err);
     }
 
     return results;

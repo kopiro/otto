@@ -2,7 +2,7 @@ import Events from "events";
 import config from "../config";
 import * as IOManager from "../stdlib/iomanager";
 import voice from "../stdlib/voice";
-import { Fulfillment, Session, InputParams } from "../types";
+import { Fulfillment, InputParams, Session } from "../types";
 import { Request, Response } from "express";
 import { routerIO } from "../stdlib/server";
 import { getTmpFile } from "../helpers";
@@ -10,14 +10,19 @@ import fs from "fs";
 import bodyParser from "body-parser";
 import { File } from "../stdlib/file";
 import textToSpeech from "../stdlib/text-to-speech";
+import { Signale } from "signale";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const formidable = require("formidable");
 
 const TAG = "IO.Web";
+const console = new Signale({
+  scope: TAG,
+});
+
 const DRIVER_ID = "web";
 
-type WebConfig = {};
+type WebConfig = null;
 
 type WebBag = {
   req: Request;

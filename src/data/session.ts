@@ -28,7 +28,6 @@ SessionSchema.plugin(autopopulate);
  * Get the language to translate from
  */
 SessionSchema.methods.getTranslateFrom = function (): Language {
-  // @ts-ignore
   return this.translateFrom || config().language;
 };
 
@@ -36,14 +35,11 @@ SessionSchema.methods.getTranslateFrom = function (): Language {
  * Get the language to translate to
  */
 SessionSchema.methods.getTranslateTo = function (): Language {
-  // @ts-ignore
   return this.translateTo || config().language;
 };
 
 SessionSchema.methods.getName = function (): Language {
-  // @ts-ignore
   if (this.name) return this.name;
-  // @ts-ignore
   if (this.ioDriver === "telegram") return this.ioData.from.first_name;
   return "Human";
 };
