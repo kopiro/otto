@@ -2,18 +2,18 @@ import { baseDir } from "../paths";
 import config from "../config";
 
 export class File {
-  absoluteFSPath: string;
+  private absolutePath: string;
 
-  constructor(absoluteFSPath: string) {
-    this.absoluteFSPath = absoluteFSPath;
+  constructor(absolutePath: string) {
+    this.absolutePath = absolutePath;
   }
 
-  getAbsoluteFSPath() {
-    return this.absoluteFSPath;
+  getAbsolutePath() {
+    return this.absolutePath;
   }
 
   getRelativePath() {
-    return this.absoluteFSPath.replace(baseDir, "");
+    return this.absolutePath.replace(baseDir, "");
   }
 
   getURI(protocol: string = config().server.protocol) {

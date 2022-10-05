@@ -29,12 +29,12 @@ class Voice {
     const localUri = await getLocalObjectFromURI(uri, ".mp3");
 
     const finalUri = new File(localUri.replace(/\.(.+)$/, "-remixed.$1"));
-    if (fs.existsSync(finalUri.getAbsoluteFSPath())) {
+    if (fs.existsSync(finalUri.getAbsolutePath())) {
       return finalUri;
     }
 
-    console.debug(`writing remixed file to ${finalUri.getAbsoluteFSPath()}}`);
-    await Proc.spawn("sox", [localUri, finalUri.getAbsoluteFSPath()].concat(this.config.addArgs)).result;
+    console.debug(`writing remixed file to ${finalUri.getAbsolutePath()}}`);
+    await Proc.spawn("sox", [localUri, finalUri.getAbsolutePath()].concat(this.config.addArgs)).result;
     return finalUri;
   }
 }

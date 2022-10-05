@@ -11,7 +11,7 @@ export class DirectSpeaker extends Speaker {
     if (typeof file === "string") {
       uri = file;
     } else {
-      uri = file.getAbsoluteFSPath();
+      uri = file.getAbsolutePath();
     }
 
     const { child, result } = Proc.spawn("play", [uri]);

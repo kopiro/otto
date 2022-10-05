@@ -123,7 +123,7 @@ export class Telegram implements IOManager.IODriverModule {
   ) {
     await this.bot.sendChatAction(chatId, "record_audio");
     const voiceFile = await this.getVoiceFile(fulfillment, session);
-    return this.bot.sendVoice(chatId, voiceFile.getAbsoluteFSPath(), botOpt);
+    return this.bot.sendVoice(chatId, voiceFile.getAbsolutePath(), botOpt);
   }
 
   getIsMention(text: string) {
