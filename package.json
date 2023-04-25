@@ -52,7 +52,7 @@
     "@sentry/node": "^5.15.4",
     "@types/node-fetch": "^2.5.10",
     "@types/node-telegram-bot-api": "^0.51.1",
-    "aws-sdk": "^2.349.0",
+    "aws-sdk": "^2.1354.0",
     "cheerio": "^1.0.0-rc.9",
     "commander": "^5.0.0",
     "detect-rpi": "^1.4.0",
