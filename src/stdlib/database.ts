@@ -8,7 +8,7 @@ export function getUrl() {
 
 export function connect(): Promise<void> {
   return new Promise((resolve, reject) => {
-    mongoose.connect(getUrl(), { useNewUrlParser: true, useUnifiedTopology: true });
+    mongoose.connect(getUrl());
     mongoose.connection.on("error", reject);
     mongoose.connection.once("open", resolve);
   });

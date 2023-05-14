@@ -40,6 +40,10 @@ SessionSchema.methods.getTranslateTo = function (): Language {
 
 SessionSchema.methods.getName = function (): Language {
   if (this.name) return this.name;
-  if (this.ioDriver === "telegram") return this.ioData.from.first_name;
+  if (this.ioDriver === "telegram") {
+    const { first_name, last_name } = this.ioData.from;
+    if (last_name) return `${first_name} ${last_name}`;
+    return first_name;
+  }
   return "Human";
 };

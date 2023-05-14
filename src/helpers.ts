@@ -90,7 +90,7 @@ export function getLocalObjectFromURI(uri: string | Buffer, extension: string): 
     }
 
     const hash = crypto.createHash("md5").update(uri).digest("hex");
-    const localFile = path.join(cacheDir, `${hash}${extension}`);
+    const localFile = path.join(cacheDir, `${hash}.${extension}`);
 
     if (Buffer.isBuffer(uri)) {
       if (!fs.existsSync(localFile)) {
@@ -105,7 +105,9 @@ export function getLocalObjectFromURI(uri: string | Buffer, extension: string): 
     if (typeof uri === "string" && /^https?:\/\//.test(uri)) {
       if (!fs.existsSync(localFile)) {
         console.debug(`writing ${uri} to local file <${localFile}>`);
-        return request(uri)
+        return request(uri, {
+          followAllRedirects: true,
+        })
           .pipe(fs.createWriteStream(localFile))
           .on("close", () => {
             resolve(localFile);

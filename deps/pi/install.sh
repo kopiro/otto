@@ -8,5 +8,4 @@ sudo apt-get -y install \
     raspivid \
     gpac
 
-npm -g install yarn
-yarn install --production
+pnpm install --production

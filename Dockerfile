@@ -2,7 +2,7 @@ FROM node:16-alpine
 WORKDIR /app
 VOLUME /app/cache /app/log /app/keys /app/tmp
 EXPOSE 80
-ENTRYPOINT [ "yarn", "start" ]
+ENTRYPOINT [ "pnpm", "run", "start" ]
 
 # Instal base packages
 RUN apk add --no-cache ca-certificates && \
@@ -27,7 +27,7 @@ RUN apk add --no-cache imagemagick graphicsmagick
 
 # Install node modules
 COPY package.json yarn.lock tsconfig.json .eslintrc jest.config.js .prettierrc ./
-RUN yarn install
+RUN pnpm install
 
 # Copy my code
 COPY ./src ./src
@@ -36,7 +36,7 @@ COPY ./src-client ./src-client
 COPY ./etc ./etc
 
 # Install workspaces packages
-RUN yarn install
+RUN pnpm install
 
 # Build code
-RUN yarn build
+RUN pnpm run build

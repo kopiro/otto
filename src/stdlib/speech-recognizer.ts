@@ -4,7 +4,7 @@ import { GoogleSpeechRecognizer } from "../lib/google-speech-recognizer";
 
 let _instance: SpeechRecognizer;
 export default () => {
-  if (_instance) {
+  if (!_instance) {
     const driverName = config().speechRecognizerDriver;
     switch (driverName) {
       case "google":

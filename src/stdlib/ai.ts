@@ -1,12 +1,9 @@
 import dialogflow, { protos, SessionsClient, IntentsClient } from "@google-cloud/dialogflow";
 import * as IOManager from "./iomanager";
 import config from "../config";
-import { getLocalObjectFromURI } from "../helpers";
 import { Fulfillment, CustomError, AIAction, InputParams, Session, FullfillmentStringKeys } from "../types";
 import { struct } from "pb-util";
 import Events from "events";
-import fetch from "node-fetch";
-import fs from "fs";
 import speechRecognizer from "../stdlib/speech-recognizer";
 import translator from "../stdlib/translator";
 
@@ -14,6 +11,11 @@ export type IDetectIntentResponse = protos.google.cloud.dialogflow.v2.IDetectInt
 export type IQueryInput = protos.google.cloud.dialogflow.v2.IQueryInput;
 
 import { Signale } from "signale";
+import { Configuration, OpenAIApi } from "openai";
+import { readFile } from "fs/promises";
+import { keysDir } from "../paths";
+import path from "path";
+import fetch from "node-fetch";
 
 const TAG = "AI";
 const console = new Signale({
@@ -31,11 +33,13 @@ type AIConfig = {
     language: string;
   };
   openai: {
-    token: string;
-    language: string;
+    apiKey: string;
     interactionTTL: number;
-    engine: string;
-    brainTxtUrl: string;
+    model: string;
+    baseModel: string;
+    language: string;
+    trainCSVFile: string;
+    stopSign: string[];
   };
 };
 
@@ -46,6 +50,9 @@ class AI {
 
   dfSessionClient: SessionsClient = new dialogflow.SessionsClient();
   dfIntentsClient: IntentsClient = new dialogflow.IntentsClient();
+
+  openai: OpenAIApi;
+
   emitter: Events.EventEmitter = new Events.EventEmitter();
 
   dfIntentAgentPath: string;
@@ -97,6 +104,7 @@ class AI {
   constructor(config: AIConfig) {
     this.config = config;
     this.dfIntentAgentPath = this.dfIntentsClient.projectAgentPath(this.config.dialogflow.projectId);
+    this.openai = new OpenAIApi(new Configuration({ apiKey: this.config.openai.apiKey }));
   }
 
   getCommandMappingDescription() {
@@ -338,11 +346,6 @@ class AI {
     }
   }
 
-  async getOpenAIBrainText(): Promise<string> {
-    const txtFile = await getLocalObjectFromURI(this.config.openai.brainTxtUrl, ".txt");
-    return (await fs.promises.readFile(txtFile, "utf8")).toString().replace(/\r\n/g, "\n");
-  }
-
   async invokeTrain(queryText: string) {
     const { trainingSessionId } = this.config;
 
@@ -464,57 +467,39 @@ class AI {
 
     const now = Math.floor(Date.now() / 1000);
     if ((session.openaiLastInteraction ?? 0) + this.config.openai.interactionTTL < now) {
-      console.log("resetting openaiChatLog");
+      console.log("[openai] resetting chat log");
       session.openaiChatLog = "";
     }
 
-    const who = session.getName();
+    const userName = session.getName();
+    const aiName = this.config.aiName;
 
-    const [brain, textTr] = await Promise.all([
-      this.getOpenAIBrainText(),
-      translator().translate(text, "en", session.getTranslateFrom()),
-    ]);
+    const textTr = await translator().translate(text, "en", session.getTranslateFrom());
+    const chatLog = session.openaiChatLog + `User: ${textTr.trim()}` + "\n" + `${aiName}:`;
 
-    const brainHeader = `This is a chat between ${who} and an AI called ${this.config.aiName}\n###`;
-    const brainModified = brain;
-    const chatLog = (session.openaiChatLog ?? "") + `\n${who}: ${textTr.trim()}\n${this.config.aiName}: `;
+    const header = (await readFile(path.join(keysDir, "openai-header.txt"), "utf-8"))
+      .replace(/\{ai\}/g, aiName)
+      .replace(/\{user\}/g, userName);
+
+    const prompt = header + "\n" + chatLog;
 
     console.log(`chatLog`, chatLog);
 
-    const prompt = brainHeader + "\n" + brainModified + "\n###\n" + chatLog;
-    const params = {
+    const completion = await this.openai.createCompletion({
       prompt: prompt,
-      stop: [`${who}:`],
-      temperature: 0.9,
+      model: this.config.openai.model,
+      stop: this.config.openai.stopSign,
+      temperature: 0.7,
       top_p: 1,
       frequency_penalty: 0,
       presence_penalty: 0.6,
       best_of: 1,
       max_tokens: 100,
-      n: 1,
-    };
-
-    const url = `https://api.openai.com/v1/engines/${this.config.openai.engine}/completions`;
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        authorization: `Bearer ${this.config.openai.token}`,
-        "content-type": "application/json",
-      },
-      body: JSON.stringify(params),
     });
 
-    fs.writeFileSync(
-      "openai-curl.txt",
-      `curl -X POST ${url} -H "authorization: Bearer ${
-        this.config.openai.token
-      }" -H "content-type: application/json" -d "${JSON.stringify(params)}"`,
-    );
+    console.log("[openai] completion", completion);
 
-    const json = (await response.json()) as { choices: { text }[] };
-    console.log("response", json);
-
-    const answer = json.choices[0].text.trim();
+    const answer = completion.data.choices[0].text.trim();
 
     if (answer) {
       session.openaiLastInteraction = now;

@@ -15,15 +15,15 @@ Then:
 
 ```sh
 cp .env.example .env
-yarn install
-yarn start:dev
+pnpm install
+pnpm run start:dev
 ```
 
 If you're gonna work on the client:
 
 ```sh
 cd src-client
-yarn start:dev
+pnpm run start:dev
 ```
 
 ### I/O Drivers

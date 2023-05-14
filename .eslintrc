@@ -6,9 +6,6 @@
   },
   "plugins": ["jest", "unused-imports", "@typescript-eslint"],
   "extends": ["eslint:recommended", "plugin:@typescript-eslint/recommended", "prettier"],
-  "env": {
-    "jest/globals": true
-  },
   "rules": {
     "no-param-reassign": "warn",
     "no-restricted-syntax": "off",

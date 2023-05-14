@@ -26,7 +26,7 @@ class Voice {
    * Play an item
    */
   async getFile(uri: string | Buffer): Promise<File> {
-    const localUri = await getLocalObjectFromURI(uri, ".mp3");
+    const localUri = await getLocalObjectFromURI(uri, "mp3");
 
     const finalUri = new File(localUri.replace(/\.(.+)$/, "-remixed.$1"));
     if (fs.existsSync(finalUri.getAbsolutePath())) {

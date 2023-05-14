@@ -61,11 +61,13 @@
     "language": "it"
   },
   "openai": {
-    "token": null,
+    "apiKey": null,
     "interactionTTL": 20,
     "language": "en",
-    "engine": "davinci",
-    "brainTxtUrl": null
+    "baseModel": "davinci",
+    "model": "davinci",
+    "trainCSVFile": "",
+    "stopSign": ["\n", "Human:", "AI:"]
   },
   "telegram": {
     "token": null,

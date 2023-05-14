@@ -99,7 +99,7 @@ export class Telegram implements IOManager.IODriverModule {
    * Send a message to the user
    */
   async sendMessage(chatId: string, text: string, opt: any = {}) {
-    await this.bot.sendChatAction(chatId, "typing");
+    this.bot.sendChatAction(chatId, "typing");
     return this.bot.sendMessage(chatId, this.cleanOutputText(text), { ...{ parse_mode: "HTML" }, ...opt });
   }
 
@@ -192,6 +192,7 @@ export class Telegram implements IOManager.IODriverModule {
 
       // Clean
       const text = this.cleanInputText(e);
+
       this.emitter.emit("input", {
         session,
         params: {
@@ -199,6 +200,7 @@ export class Telegram implements IOManager.IODriverModule {
           bag,
         },
       });
+
       return true;
     }
 
@@ -218,7 +220,7 @@ export class Telegram implements IOManager.IODriverModule {
         session,
         params: {
           text,
-          bag: { ...bag, respondWithAudioNote: true },
+          bag: { ...bag, encodable: { ...bag.encodable, respondWithAudioNote: true } },
         },
       });
 
@@ -243,7 +245,7 @@ export class Telegram implements IOManager.IODriverModule {
       return true;
     }
 
-    return true;
+    return false;
   }
 
   /**
@@ -303,11 +305,10 @@ export class Telegram implements IOManager.IODriverModule {
     // Process a Text Object
     try {
       if (f.text) {
-        this.bot.sendChatAction(chatId, "typing");
         const r = await this.sendMessage(chatId, f.text, botOpt);
         results.push(["message", r]);
 
-        if (bag?.encodable.respondWithAudioNote || f.options?.includeVoice) {
+        if (bag?.encodable?.respondWithAudioNote || f.options?.includeVoice) {
           const r = await this.sendAudioNote(chatId, f, session, botOpt);
           results.push(["audionote", r]);
         }
