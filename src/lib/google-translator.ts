@@ -22,7 +22,7 @@ export class GoogleTranslator extends Translator {
 
   async getLanguages(): Promise<Array<{ name: string; code: string }>> {
     if (!this.languages) {
-      const [languages] = await this.client.getLanguages(config().language);
+      const [languages] = await this.client.getLanguages("en");
       this.languages = languages;
     }
     return this.languages;

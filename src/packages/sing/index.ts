@@ -1,6 +1,6 @@
 import Musixmatch from "musixmatch-node";
 import config from "../../config";
-import { getLanguageCodeFromLanguageLongString } from "../../helpers";
+import { getLanguageCodeFromLanguageName } from "../../helpers";
 import { AIAction } from "../../types";
 
 const mxm = new Musixmatch(config().musixmatch.apiKey);
@@ -12,7 +12,7 @@ const sing: AIAction = async ({ queryResult }) => {
       q_track: p?.fields?.track?.stringValue,
       ...(p?.fields?.artist?.stringValue ? { q_artist: p?.fields?.artist.stringValue } : {}),
     }),
-    getLanguageCodeFromLanguageLongString(p?.fields?.language?.stringValue),
+    getLanguageCodeFromLanguageName(p?.fields?.language?.stringValue),
   ]);
   const text = response.message.body.lyrics.lyrics_body.replace(/\*\*\*.+\*\*\*/g, "");
   return {

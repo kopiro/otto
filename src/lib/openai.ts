@@ -4,7 +4,7 @@ import config from "../config";
 import { Signale } from "signale";
 import ai from "../stdlib/ai";
 import {
-  getLanguageLongStringFromLanguageCode,
+  getLanguageNameFromLanguageCode,
   getSessionLocaleTimeString,
   getSessionName,
   getSessionTranslateTo,
@@ -46,7 +46,7 @@ class OpenAI {
     return this._brain
       .replace("{user_name}", getSessionName(session))
       .replace("{current_time}", getSessionLocaleTimeString(session))
-      .replace("{user_language}", await getLanguageLongStringFromLanguageCode(getSessionTranslateTo(session)));
+      .replace("{user_language}", await getLanguageNameFromLanguageCode(getSessionTranslateTo(session)));
   }
 
   async textRequest(text: InputParams["text"], session: Session, ignoreHistory: boolean = false): Promise<Fulfillment> {

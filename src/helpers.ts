@@ -166,14 +166,14 @@ export function replaceVariablesInStrings(text: string, data: Record<string, str
   return textCopy;
 }
 
-export async function getLanguageLongStringFromLanguageCode(languageCode: string): Promise<Language> {
+export async function getLanguageNameFromLanguageCode(languageCode: string): Promise<Language> {
   const languages = await translator().getLanguages();
   return languages.find((e) => e.code === languageCode)?.name;
 }
 
-export async function getLanguageCodeFromLanguageLongString(languageLongString: string): Promise<Language> {
+export async function getLanguageCodeFromLanguageName(languageName: string): Promise<Language> {
   const languages = await translator().getLanguages();
-  return languages.find((e) => e.name === languageLongString)?.code;
+  return languages.find((e) => e.name === languageName)?.code;
 }
 
 export function tryCatch<T>(callable: () => T, defaultValue: any): T | typeof defaultValue {
