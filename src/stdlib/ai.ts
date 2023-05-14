@@ -7,10 +7,8 @@ import Events from "events";
 import speechRecognizer from "../stdlib/speech-recognizer";
 import translator from "../stdlib/translator";
 import { Signale } from "signale";
-import { Configuration, OpenAIApi } from "openai";
-import { readFile } from "fs/promises";
-import { keysDir } from "../paths";
-import path from "path";
+import OpenAI from "../lib/openai";
+import { isJsonString } from "../helpers";
 
 export type IDetectIntentResponse = protos.google.cloud.dialogflow.v2.IDetectIntentResponse;
 export type IQueryInput = protos.google.cloud.dialogflow.v2.IQueryInput;
@@ -30,26 +28,13 @@ type AIConfig = {
     environment?: string;
     language: string;
   };
-  openai: {
-    apiKey: string;
-    interactionTTL: number;
-    model: string;
-    baseModel: string;
-    language: string;
-    trainCSVFile: string;
-    stopSign: string[];
-  };
 };
 
 type CommandFunction = (args: RegExpMatchArray, session: Session, bag: IOManager.IOBag) => Promise<Fulfillment>;
 
 class AI {
-  config: AIConfig;
-
   dfSessionClient: SessionsClient = new dialogflow.SessionsClient();
   dfIntentsClient: IntentsClient = new dialogflow.IntentsClient();
-
-  openai: OpenAIApi;
 
   emitter: Events.EventEmitter = new Events.EventEmitter();
 
@@ -99,10 +84,8 @@ class AI {
     },
   ];
 
-  constructor(config: AIConfig) {
-    this.config = config;
+  constructor(private config: AIConfig) {
     this.dfIntentAgentPath = this.dfIntentsClient.projectAgentPath(this.config.dialogflow.projectId);
-    this.openai = new OpenAIApi(new Configuration({ apiKey: this.config.openai.apiKey }));
   }
 
   getCommandMappingDescription() {
@@ -139,7 +122,7 @@ class AI {
 
   private async eventIn([, cmdSessionId, cmdEvent]: RegExpMatchArray): Promise<Fulfillment> {
     const cmdSession = await IOManager.getSession(cmdSessionId);
-    const event = cmdEvent.startsWith("{") ? JSON.parse(cmdEvent) : cmdEvent;
+    const event = isJsonString(cmdEvent) ? JSON.parse(cmdEvent) : cmdEvent;
     const result = await this.processInput({ event: event }, cmdSession);
     return { data: JSON.stringify(result, null, 2) };
   }
@@ -388,8 +371,10 @@ class AI {
         JSON.stringify(body.queryResult, null, 2),
       );
 
+      // Treat fallback intent as null
       if (body.queryResult.intent.isFallback) {
-        this.invokeTrain(body.queryResult.queryText);
+        // this.invokeTrain(body.queryResult.queryText);
+        return null;
       }
 
       return {
@@ -443,6 +428,16 @@ class AI {
     }
   }
 
+  async textRequest(command: InputParams["text"], session: Session, bag: IOManager.IOBag): Promise<Fulfillment> {
+    const dfAnswer = await this.textRequestDF(command, session, bag);
+    if (dfAnswer) return dfAnswer;
+
+    const openaiAnswer = await OpenAI().textRequest(command, session, bag);
+    if (openaiAnswer) return openaiAnswer;
+
+    return null;
+  }
+
   /**
    * Make a text request to DialogFlow and let the flow begin
    */
@@ -454,67 +449,6 @@ class AI {
 
     const body = await this.dfRequest(queryInput, session, bag);
     return this.dfBodyParser(body, session, bag);
-  }
-
-  /**
-   * Make a text request to OpenAI
-   */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async textRequestOpenAI(text: InputParams["text"], session: Session, _bag: IOManager.IOBag): Promise<Fulfillment> {
-    console.info("[openai] text request:", text);
-
-    const now = Math.floor(Date.now() / 1000);
-    if ((session.openaiLastInteraction ?? 0) + this.config.openai.interactionTTL < now) {
-      console.log("[openai] resetting chat log");
-      session.openaiChatLog = "";
-    }
-
-    const userName = session.getName();
-    const aiName = this.config.aiName;
-
-    const textTr = await translator().translate(text, "en", session.getTranslateFrom());
-    const chatLog = session.openaiChatLog + `User: ${textTr.trim()}` + "\n" + `${aiName}:`;
-
-    const header = (await readFile(path.join(keysDir, "openai-header.txt"), "utf-8"))
-      .replace(/\{ai\}/g, aiName)
-      .replace(/\{user\}/g, userName);
-
-    const prompt = header + "\n" + chatLog;
-
-    console.log(`chatLog`, chatLog);
-
-    const completion = await this.openai.createCompletion({
-      prompt: prompt,
-      model: this.config.openai.model,
-      stop: this.config.openai.stopSign,
-      temperature: 0.7,
-      top_p: 1,
-      frequency_penalty: 0,
-      presence_penalty: 0.6,
-      best_of: 1,
-      max_tokens: 100,
-    });
-
-    console.log("[openai] completion", completion);
-
-    const answer = completion.data.choices[0].text.trim();
-
-    if (answer) {
-      session.openaiLastInteraction = now;
-      session.openaiChatLog = chatLog + answer;
-      session.save();
-
-      return {
-        text: answer,
-        options: {
-          translateFrom: this.config.openai.language,
-        },
-      };
-    }
-
-    return {
-      text: "[empty_openai_text]",
-    };
   }
 
   /**
@@ -557,12 +491,12 @@ class AI {
 
     let fulfillment: any = null;
     if (params.text) {
-      fulfillment = await this.textRequestDF(params.text, session, params.bag);
+      fulfillment = await this.textRequest(params.text, session, params.bag);
     } else if (params.event) {
       fulfillment = await this.eventRequestDF(params.event, session, params.bag);
     } else if (params.audio) {
       const text = await speechRecognizer().recognizeFile(params.audio, session.getTranslateFrom());
-      fulfillment = await this.textRequestDF(text, session, params.bag);
+      fulfillment = await this.textRequest(text, session, params.bag);
     } else if (params.command) {
       fulfillment = await this.commandRequest(params.command, session, params.bag);
     } else if (params.repeatText) {

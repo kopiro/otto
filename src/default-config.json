@@ -62,10 +62,9 @@
   },
   "openai": {
     "apiKey": null,
-    "interactionTTL": 20,
+    "interactionTTLMinutes": 20,
     "language": "en",
-    "baseModel": "davinci",
-    "model": "davinci",
+    "model": "gpt-3.5-turbo",
     "trainCSVFile": "",
     "stopSign": ["\n", "Human:", "AI:"]
   },

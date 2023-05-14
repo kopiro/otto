@@ -1,9 +1,11 @@
 import { v2 } from "@google-cloud/translate";
 import { Language } from "../types";
 import { Translator } from "../abstracts/translator";
+import config from "../config";
 
 export class GoogleTranslator extends Translator {
   client: v2.Translate;
+  languages: v2.LanguageResult[] | null;
 
   constructor() {
     super();
@@ -18,8 +20,16 @@ export class GoogleTranslator extends Translator {
     return Array.isArray(translations) ? translations[0] : translations;
   }
 
-  async getLanguages(target: Language): Promise<Array<{ name: string; code: string }>> {
-    const [languages] = await this.client.getLanguages(target);
-    return languages;
+  async getLanguages(): Promise<Array<{ name: string; code: string }>> {
+    if (!this.languages) {
+      const [languages] = await this.client.getLanguages(config().language);
+      this.languages = languages;
+    }
+    return this.languages;
+  }
+
+  async getFullnameForLanguage(target: Language): Promise<string> {
+    const languages = await this.getLanguages();
+    return languages.find((e) => e.code === target)?.name;
   }
 }

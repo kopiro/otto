@@ -1,12 +1,7 @@
 import mongoose from "mongoose";
 import autopopulate from "mongoose-autopopulate";
 import { SessionSchema } from "./session";
-import {
-  Session as ISession,
-  IOQueue as IIOQueue,
-  Scheduler as IScheduler,
-  FindMyDevice as IFindMyDevice,
-} from "../types";
+import { Session as ISession, IOQueue as IIOQueue, Scheduler as IScheduler } from "../types";
 
 const { Schema } = mongoose;
 
@@ -52,11 +47,3 @@ const SchedulerSchema = new Schema({
 });
 SchedulerSchema.plugin(autopopulate);
 export const Scheduler = mongoose.model<IScheduler>("scheduler", SchedulerSchema);
-
-const FindMyDeviceSchema = new Schema({
-  name: String,
-  ip: String,
-  createdAt: Date,
-  updatedAt: Date,
-});
-export const FindMyDevice = mongoose.model<IFindMyDevice>("findmydevice", FindMyDeviceSchema);

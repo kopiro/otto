@@ -12,7 +12,7 @@ export const SessionSchema = new Schema({
   ioData: Schema.Types.Mixed,
   translateFrom: String,
   translateTo: String,
-  openaiChatLog: String,
+  openaiMessages: Schema.Types.Mixed,
   openaiLastInteraction: Number,
   doNotDisturb: Boolean,
   authorizations: [String],

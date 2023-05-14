@@ -173,8 +173,13 @@ export function replaceVariablesInStrings(text: string, data: Record<string, str
   return textCopy;
 }
 
+export async function getLanguageLongStringFromLanguageCode(languageCode: string): Promise<Language> {
+  const languages = await translator().getLanguages();
+  return languages.find((e) => e.code === languageCode)?.name;
+}
+
 export async function getLanguageCodeFromLanguageLongString(languageLongString: string): Promise<Language> {
-  const languages = await translator().getLanguages(config().language);
+  const languages = await translator().getLanguages();
   return languages.find((e) => e.name === languageLongString)?.code;
 }
 
@@ -185,4 +190,30 @@ export function tryCatch<T>(callable: () => T, defaultValue: any): T | typeof de
     console.log("Catched to default error", error);
     return defaultValue;
   }
+}
+
+export function shuffle<T>(array: T[]): T[] {
+  let currentIndex = array.length,
+    randomIndex;
+
+  // While there remain elements to shuffle...
+  while (0 !== currentIndex) {
+    // Pick a remaining element...
+    randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex--;
+
+    // And swap it with the current element.
+    [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+  }
+
+  return array;
+}
+
+export function isJsonString(str: string): boolean {
+  try {
+    JSON.parse(str);
+  } catch (e) {
+    return false;
+  }
+  return true;
 }

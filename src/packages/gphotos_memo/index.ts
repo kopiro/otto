@@ -1,8 +1,8 @@
 import { AIAction, Fulfillment } from "../../types";
 import gogleOAuthService from "../../oauth-services/google";
 import fetch from "node-fetch";
-import { shuffle } from "../../lib/ utils";
 import moment from "../../lib/moment";
+import { shuffle } from "../../helpers";
 
 const POLL_DATE_CHOICES_COUNT = 4;
 const POLL_DATE_RANGE_DAYS = 1460;

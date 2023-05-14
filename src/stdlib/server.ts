@@ -8,7 +8,6 @@ import textToSpeech from "./text-to-speech";
 import { getSession } from "./iomanager";
 import ai from "./ai";
 import rateLimit from "express-rate-limit";
-import { FindMyDevice } from "../data";
 import * as IOManager from "./iomanager";
 
 import { Signale } from "signale";
@@ -109,29 +108,6 @@ routerApi.post("/dnd", async (req, res) => {
     return res.json({ status: Boolean(session.doNotDisturb) });
   } catch (err) {
     console.error("/api/dnd error", err);
-    return res.status(400).json({
-      error: {
-        message: err.message,
-      },
-    });
-  }
-});
-
-// Register a new device
-// POST /api/findmydevice { "name": "ID" }
-routerApi.post("/findmydevice", async (req, res) => {
-  try {
-    if (!req.body.name) throw new Error("'name' key not provided");
-    const record = {
-      name: req.body.name,
-      ip: (req.headers["x-forwarded-for"] as string | undefined)?.split(",").shift() || req.socket?.remoteAddress,
-    };
-    const device = (await FindMyDevice.findOne(record)) || new FindMyDevice({ ...record, createdAt: new Date() });
-    device.updatedAt = new Date();
-    await device.save();
-    return res.json({ status: true, id: device.id });
-  } catch (err) {
-    console.error("/findmydevice error", err);
     return res.status(400).json({
       error: {
         message: err.message,

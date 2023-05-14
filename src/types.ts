@@ -1,6 +1,7 @@
 import type { Document } from "mongoose";
 import type { IDetectIntentResponse } from "./stdlib/ai";
 import type { IODriver, IOBag, Authorizations } from "./stdlib/iomanager";
+import { ChatCompletionRequestMessageRoleEnum } from "openai";
 
 export type Language = string;
 export type Locale = string;
@@ -39,7 +40,7 @@ export interface Fulfillment {
     close_date?: number;
     is_closed?: boolean;
   };
-  outputContexts?: Array<Record<string,any>>;
+  outputContexts?: Array<Record<string, any>>;
   options?: {
     language?: Language;
     transformerUid?: string;
@@ -102,18 +103,9 @@ export interface Session extends Document {
   forwardSessions: Session[] | undefined;
   repeatModeSessions: Session[] | undefined;
   doNotDisturb?: boolean;
-  openaiChatLog?: string;
+  openaiMessages?: Array<{ role: ChatCompletionRequestMessageRoleEnum; content: string }>;
   openaiLastInteraction?: number;
   getTranslateFrom: () => Language;
   getTranslateTo: () => Language;
   getName(): () => string;
-}
-
-export interface FindMyDevice extends Document {
-  id: string;
-  name: string;
-  ip: string;
-  createdAt: Date;
-  updatedAt: Date;
-  data?: Record<string, any>;
 }
