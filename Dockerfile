@@ -1,4 +1,4 @@
-FROM node:16-alpine
+FROM node:18-alpine
 WORKDIR /app
 VOLUME /app/cache /app/log /app/keys /app/tmp
 EXPOSE 80
@@ -24,6 +24,8 @@ RUN apk add --no-cache \
 # Install imagemagick
 RUN apk add --no-cache imagemagick graphicsmagick
 
+# Install pnpm
+RUN npm install -g pnpm
 
 # Install node modules
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json .eslintrc jest.config.js .prettierrc ./
