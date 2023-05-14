@@ -85,14 +85,14 @@ class OpenAI {
     if (!answerText) {
       return {
         error: {
-          message: "[internal error] - OpenAI returned an empty answer",
+          message: "OpenAI returned an empty answer",
           data: completion.data,
         },
       };
     }
 
     return {
-      text: answerText + "***",
+      text: answerText,
     };
   }
 }
