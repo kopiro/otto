@@ -3,6 +3,7 @@ import { Fulfillment, CustomError, AIAction, InputParams, Session } from "../typ
 import config from "../config";
 import { Signale } from "signale";
 import ai from "../stdlib/ai";
+import { getLanguageLongStringFromLanguageCode } from "../helpers";
 
 type Config = {
   apiKey: string;
@@ -52,7 +53,7 @@ class OpenAI {
     }
     return this._brain
       .replace("{user_name}", session.getName())
-      .replace("{user_language}", session.getTranslateTo())
+      .replace("{user_language}", await getLanguageLongStringFromLanguageCode(session.getTranslateTo()))
       .replace("{current_time}", new Date().toISOString());
   }
 
