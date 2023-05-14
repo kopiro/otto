@@ -26,7 +26,7 @@ RUN apk add --no-cache imagemagick graphicsmagick
 
 
 # Install node modules
-COPY package.json pnpm-lock.json pnpm-workspace.yaml tsconfig.json .eslintrc jest.config.js .prettierrc ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json .eslintrc jest.config.js .prettierrc ./
 RUN pnpm install
 
 # Copy my code
