@@ -13,7 +13,8 @@ RUN apk add --no-cache ca-certificates && \
     git \
     build-base \
     libc6-compat \
-    openssh-client
+    openssh-client \
+    python3
 
 # Install additional app packages
 # opus-tools: Used to decode Telegram Audio notes
