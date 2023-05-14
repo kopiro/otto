@@ -93,8 +93,7 @@ export interface Session extends Document {
   ioDriver: IODriver;
   ioId: string;
   ioData: Record<string, any>;
-  serverSettings: Record<string, any>;
-  settings: Record<string, any>;
+  name?: string;
   translateFrom: Language;
   translateTo: Language;
   authorizations: Authorizations[];
@@ -107,5 +106,5 @@ export interface Session extends Document {
   openaiLastInteraction?: number;
   getTranslateFrom: () => Language;
   getTranslateTo: () => Language;
-  getName(): () => string;
+  getName: () => string;
 }

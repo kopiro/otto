@@ -150,13 +150,6 @@ export function extractWithPattern(input: any, pattern: string): any {
 }
 
 /**
- * Get the current bot name as Regexp
- */
-export function getAiNameRegex(): RegExp {
-  return new RegExp(config().aiNameRegex, "gi");
-}
-
-/**
  * Replace any %var% into a string literal with provided data as second arg
  */
 export function replaceVariablesInStrings(text: string, data: Record<string, string>): string {

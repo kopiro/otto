@@ -355,7 +355,12 @@ class AI {
   /**
    * Parse the DialogFlow body and decide what to do
    */
-  async dfBodyParser(body: IDetectIntentResponse, session: Session, bag: IOManager.IOBag): Promise<Fulfillment> {
+  async dfBodyParser(
+    body: IDetectIntentResponse,
+    session: Session,
+    bag: IOManager.IOBag,
+    originalRequestType: "text" | "event",
+  ): Promise<Fulfillment> {
     const { fulfillmentText, fulfillmentMessages } = body.queryResult;
 
     // If we have an "action", call the package with the specified name
@@ -384,11 +389,11 @@ class AI {
       (m) => m?.payload?.fields?.openai_prompt?.stringValue,
     )?.payload.fields?.openai_prompt?.stringValue;
     if (maybeOpenAIPrompt) {
-      // loop params
       for (const [key, value] of Object.entries(body.queryResult.parameters.fields ?? [])) {
         maybeOpenAIPrompt = maybeOpenAIPrompt.replace(new RegExp(`{${key}}`, "g"), value.stringValue);
       }
-      return OpenAI().textRequest(maybeOpenAIPrompt, session);
+      const addToHistory = originalRequestType === "text";
+      return OpenAI().textRequest(maybeOpenAIPrompt, session, addToHistory);
     }
 
     // Otherwise, just remap our common keys as standard object
@@ -448,7 +453,7 @@ class AI {
     queryInput.text.languageCode = this.config.dialogflow.language;
 
     const body = await this.dfRequest(queryInput, session, bag);
-    return this.dfBodyParser(body, session, bag);
+    return this.dfBodyParser(body, session, bag, "text");
   }
 
   /**
@@ -468,7 +473,7 @@ class AI {
     queryInput.event.languageCode = this.config.dialogflow.language;
 
     const body = await this.dfRequest(queryInput, session, bag);
-    return this.dfBodyParser(body, session, bag);
+    return this.dfBodyParser(body, session, bag, "event");
   }
 
   /**

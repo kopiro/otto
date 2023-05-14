@@ -9,6 +9,7 @@ export const SessionSchema = new Schema({
   _id: String,
   ioDriver: String,
   ioId: String,
+  name: String,
   ioData: Schema.Types.Mixed,
   translateFrom: String,
   translateTo: String,
@@ -39,11 +40,19 @@ SessionSchema.methods.getTranslateTo = function (): Language {
 };
 
 SessionSchema.methods.getName = function (): Language {
-  if (this.name) return this.name;
+  if (this.name) {
+    return this.name;
+  }
+
   if (this.ioDriver === "telegram") {
     const { first_name, last_name } = this.ioData.from;
-    if (last_name) return `${first_name} ${last_name}`;
-    return first_name;
+    if (first_name && last_name) {
+      return `${first_name} ${last_name}`;
+    }
+    if (first_name) {
+      return first_name;
+    }
   }
-  return "Human";
+
+  return "Anonymous";
 };

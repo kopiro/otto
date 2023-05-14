@@ -22,33 +22,45 @@ class OpenAI {
     this.api = new OpenAIApi(new Configuration({ apiKey: this.config.apiKey }));
   }
 
-  private async getBrain(): Promise<string> {
-    const sessionPath = ai().getDFSessionPath("__system__");
+  private async getBrain(session: Session): Promise<string> {
+    const sessionPath = ai().getDFSessionPath("SYSTEM");
     const [response] = await ai().dfSessionClient.detectIntent({
       session: sessionPath,
       queryInput: {
         event: {
-          name: "__openai_brain__",
+          name: "OPENAI_BRAIN",
           languageCode: config().language,
+          parameters: {
+            fields: {
+              user_name: {
+                stringValue: session.getName(),
+              },
+              user_language: {
+                stringValue: session.getTranslateTo(),
+              },
+              current_time: {
+                stringValue: new Date().toISOString(),
+              },
+            },
+          },
         },
       },
-      queryParams: {},
     });
     return response.queryResult.fulfillmentText;
   }
 
-  async textRequest(text: InputParams["text"], session: Session): Promise<Fulfillment> {
+  async textRequest(text: InputParams["text"], session: Session, addToHistory: boolean = true): Promise<Fulfillment> {
     console.info("text request:", text);
 
     const now = Math.floor(Date.now() / 1000);
     const interationTTLSeconds = this.config.interactionTTLMinutes * 60;
 
     if ((session.openaiLastInteraction ?? 0) + interationTTLSeconds < now) {
-      console.log("resetting chat log", session.openaiLastInteraction, now);
+      console.log(`resetting chat, as more than ${this.config.interactionTTLMinutes}m passed since last interaction`);
       session.openaiMessages = [];
     }
 
-    const systemText = await this.getBrain();
+    const systemText = await this.getBrain(session);
     const systemMessage = {
       role: ChatCompletionRequestMessageRoleEnum.System,
       content: systemText,
@@ -60,11 +72,9 @@ class OpenAI {
     };
 
     session.openaiMessages = session.openaiMessages ?? [];
-    session.openaiMessages = [...session.openaiMessages, userMessage];
 
     // Prepend system
-    const messages = [systemMessage, ...session.openaiMessages];
-
+    const messages = [systemMessage, ...session.openaiMessages, userMessage];
     console.log("messages :>> ", messages);
 
     const completion = await this.api.createChatCompletion({
@@ -79,7 +89,10 @@ class OpenAI {
     const answerText = answerMessage?.content;
 
     session.openaiLastInteraction = now;
-    session.openaiMessages = [...session.openaiMessages, answerMessage];
+    if (addToHistory) {
+      session.openaiMessages = [...session.openaiMessages, userMessage, answerMessage];
+    }
+
     session.save();
 
     if (!answerText) {

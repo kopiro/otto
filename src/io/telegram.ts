@@ -11,7 +11,6 @@ import * as Proc from "../lib/proc";
 import { v4 as uuid } from "uuid";
 import { tmpDir } from "../paths";
 import { Fulfillment, Session as ISession } from "../types";
-import { getAiNameRegex } from "../helpers";
 import bodyParser from "body-parser";
 import { File } from "../stdlib/file";
 import textToSpeech from "../stdlib/text-to-speech";
@@ -131,7 +130,7 @@ export class Telegram implements IOManager.IODriverModule {
   }
 
   getIsActivator(text: string) {
-    return getAiNameRegex().test(text);
+    return text.includes(config().aiName);
   }
 
   getIsGroup(msg: TelegramBot.Message) {
