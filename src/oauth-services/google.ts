@@ -3,6 +3,7 @@ import { OAuthService } from "../abstracts/oauth-service";
 import * as Server from "../stdlib/server";
 import { Credentials } from "google-auth-library";
 import config from "../config";
+// @ts-ignore
 import { OAuth2Client } from "googleapis-common";
 
 type OAuthConfig = { clientId: string; clientSecret: string; scopes: string[] };
@@ -14,6 +15,7 @@ export class GoogleOAuthService extends OAuthService {
   constructor(_config: OAuthConfig) {
     super();
     this._config = _config;
+    // @ts-ignore
     this.oauth2Client = new google.auth.OAuth2(this._config.clientId, this._config.clientSecret, this.getRedirectUrl());
   }
 

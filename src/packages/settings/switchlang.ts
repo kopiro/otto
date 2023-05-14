@@ -21,7 +21,7 @@ const switchLang: AIAction = async ({ queryResult }, session: Session) => {
   // because all input requests are translated, and the language is translated too!
   // Example: "ние говорим английски" --> "Parliamo in inglese"
   // So we should request the languages in Italiano to match "inglese"
-  const languages = await translator().getLanguages(config().language);
+  const languages = await translator().getLanguages();
 
   for (const [attr, langReq] of [
     ["translateFrom", translateFrom],

@@ -5,7 +5,7 @@ import { AIAction } from "../../types";
 export const id = "settings.availablelangs";
 
 const availableLangs: AIAction = async () => {
-  const languages = await translator().getLanguages(config().language);
+  const languages = await translator().getLanguages();
   return { text: languages.map((e) => e.name).join(", ") };
 };
 

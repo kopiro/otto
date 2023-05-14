@@ -5,7 +5,7 @@ import { AIAction, Session } from "../../types";
 export const id = "settings.switchlang";
 
 const getLang: AIAction = async ({ queryResult }, session: Session) => {
-  const languages = await translator().getLanguages(config().language);
+  const languages = await translator().getLanguages();
   const from = languages.find((e) => e.code === session.getTranslateFrom())?.name;
   const to = languages.find((e) => e.code === session.getTranslateTo())?.name;
 
