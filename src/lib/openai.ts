@@ -17,36 +17,43 @@ const console = new Signale({
 
 class OpenAI {
   private api: OpenAIApi;
+  private _brain: string;
 
   constructor(private config: Config) {
     this.api = new OpenAIApi(new Configuration({ apiKey: this.config.apiKey }));
   }
 
   private async getBrain(session: Session): Promise<string> {
-    const sessionPath = ai().getDFSessionPath("SYSTEM");
-    const [response] = await ai().dfSessionClient.detectIntent({
-      session: sessionPath,
-      queryInput: {
-        event: {
-          name: "OPENAI_BRAIN",
-          languageCode: config().language,
-          parameters: {
-            fields: {
-              user_name: {
-                stringValue: session.getName(),
-              },
-              user_language: {
-                stringValue: session.getTranslateTo(),
-              },
-              current_time: {
-                stringValue: new Date().toISOString(),
+    if (!this._brain) {
+      const sessionPath = ai().getDFSessionPath("SYSTEM");
+      const [response] = await ai().dfSessionClient.detectIntent({
+        session: sessionPath,
+        queryInput: {
+          event: {
+            name: "OPENAI_BRAIN",
+            languageCode: config().language,
+            parameters: {
+              fields: {
+                user_name: {
+                  stringValue: session.getName(),
+                },
+                user_language: {
+                  stringValue: session.getTranslateTo(),
+                },
+                current_time: {
+                  stringValue: new Date().toISOString(),
+                },
               },
             },
           },
         },
-      },
-    });
-    return response.queryResult.fulfillmentText;
+      });
+      this._brain = response.queryResult.fulfillmentText;
+    }
+    return this._brain
+      .replace("{user_name}", session.getName())
+      .replace("{user_language}", session.getTranslateTo())
+      .replace("{current_time}", new Date().toISOString());
   }
 
   async textRequest(text: InputParams["text"], session: Session, addToHistory: boolean = true): Promise<Fulfillment> {
