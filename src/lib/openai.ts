@@ -33,13 +33,13 @@ class OpenAI {
   private async fillVariables(text: string, session: Session): Promise<string> {
     const userLanguage = await getLanguageLongStringFromLanguageCode(session.getTranslateTo());
     return text
-      .replace("{user_name}", session.getName())
-      .replace("{user_language}", userLanguage)
-      .replace("{current_date}", new Date().toLocaleDateString())
-      .replace("{current_time}", new Date().toLocaleTimeString());
+      .replace(new RegExp("{user_name}", "g"), session.getName())
+      .replace(new RegExp("{user_language}", "g"), userLanguage)
+      .replace(new RegExp("{current_date}", "g"), new Date().toLocaleDateString())
+      .replace(new RegExp("{current_time}", "g"), new Date().toLocaleTimeString());
   }
 
-  async textRequest(text: InputParams["text"], session: Session, _bag: IOBag): Promise<Fulfillment> {
+  async textRequest(text: InputParams["text"], session: Session): Promise<Fulfillment> {
     console.info("text request:", text);
 
     const now = Math.floor(Date.now() / 1000);
@@ -50,20 +50,22 @@ class OpenAI {
       session.openaiMessages = [];
     }
 
-    const systemText = await this.fillVariables(await this.getTextBrain(), session);
+    const systemText = await this.getTextBrain();
+    const systemMessage = {
+      role: ChatCompletionRequestMessageRoleEnum.System,
+      content: await this.fillVariables(systemText, session),
+    };
+
     const userMessage = {
       role: ChatCompletionRequestMessageRoleEnum.User,
-      content: text,
+      content: await this.fillVariables(text, session),
     };
 
     session.openaiMessages = session.openaiMessages ?? [];
     session.openaiMessages = [...session.openaiMessages, userMessage];
 
     // Prepend system
-    const messages = [
-      { role: ChatCompletionRequestMessageRoleEnum.System, content: systemText },
-      ...session.openaiMessages,
-    ];
+    const messages = [systemMessage, ...session.openaiMessages];
 
     console.log("messages :>> ", messages);
 

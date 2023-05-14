@@ -151,6 +151,7 @@ class AI {
 
     return () => this.commandNotFound();
   }
+
   async train(queryText: string, answer: string) {
     console.debug("TRAIN request", { queryText, answer });
     const response = await this.dfIntentsClient.createIntent({
@@ -364,32 +365,41 @@ class AI {
     }
 
     // Otherwise, check if at least an intent is match and direct return that fulfillment
-    if (body.queryResult.intent) {
-      console.debug(
-        TAG,
-        "Using body.queryResult object (matched from intent)",
-        JSON.stringify(body.queryResult, null, 2),
-      );
-
-      // Treat fallback intent as null
-      if (body.queryResult.intent.isFallback) {
-        // this.invokeTrain(body.queryResult.queryText);
-        return null;
-      }
-
-      return {
-        text: fulfillmentText,
-        ...FullfillmentStringKeys.reduce((acc, key) => {
-          const value = this.extractMessages(fulfillmentMessages, key);
-          if (value) {
-            acc[key] = value;
-          }
-          return acc;
-        }, {}),
-      } as Fulfillment;
+    if (!body.queryResult.intent) {
+      return OpenAI().textRequest(body.queryResult.queryText, session);
     }
 
-    return null;
+    console.debug(
+      TAG,
+      "Using body.queryResult object (matched from intent)",
+      JSON.stringify(body.queryResult, null, 2),
+    );
+
+    // Treat fallback intent as null
+    if (body.queryResult.intent.isFallback) {
+      return OpenAI().textRequest(body.queryResult.queryText, session);
+    }
+
+    let maybeOpenAIPrompt = body.queryResult.fulfillmentMessages.find(
+      (m) => m?.payload?.fields?.openai_prompt?.stringValue,
+    )?.payload.fields?.openai_prompt?.stringValue;
+    if (maybeOpenAIPrompt) {
+      // loop params
+      for (const [key, value] of Object.entries(body.queryResult.parameters.fields ?? [])) {
+        maybeOpenAIPrompt = maybeOpenAIPrompt.replace(new RegExp(`{${key}}`, "g"), value.stringValue);
+      }
+      return OpenAI().textRequest(maybeOpenAIPrompt, session);
+    }
+
+    // Otherwise, just remap our common keys as standard object
+    return {
+      text: fulfillmentText,
+      ...FullfillmentStringKeys.reduce((acc, key) => {
+        const value = this.extractMessages(fulfillmentMessages, key);
+        if (value) acc[key] = value;
+        return acc;
+      }, {}),
+    } as Fulfillment;
   }
 
   async dfRequest(queryInput: IQueryInput, session: Session, bag?: IOManager.IOBag) {
@@ -428,20 +438,10 @@ class AI {
     }
   }
 
-  async textRequest(command: InputParams["text"], session: Session, bag: IOManager.IOBag): Promise<Fulfillment> {
-    const dfAnswer = await this.textRequestDF(command, session, bag);
-    if (dfAnswer) return dfAnswer;
-
-    const openaiAnswer = await OpenAI().textRequest(command, session, bag);
-    if (openaiAnswer) return openaiAnswer;
-
-    return null;
-  }
-
   /**
    * Make a text request to DialogFlow and let the flow begin
    */
-  async textRequestDF(text: InputParams["text"], session: Session, bag: IOManager.IOBag): Promise<Fulfillment> {
+  async textRequest(text: InputParams["text"], session: Session, bag: IOManager.IOBag): Promise<Fulfillment> {
     console.info("[df] text request:", text);
 
     const queryInput: IQueryInput = { text: { text } };
@@ -454,7 +454,7 @@ class AI {
   /**
    * Make an event request to DialogFlow and let the flow begin
    */
-  async eventRequestDF(event: InputParams["event"], session: Session, bag: IOManager.IOBag): Promise<Fulfillment> {
+  async eventRequest(event: InputParams["event"], session: Session, bag: IOManager.IOBag): Promise<Fulfillment> {
     console.info("[df] event request:", event);
 
     const queryInput: IQueryInput = { event: {} };
@@ -493,7 +493,7 @@ class AI {
     if (params.text) {
       fulfillment = await this.textRequest(params.text, session, params.bag);
     } else if (params.event) {
-      fulfillment = await this.eventRequestDF(params.event, session, params.bag);
+      fulfillment = await this.eventRequest(params.event, session, params.bag);
     } else if (params.audio) {
       const text = await speechRecognizer().recognizeFile(params.audio, session.getTranslateFrom());
       fulfillment = await this.textRequest(text, session, params.bag);
