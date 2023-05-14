@@ -21,16 +21,19 @@ const console = new Signale({
   scope: TAG,
 });
 
+const BRAIN_TTL_MIN = 10;
+
 class OpenAI {
   private api: OpenAIApi;
   private _brain: string;
+  private _brainExpiration: number;
 
   constructor(private config: Config) {
     this.api = new OpenAIApi(new Configuration({ apiKey: this.config.apiKey }));
   }
 
   private async getBrain(session: Session): Promise<string> {
-    if (!this._brain) {
+    if (!this._brainExpiration || this._brainExpiration < Math.floor(Date.now() / 1000)) {
       const sessionPath = ai().getDFSessionPath("SYSTEM");
       const [response] = await ai().dfSessionClient.detectIntent({
         session: sessionPath,
@@ -42,6 +45,7 @@ class OpenAI {
         },
       });
       this._brain = response.queryResult.fulfillmentText;
+      this._brainExpiration = new Date(Date.now() + BRAIN_TTL_MIN * 60 * 1000).getTime() / 1000;
     }
     return this._brain
       .replace("{user_name}", getSessionName(session))
