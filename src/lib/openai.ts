@@ -1,12 +1,8 @@
-import { ChatCompletionRequestMessageRoleEnum, Configuration, CreateChatCompletionRequest, OpenAIApi } from "openai";
-import { Fulfillment, CustomError, AIAction, InputParams, Session, FullfillmentStringKeys } from "../types";
-import { readFile } from "fs/promises";
-import { keysDir } from "../paths";
-import path from "path";
-import type { IOBag } from "../stdlib/iomanager";
+import { ChatCompletionRequestMessageRoleEnum, Configuration, OpenAIApi } from "openai";
+import { Fulfillment, CustomError, AIAction, InputParams, Session } from "../types";
 import config from "../config";
 import { Signale } from "signale";
-import { getLanguageLongStringFromLanguageCode } from "../helpers";
+import ai from "../stdlib/ai";
 
 type Config = {
   apiKey: string;
@@ -26,17 +22,19 @@ class OpenAI {
     this.api = new OpenAIApi(new Configuration({ apiKey: this.config.apiKey }));
   }
 
-  private async getTextBrain(): Promise<string> {
-    return await readFile(path.join(keysDir, "openai-header.txt"), "utf-8");
-  }
-
-  private async fillVariables(text: string, session: Session): Promise<string> {
-    const userLanguage = await getLanguageLongStringFromLanguageCode(session.getTranslateTo());
-    return text
-      .replace(new RegExp("{user_name}", "g"), session.getName())
-      .replace(new RegExp("{user_language}", "g"), userLanguage)
-      .replace(new RegExp("{current_date}", "g"), new Date().toLocaleDateString())
-      .replace(new RegExp("{current_time}", "g"), new Date().toLocaleTimeString());
+  private async getBrain(): Promise<string> {
+    const sessionPath = ai().getDFSessionPath("__system__");
+    const [response] = await ai().dfSessionClient.detectIntent({
+      session: sessionPath,
+      queryInput: {
+        event: {
+          name: "__openai_brain__",
+          languageCode: config().language,
+        },
+      },
+      queryParams: {},
+    });
+    return response.queryResult.fulfillmentText;
   }
 
   async textRequest(text: InputParams["text"], session: Session): Promise<Fulfillment> {
@@ -50,15 +48,15 @@ class OpenAI {
       session.openaiMessages = [];
     }
 
-    const systemText = await this.getTextBrain();
+    const systemText = await this.getBrain();
     const systemMessage = {
       role: ChatCompletionRequestMessageRoleEnum.System,
-      content: await this.fillVariables(systemText, session),
+      content: systemText,
     };
 
     const userMessage = {
       role: ChatCompletionRequestMessageRoleEnum.User,
-      content: await this.fillVariables(text, session),
+      content: text,
     };
 
     session.openaiMessages = session.openaiMessages ?? [];
@@ -94,7 +92,7 @@ class OpenAI {
     }
 
     return {
-      text: answerText,
+      text: answerText + "***",
     };
   }
 }

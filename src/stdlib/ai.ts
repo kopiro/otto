@@ -213,8 +213,8 @@ class AI {
   /**
    * Get the session path suitable for DialogFlow
    */
-  getDFSessionPath(session: Session) {
-    const dfSessionId = session.id.replace(/\//g, "_");
+  getDFSessionPath(sessionId: string) {
+    const dfSessionId = sessionId.replace(/\//g, "_");
     if (!this.config.dialogflow.environment) {
       return this.dfSessionClient.projectAgentSessionPath(this.config.dialogflow.projectId, dfSessionId);
     }
@@ -411,7 +411,7 @@ class AI {
       );
     }
 
-    const sessionPath = this.getDFSessionPath(session);
+    const sessionPath = this.getDFSessionPath(session.id);
     const payload = {
       session: sessionPath,
       queryInput,
