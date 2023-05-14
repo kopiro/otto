@@ -42,4 +42,5 @@ COPY ./etc ./etc
 RUN pnpm install
 
 # Build code
+RUN pnpm run build
 RUN pnpm recursive run build

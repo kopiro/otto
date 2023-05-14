@@ -18,6 +18,7 @@
     "unitest": "jest src --passWithNoTests",
     "test": "pnpm run lint && pnpm run unitest",
     "docker:build": "docker build . -t kopiro/otto",
+    "docker:run": "docker run -it kopiro/otto",
     "docker:deploy": "pnpm run build:docker && docker push kopiro/otto",
     "configure:oauth": "ts-node ./src/cli/oauth.ts"
   },

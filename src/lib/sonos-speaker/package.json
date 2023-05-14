@@ -1,8 +1,0 @@
-{
-  "name": "otto-sonos-speaker",
-  "version": "1.0.0",
-  "license": "MIT",
-  "dependencies": {
-    "sonos": "^1.14.1"
-  }
-}
