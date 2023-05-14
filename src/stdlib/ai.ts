@@ -6,16 +6,14 @@ import { struct } from "pb-util";
 import Events from "events";
 import speechRecognizer from "../stdlib/speech-recognizer";
 import translator from "../stdlib/translator";
-
-export type IDetectIntentResponse = protos.google.cloud.dialogflow.v2.IDetectIntentResponse;
-export type IQueryInput = protos.google.cloud.dialogflow.v2.IQueryInput;
-
 import { Signale } from "signale";
 import { Configuration, OpenAIApi } from "openai";
 import { readFile } from "fs/promises";
 import { keysDir } from "../paths";
 import path from "path";
-import fetch from "node-fetch";
+
+export type IDetectIntentResponse = protos.google.cloud.dialogflow.v2.IDetectIntentResponse;
+export type IQueryInput = protos.google.cloud.dialogflow.v2.IQueryInput;
 
 const TAG = "AI";
 const console = new Signale({
