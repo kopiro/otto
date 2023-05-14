@@ -392,8 +392,8 @@ class AI {
       for (const [key, value] of Object.entries(body.queryResult.parameters.fields ?? [])) {
         maybeOpenAIPrompt = maybeOpenAIPrompt.replace(new RegExp(`{${key}}`, "g"), value.stringValue);
       }
-      const addToHistory = originalRequestType === "text";
-      return OpenAI().textRequest(maybeOpenAIPrompt, session, addToHistory);
+      const ignoreHistory = originalRequestType === "event";
+      return OpenAI().textRequest(maybeOpenAIPrompt, session, ignoreHistory);
     }
 
     // Otherwise, just remap our common keys as standard object

@@ -49,7 +49,7 @@ class OpenAI {
       .replace("{user_language}", await getLanguageLongStringFromLanguageCode(getSessionTranslateTo(session)));
   }
 
-  async textRequest(text: InputParams["text"], session: Session, addToHistory: boolean = true): Promise<Fulfillment> {
+  async textRequest(text: InputParams["text"], session: Session, ignoreHistory: boolean = false): Promise<Fulfillment> {
     console.info("text request:", text);
 
     const now = Math.floor(Date.now() / 1000);
@@ -74,7 +74,7 @@ class OpenAI {
     session.openaiMessages = session.openaiMessages ?? [];
 
     // Prepend system
-    const messages = [systemMessage, ...session.openaiMessages, userMessage];
+    const messages = [systemMessage, ...(ignoreHistory ? [] : session.openaiMessages), userMessage];
     console.log("messages :>> ", messages);
 
     const completion = await this.api.createChatCompletion({
@@ -89,7 +89,7 @@ class OpenAI {
     const answerText = answerMessage?.content;
 
     session.openaiLastInteraction = now;
-    if (addToHistory) {
+    if (!ignoreHistory) {
       session.openaiMessages = [...session.openaiMessages, userMessage, answerMessage];
     }
 
