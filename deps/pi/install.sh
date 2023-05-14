@@ -8,4 +8,4 @@ sudo apt-get -y install \
     raspivid \
     gpac
 
-pnpm install --production
+npm install --production
