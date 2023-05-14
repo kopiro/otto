@@ -129,8 +129,8 @@ export class Telegram implements IOManager.IODriverModule {
     return this.botMentionRegex.test(text);
   }
 
-  getIsActivator(text: string) {
-    return text.includes(config().aiName);
+  getIsActivator(text: string | undefined) {
+    return text?.includes(config().aiName);
   }
 
   getIsGroup(msg: TelegramBot.Message) {
