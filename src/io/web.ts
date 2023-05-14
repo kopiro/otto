@@ -5,7 +5,7 @@ import voice from "../stdlib/voice";
 import { Fulfillment, InputParams, Session } from "../types";
 import { Request, Response } from "express";
 import { routerIO } from "../stdlib/server";
-import { getTmpFile } from "../helpers";
+import { getSessionTranslateTo, getTmpFile } from "../helpers";
 import fs from "fs";
 import bodyParser from "body-parser";
 import { File } from "../stdlib/file";
@@ -107,7 +107,7 @@ export class Web implements IOManager.IODriverModule {
   async getVoiceFile(fulfillment: Fulfillment, session: Session): Promise<File> {
     const audioFile = await textToSpeech().getAudioFile(
       fulfillment.text,
-      fulfillment.options.language || session.getTranslateTo(),
+      fulfillment.options.language || getSessionTranslateTo(session),
       config().tts.gender,
     );
     return voice().getFile(audioFile);

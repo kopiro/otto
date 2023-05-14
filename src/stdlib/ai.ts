@@ -8,7 +8,7 @@ import speechRecognizer from "../stdlib/speech-recognizer";
 import translator from "../stdlib/translator";
 import { Signale } from "signale";
 import OpenAI from "../lib/openai";
-import { isJsonString } from "../helpers";
+import { getSessionTranslateFrom, getSessionTranslateTo, isJsonString } from "../helpers";
 
 export type IDetectIntentResponse = protos.google.cloud.dialogflow.v2.IDetectIntentResponse;
 export type IQueryInput = protos.google.cloud.dialogflow.v2.IQueryInput;
@@ -194,7 +194,7 @@ class AI {
     // Always translate fulfillment speech in the user language
     if (fulfillment.text) {
       const fromLanguage = fulfillment.options.translateFrom ?? this.config.language;
-      const toLanguage = fulfillment.options.translateTo || session.getTranslateTo();
+      const toLanguage = fulfillment.options.translateTo || getSessionTranslateTo(session);
       if (toLanguage !== fromLanguage) {
         try {
           fulfillment.text = await translator().translate(fulfillment.text, toLanguage, fromLanguage);
@@ -412,7 +412,7 @@ class AI {
       queryInput.text.text = await translator().translate(
         queryInput.text.text,
         this.config.dialogflow.language,
-        session.getTranslateFrom(),
+        getSessionTranslateFrom(session),
       );
     }
 
@@ -500,7 +500,7 @@ class AI {
     } else if (params.event) {
       fulfillment = await this.eventRequest(params.event, session, params.bag);
     } else if (params.audio) {
-      const text = await speechRecognizer().recognizeFile(params.audio, session.getTranslateFrom());
+      const text = await speechRecognizer().recognizeFile(params.audio, getSessionTranslateFrom(session));
       fulfillment = await this.textRequest(text, session, params.bag);
     } else if (params.command) {
       fulfillment = await this.commandRequest(params.command, session, params.bag);

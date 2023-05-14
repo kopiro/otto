@@ -1,22 +1,29 @@
 import mongoose from "mongoose";
 import autopopulate from "mongoose-autopopulate";
 import config from "../config";
-import { Language } from "../types";
+import { Language, Session } from "../types";
 
 const { Schema } = mongoose;
 
-export const SessionSchema = new Schema({
+export const SessionSchema = new Schema<Session>({
   _id: String,
   ioDriver: String,
   ioId: String,
-  name: String,
   ioData: Schema.Types.Mixed,
+
+  name: String,
+
   translateFrom: String,
   translateTo: String,
+
   openaiMessages: Schema.Types.Mixed,
   openaiLastInteraction: Number,
+
   doNotDisturb: Boolean,
+  timeZone: String,
+
   authorizations: [String],
+
   fallbackSession: { type: String, ref: "session", autopopulate: true },
   redirectSessions: [{ type: String, ref: "session", autopopulate: true }],
   forwardSessions: [{ type: String, ref: "session", autopopulate: true }],
@@ -24,35 +31,3 @@ export const SessionSchema = new Schema({
 });
 
 SessionSchema.plugin(autopopulate);
-
-/**
- * Get the language to translate from
- */
-SessionSchema.methods.getTranslateFrom = function (): Language {
-  return this.translateFrom || config().language;
-};
-
-/**
- * Get the language to translate to
- */
-SessionSchema.methods.getTranslateTo = function (): Language {
-  return this.translateTo || config().language;
-};
-
-SessionSchema.methods.getName = function (): Language {
-  if (this.name) {
-    return this.name;
-  }
-
-  if (this.ioDriver === "telegram") {
-    const { first_name, last_name } = this.ioData.from;
-    if (first_name && last_name) {
-      return `${first_name} ${last_name}`;
-    }
-    if (first_name) {
-      return first_name;
-    }
-  }
-
-  return "Anonymous";
-};

@@ -16,6 +16,7 @@ import { File } from "../stdlib/file";
 import textToSpeech from "../stdlib/text-to-speech";
 import speechRecognizer from "../stdlib/speech-recognizer";
 import { Signale } from "signale";
+import { getSessionTranslateFrom, getSessionTranslateTo } from "../helpers";
 
 const TAG = "IO.Telegram";
 const console = new Signale({
@@ -65,7 +66,7 @@ export class Telegram implements IOManager.IODriverModule {
           .pipe(fs.createWriteStream(voiceFile))
           .on("close", async () => {
             await Proc.spawn("opusdec", [voiceFile, voiceWavFile, "--rate", speechRecognizer().SAMPLE_RATE]).result;
-            const text = await speechRecognizer().recognizeFile(voiceWavFile, session.getTranslateFrom());
+            const text = await speechRecognizer().recognizeFile(voiceWavFile, getSessionTranslateFrom(session));
             resolve(text);
           });
       })();
@@ -105,7 +106,7 @@ export class Telegram implements IOManager.IODriverModule {
   async getVoiceFile(fulfillment: Fulfillment, session: ISession): Promise<File> {
     const audioFile = await textToSpeech().getAudioFile(
       fulfillment.text,
-      fulfillment.options.language || session.getTranslateTo(),
+      fulfillment.options.language || getSessionTranslateTo(session),
       config().tts.gender,
     );
     return voice().getFile(audioFile);

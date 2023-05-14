@@ -3,7 +3,12 @@ import { Fulfillment, CustomError, AIAction, InputParams, Session } from "../typ
 import config from "../config";
 import { Signale } from "signale";
 import ai from "../stdlib/ai";
-import { getLanguageLongStringFromLanguageCode } from "../helpers";
+import {
+  getLanguageLongStringFromLanguageCode,
+  getSessionLocaleTimeString,
+  getSessionName,
+  getSessionTranslateTo,
+} from "../helpers";
 
 type Config = {
   apiKey: string;
@@ -33,28 +38,15 @@ class OpenAI {
           event: {
             name: "OPENAI_BRAIN",
             languageCode: config().language,
-            parameters: {
-              fields: {
-                user_name: {
-                  stringValue: session.getName(),
-                },
-                user_language: {
-                  stringValue: session.getTranslateTo(),
-                },
-                current_time: {
-                  stringValue: new Date().toISOString(),
-                },
-              },
-            },
           },
         },
       });
       this._brain = response.queryResult.fulfillmentText;
     }
     return this._brain
-      .replace("{user_name}", session.getName())
-      .replace("{user_language}", await getLanguageLongStringFromLanguageCode(session.getTranslateTo()))
-      .replace("{current_time}", new Date().toISOString());
+      .replace("{user_name}", getSessionName(session))
+      .replace("{current_time}", getSessionLocaleTimeString(session))
+      .replace("{user_language}", await getLanguageLongStringFromLanguageCode(getSessionTranslateTo(session)));
   }
 
   async textRequest(text: InputParams["text"], session: Session, addToHistory: boolean = true): Promise<Fulfillment> {

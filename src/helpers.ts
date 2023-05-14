@@ -5,7 +5,7 @@ import path from "path";
 import config from "./config";
 import translator from "./stdlib/translator";
 import { cacheDir, tmpDir } from "./paths";
-import { Language, Locale } from "./types";
+import { Language, Locale, Session } from "./types";
 import { v4 as uuid } from "uuid";
 import crypto from "crypto";
 import { Signale } from "signale";
@@ -209,4 +209,35 @@ export function isJsonString(str: string): boolean {
     return false;
   }
   return true;
+}
+
+export function getSessionTranslateFrom(session: Session): Language {
+  return session.translateFrom || config().language;
+}
+
+export function getSessionTranslateTo(session: Session): Language {
+  return session.translateTo || config().language;
+}
+
+export function getSessionName(session: Session): string {
+  if (session.name) {
+    return session.name;
+  }
+
+  if (session.ioDriver === "telegram") {
+    const { first_name, last_name } = session.ioData.from;
+    if (first_name && last_name) {
+      return `${first_name} ${last_name}`;
+    }
+    if (first_name) {
+      return first_name;
+    }
+  }
+
+  return "Anonymous";
+}
+
+export function getSessionLocaleTimeString(session: Session): string {
+  const date = new Date();
+  return date.toLocaleTimeString(session.translateTo, { timeZone: session.timeZone || "UTC" });
 }

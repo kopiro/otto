@@ -94,6 +94,7 @@ export interface Session extends Document {
   ioId: string;
   ioData: Record<string, any>;
   name?: string;
+  timeZone?: string;
   translateFrom: Language;
   translateTo: Language;
   authorizations: Authorizations[];
@@ -104,7 +105,4 @@ export interface Session extends Document {
   doNotDisturb?: boolean;
   openaiMessages?: Array<{ role: ChatCompletionRequestMessageRoleEnum; content: string }>;
   openaiLastInteraction?: number;
-  getTranslateFrom: () => Language;
-  getTranslateTo: () => Language;
-  getName: () => string;
 }

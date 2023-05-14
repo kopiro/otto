@@ -2,7 +2,7 @@ import Events from "events";
 import config from "../config";
 import * as IOManager from "../stdlib/iomanager";
 import voice from "../stdlib/voice";
-import { timeout } from "../helpers";
+import { getSessionTranslateFrom, getSessionTranslateTo, timeout } from "../helpers";
 import { Fulfillment, Session } from "../types";
 import { etcDir } from "../paths";
 import path from "path";
@@ -97,7 +97,7 @@ export class Human implements IOManager.IODriverModule {
   startRecognition(session: Session) {
     console.log("recognizing microphone stream");
 
-    const recognizeStream = speechRecognizer().createRecognizeStream(session.getTranslateFrom(), (err, text) => {
+    const recognizeStream = speechRecognizer().createRecognizeStream(getSessionTranslateFrom(session), (err, text) => {
       this.isRecognizing = false;
       this.emitter.emit("notrecognizing");
 
@@ -256,7 +256,7 @@ export class Human implements IOManager.IODriverModule {
       if (fulfillment.text) {
         const audioFile = await textToSpeech().getAudioFile(
           fulfillment.text,
-          session.getTranslateTo(),
+          getSessionTranslateTo(session),
           config().tts.gender,
         );
         const file = await voice().getFile(audioFile);
