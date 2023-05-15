@@ -60,8 +60,8 @@ class AI {
       authorization: null,
     },
     {
-      matcher: /^\/output ([^\s]+) (.+)/,
-      executor: this.commandOutput,
+      matcher: /^\/output-text ([^\s]+) (.+)/,
+      executor: this.commandOutputText,
       description: "output - [sessionid] [text] - Send a text message to a specific session",
       authorization: IOManager.Authorizations.COMMAND,
     },
@@ -111,7 +111,7 @@ class AI {
     return { data: JSON.stringify(result, null, 2) };
   }
 
-  private async commandOutput([, cmdSessionId, cmdText]: RegExpMatchArray): Promise<Fulfillment> {
+  private async commandOutputText([, cmdSessionId, cmdText]: RegExpMatchArray): Promise<Fulfillment> {
     const cmdSession = await IOManager.getSession(cmdSessionId);
     const result = await IOManager.output({ text: cmdText }, cmdSession, {});
     return { data: JSON.stringify(result, null, 2) };
