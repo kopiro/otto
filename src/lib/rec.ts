@@ -48,6 +48,6 @@ export function getStream(): stream.Readable {
 export function stop() {
   if (proc == null) return;
 
-  console.log("stop");
+  console.debug("stop");
   proc.kill();
 }

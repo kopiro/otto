@@ -8,7 +8,7 @@ const console = new Signale({
 });
 
 export function spawn(program: string, args: Array<any> = []): { child: ChildProcess; result: Promise<string> } {
-  console.log(program, args.join(" "));
+  console.debug(program, args.join(" "));
 
   const child = systemSpawn(program, args);
 

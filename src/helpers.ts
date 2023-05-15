@@ -180,7 +180,7 @@ export function tryCatch<T>(callable: () => T, defaultValue: any): T | typeof de
   try {
     return callable();
   } catch (error) {
-    console.log("Catched to default error", error);
+    console.debug("Catched to default error", error);
     return defaultValue;
   }
 }

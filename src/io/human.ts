@@ -95,7 +95,7 @@ export class Human implements IOManager.IODriverModule {
    * the microphone input to GCP-SR stream
    */
   startRecognition(session: Session) {
-    console.log("recognizing microphone stream");
+    console.debug("recognizing microphone stream");
 
     const recognizeStream = speechRecognizer().createRecognizeStream(getSessionTranslateFrom(session), (err, text) => {
       this.isRecognizing = false;
@@ -234,7 +234,7 @@ export class Human implements IOManager.IODriverModule {
       for (const frame of frames) {
         const index = this.porcupine.process(frame);
         if (index !== -1) {
-          console.log(`Detected hotword!`);
+          console.debug(`Detected hotword!`);
           this.wake();
         }
       }
@@ -293,7 +293,7 @@ export class Human implements IOManager.IODriverModule {
 
     // If we have a current processed item, let's wait until it's null
     while (this.currentSpokenFulfillment) {
-      console.log("waiting until agent is not speaking...");
+      console.debug("waiting until agent is not speaking...");
       // eslint-disable-next-line no-await-in-loop
       results.push(["timeout", Human.SLEEP_WAIT_STILL_SPEAKING]);
       await timeout(Human.SLEEP_WAIT_STILL_SPEAKING);
@@ -315,7 +315,7 @@ export class Human implements IOManager.IODriverModule {
    */
   async start(): Promise<boolean> {
     const session = await this.registerInternalSession();
-    console.log(`started, sessionID: ${session.id}`);
+    console.debug(`started, sessionID: ${session.id}`);
 
     this.emitter.on("wake", this.wake);
     this.emitter.on("stop", this.stop);

@@ -65,7 +65,7 @@ class OpenAI {
     const interationTTLSeconds = this.config.interactionTTLMinutes * 60;
 
     if ((session.openaiLastInteraction ?? 0) + interationTTLSeconds < now) {
-      console.log(`resetting chat, as more than ${this.config.interactionTTLMinutes}m passed since last interaction`);
+      console.debug(`resetting chat, as more than ${this.config.interactionTTLMinutes}m passed since last interaction`);
       session.openaiMessages = [];
     }
 
@@ -84,14 +84,14 @@ class OpenAI {
 
     // Prepend system
     const messages = [systemMessage, ...(ignoreHistory ? [] : session.openaiMessages), userMessage];
-    console.log("messages :>> ", messages);
+    console.debug("messages :>> ", messages);
 
     const completion = await this.api.createChatCompletion({
       model: this.config.model,
       messages: messages,
     });
 
-    console.log("completion :>> ", completion.data);
+    console.debug("completion :>> ", completion.data);
 
     const answerMessages = completion.data.choices.map((e) => e.message);
     const answerMessage = answerMessages[0];

@@ -390,7 +390,7 @@ class AI {
         maybeOpenAIPrompt = maybeOpenAIPrompt.replace(new RegExp(`{${key}}`, "g"), value.stringValue);
       }
 
-      console.log("maybeOpenAIPrompt :>> ", maybeOpenAIPrompt);
+      console.debug("maybeOpenAIPrompt :>> ", maybeOpenAIPrompt);
 
       return OpenAI().textRequest(
         maybeOpenAIPrompt,

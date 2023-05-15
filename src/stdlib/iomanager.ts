@@ -56,7 +56,7 @@ const SESSION_SEPARATOR = "$";
  */
 export function getDriversToLoad(): IODriver[] {
   if (process.env.OTTO_IO_DRIVERS) {
-    return (process.env.OTTO_IO_DRIVERS.split(",") as unknown) as IODriver[];
+    return process.env.OTTO_IO_DRIVERS.split(",") as unknown as IODriver[];
   }
   return config().ioDrivers || [];
 }
@@ -66,7 +66,7 @@ export function getDriversToLoad(): IODriver[] {
  */
 export function getAccessoriesToLoadForDriver(driver: IODriver): IOAccessory[] {
   if (process.env.OTTO_IO_ACCESSORIES) {
-    return (process.env.OTTO_IO_ACCESSORIES.split(",") as unknown) as IOAccessory[];
+    return process.env.OTTO_IO_ACCESSORIES.split(",") as unknown as IOAccessory[];
   }
   return config().ioAccessoriesMap[driver] || [];
 }
@@ -217,7 +217,7 @@ export async function output(
  * Configure every accessory for that driver
  */
 export async function startAccessoriesForDriver(driverName: IODriver, driver: IODriverModule) {
-  const accessoriesToLoad = getAccessoriesToLoadForDriver((driverName as unknown) as IODriver);
+  const accessoriesToLoad = getAccessoriesToLoadForDriver(driverName as unknown as IODriver);
   return Promise.all(
     accessoriesToLoad.map((accessory) =>
       getAccessoryForDriver(accessory, driver).then((accessoryModule) => accessoryModule.start()),
@@ -257,7 +257,7 @@ function startDrivers(onDriverInput: (params: InputParams, session: Session) => 
           enabledDrivers[driverName] = driver;
           enabledDriverIds.push(driverId);
 
-          console.log(`driver ${driverName} started with id: <${driverId}>`);
+          console.debug(`driver ${driverName} started with id: <${driverId}>`);
           return true;
         });
     }),
@@ -285,7 +285,7 @@ function getSessionIdByParts(uid: string, ioDriver: string, sessionId: string) {
  */
 export async function getSession(sessionId: string): Promise<Session> {
   const session = await Data.Session.findById(sessionId);
-  return (session as unknown) as Session;
+  return session as unknown as Session;
 }
 
 /**
@@ -316,7 +316,7 @@ export async function registerSession(ioDriver: string, sessionId?: string, ioDa
     const freshSession = new Data.Session(data);
     await freshSession.save();
     console.info("new session model registered", freshSession);
-    return (freshSession as unknown) as Session;
+    return freshSession as unknown as Session;
   } else {
     await session.updateOne(data);
   }

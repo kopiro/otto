@@ -22,6 +22,6 @@ if (!serviceClass) {
 Server.start().then(async () => {
   serviceClass.initializeForAuthorization().then(() => {
     const url = serviceClass.getAuthUrl();
-    console.log(`Please open this URL: ${url}`);
+    console.debug(`Please open this URL: ${url}`);
   });
 });
