@@ -80,15 +80,6 @@ export class Telegram implements IOManager.IODriverModule {
     return text.replace(/<[^>]+>/g, "");
   }
 
-  /**
-   * Split a text using a pattern to mimic a message sent by a human
-   */
-  mimicHumanMessage(text: string): Array<string> {
-    return this.cleanOutputText(text)
-      .split(/\\n|\n|\.(?=\s+|[A-Z])/)
-      .filter((e) => e.length > 0);
-  }
-
   cleanInputText(e: TelegramBot.Message) {
     let text = e.text;
     text = text.replace(`@${this.botMe.username}`, "");
@@ -99,7 +90,6 @@ export class Telegram implements IOManager.IODriverModule {
    * Send a message to the user
    */
   async sendMessage(chatId: string, text: string, opt: any = {}) {
-    this.bot.sendChatAction(chatId, "typing");
     return this.bot.sendMessage(chatId, this.cleanOutputText(text), { ...{ parse_mode: "HTML" }, ...opt });
   }
 
@@ -193,6 +183,8 @@ export class Telegram implements IOManager.IODriverModule {
       // Clean
       const text = this.cleanInputText(e);
 
+      this.bot.sendChatAction(e.chat.id, "typing");
+
       this.emitter.emit("input", {
         session,
         params: {
@@ -215,6 +207,8 @@ export class Telegram implements IOManager.IODriverModule {
         return false;
       }
 
+      this.bot.sendChatAction(e.chat.id, "record_audio");
+
       // User sent a voice note, respond with a voice note :)
       this.emitter.emit("input", {
         session,
@@ -231,6 +225,8 @@ export class Telegram implements IOManager.IODriverModule {
     if (e.photo) {
       const photoLink = this.bot.getFileLink(e.photo[e.photo.length - 1].file_id);
       if (isGroup) return false;
+
+      this.bot.sendChatAction(e.chat.id, "typing");
 
       this.emitter.emit("input", {
         session,
@@ -314,8 +310,8 @@ export class Telegram implements IOManager.IODriverModule {
         }
       }
     } catch (err) {
-      results.push(["error", err]);
       console.error(err);
+      results.push(["error", err]);
     }
 
     // Process a Video object
@@ -326,8 +322,8 @@ export class Telegram implements IOManager.IODriverModule {
         results.push(["video", r]);
       }
     } catch (err) {
-      results.push(["error", err]);
       console.error(err);
+      results.push(["error", err]);
     }
 
     // Process an Image Object
@@ -341,8 +337,8 @@ export class Telegram implements IOManager.IODriverModule {
         results.push(["photo", r]);
       }
     } catch (err) {
-      results.push(["error", err]);
       console.error(err);
+      results.push(["error", err]);
     }
 
     // Process an Audio Object
@@ -365,8 +361,8 @@ export class Telegram implements IOManager.IODriverModule {
         results.push(["document", r]);
       }
     } catch (err) {
-      results.push(["error", err]);
       console.error(err);
+      results.push(["error", err]);
     }
 
     try {
@@ -375,8 +371,8 @@ export class Telegram implements IOManager.IODriverModule {
         results.push(["message", r]);
       }
     } catch (err) {
-      results.push(["error", err]);
       console.error(err);
+      results.push(["error", err]);
     }
 
     try {
@@ -385,8 +381,8 @@ export class Telegram implements IOManager.IODriverModule {
         results.push(["data", r]);
       }
     } catch (err) {
-      results.push(["message", err]);
       console.error(err);
+      results.push(["error", err]);
     }
 
     return results;
