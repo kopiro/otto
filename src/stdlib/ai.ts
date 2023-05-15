@@ -354,7 +354,7 @@ class AI {
     }
   }
 
-  private extractMessages(fulfillmentMessages: protos.google.cloud.dialogflow.v2.Intent.IMessage[], key: string) {
+  extractMessages(fulfillmentMessages: protos.google.cloud.dialogflow.v2.Intent.IMessage[], key: string) {
     return fulfillmentMessages.find((m) => m?.payload?.fields?.[key] !== undefined)?.payload.fields[key].stringValue;
   }
 
@@ -509,6 +509,7 @@ class AI {
   async processInput(params: InputParams, session: Session) {
     console.info("processInput", { params, session });
 
+    // Check if we have repeatModeSessions - if so, just output to all of them
     if (session.repeatModeSessions?.length > 0 && params.text) {
       console.info("using repeatModeSessions", session.repeatModeSessions);
       return Promise.all(
