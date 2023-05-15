@@ -62,13 +62,13 @@ class AI {
     {
       matcher: /^\/output-text ([^\s]+) (.+)/,
       executor: this.commandOutputText,
-      description: "output - [sessionid] [text] - Send a text message to a specific session",
+      description: "output-text [sessionid] [text] - Send a text message to a specific session",
       authorization: IOManager.Authorizations.COMMAND,
     },
     {
       matcher: /^\/input ([^\s]+) (.+)/,
       executor: this.commandInput,
-      description: "input - [sessionid] [params_json] - Process an input param for a specific session",
+      description: "input [sessionid] [params_json] - Process an input param for a specific session",
       authorization: IOManager.Authorizations.COMMAND,
     },
     {
