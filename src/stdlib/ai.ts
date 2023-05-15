@@ -9,6 +9,7 @@ import translator from "../stdlib/translator";
 import { Signale } from "signale";
 import OpenAI from "../lib/openai";
 import { getSessionTranslateFrom, getSessionTranslateTo, isJsonString } from "../helpers";
+import { ChatCompletionRequestMessageRoleEnum } from "openai";
 
 export type IDetectIntentResponse = protos.google.cloud.dialogflow.v2.IDetectIntentResponse;
 export type IQueryInput = protos.google.cloud.dialogflow.v2.IQueryInput;
@@ -59,22 +60,15 @@ class AI {
       authorization: null,
     },
     {
-      matcher: /^\/textout ([^\s]+) (.+)/,
-      executor: this.commandOut,
-      description: "textout - [sessionid] [text] - Send a text message to a specific session",
+      matcher: /^\/output ([^\s]+) (.+)/,
+      executor: this.commandOutput,
+      description: "output - [sessionid] [text] - Send a text message to a specific session",
       authorization: IOManager.Authorizations.COMMAND,
     },
     {
-      matcher: /^\/eventin ([^\s]+) (.+)/,
-      executor: this.eventIn,
-      description:
-        "eventin - [sessionid] [name] [event_object_or_name] - Process an input event for a specific session",
-      authorization: IOManager.Authorizations.COMMAND,
-    },
-    {
-      matcher: /^\/textin ([^\s]+) (.+)/,
-      executor: this.commandIn,
-      description: "textin - [sessionid] [text] - Process an input text for a specific session",
+      matcher: /^\/input ([^\s]+) (.+)/,
+      executor: this.commandInput,
+      description: "input - [sessionid] [params_json] - Process an input param for a specific session",
       authorization: IOManager.Authorizations.COMMAND,
     },
     {
@@ -114,23 +108,25 @@ class AI {
     return { data: JSON.stringify(session, null, 2) };
   }
 
-  private async commandIn([, cmdSessionId, cmdText]: RegExpMatchArray): Promise<Fulfillment> {
-    const cmdSession = await IOManager.getSession(cmdSessionId);
-    const result = await this.processInput({ text: cmdText }, cmdSession);
-    return { data: JSON.stringify(result, null, 2) };
+  private async commandInput([, cmdSessionId, paramsStr]: RegExpMatchArray): Promise<Fulfillment> {
+    try {
+      const cmdSession = await IOManager.getSession(cmdSessionId);
+      const params = JSON.parse(paramsStr);
+      const result = await this.processInput(params, cmdSession);
+      return { data: JSON.stringify(result, null, 2) };
+    } catch (err) {
+      return { error: { message: String(err) } };
+    }
   }
 
-  private async eventIn([, cmdSessionId, cmdEvent]: RegExpMatchArray): Promise<Fulfillment> {
-    const cmdSession = await IOManager.getSession(cmdSessionId);
-    const event = isJsonString(cmdEvent) ? JSON.parse(cmdEvent) : cmdEvent;
-    const result = await this.processInput({ event: event }, cmdSession);
-    return { data: JSON.stringify(result, null, 2) };
-  }
-
-  private async commandOut([, cmdSessionId, cmdText]: RegExpMatchArray): Promise<Fulfillment> {
-    const cmdSession = await IOManager.getSession(cmdSessionId);
-    const result = await IOManager.output({ text: cmdText }, cmdSession, {});
-    return { data: JSON.stringify(result, null, 2) };
+  private async commandOutput([, cmdSessionId, cmdText]: RegExpMatchArray): Promise<Fulfillment> {
+    try {
+      const cmdSession = await IOManager.getSession(cmdSessionId);
+      const result = await IOManager.output({ text: cmdText }, cmdSession, {});
+      return { data: JSON.stringify(result, null, 2) };
+    } catch (err) {
+      return { error: { message: String(err) } };
+    }
   }
 
   private getCommandExecutor(
@@ -398,8 +394,17 @@ class AI {
       for (const [key, value] of Object.entries(body.queryResult.parameters.fields ?? [])) {
         maybeOpenAIPrompt = maybeOpenAIPrompt.replace(new RegExp(`{${key}}`, "g"), value.stringValue);
       }
-      const ignoreHistory = originalRequestType === "event";
-      return OpenAI().textRequest(maybeOpenAIPrompt, session, ignoreHistory);
+
+      console.log("maybeOpenAIPrompt :>> ", maybeOpenAIPrompt);
+
+      return OpenAI().textRequest(
+        maybeOpenAIPrompt,
+        session,
+        originalRequestType === "event"
+          ? ChatCompletionRequestMessageRoleEnum.System
+          : ChatCompletionRequestMessageRoleEnum.User,
+        originalRequestType === "event",
+      );
     }
 
     // Otherwise, just remap our common keys as standard object

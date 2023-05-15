@@ -53,7 +53,12 @@ class OpenAI {
       .replace("{user_language}", await getLanguageNameFromLanguageCode(getSessionTranslateTo(session)));
   }
 
-  async textRequest(text: InputParams["text"], session: Session, ignoreHistory: boolean = false): Promise<Fulfillment> {
+  async textRequest(
+    text: InputParams["text"],
+    session: Session,
+    role: ChatCompletionRequestMessageRoleEnum = ChatCompletionRequestMessageRoleEnum.User,
+    ignoreHistory: boolean = false,
+  ): Promise<Fulfillment> {
     console.info("text request:", text);
 
     const now = Math.floor(Date.now() / 1000);
@@ -71,7 +76,7 @@ class OpenAI {
     };
 
     const userMessage = {
-      role: ChatCompletionRequestMessageRoleEnum.User,
+      role: role,
       content: text,
     };
 
@@ -92,12 +97,13 @@ class OpenAI {
     const answerMessage = answerMessages[0];
     const answerText = answerMessage?.content;
 
-    session.openaiLastInteraction = now;
     if (!ignoreHistory) {
-      session.openaiMessages = [...session.openaiMessages, userMessage, answerMessage];
+      session.openaiLastInteraction = now;
+      session.openaiMessages = [...session.openaiMessages, userMessage, answerMessage].filter(
+        (e) => e.role !== ChatCompletionRequestMessageRoleEnum.System,
+      );
+      session.save();
     }
-
-    session.save();
 
     if (!answerText) {
       return {
