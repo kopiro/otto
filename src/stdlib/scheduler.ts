@@ -47,7 +47,7 @@ export class Scheduler {
       programArgs: { date, fulfillment },
       deleteAfterRun: true,
     });
-    console.log("scheduled fulfillment", job);
+    console.debug("scheduled fulfillment", job);
     return job.save();
   }
 
@@ -89,7 +89,7 @@ export class Scheduler {
   }
 
   async runJob(job: SchedulerModel) {
-    console.log(Date.now(), "running job", {
+    console.debug(Date.now(), "running job", {
       programName: job.programName,
       programArgs: job.programArgs,
       "session.id": job.session.id,
@@ -117,7 +117,7 @@ export class Scheduler {
   async tick(conditions = []) {
     const jobs = await this.getJobs(conditions);
     if (jobs.length > 0) {
-      console.log("jobs", jobs);
+      console.debug("jobs", jobs);
     }
     jobs.forEach(this.runJob.bind(this));
   }
