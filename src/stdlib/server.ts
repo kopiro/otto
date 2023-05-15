@@ -47,6 +47,29 @@ routerApi.get("/speech", async (req: express.Request, res: express.Response) => 
   }
 });
 
+// Get Fullfilment for a given input
+// GET /api/fulfillment?session=ID&params={ "text": "Hello" }
+routerApi.get("/fulfillment", async (req, res) => {
+  try {
+    const obj = req.body;
+    if (!obj.session) throw new Error("'session' key not provided");
+    if (!obj.params) throw new Error("'params' key not provided");
+
+    const session = await getSession(obj.session);
+    if (!session) throw new Error("Session not found");
+
+    const output = await ai().getFullfilmentForInput(obj.params, session);
+    return res.json({ data: output });
+  } catch (err) {
+    console.error("/api/fulfillment error", err);
+    return res.status(400).json({
+      error: {
+        message: err.message,
+      },
+    });
+  }
+});
+
 // API to kick-in input
 // POST /api/input { "session": "ID", "params": { "text": "Hello" } }
 routerApi.post("/input", async (req, res) => {

@@ -47,10 +47,16 @@ class AI {
     authorization?: IOManager.Authorizations;
   }> = [
     {
-      matcher: /^\/start$/,
+      matcher: /^\/start/,
       executor: this.commandStart,
       description: "start - Start the bot",
-      authorization: IOManager.Authorizations.COMMAND,
+      authorization: null,
+    },
+    {
+      matcher: /^\/whoami/,
+      executor: this.commandWhoami,
+      description: "whoami - Get your session",
+      authorization: null,
     },
     {
       matcher: /^\/textout ([^\s]+) (.+)/,
@@ -77,11 +83,6 @@ class AI {
       description: "appstop - Cause the application to crash",
       authorization: IOManager.Authorizations.COMMAND,
     },
-    {
-      matcher: /^\/whoami/,
-      executor: this.commandWhoami,
-      description: "whoami - Get your session",
-    },
   ];
 
   constructor(private config: AIConfig) {
@@ -105,9 +106,8 @@ class AI {
     return { text: "Scheduled shutdown in 5 seconds" };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  private async commandStart(_: RegExpMatchArray, _session: Session): Promise<Fulfillment> {
-    return { text: "HELO" };
+  private async commandStart(_: RegExpMatchArray, session: Session): Promise<Fulfillment> {
+    return this.getFullfilmentForInput({ event: "welcome" }, session);
   }
 
   private async commandWhoami(_: RegExpMatchArray, session: Session): Promise<Fulfillment> {
@@ -133,7 +133,10 @@ class AI {
     return { data: JSON.stringify(result, null, 2) };
   }
 
-  getCommandExecutor(text: string, session: Session): (session: Session, bag: IOManager.IOBag) => Promise<Fulfillment> {
+  private getCommandExecutor(
+    text: string,
+    session: Session,
+  ): (session: Session, bag: IOManager.IOBag) => Promise<Fulfillment> {
     for (const cmd of this.commandMapping) {
       const matches = text.match(cmd.matcher);
       if (matches) {
@@ -181,13 +184,13 @@ class AI {
   /**
    * Transform a Fulfillment by making some edits based on the current session settings
    */
-  async fulfillmentTransformerForSession(fulfillment: Fulfillment, session: Session): Promise<Fulfillment> {
+  async fulfillmentFinalizer(fulfillment: Fulfillment, session: Session): Promise<Fulfillment> {
     if (!fulfillment) return;
 
     fulfillment.options = fulfillment.options || {};
 
     // If this fulfillment has already been transformed, let's skip this
-    if (fulfillment.options.transformerUid) {
+    if (fulfillment.options.finalizerUid) {
       return fulfillment;
     }
 
@@ -204,8 +207,8 @@ class AI {
       }
     }
 
-    fulfillment.options.transformerUid = this.config.uid;
-    fulfillment.options.transformedAt = Date.now();
+    fulfillment.options.finalizerUid = this.config.uid;
+    fulfillment.options.finalizedAt = Date.now();
 
     return fulfillment;
   }
@@ -213,7 +216,7 @@ class AI {
   /**
    * Get the session path suitable for DialogFlow
    */
-  getDFSessionPath(sessionId: string) {
+  getDfSessionPath(sessionId: string) {
     const dfSessionId = sessionId.replace(/\//g, "_");
     if (!this.config.dialogflow.environment) {
       return this.dfSessionClient.projectAgentSessionPath(this.config.dialogflow.projectId, dfSessionId);
@@ -230,7 +233,7 @@ class AI {
   /**
    * Transform an error into a fulfillment
    */
-  actionErrorTransformer(error: CustomError): Fulfillment {
+  actionErrorFinalizer(error: CustomError): Fulfillment {
     const fulfillment: Fulfillment = {};
     fulfillment.error = error;
     return fulfillment;
@@ -249,9 +252,9 @@ class AI {
     const fulfillmentsAndOutputResults: [Fulfillment, IOManager.OutputResult][] = [];
 
     for await (const fulfillment of fulfillmentGenerator) {
-      const trFulfillment = await this.fulfillmentTransformerForSession(fulfillment, session);
-      const outputResult = await IOManager.output(trFulfillment, session, bag);
-      fulfillmentsAndOutputResults.push([trFulfillment, outputResult]);
+      const finalFulfillment = await this.fulfillmentFinalizer(fulfillment, session);
+      const outputResult = await IOManager.output(finalFulfillment, session, bag);
+      fulfillmentsAndOutputResults.push([finalFulfillment, outputResult]);
     }
 
     return fulfillmentsAndOutputResults;
@@ -273,7 +276,7 @@ class AI {
   /**
    * Transform a body from DialogFlow into a Fulfillment by calling the internal action
    */
-  async actionResolver(
+  private async dfActionResolver(
     actionName: string,
     body: IDetectIntentResponse,
     session: Session,
@@ -289,10 +292,13 @@ class AI {
         return sysPkgFullfillment;
       }
 
-      // TODO: avoid possible code injection
+      if (pkgName.includes("..") || pkgAction.includes("..")) {
+        throw new Error(`Unsafe action name <${pkgName}.${pkgAction}>`);
+      }
+
       const pkg = await import(`../packages/${pkgName}/${pkgAction}`);
       if (!pkg) {
-        throw new Error(`Invalid action name <${actionName}>`);
+        throw new Error(`Invalid action name <${pkgName}.${actionName}>`);
       }
 
       const pkgAuthorizations = (pkg.authorizations || []) as IOManager.Authorizations[];
@@ -324,7 +330,7 @@ class AI {
       }
     } catch (err) {
       console.error("error while executing action", err);
-      return this.actionErrorTransformer(err);
+      return this.actionErrorFinalizer(err);
     }
   }
 
@@ -348,14 +354,14 @@ class AI {
     }
   }
 
-  extractMessages(fulfillmentMessages: protos.google.cloud.dialogflow.v2.Intent.IMessage[], key: string) {
+  private extractMessages(fulfillmentMessages: protos.google.cloud.dialogflow.v2.Intent.IMessage[], key: string) {
     return fulfillmentMessages.find((m) => m?.payload?.fields?.[key] !== undefined)?.payload.fields[key].stringValue;
   }
 
   /**
    * Parse the DialogFlow body and decide what to do
    */
-  async dfBodyParser(
+  private async dfBodyParser(
     body: IDetectIntentResponse,
     session: Session,
     bag: IOManager.IOBag,
@@ -366,7 +372,7 @@ class AI {
     // If we have an "action", call the package with the specified name
     if (body.queryResult.action) {
       console.debug(`Resolving action: ${body.queryResult.action}`);
-      return this.actionResolver(body.queryResult.action, body, session, bag);
+      return this.dfActionResolver(body.queryResult.action, body, session, bag);
     }
 
     // Otherwise, check if at least an intent is match and direct return that fulfillment
@@ -407,7 +413,7 @@ class AI {
     } as Fulfillment;
   }
 
-  async dfRequest(queryInput: IQueryInput, session: Session, bag?: IOManager.IOBag) {
+  private async dfRequest(queryInput: IQueryInput, session: Session, bag?: IOManager.IOBag) {
     if (queryInput.text) {
       queryInput.text.text = await translator().translate(
         queryInput.text.text,
@@ -416,7 +422,7 @@ class AI {
       );
     }
 
-    const sessionPath = this.getDFSessionPath(session.id);
+    const sessionPath = this.getDfSessionPath(session.id);
     const payload = {
       session: sessionPath,
       queryInput,
@@ -476,24 +482,7 @@ class AI {
     return this.dfBodyParser(body, session, bag, "event");
   }
 
-  /**
-   * Process a fulfillment to a session
-   */
-  async processInput(params: InputParams, session: Session) {
-    console.info("processInput", { params, session });
-
-    if (session.repeatModeSessions?.length > 0 && params.text) {
-      console.info("using repeatModeSessions", session.repeatModeSessions);
-      return Promise.all(
-        session.repeatModeSessions.map(async (e) => {
-          const trFulfillment = await this.fulfillmentTransformerForSession({ text: params.text }, e);
-          return IOManager.output(trFulfillment, e, params.bag);
-        }),
-      );
-    }
-
-    // IOManager.writeLogForSession(params, session);
-
+  async getFullfilmentForInput(params: InputParams, session: Session): Promise<Fulfillment> {
     let fulfillment: any = null;
     if (params.text) {
       fulfillment = await this.textRequest(params.text, session, params.bag);
@@ -510,8 +499,31 @@ class AI {
       console.warn("Neither { text, event, command, repeatText, audio } in params are not null");
     }
 
-    const trFulfillment = await this.fulfillmentTransformerForSession(fulfillment, session);
-    return IOManager.output(trFulfillment, session, params.bag);
+    const trFulfillment = await this.fulfillmentFinalizer(fulfillment, session);
+    return trFulfillment;
+  }
+
+  /**
+   * Process a fulfillment to a session
+   */
+  async processInput(params: InputParams, session: Session) {
+    console.info("processInput", { params, session });
+
+    if (session.repeatModeSessions?.length > 0 && params.text) {
+      console.info("using repeatModeSessions", session.repeatModeSessions);
+      return Promise.all(
+        session.repeatModeSessions.map(async (e) => {
+          const trFulfillment = await this.fulfillmentFinalizer({ text: params.text }, e);
+          return IOManager.output(trFulfillment, e, params.bag);
+        }),
+      );
+    }
+
+    // If you want to keep log of conversations
+    // IOManager.writeLogForSession(params, session);
+
+    const fulfillment = await this.getFullfilmentForInput(params, session);
+    return IOManager.output(fulfillment, session, params.bag);
   }
 }
 

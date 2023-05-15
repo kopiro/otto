@@ -43,8 +43,8 @@ export interface Fulfillment {
   outputContexts?: Array<Record<string, any>>;
   options?: {
     language?: Language;
-    transformerUid?: string;
-    transformedAt?: number;
+    finalizerUid?: string;
+    finalizedAt?: number;
     translateTo?: Language;
     translateFrom?: Language;
     handledByGenerator?: boolean;

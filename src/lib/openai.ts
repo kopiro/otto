@@ -34,7 +34,7 @@ class OpenAI {
 
   private async getBrain(session: Session): Promise<string> {
     if (!this._brainExpiration || this._brainExpiration < Math.floor(Date.now() / 1000)) {
-      const sessionPath = ai().getDFSessionPath("SYSTEM");
+      const sessionPath = ai().getDfSessionPath("SYSTEM");
       const [response] = await ai().dfSessionClient.detectIntent({
         session: sessionPath,
         queryInput: {
