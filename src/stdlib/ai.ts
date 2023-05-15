@@ -87,10 +87,6 @@ class AI {
     return this.commandMapping.map(({ description }) => `${description}`).join("\n");
   }
 
-  private async commandNotAuthorized(): Promise<Fulfillment> {
-    return { text: "User not authorized" };
-  }
-
   private async commandNotFound(): Promise<Fulfillment> {
     return { text: "Command not found" };
   }
@@ -109,24 +105,16 @@ class AI {
   }
 
   private async commandInput([, cmdSessionId, paramsStr]: RegExpMatchArray): Promise<Fulfillment> {
-    try {
-      const cmdSession = await IOManager.getSession(cmdSessionId);
-      const params = JSON.parse(paramsStr);
-      const result = await this.processInput(params, cmdSession);
-      return { data: JSON.stringify(result, null, 2) };
-    } catch (err) {
-      return { error: { message: String(err) } };
-    }
+    const cmdSession = await IOManager.getSession(cmdSessionId);
+    const params = JSON.parse(paramsStr);
+    const result = await this.processInput(params, cmdSession);
+    return { data: JSON.stringify(result, null, 2) };
   }
 
   private async commandOutput([, cmdSessionId, cmdText]: RegExpMatchArray): Promise<Fulfillment> {
-    try {
-      const cmdSession = await IOManager.getSession(cmdSessionId);
-      const result = await IOManager.output({ text: cmdText }, cmdSession, {});
-      return { data: JSON.stringify(result, null, 2) };
-    } catch (err) {
-      return { error: { message: String(err) } };
-    }
+    const cmdSession = await IOManager.getSession(cmdSessionId);
+    const result = await IOManager.output({ text: cmdText }, cmdSession, {});
+    return { data: JSON.stringify(result, null, 2) };
   }
 
   private getCommandExecutor(
@@ -141,9 +129,16 @@ class AI {
           session.authorizations.includes(IOManager.Authorizations.ADMIN) ||
           cmd.authorization == null
         ) {
-          return (session: Session, bag: IOManager.IOBag) => cmd.executor.call(this, matches, session, bag);
+          return async (session: Session, bag: IOManager.IOBag) => {
+            try {
+              const result = await cmd.executor.call(this, matches, session, bag);
+              return result;
+            } catch (e) {
+              return { error: { message: e.message, data: e } };
+            }
+          };
         } else {
-          return () => this.commandNotAuthorized();
+          return async () => ({ text: "User not authorized" });
         }
       }
     }
@@ -445,13 +440,7 @@ class AI {
    */
   async commandRequest(command: InputParams["command"], session: Session, bag: IOManager.IOBag): Promise<Fulfillment> {
     console.info("command request:", command);
-
-    const commandExecutor = this.getCommandExecutor(command, session);
-    try {
-      return commandExecutor(session, bag);
-    } catch (err) {
-      return { error: err };
-    }
+    return this.getCommandExecutor(command, session)(session, bag);
   }
 
   /**
