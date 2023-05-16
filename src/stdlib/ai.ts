@@ -374,12 +374,6 @@ class AI {
       return;
     }
 
-    console.debug(
-      TAG,
-      "Using body.queryResult object (matched from intent)",
-      JSON.stringify(body.queryResult, null, 2),
-    );
-
     let maybeOpenAIPrompt = body.queryResult.fulfillmentMessages.find(
       (m) => m?.payload?.fields?.openai_prompt?.stringValue,
     )?.payload.fields?.openai_prompt?.stringValue;
@@ -388,15 +382,13 @@ class AI {
         maybeOpenAIPrompt = maybeOpenAIPrompt.replace(new RegExp(`{${key}}`, "g"), value.stringValue);
       }
 
-      console.debug("maybeOpenAIPrompt :>> ", maybeOpenAIPrompt);
-
       return OpenAI().textRequest(
         maybeOpenAIPrompt,
         session,
-        originalRequestType === "event"
-          ? ChatCompletionRequestMessageRoleEnum.System
-          : ChatCompletionRequestMessageRoleEnum.User,
-        originalRequestType === "event",
+        originalRequestType === "text"
+          ? ChatCompletionRequestMessageRoleEnum.User
+          : ChatCompletionRequestMessageRoleEnum.System,
+        originalRequestType !== "text",
       );
     }
 
