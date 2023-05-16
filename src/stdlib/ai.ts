@@ -367,8 +367,11 @@ class AI {
     }
 
     // Otherwise, check if at least an intent is match and direct return that fulfillment
-    if (!body.queryResult.intent) {
-      return OpenAI().textRequest(body.queryResult.queryText, session);
+    if (!body.queryResult.intent || body.queryResult.intent?.isFallback) {
+      if (originalRequestType === "text") {
+        return OpenAI().textRequest(body.queryResult.queryText, session);
+      }
+      return;
     }
 
     console.debug(
@@ -376,11 +379,6 @@ class AI {
       "Using body.queryResult object (matched from intent)",
       JSON.stringify(body.queryResult, null, 2),
     );
-
-    // Treat fallback intent as null
-    if (body.queryResult.intent.isFallback) {
-      return OpenAI().textRequest(body.queryResult.queryText, session);
-    }
 
     let maybeOpenAIPrompt = body.queryResult.fulfillmentMessages.find(
       (m) => m?.payload?.fields?.openai_prompt?.stringValue,
