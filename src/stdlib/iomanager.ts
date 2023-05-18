@@ -118,9 +118,7 @@ export async function output(
   loadDriverIfNotEnabled = false,
 ): Promise<OutputResult> {
   if (!fulfillment) {
-    console.warn(
-      "Do not output to driver because fulfillment is null - this could be intentional, but check your action",
-    );
+    console.warn("Early return cause fulfillment is null - this could be intentional, but check your action");
     return { rejectReason: { message: "FULFILLMENT_IS_NULL" } };
   }
 
