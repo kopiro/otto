@@ -1,19 +1,15 @@
-import { rand } from "../../helpers";
-import imageSearch from "../../lib/image-search";
+import openai from "../../lib/openai";
+import { AIAction } from "../../types";
 
 export const id = "draw";
 
-export default async function main({ queryResult }) {
-  const { parameters: p } = queryResult;
-
-  const images = await imageSearch().search(`"${p.q}"`);
-  const img = rand(images);
+const draw: AIAction = async ({ queryResult }, session) => {
+  const { parameters } = queryResult;
+  const image = await openai().imageRequest(parameters.fields.query.stringValue, session);
 
   return {
-    payload: {
-      image: {
-        uri: img.url,
-      },
-    },
+    image,
   };
-}
+};
+
+export default draw;

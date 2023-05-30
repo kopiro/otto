@@ -373,6 +373,8 @@ class AI {
   ): Promise<Fulfillment> {
     const { fulfillmentText, fulfillmentMessages } = body.queryResult;
 
+    console.log("dfBodyParser", body.queryResult);
+
     // If we have an "action", call the package with the specified name
     if (body.queryResult.action) {
       console.debug(`Resolving action: ${body.queryResult.action}`);

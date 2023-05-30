@@ -54,6 +54,33 @@ class OpenAI {
       .replace("{user_language}", await getLanguageNameFromLanguageCode(getSessionTranslateTo(session)));
   }
 
+  async imageRequest(query: string, session: Session) {
+    const sessionPath = ai().getDfSessionPath("SYSTEM");
+    const [dfResponse] = await ai().dfSessionClient.detectIntent({
+      session: sessionPath,
+      queryInput: {
+        event: {
+          name: "OPENAI_IMAGE_BRAIN",
+          languageCode: config().language,
+        },
+      },
+    });
+    const prompt = dfResponse.queryResult.fulfillmentText.replace("{query}", query);
+
+    console.log("image prompt", prompt);
+
+    const openaiResponse = await this.api.createImage({
+      prompt,
+      n: 1,
+      size: "256x256",
+      response_format: "url",
+      user: session.id,
+    });
+
+    console.log("image completion :>> ", openaiResponse.data);
+    return openaiResponse.data.data[0].url;
+  }
+
   private async retrievePreviousInteractions(session: Session) {
     // Get all Interaction where we have a input.text or fulfillment.text in the last day
     return (
