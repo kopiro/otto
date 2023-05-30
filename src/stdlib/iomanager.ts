@@ -287,22 +287,15 @@ export async function getSession(sessionId: string): Promise<Session> {
 }
 
 /**
- * Load the session from ORM
- */
-export async function getSessionByParts(uid: string, ioDriver: string, sessionId: string): Promise<Session> {
-  return getSession(getSessionIdByParts(uid, ioDriver, sessionId));
-}
-
-/**
  * Register a new session onto ORM
  */
-export async function registerSession(ioDriver: string, sessionId?: string, ioData?: any): Promise<Session> {
-  const session = await getSessionByParts(config().uid, ioDriver, sessionId);
-  const sessionIdComposite = getSessionIdByParts(config().uid, ioDriver, sessionId);
+export async function registerSession(ioDriver: string, partialSessionId?: string, ioData?: any): Promise<Session> {
+  const sessionId = getSessionIdByParts(config().uid, ioDriver, partialSessionId);
+  const session = await getSession(sessionId);
   const ioId = [config().uid, ioDriver].join(SESSION_SEPARATOR);
 
   const data = {
-    _id: sessionIdComposite,
+    _id: sessionId,
     uid: config().uid,
     ioId,
     ioDriver: ioDriver as IODriver,
