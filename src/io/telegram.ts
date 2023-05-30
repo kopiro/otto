@@ -17,6 +17,7 @@ import textToSpeech from "../stdlib/text-to-speech";
 import speechRecognizer from "../stdlib/speech-recognizer";
 import { Signale } from "signale";
 import { getSessionTranslateFrom, getSessionTranslateTo } from "../helpers";
+import ai from "../stdlib/ai";
 
 const TAG = "IO.Telegram";
 const console = new Signale({
@@ -111,7 +112,7 @@ export class Telegram implements IOManager.IODriverModule {
     session: ISession,
     botOpt: TelegramBot.SendMessageOptions = {},
   ) {
-    await this.bot.sendChatAction(chatId, "record_audio");
+    await this.bot.sendChatAction(chatId, "record_voice");
     const voiceFile = await this.getVoiceFile(fulfillment, session);
     return this.bot.sendVoice(chatId, voiceFile.getAbsolutePath(), botOpt);
   }
@@ -207,7 +208,7 @@ export class Telegram implements IOManager.IODriverModule {
         return false;
       }
 
-      this.bot.sendChatAction(e.chat.id, "record_audio");
+      this.bot.sendChatAction(e.chat.id, "record_voice");
 
       // User sent a voice note, respond with a voice note :)
       this.emitter.emit("input", {
@@ -260,6 +261,9 @@ export class Telegram implements IOManager.IODriverModule {
     this.bot.on("webhook_error", (err) => {
       console.error("webhook error", err);
     });
+
+    // Add list of commands
+    this.bot.setMyCommands(ai().commandMapping.map((c) => ({ command: c.name, description: c.description })));
 
     // We could attach the webhook to the Router API or via polling
     if (this.config.options.polling === false) {
@@ -344,7 +348,7 @@ export class Telegram implements IOManager.IODriverModule {
     // Process an Audio Object
     try {
       if (f.audio) {
-        this.bot.sendChatAction(chatId, "upload_audio");
+        this.bot.sendChatAction(chatId, "upload_voice");
         const r = await this.bot.sendAudio(chatId, f.audio, botOpt);
         results.push(["audio", r]);
       }

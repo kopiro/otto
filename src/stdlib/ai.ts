@@ -41,50 +41,52 @@ class AI {
 
   dfIntentAgentPath: string;
 
-  commandMapping: Array<{
+  public readonly commandMapping: Array<{
     matcher: RegExp;
+    name: string;
     executor: CommandFunction;
     description: string;
     authorization?: IOManager.Authorizations;
   }> = [
     {
       matcher: /^\/start/,
+      name: "start",
       executor: this.commandStart,
-      description: "start - Start the bot",
+      description: "Start the bot",
       authorization: null,
     },
     {
       matcher: /^\/whoami/,
+      name: "whoami",
       executor: this.commandWhoami,
-      description: "whoami - Get your session",
+      description: "Get your session",
       authorization: null,
     },
     {
-      matcher: /^\/output-text ([^\s]+) (.+)/,
+      matcher: /^\/outputtext ([^\s]+) (.+)/,
+      name: "outputtext",
       executor: this.commandOutputText,
-      description: "output-text [sessionid] [text] - Send a text message to a specific session",
+      description: "[sessionid] [text] - Send a text message to a specific session",
       authorization: IOManager.Authorizations.COMMAND,
     },
     {
       matcher: /^\/input ([^\s]+) (.+)/,
+      name: "input",
       executor: this.commandInput,
-      description: "input [sessionid] [params_json] - Process an input param for a specific session",
+      description: "[sessionid] [params_json] - Process an input param for a specific session",
       authorization: IOManager.Authorizations.COMMAND,
     },
     {
       matcher: /^\/appstop/,
+      name: "appstop",
       executor: this.commandAppStop,
-      description: "appstop - Cause the application to crash",
-      authorization: IOManager.Authorizations.COMMAND,
+      description: "/appstop - Cause the application to crash",
+      authorization: IOManager.Authorizations.ADMIN,
     },
   ];
 
   constructor(private config: AIConfig) {
     this.dfIntentAgentPath = this.dfIntentsClient.projectAgentPath(this.config.dialogflow.projectId);
-  }
-
-  getCommandMappingDescription() {
-    return this.commandMapping.map(({ description }) => `${description}`).join("\n");
   }
 
   private async commandNotFound(): Promise<Fulfillment> {
