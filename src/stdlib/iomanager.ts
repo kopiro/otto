@@ -101,7 +101,6 @@ export async function getAccessoryForDriver(e: IOAccessory, driver: IODriverModu
   }
 }
 
-
 /**
  * Process an input to a specific IO driver based on the session
  */
@@ -251,18 +250,6 @@ function startDrivers(onDriverInput: (params: InputParams, session: Session) => 
         });
     }),
   );
-}
-
-/**
- * Write a log of what user said
- */
-export async function writeLogForSession(params: InputParams, session: Session) {
-  return new Data.SessionInput({
-    text: params.text,
-    event: params.event,
-    session: session.id,
-    createdAt: new Date(),
-  }).save();
 }
 
 function getSessionIdByParts(uid: string, ioDriver: string, sessionId: string) {

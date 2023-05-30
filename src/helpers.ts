@@ -9,6 +9,7 @@ import { Language, Locale, Session } from "./types";
 import { v4 as uuid } from "uuid";
 import crypto from "crypto";
 import { Signale } from "signale";
+import { Interaction } from "./data";
 
 export function getTmpFile(extension: string) {
   return path.join(tmpDir, `${uuid()}.${extension}`);

@@ -10,6 +10,7 @@ import { Signale } from "signale";
 import OpenAI from "../lib/openai";
 import { getSessionTranslateFrom, getSessionTranslateTo, isJsonString } from "../helpers";
 import { ChatCompletionRequestMessageRoleEnum } from "openai";
+import { Interaction } from "../data";
 
 export type IDetectIntentResponse = protos.google.cloud.dialogflow.v2.IDetectIntentResponse;
 export type IQueryInput = protos.google.cloud.dialogflow.v2.IQueryInput;
@@ -180,6 +181,8 @@ class AI {
   async fulfillmentFinalizer(fulfillment: Fulfillment, session: Session): Promise<Fulfillment> {
     if (!fulfillment) return;
 
+    console.log("Finalizing fuflillment", fulfillment);
+
     fulfillment.options = fulfillment.options || {};
 
     // If this fulfillment has already been transformed, let's skip this
@@ -200,6 +203,13 @@ class AI {
       }
     }
 
+    new Interaction({
+      session: session.id,
+      createdAt: new Date(),
+      fulfillment: fulfillment,
+    }).save();
+
+    // Add other info
     fulfillment.options.finalizerUid = this.config.uid;
     fulfillment.options.finalizedAt = Date.now();
     fulfillment.options.sessionId = session.id;
@@ -391,7 +401,6 @@ class AI {
         originalRequestType === "text"
           ? ChatCompletionRequestMessageRoleEnum.User
           : ChatCompletionRequestMessageRoleEnum.System,
-        originalRequestType !== "text",
       );
     }
 
@@ -433,6 +442,13 @@ class AI {
    */
   async commandRequest(command: InputParams["command"], session: Session, bag: IOManager.IOBag): Promise<Fulfillment> {
     console.info("command request:", command);
+
+    new Interaction({
+      session: session.id,
+      createdAt: new Date(),
+      input: { command: command },
+    }).save();
+
     return this.getCommandExecutor(command, session)(session, bag);
   }
 
@@ -444,6 +460,12 @@ class AI {
 
     const queryInput: IQueryInput = { text: { text } };
     queryInput.text.languageCode = this.config.dialogflow.language;
+
+    new Interaction({
+      session: session.id,
+      createdAt: new Date(),
+      input: { text },
+    }).save();
 
     const body = await this.dfRequest(queryInput, session, bag);
     return this.dfBodyParser(body, session, bag, "text");
@@ -465,14 +487,17 @@ class AI {
     }
     queryInput.event.languageCode = this.config.dialogflow.language;
 
+    new Interaction({
+      session: session.id,
+      createdAt: new Date(),
+      input: { event: queryInput.event },
+    }).save();
+
     const body = await this.dfRequest(queryInput, session, bag);
     return this.dfBodyParser(body, session, bag, "event");
   }
 
   async getFullfilmentForInput(params: InputParams, session: Session): Promise<Fulfillment> {
-    // If you want to keep log of conversations
-    IOManager.writeLogForSession(params, session);
-
     let fulfillment: any = null;
     if (params.text) {
       fulfillment = await this.textRequest(params.text, session, params.bag);
@@ -489,8 +514,7 @@ class AI {
       console.warn("Neither { text, event, command, repeatText, audio } in params are not null");
     }
 
-    const trFulfillment = await this.fulfillmentFinalizer(fulfillment, session);
-    return trFulfillment;
+    return this.fulfillmentFinalizer(fulfillment, session);
   }
 
   /**

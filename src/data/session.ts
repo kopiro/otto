@@ -16,9 +16,6 @@ export const SessionSchema = new Schema<Session>({
   translateFrom: String,
   translateTo: String,
 
-  openaiMessages: Schema.Types.Mixed,
-  openaiLastInteraction: Number,
-
   doNotDisturb: Boolean,
   timeZone: String,
 

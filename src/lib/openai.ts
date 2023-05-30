@@ -9,6 +9,7 @@ import {
   getSessionName,
   getSessionTranslateTo,
 } from "../helpers";
+import { Interaction } from "../data";
 
 type Config = {
   apiKey: string;
@@ -53,21 +54,50 @@ class OpenAI {
       .replace("{user_language}", await getLanguageNameFromLanguageCode(getSessionTranslateTo(session)));
   }
 
+  private async retrievePreviousInteractions(session: Session) {
+    // Get all Interaction where we have a input.text or fulfillment.text in the last day
+    return (
+      await Interaction.find({
+        where: [
+          {
+            fulfillment: { text: { $ne: null } },
+            session: session.id,
+            createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+          },
+          {
+            input: { text: { $ne: null } },
+            session: session.id,
+            createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+          },
+        ],
+        order: { createdAt: "DESC" },
+      })
+    )
+      .map((interaction) => {
+        if (interaction.fulfillment.text) {
+          return {
+            role: ChatCompletionRequestMessageRoleEnum.System,
+            content: interaction.fulfillment.text,
+            createdAt: interaction.createdAt,
+          };
+        }
+        if (interaction.input.text) {
+          return {
+            role: ChatCompletionRequestMessageRoleEnum.User,
+            content: interaction.input.text,
+            createdAt: interaction.createdAt,
+          };
+        }
+      })
+      .filter(Boolean);
+  }
+
   async textRequest(
     text: InputParams["text"],
     session: Session,
     role: ChatCompletionRequestMessageRoleEnum = ChatCompletionRequestMessageRoleEnum.User,
-    ignoreHistory: boolean = false,
   ): Promise<Fulfillment> {
     console.info("text request:", text);
-
-    const now = Math.floor(Date.now() / 1000);
-    const interationTTLSeconds = this.config.interactionTTLMinutes * 60;
-
-    if ((session.openaiLastInteraction ?? 0) + interationTTLSeconds < now) {
-      console.debug(`resetting chat, as more than ${this.config.interactionTTLMinutes}m passed since last interaction`);
-      session.openaiMessages = [];
-    }
 
     const systemText = await this.getBrain(session);
     const systemMessage = {
@@ -80,10 +110,27 @@ class OpenAI {
       content: text,
     };
 
-    session.openaiMessages = session.openaiMessages ?? [];
+    const previousInteractions = await this.retrievePreviousInteractions(session);
+
+    // Remove any duplicate
+    if (previousInteractions.length > 0) {
+      const lastInt = previousInteractions[previousInteractions.length - 1];
+      if (
+        text === lastInt.content &&
+        lastInt.role === userMessage.role &&
+        // last minute
+        lastInt.createdAt > new Date(Date.now() - 1000 * 60)
+      ) {
+        previousInteractions.pop();
+      }
+    }
 
     // Prepend system
-    const messages = [systemMessage, ...(ignoreHistory ? [] : session.openaiMessages), userMessage];
+    const messages = [
+      systemMessage,
+      ...previousInteractions.map(({ role, content }) => ({ role, content })),
+      userMessage,
+    ];
     console.debug("messages :>> ", messages);
 
     const completion = await this.api.createChatCompletion({
@@ -96,14 +143,6 @@ class OpenAI {
     const answerMessages = completion.data.choices.map((e) => e.message);
     const answerMessage = answerMessages[0];
     const answerText = answerMessage?.content;
-
-    if (!ignoreHistory) {
-      session.openaiLastInteraction = now;
-      session.openaiMessages = [...session.openaiMessages, userMessage, answerMessage].filter(
-        (e) => e.role !== ChatCompletionRequestMessageRoleEnum.System,
-      );
-      session.save();
-    }
 
     if (!answerText) {
       return {

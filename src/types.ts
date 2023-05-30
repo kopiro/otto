@@ -104,6 +104,4 @@ export interface Session extends Document {
   forwardSessions: Session[] | undefined;
   repeatModeSessions: Session[] | undefined;
   doNotDisturb?: boolean;
-  openaiMessages?: Array<{ role: ChatCompletionRequestMessageRoleEnum; content: string }>;
-  openaiLastInteraction?: number;
 }

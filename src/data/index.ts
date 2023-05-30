@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { SchemaType } from "mongoose";
 import autopopulate from "mongoose-autopopulate";
 import { SessionSchema } from "./session";
 import { Session as ISession, IOQueue as IIOQueue, Scheduler as IScheduler } from "../types";
@@ -7,14 +7,20 @@ const { Schema } = mongoose;
 
 export const Session = mongoose.model<ISession>("session", SessionSchema);
 
-const SessionInputSchema = new Schema({
+const InteractionSchema = new Schema({
   session: { type: String, ref: "session", autopopulate: true },
   createdAt: Date,
-  event: Schema.Types.Mixed,
-  text: String,
+  input: {
+    text: String,
+    event: { name: String, parameters: Schema.Types.Mixed },
+    command: String,
+  },
+  fulfillment: {
+    text: String,
+  },
 });
-SessionInputSchema.plugin(autopopulate);
-export const SessionInput = mongoose.model("session_input", SessionInputSchema);
+InteractionSchema.plugin(autopopulate);
+export const Interaction = mongoose.model("interaction", InteractionSchema);
 
 const IOQueueSchema = new Schema({
   ioId: String,
