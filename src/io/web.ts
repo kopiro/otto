@@ -45,7 +45,11 @@ export class Web implements IOManager.IODriverModule {
   }
 
   async requestEndpoint(req: Request, res: Response) {
-    const session = await IOManager.registerSession(DRIVER_ID, req.body.session, req.headers);
+    if (!req.body.sessionId) {
+      throw new Error("body.sessionId is required");
+    }
+
+    const session = await IOManager.registerSession(DRIVER_ID, req.body.sessionId, req.headers);
 
     const bag: WebBag = { req, res };
 
