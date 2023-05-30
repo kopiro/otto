@@ -101,12 +101,6 @@ export async function getAccessoryForDriver(e: IOAccessory, driver: IODriverModu
   }
 }
 
-/**
- * Clean fulfillment for output
- */
-export function fulfillmentTransformerForDriverOutput(fulfillment: Fulfillment): Fulfillment {
-  return fulfillment;
-}
 
 /**
  * Process an input to a specific IO driver based on the session
@@ -186,15 +180,12 @@ export async function output(
     Promise.all(session.forwardSessions.map((e) => output(fulfillment, e, bag, loadDriverIfNotEnabled)));
   }
 
-  // Transform and clean fulfillment to be suitable for driver output
-  const payload = fulfillmentTransformerForDriverOutput(fulfillment);
-
   // Call the driver
   let driverOutput: IODriverOutput;
   let driverError: any;
 
   try {
-    driverOutput = await driver.output(payload, session, bag);
+    driverOutput = await driver.output(fulfillment, session, bag);
   } catch (err) {
     driverError = err;
   }

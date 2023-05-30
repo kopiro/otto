@@ -239,5 +239,5 @@ export function getSessionName(session: Session): string {
 
 export function getSessionLocaleTimeString(session: Session): string {
   const date = new Date();
-  return date.toLocaleTimeString(session.translateTo, { timeZone: session.timeZone || "UTC" });
+  return date.toLocaleTimeString(session.translateTo, { timeZone: session.timeZone || "Europe/Rome" });
 }

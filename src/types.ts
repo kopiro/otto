@@ -49,6 +49,7 @@ export interface Fulfillment {
     translateFrom?: Language;
     handledByGenerator?: boolean;
     includeVoice?: boolean;
+    sessionId?: string;
   };
 }
 export interface InputParams {

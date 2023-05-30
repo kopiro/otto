@@ -91,7 +91,7 @@ class OpenAI {
       messages: messages,
     });
 
-    console.debug("completion :>> ", completion.data);
+    console.debug("completion :>> ", completion.data.choices[0]);
 
     const answerMessages = completion.data.choices.map((e) => e.message);
     const answerMessage = answerMessages[0];

@@ -200,6 +200,7 @@ class AI {
 
     fulfillment.options.finalizerUid = this.config.uid;
     fulfillment.options.finalizedAt = Date.now();
+    fulfillment.options.sessionId = session.id;
 
     return fulfillment;
   }
