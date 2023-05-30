@@ -234,10 +234,10 @@ export function getSessionName(session: Session): string {
     }
   }
 
-  return "Anonymous";
+  return "Unknown";
 }
 
 export function getSessionLocaleTimeString(session: Session): string {
   const date = new Date();
-  return date.toLocaleTimeString(session.translateTo, { timeZone: session.timeZone || "Europe/Rome" });
+  return date.toLocaleString(session.translateTo, { timeZone: session.timeZone || "Europe/Rome" });
 }
