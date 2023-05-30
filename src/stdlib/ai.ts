@@ -470,6 +470,9 @@ class AI {
   }
 
   async getFullfilmentForInput(params: InputParams, session: Session): Promise<Fulfillment> {
+    // If you want to keep log of conversations
+    IOManager.writeLogForSession(params, session);
+
     let fulfillment: any = null;
     if (params.text) {
       fulfillment = await this.textRequest(params.text, session, params.bag);
@@ -506,9 +509,6 @@ class AI {
         }),
       );
     }
-
-    // If you want to keep log of conversations
-    // IOManager.writeLogForSession(params, session);
 
     const fulfillment = await this.getFullfilmentForInput(params, session);
     return IOManager.output(fulfillment, session, params.bag);
