@@ -103,7 +103,7 @@ class OpenAI {
       .map((interaction) => {
         if (interaction.fulfillment.text) {
           return {
-            role: ChatCompletionRequestMessageRoleEnum.System,
+            role: ChatCompletionRequestMessageRoleEnum.Assistant,
             content: interaction.fulfillment.text,
             createdAt: interaction.createdAt,
           };
