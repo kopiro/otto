@@ -192,26 +192,6 @@ class AI {
     }
   }
 
-  async invokeTrain(queryText: string) {
-    const { trainingSessionId } = this.config;
-
-    if (this.config.trainingSessionId) {
-      console.debug(`Training invoked on sessionId ${trainingSessionId}`);
-
-      const trainingSession = await IOManager.getSession(trainingSessionId);
-      if (!trainingSession) {
-        console.error(`Unable to find traning session ID (${trainingSessionId})`);
-        return;
-      }
-      this.processInput(
-        {
-          event: { name: "training", parameters: { queryText } },
-        },
-        trainingSession,
-      );
-    }
-  }
-
   extractMessages(fulfillmentMessages: protos.google.cloud.dialogflow.v2.Intent.IMessage[], key: string) {
     return fulfillmentMessages.find((m) => m?.payload?.fields?.[key] !== undefined)?.payload.fields[key].stringValue;
   }
