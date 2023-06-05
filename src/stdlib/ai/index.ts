@@ -154,7 +154,7 @@ class AI {
         throw new Error(`Unsafe action name <${pkgName}.${pkgAction}>`);
       }
 
-      const pkg = await import(`../packages/${pkgName}/${pkgAction}`);
+      const pkg = await import(`../../packages/${pkgName}/${pkgAction}`);
       if (!pkg) {
         throw new Error(`Invalid action name <${pkgName}.${actionName}>`);
       }
