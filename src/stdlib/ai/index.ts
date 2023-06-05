@@ -47,32 +47,6 @@ class AI {
     this.commander = new AICommander();
   }
 
-  async train(queryText: string, answer: string) {
-    console.debug("TRAIN request", { queryText, answer });
-    const response = await this.dfIntentsClient.createIntent({
-      parent: this.dfIntentAgentPath,
-      languageCode: this.config.dialogflow.language,
-      intent: {
-        displayName: `M-TRAIN: ${queryText}`.substring(0, 100),
-        trainingPhrases: [
-          {
-            type: "EXAMPLE",
-            parts: [{ text: queryText }],
-          },
-        ],
-        messages: [
-          {
-            text: {
-              text: [answer],
-            },
-          },
-        ],
-      },
-    });
-    console.debug("TRAIN response", response);
-    return response;
-  }
-
   /**
    * Transform a Fulfillment by making some edits based on the current session settings
    */
@@ -162,19 +136,6 @@ class AI {
     return fulfillmentsAndOutputResults;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  handleSystemPackages(pkgName: string, body: IDetectIntentResponse, _session: Session): Fulfillment | null {
-    const { queryResult } = body;
-
-    switch (pkgName) {
-      case "train":
-        this.train(queryResult.outputContexts?.[0]?.parameters?.fields?.queryText?.stringValue, queryResult.queryText);
-        return body.queryResult;
-      default:
-        return null;
-    }
-  }
-
   /**
    * Transform a body from DialogFlow into a Fulfillment by calling the internal action
    */
@@ -188,11 +149,6 @@ class AI {
 
     try {
       const [pkgName, pkgAction = "index"] = actionName.split(".");
-
-      const sysPkgFullfillment = this.handleSystemPackages(pkgName, body, session);
-      if (sysPkgFullfillment !== null) {
-        return sysPkgFullfillment;
-      }
 
       if (pkgName.includes("..") || pkgAction.includes("..")) {
         throw new Error(`Unsafe action name <${pkgName}.${pkgAction}>`);
