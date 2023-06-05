@@ -263,7 +263,7 @@ export class Telegram implements IOManager.IODriverModule {
     });
 
     // Add list of commands
-    this.bot.setMyCommands(ai().commandMapping.map((c) => ({ command: c.name, description: c.description })));
+    this.bot.setMyCommands(ai().commander.commandMapping.map((c) => ({ command: c.name, description: c.description })));
 
     // We could attach the webhook to the Router API or via polling
     if (this.config.options.polling === false) {
