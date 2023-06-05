@@ -85,20 +85,19 @@ class OpenAI {
     // Get all Interaction where we have a input.text or fulfillment.text in the last 20m
     return (
       await Interaction.find({
-        where: [
+        $or: [
           {
-            fulfillment: { text: { $ne: null } },
+            "fulfillment.text": { $ne: null },
             session: session.id,
             createdAt: { $gte: new Date(Date.now() - 20 * 60_000) },
           },
           {
-            input: { text: { $ne: null } },
+            "input.text": { $ne: null },
             session: session.id,
             createdAt: { $gte: new Date(Date.now() - 20 * 60_000) },
           },
         ],
-        order: { createdAt: "DESC" },
-      })
+      }).sort({ createdAt: -1 })
     )
       .map((interaction) => {
         if (interaction.fulfillment.text) {
