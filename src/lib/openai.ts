@@ -137,7 +137,8 @@ class OpenAI {
       content: text,
     };
 
-    const previousInteractions = await this.retrievePreviousInteractions(session);
+    const previousInteractions =
+      role === ChatCompletionRequestMessageRoleEnum.User ? await this.retrievePreviousInteractions(session) : [];
 
     // Remove any duplicate
     if (previousInteractions.length > 0) {
