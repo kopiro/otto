@@ -1,16 +1,17 @@
 import dialogflow, { protos, SessionsClient, IntentsClient } from "@google-cloud/dialogflow";
-import * as IOManager from "./iomanager";
-import config from "../config";
-import { Fulfillment, CustomError, AIAction, InputParams, Session, FullfillmentStringKeys } from "../types";
+import * as IOManager from "../iomanager";
+import config from "../../config";
+import { Fulfillment, CustomError, AIAction, InputParams, Session, FullfillmentStringKeys } from "../../types";
 import { struct } from "pb-util";
 import Events from "events";
-import speechRecognizer from "../stdlib/speech-recognizer";
-import translator from "../stdlib/translator";
+import speechRecognizer from "../speech-recognizer";
+import translator from "../translator";
 import { Signale } from "signale";
-import OpenAI from "../lib/openai";
-import { getSessionTranslateFrom, getSessionTranslateTo, isJsonString } from "../helpers";
+import OpenAI from "../../lib/openai";
+import { getSessionTranslateFrom, getSessionTranslateTo, isJsonString } from "../../helpers";
 import { ChatCompletionRequestMessageRoleEnum } from "openai";
-import { Interaction } from "../data";
+import { Interaction } from "../../data";
+import { AICommander } from "./commander";
 
 export type IDetectIntentResponse = protos.google.cloud.dialogflow.v2.IDetectIntentResponse;
 export type IQueryInput = protos.google.cloud.dialogflow.v2.IQueryInput;
@@ -32,8 +33,6 @@ type AIConfig = {
   };
 };
 
-type CommandFunction = (args: RegExpMatchArray, session: Session, bag: IOManager.IOBag) => Promise<Fulfillment>;
-
 class AI {
   dfSessionClient: SessionsClient = new dialogflow.SessionsClient();
   dfIntentsClient: IntentsClient = new dialogflow.IntentsClient();
@@ -41,112 +40,11 @@ class AI {
   emitter: Events.EventEmitter = new Events.EventEmitter();
 
   dfIntentAgentPath: string;
-
-  public readonly commandMapping: Array<{
-    matcher: RegExp;
-    name: string;
-    executor: CommandFunction;
-    description: string;
-    authorization?: IOManager.Authorizations;
-  }> = [
-    {
-      matcher: /^\/start/,
-      name: "start",
-      executor: this.commandStart,
-      description: "Start the bot",
-      authorization: null,
-    },
-    {
-      matcher: /^\/whoami/,
-      name: "whoami",
-      executor: this.commandWhoami,
-      description: "Get your session",
-      authorization: null,
-    },
-    {
-      matcher: /^\/outputtext ([^\s]+) (.+)/,
-      name: "outputtext",
-      executor: this.commandOutputText,
-      description: "[sessionid] [text] - Send a text message to a specific session",
-      authorization: IOManager.Authorizations.COMMAND,
-    },
-    {
-      matcher: /^\/input ([^\s]+) (.+)/,
-      name: "input",
-      executor: this.commandInput,
-      description: "[sessionid] [params_json] - Process an input param for a specific session",
-      authorization: IOManager.Authorizations.COMMAND,
-    },
-    {
-      matcher: /^\/appstop/,
-      name: "appstop",
-      executor: this.commandAppStop,
-      description: "/appstop - Cause the application to crash",
-      authorization: IOManager.Authorizations.ADMIN,
-    },
-  ];
+  commander: AICommander;
 
   constructor(private config: AIConfig) {
     this.dfIntentAgentPath = this.dfIntentsClient.projectAgentPath(this.config.dialogflow.projectId);
-  }
-
-  private async commandNotFound(): Promise<Fulfillment> {
-    return { text: "Command not found" };
-  }
-
-  private async commandAppStop(): Promise<Fulfillment> {
-    setTimeout(() => process.exit(0), 5000);
-    return { text: "Scheduled shutdown in 5 seconds" };
-  }
-
-  private async commandStart(_: RegExpMatchArray, session: Session): Promise<Fulfillment> {
-    return this.getFullfilmentForInput({ event: "welcome" }, session);
-  }
-
-  private async commandWhoami(_: RegExpMatchArray, session: Session): Promise<Fulfillment> {
-    return { data: JSON.stringify(session, null, 2) };
-  }
-
-  private async commandInput([, cmdSessionId, paramsStr]: RegExpMatchArray): Promise<Fulfillment> {
-    const cmdSession = await IOManager.getSession(cmdSessionId);
-    const params = JSON.parse(paramsStr);
-    const result = await this.processInput(params, cmdSession);
-    return { data: JSON.stringify(result, null, 2) };
-  }
-
-  private async commandOutputText([, cmdSessionId, cmdText]: RegExpMatchArray): Promise<Fulfillment> {
-    const cmdSession = await IOManager.getSession(cmdSessionId);
-    const result = await IOManager.output({ text: cmdText }, cmdSession, {});
-    return { data: JSON.stringify(result, null, 2) };
-  }
-
-  private getCommandExecutor(
-    text: string,
-    session: Session,
-  ): (session: Session, bag: IOManager.IOBag) => Promise<Fulfillment> {
-    for (const cmd of this.commandMapping) {
-      const matches = text.match(cmd.matcher);
-      if (matches) {
-        if (
-          session.authorizations.includes(cmd.authorization) ||
-          session.authorizations.includes(IOManager.Authorizations.ADMIN) ||
-          cmd.authorization == null
-        ) {
-          return async (session: Session, bag: IOManager.IOBag) => {
-            try {
-              const result = await cmd.executor.call(this, matches, session, bag);
-              return result;
-            } catch (e) {
-              return { error: { message: e.message, data: e } };
-            }
-          };
-        } else {
-          return async () => ({ text: "User not authorized" });
-        }
-      }
-    }
-
-    return () => this.commandNotFound();
+    this.commander = new AICommander();
   }
 
   async train(queryText: string, answer: string) {
@@ -451,7 +349,7 @@ class AI {
       input: { command: command },
     }).save();
 
-    return this.getCommandExecutor(command, session)(session, bag);
+    return this.commander.getCommandExecutor(command, session)(session, bag);
   }
 
   /**
