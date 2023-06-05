@@ -1,9 +1,9 @@
 import speech from "@google-cloud/speech";
 import fs from "fs";
-import { getLocaleFromLanguageCode } from "../helpers";
-import { SpeechRecognizer } from "../abstracts/speech-recognizer";
+import { getLocaleFromLanguageCode } from "../../helpers";
+import { SpeechRecognizer } from "../../abstracts/speech-recognizer";
 import { SpeechClient } from "@google-cloud/speech/build/src/v1";
-import { Language } from "../types";
+import { Language } from "../../types";
 import { promisify } from "util";
 import wavFileInfo from "wav-file-info";
 import { Signale } from "signale";

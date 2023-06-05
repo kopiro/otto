@@ -1,6 +1,6 @@
-import { RaspiCamera } from "../lib/raspi-camera";
+import { RaspiCamera } from "../lib/camera/raspi-camera";
 import isPi from "detect-rpi";
-import { MacOSCamera } from "../lib/macos-camera";
+import { MacOSCamera } from "../lib/camera/macos-camera";
 import { Camera } from "../abstracts/camera";
 import { Signale } from "signale";
 

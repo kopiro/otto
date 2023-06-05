@@ -1,6 +1,6 @@
-import { Camera } from "../abstracts/camera";
-import * as Proc from "./proc";
-import { getTmpFile } from "../helpers";
+import { Camera } from "../../abstracts/camera";
+import * as Proc from "../proc";
+import { getTmpFile } from "../../helpers";
 
 export class RaspiCamera extends Camera {
   async takePhoto(): Promise<string> {

@@ -1,7 +1,7 @@
 import config from "../config";
 import { TextToSpeech } from "../abstracts/text-to-speech";
-import { GoogleTextToSpeech } from "../lib/google-text-to-speech";
-import { PollyTextToSpeech } from "../lib/polly";
+import { GoogleTextToSpeech } from "../lib/text-to-speech/google-text-to-speech";
+import { PollyTextToSpeech } from "../lib/text-to-speech/polly-text-to-speech";
 
 let _instance: TextToSpeech;
 export default (): TextToSpeech => {

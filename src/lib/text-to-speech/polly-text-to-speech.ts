@@ -1,10 +1,10 @@
-import config from "../config";
-import { getLocaleFromLanguageCode } from "../helpers";
+import config from "../../config";
+import { getLocaleFromLanguageCode } from "../../helpers";
 import Polly, { Voice } from "aws-sdk/clients/polly";
-import { TextToSpeech } from "../abstracts/text-to-speech";
-import { Language, Gender } from "../types";
+import { TextToSpeech } from "../../abstracts/text-to-speech";
+import { Language, Gender } from "../../types";
 import crypto from "crypto";
-import aws from "./aws";
+import aws from "../aws";
 export class PollyTextToSpeech extends TextToSpeech {
   client: Polly;
 

@@ -1,6 +1,6 @@
 import config from "../config";
 import { Speaker } from "../abstracts/speaker";
-import { DirectSpeaker } from "../lib/direct-speaker";
+import { DirectSpeaker } from "../lib/speaker/direct-speaker";
 
 let _instance: Speaker;
 export default () => {

@@ -1,7 +1,7 @@
 import { v2 } from "@google-cloud/translate";
-import { Language } from "../types";
-import { Translator } from "../abstracts/translator";
-import config from "../config";
+import { Language } from "../../types";
+import { Translator } from "../../abstracts/translator";
+import config from "../../config";
 
 export class GoogleTranslator extends Translator {
   client: v2.Translate;

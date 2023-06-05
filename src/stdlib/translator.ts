@@ -1,4 +1,4 @@
-import { GoogleTranslator } from "../lib/google-translator";
+import { GoogleTranslator } from "../lib/translator/google-translator";
 import config from "../config";
 import { Translator } from "../abstracts/translator";
 

@@ -1,6 +1,6 @@
 import { SpeechRecognizer } from "../abstracts/speech-recognizer";
 import config from "../config";
-import { GoogleSpeechRecognizer } from "../lib/google-speech-recognizer";
+import { GoogleSpeechRecognizer } from "../lib/speech-recognizer/google-speech-recognizer";
 
 let _instance: SpeechRecognizer;
 export default () => {

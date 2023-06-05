@@ -1,6 +1,6 @@
-import { Speaker } from "../abstracts/speaker";
-import * as Proc from "./proc";
-import { File } from "../stdlib/file";
+import { Speaker } from "../../abstracts/speaker";
+import * as Proc from "../proc";
+import { File } from "../../stdlib/file";
 import { ChildProcess } from "child_process";
 
 export class DirectSpeaker extends Speaker {

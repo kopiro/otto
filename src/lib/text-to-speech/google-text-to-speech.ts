@@ -1,8 +1,8 @@
 import GCTTS from "@google-cloud/text-to-speech";
-import config from "../config";
-import { Language, Gender } from "../types";
+import config from "../../config";
+import { Language, Gender } from "../../types";
 import { google } from "@google-cloud/text-to-speech/build/protos/protos";
-import { TextToSpeech } from "../abstracts/text-to-speech";
+import { TextToSpeech } from "../../abstracts/text-to-speech";
 import { TextToSpeechClient } from "@google-cloud/text-to-speech";
 
 export class GoogleTextToSpeech extends TextToSpeech {
@@ -60,7 +60,7 @@ export class GoogleTextToSpeech extends TextToSpeech {
       },
       voice,
       audioConfig: {
-        audioEncoding: (config().audio.encoding as unknown) as google.cloud.texttospeech.v1.AudioEncoding,
+        audioEncoding: config().audio.encoding as unknown as google.cloud.texttospeech.v1.AudioEncoding,
       },
     });
     return audioContent;

@@ -1,6 +1,6 @@
 import { Storage } from "../abstracts/storage";
 import config from "../config";
-import { GoogleStorage } from "../lib/google-storage";
+import { GoogleStorage } from "../lib/storage/google-storage";
 
 let _instance: Storage;
 export default (): Storage => {
