@@ -22,7 +22,7 @@ export class LongTermMemoryReducer {
   async getInteractionsGroupedBySessionAndDay(): Promise<GroupedInteractionsBySessionAndDay> {
     const unreducedInteractions = await Interaction.find({
       reducedLongTermMemory: { $exists: false },
-    }).sort({ createdAt: -1 });
+    }).sort({ createdAt: +1 });
 
     const groupedInteractionsBySessionAndDay = unreducedInteractions.reduce((acc, interaction) => {
       if (!acc[interaction.session.id]) {
@@ -80,7 +80,7 @@ export class LongTermMemoryReducer {
     });
 
     const prompt =
-      `I have the following interactions between ${aiName} and a ${sessionName}, please reduce them to a single sentence I can use in future prompts. Include the date. Keep it below 200 characters.\n\n` +
+      `I have the following interactions between ${aiName} and a ${sessionName}, please reduce them to a single sentence below 200 characters.\n\n` +
       interactionsText.join("\n");
 
     const reducedMemory = await openai().textRequest(prompt, session, "system");

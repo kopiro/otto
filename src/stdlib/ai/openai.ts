@@ -81,12 +81,12 @@ class OpenAI {
     return openaiResponse.data.data[0].url;
   }
 
-  private async retrieveLongTermMemory(session: Session): Promise<CreateChatCompletionRequest["messages"]> {
+  private async retrieveLongTermMemories(session: Session): Promise<CreateChatCompletionRequest["messages"]> {
     const memories = await LongTermMemory.find({ session: session.id }).sort({ createdAt: +1 });
     return memories.map((memory) => {
       return {
         role: ChatCompletionRequestMessageRoleEnum.System,
-        content: memory.text,
+        content: `(${memory.forDate.toDateString()}) ${memory.text}`,
       };
     });
   }
@@ -155,7 +155,7 @@ class OpenAI {
       content: text,
     };
 
-    let longTermMemories = await this.retrieveLongTermMemory(session);
+    let longTermMemories = await this.retrieveLongTermMemories(session);
     let interactions = await this.retrieveInteractions(session, text);
 
     // Prepend system
