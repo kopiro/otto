@@ -11,6 +11,17 @@ import crypto from "crypto";
 import { Signale } from "signale";
 import { Interaction } from "./data";
 
+/**
+ * Get the name of the AI
+ */
+export function getAINameRegexp(): RegExp {
+  // Add boundaries to the name
+  return new RegExp(`\\b${config().aiName}\\b`, "im");
+}
+
+/**
+ * Return a temporary file path
+ */
 export function getTmpFile(extension: string) {
   return path.join(tmpDir, `${uuid()}.${extension}`);
 }

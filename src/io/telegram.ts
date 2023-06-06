@@ -16,7 +16,7 @@ import { File } from "../stdlib/file";
 import textToSpeech from "../stdlib/text-to-speech";
 import speechRecognizer from "../stdlib/speech-recognizer";
 import { Signale } from "signale";
-import { getSessionTranslateFrom, getSessionTranslateTo } from "../helpers";
+import { getAINameRegexp, getSessionTranslateFrom, getSessionTranslateTo } from "../helpers";
 import AICommander from "../stdlib/ai/commander";
 
 const TAG = "IO.Telegram";
@@ -45,12 +45,11 @@ export class Telegram implements IOManager.IODriverModule {
   bot: TelegramBot;
   botMe: TelegramBot.User;
   botMentionRegex: RegExp;
-  aiMentionRegex: RegExp;
 
   started = false;
 
-  constructor(config: TelegramConfig) {
-    this.config = config;
+  constructor(_config: TelegramConfig) {
+    this.config = _config;
     this.bot = new TelegramBot(this.config.token, this.config.options);
   }
 
@@ -119,7 +118,8 @@ export class Telegram implements IOManager.IODriverModule {
   }
 
   getIsMention(text: string) {
-    return this.botMentionRegex.test(text) || this.aiMentionRegex.test(text);
+    console.log("this.aiMentionRegex, text :>> ", getAINameRegexp(), text);
+    return this.botMentionRegex.test(text) || getAINameRegexp().test(text);
   }
 
   getIsGroup(msg: TelegramBot.Message) {
@@ -173,7 +173,7 @@ export class Telegram implements IOManager.IODriverModule {
     if (e.text) {
       // If we are in a group, only listen for activators
       if (isGroup && !(isMention || isReply)) {
-        console.debug("Skipping input for missing activator");
+        console.debug("Skipping input for missing activator", { isMention, isReply });
         return false;
       }
 
@@ -250,7 +250,6 @@ export class Telegram implements IOManager.IODriverModule {
 
     this.botMe = await this.bot.getMe();
     this.botMentionRegex = new RegExp(`@${this.botMe.username}`, "i");
-    this.aiMentionRegex = new RegExp(`\b${config().aiName}\b`, "i");
 
     this.bot.on("message", this.onBotInput.bind(this));
     this.bot.on("poll_answer", this.onBotInput.bind(this));
