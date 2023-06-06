@@ -17,7 +17,7 @@ import textToSpeech from "../stdlib/text-to-speech";
 import speechRecognizer from "../stdlib/speech-recognizer";
 import { Signale } from "signale";
 import { getSessionTranslateFrom, getSessionTranslateTo } from "../helpers";
-import ai from "../stdlib/ai";
+import AICommander from "../stdlib/ai/commander";
 
 const TAG = "IO.Telegram";
 const console = new Signale({
@@ -263,7 +263,7 @@ export class Telegram implements IOManager.IODriverModule {
     });
 
     // Add list of commands
-    this.bot.setMyCommands(ai().commander.commandMapping.map((c) => ({ command: c.name, description: c.description })));
+    this.bot.setMyCommands(AICommander().commandMapping.map((c) => ({ command: c.name, description: c.description })));
 
     // We could attach the webhook to the Router API or via polling
     if (this.config.options.polling === false) {

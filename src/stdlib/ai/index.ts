@@ -11,7 +11,7 @@ import OpenAI from "../../lib/openai";
 import { getSessionTranslateFrom, getSessionTranslateTo, isJsonString } from "../../helpers";
 import { ChatCompletionRequestMessageRoleEnum } from "openai";
 import { Interaction } from "../../data";
-import { AICommander } from "./commander";
+import AICommander from "./commander";
 
 export type IDetectIntentResponse = protos.google.cloud.dialogflow.v2.IDetectIntentResponse;
 export type IQueryInput = protos.google.cloud.dialogflow.v2.IQueryInput;
@@ -40,11 +40,9 @@ class AI {
   emitter: Events.EventEmitter = new Events.EventEmitter();
 
   dfIntentAgentPath: string;
-  public commander: AICommander;
 
   constructor(private config: AIConfig) {
     this.dfIntentAgentPath = this.dfIntentsClient.projectAgentPath(this.config.dialogflow.projectId);
-    this.commander = new AICommander();
   }
 
   /**
@@ -285,7 +283,7 @@ class AI {
       input: { command: command },
     }).save();
 
-    return this.commander.getCommandExecutor(command, session)(session, bag);
+    return AICommander().getCommandExecutor(command, session)(session, bag);
   }
 
   /**

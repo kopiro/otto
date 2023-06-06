@@ -7,7 +7,7 @@ import { getSession } from "../iomanager";
 
 type CommandFunction = (args: RegExpMatchArray, session: Session, bag: IOBag) => Promise<Fulfillment>;
 
-export class AICommander {
+class AICommander {
   public readonly commandMapping: Array<{
     matcher: RegExp;
     name: string;
@@ -108,3 +108,9 @@ export class AICommander {
     return () => this.notFound();
   }
 }
+
+let _instance: AICommander;
+export default (): AICommander => {
+  _instance = _instance || new AICommander();
+  return _instance;
+};
