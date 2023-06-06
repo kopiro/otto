@@ -7,7 +7,7 @@ import Events from "events";
 import speechRecognizer from "../speech-recognizer";
 import translator from "../translator";
 import { Signale } from "signale";
-import OpenAI from "../../lib/openai";
+import OpenAI from "./openai";
 import { getSessionTranslateFrom, getSessionTranslateTo, isJsonString } from "../../helpers";
 import { ChatCompletionRequestMessageRoleEnum } from "openai";
 import { Interaction } from "../../data";

@@ -7,17 +7,17 @@ import {
   Session,
   Interaction as IInteraction,
   LongTermMemory as ILongTermMemory,
-} from "../types";
-import config from "../config";
+} from "../../types";
+import config from "../../config";
 import { Signale } from "signale";
-import ai from "../stdlib/ai";
+import ai from ".";
 import {
   getLanguageNameFromLanguageCode,
   getSessionLocaleTimeString,
   getSessionName,
   getSessionTranslateTo,
-} from "../helpers";
-import { Interaction, LongTermMemory } from "../data";
+} from "../../helpers";
+import { Interaction, LongTermMemory } from "../../data";
 import fetch from "node-fetch";
 
 type Config = {
@@ -82,7 +82,7 @@ class OpenAI {
   }
 
   private async retrieveLongTermMemory(session: Session): Promise<CreateChatCompletionRequest["messages"]> {
-    const memories = await LongTermMemory.find({ session: session.id }).sort({ createdAt: -1 });
+    const memories = await LongTermMemory.find({ session: session.id }).sort({ createdAt: +1 });
     return memories.map((memory) => {
       return {
         role: ChatCompletionRequestMessageRoleEnum.System,
@@ -111,7 +111,7 @@ class OpenAI {
           createdAt: { $gte: new Date(Date.now() - 20 * 60_000) },
         },
       ],
-    }).sort({ createdAt: -1 });
+    }).sort({ createdAt: +1 });
 
     return interactions
       .map((interaction, i) => {

@@ -1,4 +1,4 @@
-import openai from "../../lib/openai";
+import openai from "../../stdlib/ai/openai";
 import { AIAction } from "../../types";
 
 export const id = "draw";

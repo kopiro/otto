@@ -1,6 +1,6 @@
 import { Signale } from "signale";
 import { Interaction, Session, LongTermMemory } from "../../data";
-import openai from "../../lib/openai";
+import openai from "./openai";
 import { Interaction as IInteraction, Session as ISession, LongTermMemory as ILongTermMemory } from "../../types";
 import { getSessionName } from "../../helpers";
 import config from "../../config";
