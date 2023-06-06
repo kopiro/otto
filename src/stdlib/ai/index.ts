@@ -218,7 +218,8 @@ class AI {
     // Otherwise, check if at least an intent is match and direct return that fulfillment
     if (!body.queryResult.intent || body.queryResult.intent?.isFallback) {
       if (originalRequestType === "text") {
-        return OpenAI().textRequest(body.queryResult.queryText, session);
+        const answerText = await OpenAI().textRequest(body.queryResult.queryText, session);
+        return { text: answerText };
       }
       return;
     }
@@ -231,13 +232,14 @@ class AI {
         maybeOpenAIPrompt = maybeOpenAIPrompt.replace(new RegExp(`{${key}}`, "g"), value.stringValue);
       }
 
-      return OpenAI().textRequest(
+      const answerText = await OpenAI().textRequest(
         maybeOpenAIPrompt,
         session,
         originalRequestType === "text"
           ? ChatCompletionRequestMessageRoleEnum.User
           : ChatCompletionRequestMessageRoleEnum.System,
       );
+      return { text: answerText };
     }
 
     // Otherwise, just remap our common keys as standard object

@@ -1,14 +1,21 @@
-import mongoose, { SchemaType } from "mongoose";
+import mongoose from "mongoose";
 import autopopulate from "mongoose-autopopulate";
 import { SessionSchema } from "./session";
-import { Session as ISession, IOQueue as IIOQueue, Scheduler as IScheduler } from "../types";
+import {
+  Session as ISession,
+  IOQueue as IIOQueue,
+  Scheduler as IScheduler,
+  Interaction as IInteraction,
+  LongTermMemory as ILongTermMemory,
+} from "../types";
 
 const { Schema } = mongoose;
 
 export const Session = mongoose.model<ISession>("session", SessionSchema);
 
-const InteractionSchema = new Schema({
+const InteractionSchema = new Schema<IInteraction>({
   session: { type: String, ref: "session", autopopulate: true },
+  reducedLongTermMemory: { type: String, ref: "long_term_memory", autopopulate: true },
   createdAt: Date,
   input: {
     text: String,
@@ -21,6 +28,16 @@ const InteractionSchema = new Schema({
 });
 InteractionSchema.plugin(autopopulate);
 export const Interaction = mongoose.model("interaction", InteractionSchema);
+
+const LongTermMemorySchema = new Schema<ILongTermMemory>({
+  session: { type: String, ref: "session", autopopulate: true },
+  text: String,
+  createdAt: Date,
+  type: String,
+  forDate: Date,
+});
+LongTermMemorySchema.plugin(autopopulate);
+export const LongTermMemory = mongoose.model("long_term_memory", LongTermMemorySchema);
 
 const IOQueueSchema = new Schema({
   ioId: String,

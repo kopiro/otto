@@ -61,11 +61,8 @@
   },
   "openai": {
     "apiKey": null,
-    "interactionTTLMinutes": 20,
-    "language": "en",
-    "model": "gpt-3.5-turbo",
-    "trainCSVFile": "",
-    "stopSign": ["\n", "Human:", "AI:"]
+    "brainUrl": null,
+    "model": "gpt-3.5-turbo"
   },
   "telegram": {
     "token": null,

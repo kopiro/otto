@@ -1,5 +1,13 @@
-import { ChatCompletionRequestMessageRoleEnum, Configuration, OpenAIApi } from "openai";
-import { Fulfillment, CustomError, AIAction, InputParams, Session } from "../types";
+import { ChatCompletionRequestMessageRoleEnum, Configuration, CreateChatCompletionRequest, OpenAIApi } from "openai";
+import {
+  Fulfillment,
+  CustomError,
+  AIAction,
+  InputParams,
+  Session,
+  Interaction as IInteraction,
+  LongTermMemory as ILongTermMemory,
+} from "../types";
 import config from "../config";
 import { Signale } from "signale";
 import ai from "../stdlib/ai";
@@ -9,12 +17,13 @@ import {
   getSessionName,
   getSessionTranslateTo,
 } from "../helpers";
-import { Interaction } from "../data";
+import { Interaction, LongTermMemory } from "../data";
+import fetch from "node-fetch";
 
 type Config = {
   apiKey: string;
-  interactionTTLMinutes: number;
   model: string;
+  brainUrl: string;
 };
 
 const TAG = "OpenAI";
@@ -35,19 +44,10 @@ class OpenAI {
 
   private async getBrain(session: Session): Promise<string> {
     if (!this._brainExpiration || this._brainExpiration < Math.floor(Date.now() / 1000)) {
-      const sessionPath = ai().getDfSessionPath("SYSTEM");
-      const [response] = await ai().dfSessionClient.detectIntent({
-        session: sessionPath,
-        queryInput: {
-          event: {
-            name: "OPENAI_BRAIN",
-            languageCode: config().language,
-          },
-        },
-      });
-      this._brain = response.queryResult.fulfillmentText;
+      this._brain = await (await fetch(this.config.brainUrl)).text();
       this._brainExpiration = new Date(Date.now() + BRAIN_TTL_MIN * 60 * 1000).getTime() / 1000;
     }
+
     return this._brain
       .replace("{user_name}", getSessionName(session))
       .replace("{current_time}", getSessionLocaleTimeString(session))
@@ -81,49 +81,68 @@ class OpenAI {
     return openaiResponse.data.data[0].url;
   }
 
-  private async retrievePreviousInteractions(session: Session) {
+  private async retrieveLongTermMemory(session: Session): Promise<CreateChatCompletionRequest["messages"]> {
+    const memories = await LongTermMemory.find({ session: session.id }).sort({ createdAt: -1 });
+    return memories.map((memory) => {
+      return {
+        role: ChatCompletionRequestMessageRoleEnum.System,
+        content: memory.text,
+      };
+    });
+  }
+
+  private async retrieveInteractions(
+    session: Session,
+    inputText: string,
+  ): Promise<CreateChatCompletionRequest["messages"]> {
     // Get all Interaction where we have a input.text or fulfillment.text in the last 20m
-    return (
-      await Interaction.find({
-        $or: [
-          {
-            "fulfillment.text": { $ne: null },
-            session: session.id,
-            createdAt: { $gte: new Date(Date.now() - 20 * 60_000) },
-          },
-          {
-            "input.text": { $ne: null },
-            session: session.id,
-            createdAt: { $gte: new Date(Date.now() - 20 * 60_000) },
-          },
-        ],
-      }).sort({ createdAt: -1 })
-    )
-      .map((interaction) => {
+    const interactions = await Interaction.find({
+      $or: [
+        {
+          "fulfillment.text": { $ne: null },
+          session: session.id,
+          reducedLongTermMemory: { $exists: false },
+          createdAt: { $gte: new Date(Date.now() - 20 * 60_000) },
+        },
+        {
+          "input.text": { $ne: null },
+          session: session.id,
+          reducedLongTermMemory: { $exists: false },
+          createdAt: { $gte: new Date(Date.now() - 20 * 60_000) },
+        },
+      ],
+    }).sort({ createdAt: -1 });
+
+    return interactions
+      .map((interaction, i) => {
+        if (i === interactions.length - 1) {
+          if (
+            inputText === interaction.input.text &&
+            // last minute
+            interaction.createdAt > new Date(Date.now() - 1000 * 60)
+          ) {
+            return null;
+          }
+        }
+
         if (interaction.fulfillment.text) {
           return {
             role: ChatCompletionRequestMessageRoleEnum.Assistant,
             content: interaction.fulfillment.text,
-            createdAt: interaction.createdAt,
           };
         }
         if (interaction.input.text) {
           return {
             role: ChatCompletionRequestMessageRoleEnum.User,
             content: interaction.input.text,
-            createdAt: interaction.createdAt,
           };
         }
       })
       .filter(Boolean);
   }
 
-  async textRequest(
-    text: InputParams["text"],
-    session: Session,
-    role: ChatCompletionRequestMessageRoleEnum = ChatCompletionRequestMessageRoleEnum.User,
-  ): Promise<Fulfillment> {
-    console.info("text request:", text);
+  async textRequest(text: string, session: Session, role: "system" | "user" | "assistant" = "user"): Promise<string> {
+    console.debug("text request :>> ", text);
 
     const systemText = await this.getBrain(session);
     const systemMessage = {
@@ -136,53 +155,47 @@ class OpenAI {
       content: text,
     };
 
-    const previousInteractions =
-      role === ChatCompletionRequestMessageRoleEnum.User ? await this.retrievePreviousInteractions(session) : [];
-
-    // Remove any duplicate
-    if (previousInteractions.length > 0) {
-      const lastInt = previousInteractions[previousInteractions.length - 1];
-      if (
-        text === lastInt.content &&
-        lastInt.role === userMessage.role &&
-        // last minute
-        lastInt.createdAt > new Date(Date.now() - 1000 * 60)
-      ) {
-        previousInteractions.pop();
-      }
-    }
+    let longTermMemories = await this.retrieveLongTermMemory(session);
+    let interactions = await this.retrieveInteractions(session, text);
 
     // Prepend system
-    const messages = [
-      systemMessage,
-      ...previousInteractions.map(({ role, content }) => ({ role, content })),
-      userMessage,
-    ];
-    console.debug("messages :>> ", messages);
+    const messages = [systemMessage, ...longTermMemories, ...interactions, userMessage];
+    console.debug("input :>> ", messages);
 
     const completion = await this.api.createChatCompletion({
       model: this.config.model,
       messages: messages,
     });
 
-    console.debug("completion :>> ", completion.data.choices[0]);
+    const answerMessages = completion.data.choices.map((e) => e.message);
+    const answerMessage = answerMessages[0];
+    const answerText = answerMessage?.content;
+
+    console.debug("completion :>> ", answerText);
+
+    return answerText;
+  }
+
+  async systemTextRequest(prompt: string): Promise<string> {
+    console.debug("system text request:", prompt);
+
+    const completion = await this.api.createChatCompletion({
+      model: this.config.model,
+      messages: [
+        {
+          role: ChatCompletionRequestMessageRoleEnum.System,
+          content: prompt,
+        },
+      ],
+    });
 
     const answerMessages = completion.data.choices.map((e) => e.message);
     const answerMessage = answerMessages[0];
     const answerText = answerMessage?.content;
 
-    if (!answerText) {
-      return {
-        error: {
-          message: "OpenAI returned an empty answer",
-          data: completion.data,
-        },
-      };
-    }
+    console.debug("completion :>> ", answerText);
 
-    return {
-      text: answerText,
-    };
+    return answerText;
   }
 }
 

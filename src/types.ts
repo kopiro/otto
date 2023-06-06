@@ -88,6 +88,24 @@ export interface Scheduler extends Document {
   deleteAfterRun?: boolean;
 }
 
+export interface Interaction extends Document {
+  id: string;
+  session: Session;
+  reducedLongTermMemory: LongTermMemory;
+  createdAt: Date;
+  input: InputParams;
+  fulfillment: Fulfillment;
+}
+
+export interface LongTermMemory extends Document {
+  id: string;
+  session: Session;
+  text: string;
+  createdAt: Date;
+  type: string;
+  forDate: Date;
+}
+
 export interface Session extends Document {
   id: string;
   uid: string;

@@ -1,8 +1,5 @@
 FROM node:18-alpine
 WORKDIR /app
-VOLUME /app/cache /app/log /app/keys /app/tmp
-EXPOSE 80
-ENTRYPOINT [ "pnpm", "run", "start" ]
 
 # Instal base packages
 RUN apk add --no-cache ca-certificates && \
@@ -32,6 +29,9 @@ RUN npm install -g pnpm
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json .eslintrc jest.config.js .prettierrc ./
 RUN pnpm install
 
+# Install cron
+RUN echo "0 6 * * * cd /app && pnpm run ai:sleep" >> /var/spool/cron/crontabs/root
+
 # Copy my code
 COPY ./src ./src
 COPY ./public ./public
@@ -44,3 +44,8 @@ RUN pnpm install
 # Build code
 RUN pnpm run build
 RUN pnpm recursive run build
+
+
+VOLUME /app/cache /app/logs /app/keys /app/tmp
+EXPOSE 80
+CMD crond -L /app/logs/cron.log && pnpm run start
