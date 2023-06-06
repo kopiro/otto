@@ -1,4 +1,5 @@
 import ai from ".";
+import { Interaction } from "../../data";
 import { Fulfillment, Session } from "../../types";
 import { Authorizations } from "../iomanager";
 import { IOBag } from "../iomanager";

@@ -14,7 +14,7 @@ const MAX_CHARS = 300;
 
 /**
  * This module is responsible for reducing the long term memory of the AI.
- * It will parse all the "Interaction" records in the database every 24 hours and reduce it using AI algorithms, then save it bac to the table "LongTermMemory".
+ * It will parse all the "Interaction" records in the database every 24 hours and reduce it using AI algorithms, then save it back to the table "LongTermMemory".
  */
 
 type GroupedInteractionsBySession = Record<string, IInteraction[]>;
@@ -79,11 +79,11 @@ export class LongTermMemoryReducer {
     }
 
     const reducerPrompt =
-      `I have the following interactions between ${aiName} and users, happening at ${forDate.toDateString()}, please reduce them to a single sentence. Keep the output length below ${MAX_CHARS} characters, and compress it to make it as short as possible. In case of errors, return strictly the following string "ERROR".\n\n` +
+      `I have the following interactions between ${aiName} and users, happening at ${forDate.toDateString()}, please reduce them to a single sentence. Keep the output as short as possible and, if possible, below ${MAX_CHARS} characters; try to only keep new informations and discard already known informations. In case of error, strictly return "ERROR".\n\n` +
       interactionsText.join("\n");
 
     const reducedMemory = await openai().textRequest(reducerPrompt, null, "system", "none");
-    if (reducedMemory.trim() === "ERROR") {
+    if (reducedMemory.trim().toUpperCase() === "ERROR") {
       return "";
     }
 

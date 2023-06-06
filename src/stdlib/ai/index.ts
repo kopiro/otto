@@ -48,7 +48,7 @@ class AI {
   /**
    * Transform a Fulfillment by making some edits based on the current session settings
    */
-  async fulfillmentFinalizer(fulfillment: Fulfillment, session: Session): Promise<Fulfillment> {
+  async fulfillmentFinalizer(fulfillment: Fulfillment, session: Session, source: string): Promise<Fulfillment> {
     if (!fulfillment) return;
 
     console.log("Finalizing fuflillment", fulfillment);
@@ -77,6 +77,7 @@ class AI {
       session: session.id,
       createdAt: new Date(),
       fulfillment: fulfillment,
+      source,
     }).save();
 
     // Add other info
@@ -120,13 +121,14 @@ class AI {
     fulfillmentGenerator: IterableIterator<Fulfillment>,
     session: Session,
     bag: IOManager.IOBag,
+    source: string,
   ): Promise<[Fulfillment, IOManager.OutputResult][]> {
     console.info("Using generator resolver", fulfillmentGenerator);
 
     const fulfillmentsAndOutputResults: [Fulfillment, IOManager.OutputResult][] = [];
 
     for await (const fulfillment of fulfillmentGenerator) {
-      const finalFulfillment = await this.fulfillmentFinalizer(fulfillment, session);
+      const finalFulfillment = await this.fulfillmentFinalizer(fulfillment, session, source);
       const outputResult = await IOManager.output(finalFulfillment, session, bag);
       fulfillmentsAndOutputResults.push([finalFulfillment, outputResult]);
     }
@@ -142,6 +144,7 @@ class AI {
     body: IDetectIntentResponse,
     session: Session,
     bag: IOManager.IOBag,
+    source: string,
   ): Promise<Fulfillment> {
     console.info(`calling action <${actionName}>`);
 
@@ -172,7 +175,7 @@ class AI {
       if (actionResult.constructor.name === "GeneratorFunction") {
         // Call the generator async
         setImmediate(() => {
-          this.generatorResolver(actionResult as IterableIterator<Fulfillment>, session, bag);
+          this.generatorResolver(actionResult as IterableIterator<Fulfillment>, session, bag, source);
         });
 
         // And immediately resolve
@@ -202,13 +205,14 @@ class AI {
     session: Session,
     bag: IOManager.IOBag,
     originalRequestType: "text" | "event",
+    source: string,
   ): Promise<Fulfillment> {
     const { fulfillmentText, fulfillmentMessages } = body.queryResult;
 
     // If we have an "action", call the package with the specified name
     if (body.queryResult.action) {
       console.debug(`Resolving action: ${body.queryResult.action}`);
-      return this.dfActionResolver(body.queryResult.action, body, session, bag);
+      return this.dfActionResolver(body.queryResult.action, body, session, bag, source);
     }
 
     // Otherwise, check if at least an intent is match and direct return that fulfillment
@@ -274,7 +278,12 @@ class AI {
   /**
    * Get the command to execute and return an executor
    */
-  async commandRequest(command: InputParams["command"], session: Session, bag: IOManager.IOBag): Promise<Fulfillment> {
+  async commandRequest(
+    command: InputParams["command"],
+    session: Session,
+    bag: IOManager.IOBag,
+    source: string,
+  ): Promise<Fulfillment> {
     console.info("command request:", command);
 
     new Interaction({
@@ -289,7 +298,12 @@ class AI {
   /**
    * Make a text request to DialogFlow and let the flow begin
    */
-  async textRequest(text: InputParams["text"], session: Session, bag: IOManager.IOBag): Promise<Fulfillment> {
+  async textRequest(
+    text: InputParams["text"],
+    session: Session,
+    bag: IOManager.IOBag,
+    source: string,
+  ): Promise<Fulfillment> {
     console.info("[df] text request:", text);
 
     const queryInput: IQueryInput = { text: { text } };
@@ -302,13 +316,18 @@ class AI {
     }).save();
 
     const body = await this.dfRequest(queryInput, session, bag);
-    return this.dfBodyParser(body, session, bag, "text");
+    return this.dfBodyParser(body, session, bag, "text", source);
   }
 
   /**
    * Make an event request to DialogFlow and let the flow begin
    */
-  async eventRequest(event: InputParams["event"], session: Session, bag: IOManager.IOBag): Promise<Fulfillment> {
+  async eventRequest(
+    event: InputParams["event"],
+    session: Session,
+    bag: IOManager.IOBag,
+    source: string,
+  ): Promise<Fulfillment> {
     console.info("[df] event request:", event);
 
     const queryInput: IQueryInput = { event: {} };
@@ -328,27 +347,34 @@ class AI {
     }).save();
 
     const body = await this.dfRequest(queryInput, session, bag);
-    return this.dfBodyParser(body, session, bag, "event");
+    return this.dfBodyParser(body, session, bag, "event", source);
   }
 
   async getFullfilmentForInput(params: InputParams, session: Session): Promise<Fulfillment> {
     let fulfillment: any = null;
+    let source = "";
     if (params.text) {
-      fulfillment = await this.textRequest(params.text, session, params.bag);
+      source = "text";
+      fulfillment = await this.textRequest(params.text, session, params.bag, source);
     } else if (params.event) {
-      fulfillment = await this.eventRequest(params.event, session, params.bag);
+      source = "event";
+      fulfillment = await this.eventRequest(params.event, session, params.bag, source);
     } else if (params.audio) {
+      source = "audio";
       const text = await speechRecognizer().recognizeFile(params.audio, getSessionTranslateFrom(session));
-      fulfillment = await this.textRequest(text, session, params.bag);
+      fulfillment = await this.textRequest(text, session, params.bag, source);
     } else if (params.command) {
-      fulfillment = await this.commandRequest(params.command, session, params.bag);
+      source = "command";
+      fulfillment = await this.commandRequest(params.command, session, params.bag, source);
     } else if (params.repeatText) {
+      source = "repeatText";
       fulfillment = { text: params.repeatText };
     } else {
+      source = "unknown";
       console.warn("Neither { text, event, command, repeatText, audio } in params are not null");
     }
 
-    return this.fulfillmentFinalizer(fulfillment, session);
+    return this.fulfillmentFinalizer(fulfillment, session, source);
   }
 
   /**
@@ -362,7 +388,7 @@ class AI {
       console.info("using repeatModeSessions", session.repeatModeSessions);
       return Promise.all(
         session.repeatModeSessions.map(async (e) => {
-          const trFulfillment = await this.fulfillmentFinalizer({ text: params.text }, e);
+          const trFulfillment = await this.fulfillmentFinalizer({ text: params.text }, e, "repeatSessions");
           return IOManager.output(trFulfillment, e, params.bag);
         }),
       );

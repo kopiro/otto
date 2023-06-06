@@ -95,6 +95,7 @@ export interface Interaction extends Document {
   createdAt: Date;
   input: InputParams;
   fulfillment: Fulfillment;
+  source: string;
 }
 
 export interface LongTermMemory extends Document {

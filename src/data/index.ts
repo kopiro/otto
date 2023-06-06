@@ -25,6 +25,7 @@ const InteractionSchema = new Schema<IInteraction>({
   fulfillment: {
     text: String,
   },
+  source: String,
 });
 InteractionSchema.plugin(autopopulate);
 export const Interaction = mongoose.model("interaction", InteractionSchema);
