@@ -45,6 +45,7 @@ export class Telegram implements IOManager.IODriverModule {
   bot: TelegramBot;
   botMe: TelegramBot.User;
   botMentionRegex: RegExp;
+  aiMentionRegex: RegExp;
 
   started = false;
 
@@ -118,11 +119,7 @@ export class Telegram implements IOManager.IODriverModule {
   }
 
   getIsMention(text: string) {
-    return this.botMentionRegex.test(text);
-  }
-
-  getIsActivator(text: string | undefined) {
-    return text?.includes(config().aiName);
+    return this.botMentionRegex.test(text) || this.aiMentionRegex.test(text);
   }
 
   getIsGroup(msg: TelegramBot.Message) {
@@ -146,18 +143,17 @@ export class Telegram implements IOManager.IODriverModule {
 
     const isGroup = this.getIsGroup(e);
     const isMention = this.getIsMention(e.text);
-    const isActivator = this.getIsActivator(e.text);
     const isReply = e.reply_to_message?.from?.id === this.botMe.id;
     const isCommand = this.getIsCommand(e);
 
-    return { session, bag, isGroup, isMention, isActivator, isReply, isCommand };
+    return { session, bag, isGroup, isMention, isReply, isCommand };
   }
 
   async onBotInput(e: TelegramBot.Message) {
     console.info("input", e);
 
     // Register the session
-    const { session, bag, isGroup, isMention, isReply, isActivator, isCommand } = await this.parseMessage(e);
+    const { session, bag, isGroup, isMention, isReply, isCommand } = await this.parseMessage(e);
 
     console.info(`session = ${session.id}`);
 
@@ -176,8 +172,8 @@ export class Telegram implements IOManager.IODriverModule {
     // Process a Text object
     if (e.text) {
       // If we are in a group, only listen for activators
-      if (isGroup && !(isMention || isReply || isActivator)) {
-        console.debug("skipping input for missing activator");
+      if (isGroup && !(isMention || isReply)) {
+        console.debug("Skipping input for missing activator");
         return false;
       }
 
@@ -200,11 +196,11 @@ export class Telegram implements IOManager.IODriverModule {
     // Process a Voice object
     if (e.voice) {
       const text = await this.handleInputVoice(e, session);
-      const isActivatorInVoice = this.getIsActivator(text);
+      const isMentionInVoice = this.getIsMention(text);
 
       // If we are in a group, only listen for activators
-      if (isGroup && !isActivatorInVoice) {
-        console.debug("skipping input for missing activator");
+      if (isGroup && !isMentionInVoice) {
+        console.debug("Skipping input for missing activator");
         return false;
       }
 
@@ -254,6 +250,7 @@ export class Telegram implements IOManager.IODriverModule {
 
     this.botMe = await this.bot.getMe();
     this.botMentionRegex = new RegExp(`@${this.botMe.username}`, "i");
+    this.aiMentionRegex = new RegExp(`\b${config().aiName}\b`, "i");
 
     this.bot.on("message", this.onBotInput.bind(this));
     this.bot.on("poll_answer", this.onBotInput.bind(this));
