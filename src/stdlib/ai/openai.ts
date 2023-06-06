@@ -178,7 +178,7 @@ class OpenAI {
       memoriesOp === "only_interactions" || memoriesOp === "all" ? await this.retrieveInteractions(session, text) : [];
 
     // Prepend system
-    const messages = [brainMessage, systemMessage, ...longTermMemories, ...interactions, userMessage];
+    const messages = [brainMessage, systemMessage, ...longTermMemories, ...interactions, userMessage].filter(Boolean);
     console.debug("input :>> ", messages);
 
     try {
