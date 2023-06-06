@@ -1,5 +1,6 @@
 FROM node:18-alpine
 WORKDIR /app
+VOLUME /app/cache /app/logs /app/keys /app/tmp
 
 # Instal base packages
 RUN apk add --no-cache ca-certificates && \
@@ -45,7 +46,5 @@ RUN pnpm install
 RUN pnpm run build
 RUN pnpm recursive run build
 
-
-VOLUME /app/cache /app/logs /app/keys /app/tmp
 EXPOSE 80
 CMD crond -L /app/logs/cron.log && pnpm run start

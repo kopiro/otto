@@ -40,7 +40,7 @@ class AI {
   emitter: Events.EventEmitter = new Events.EventEmitter();
 
   dfIntentAgentPath: string;
-  commander: AICommander;
+  public commander: AICommander;
 
   constructor(private config: AIConfig) {
     this.dfIntentAgentPath = this.dfIntentsClient.projectAgentPath(this.config.dialogflow.projectId);
@@ -206,8 +206,6 @@ class AI {
     originalRequestType: "text" | "event",
   ): Promise<Fulfillment> {
     const { fulfillmentText, fulfillmentMessages } = body.queryResult;
-
-    console.log("dfBodyParser", body.queryResult);
 
     // If we have an "action", call the package with the specified name
     if (body.queryResult.action) {
