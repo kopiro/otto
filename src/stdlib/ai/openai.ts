@@ -33,6 +33,8 @@ const console = new Signale({
 
 const BRAIN_TTL_MIN = 10;
 
+type MemoriesOperation = "none" | "only_interactions" | "only_memories" | "all";
+
 class OpenAI {
   private api: OpenAIApi;
   private _brain: string;
@@ -141,7 +143,12 @@ class OpenAI {
       .filter(Boolean);
   }
 
-  async textRequest(text: string, session: Session, role: "system" | "user" | "assistant" = "user"): Promise<string> {
+  async textRequest(
+    text: string,
+    session: Session,
+    role: "system" | "user" | "assistant" = "user",
+    memoriesOp: MemoriesOperation = "all",
+  ): Promise<string> {
     console.debug("text request :>> ", text);
 
     const systemText = await this.getBrain(session);
@@ -155,8 +162,10 @@ class OpenAI {
       content: text,
     };
 
-    let longTermMemories = await this.retrieveLongTermMemories(session);
-    let interactions = await this.retrieveInteractions(session, text);
+    let longTermMemories =
+      memoriesOp === "only_memories" || memoriesOp === "all" ? await this.retrieveLongTermMemories(session) : [];
+    let interactions =
+      memoriesOp === "only_interactions" || memoriesOp === "all" ? await this.retrieveInteractions(session, text) : [];
 
     // Prepend system
     const messages = [systemMessage, ...longTermMemories, ...interactions, userMessage];

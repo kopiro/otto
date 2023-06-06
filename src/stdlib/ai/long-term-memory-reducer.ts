@@ -83,7 +83,7 @@ export class LongTermMemoryReducer {
       `I have the following interactions between ${aiName} and a ${sessionName}, please reduce them to a single sentence below 200 characters.\n\n` +
       interactionsText.join("\n");
 
-    const reducedMemory = await openai().textRequest(prompt, session, "system");
+    const reducedMemory = await openai().textRequest(prompt, session, "system", "only_memories");
     console.debug("reducedMemory :>> ", reducedMemory);
 
     return reducedMemory;
