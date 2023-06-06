@@ -30,7 +30,6 @@ InteractionSchema.plugin(autopopulate);
 export const Interaction = mongoose.model("interaction", InteractionSchema);
 
 const LongTermMemorySchema = new Schema<ILongTermMemory>({
-  session: { type: String, ref: "session", autopopulate: true },
   text: String,
   createdAt: Date,
   type: String,

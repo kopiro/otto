@@ -49,11 +49,7 @@ class OpenAI {
       this._brain = await (await fetch(this.config.brainUrl)).text();
       this._brainExpiration = new Date(Date.now() + BRAIN_TTL_MIN * 60 * 1000).getTime() / 1000;
     }
-
-    return this._brain
-      .replace("{user_name}", getSessionName(session))
-      .replace("{current_time}", getSessionLocaleTimeString(session))
-      .replace("{user_language}", await getLanguageNameFromLanguageCode(getSessionTranslateTo(session)));
+    return this._brain;
   }
 
   async imageRequest(query: string, session: Session) {
@@ -83,8 +79,8 @@ class OpenAI {
     return openaiResponse.data.data[0].url;
   }
 
-  private async retrieveLongTermMemories(session: Session): Promise<CreateChatCompletionRequest["messages"]> {
-    const memories = await LongTermMemory.find({ session: session.id }).sort({ createdAt: +1 });
+  private async retrieveLongTermMemories(): Promise<CreateChatCompletionRequest["messages"]> {
+    const memories = await LongTermMemory.find().sort({ createdAt: +1 });
     return memories.map((memory) => {
       return {
         role: ChatCompletionRequestMessageRoleEnum.System,
@@ -145,17 +141,31 @@ class OpenAI {
 
   async textRequest(
     text: string,
-    session: Session,
+    session: Session | null,
     role: "system" | "user" | "assistant" = "user",
     memoriesOp: MemoriesOperation = "all",
   ): Promise<string> {
     console.debug("text request :>> ", text);
 
-    const systemText = await this.getBrain(session);
-    const systemMessage = {
+    const brainPrompt = await this.getBrain(session);
+    const brainMessage = {
       role: ChatCompletionRequestMessageRoleEnum.System,
-      content: systemText,
+      content: brainPrompt,
     };
+
+    let systemMessage = null;
+    if (role === "user") {
+      const systemPrompt = `${config().aiName} is now chatting with ${getSessionName(
+        session,
+      )}, speaking ${await getLanguageNameFromLanguageCode(
+        getSessionTranslateTo(session),
+      )} to them. Current time is: ${getSessionLocaleTimeString(session)}`;
+
+      systemMessage = {
+        role: ChatCompletionRequestMessageRoleEnum.System,
+        content: systemPrompt,
+      };
+    }
 
     const userMessage = {
       role: role,
@@ -163,48 +173,30 @@ class OpenAI {
     };
 
     let longTermMemories =
-      memoriesOp === "only_memories" || memoriesOp === "all" ? await this.retrieveLongTermMemories(session) : [];
+      memoriesOp === "only_memories" || memoriesOp === "all" ? await this.retrieveLongTermMemories() : [];
     let interactions =
       memoriesOp === "only_interactions" || memoriesOp === "all" ? await this.retrieveInteractions(session, text) : [];
 
     // Prepend system
-    const messages = [systemMessage, ...longTermMemories, ...interactions, userMessage];
+    const messages = [brainMessage, systemMessage, ...longTermMemories, ...interactions, userMessage];
     console.debug("input :>> ", messages);
 
-    const completion = await this.api.createChatCompletion({
-      model: this.config.model,
-      messages: messages,
-    });
+    try {
+      const completion = await this.api.createChatCompletion({
+        model: this.config.model,
+        messages: messages,
+      });
+      const answerMessages = completion.data.choices.map((e) => e.message);
+      const answerMessage = answerMessages[0];
+      const answerText = answerMessage?.content;
 
-    const answerMessages = completion.data.choices.map((e) => e.message);
-    const answerMessage = answerMessages[0];
-    const answerText = answerMessage?.content;
+      console.debug("completion :>> ", answerText);
 
-    console.debug("completion :>> ", answerText);
-
-    return answerText;
-  }
-
-  async systemTextRequest(prompt: string): Promise<string> {
-    console.debug("system text request:", prompt);
-
-    const completion = await this.api.createChatCompletion({
-      model: this.config.model,
-      messages: [
-        {
-          role: ChatCompletionRequestMessageRoleEnum.System,
-          content: prompt,
-        },
-      ],
-    });
-
-    const answerMessages = completion.data.choices.map((e) => e.message);
-    const answerMessage = answerMessages[0];
-    const answerText = answerMessage?.content;
-
-    console.debug("completion :>> ", answerText);
-
-    return answerText;
+      return answerText;
+    } catch (error) {
+      console.error("error :>> ", "toJSON" in error ? error.toJSON() : error);
+      throw error;
+    }
   }
 }
 
