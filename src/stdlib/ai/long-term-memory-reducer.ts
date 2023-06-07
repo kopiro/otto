@@ -100,10 +100,10 @@ export class LongTermMemoryReducer {
         console.info(`Reducing interactions for Date: ${forDate.toDateString()}`);
 
         // Extract all interactions IDs
-        const allInteractionIds = Object.values(interactions[day]).reduce((acc, interactions) => {
-          acc.push(...interactions.reduce((acc, interaction) => [...acc, interaction.id], []));
+        const allInteractionIds = Object.values(interactions[day]).reduce<string[]>((acc, interactions) => {
+          interactions.forEach((interaction) => acc.push(interaction.id));
           return acc;
-        }, [] as string[]);
+        }, []);
 
         console.info(`Found ${allInteractionIds.length} interactions to reduce`);
         const reducedInteractionText = await this.reduceInteractionsOfTheDay(forDate, interactions[day]);

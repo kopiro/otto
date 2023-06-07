@@ -1,4 +1,3 @@
-import { remove as diacriticsRemove } from "diacritics";
 import request from "request";
 import fs from "fs";
 import path from "path";
@@ -9,7 +8,6 @@ import { Language, Locale, Session } from "./types";
 import { v4 as uuid } from "uuid";
 import crypto from "crypto";
 import { Signale } from "signale";
-import { Interaction } from "./data";
 
 /**
  * Get the name of the AI
@@ -38,13 +36,6 @@ export function rand<T>(e: Array<T> | T): T {
  */
 export function timeout(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-/**
- * Clean text by removing diacritics and lowering its case
- */
-export function normalizeTextForKeyword(t: string): string {
-  return diacriticsRemove(t).toLowerCase();
 }
 
 /**
@@ -84,6 +75,8 @@ export function getLocaleFromLanguageCode(language: Language): Locale {
       return "nb-NO";
     case "sv":
       return "sv-SE";
+    default:
+      return "";
   }
 }
 
@@ -146,8 +139,8 @@ export function extractWithPattern(input: any, pattern: string): any {
   if (_p === "[]") {
     _p = p.shift();
     for (const _input of input) {
-      if (_input[_p] != null) {
-        const found = extractWithPattern(_input[_p], p.join("."));
+      if (_input[_p as keyof typeof _input] != null) {
+        const found = extractWithPattern(_input[_p as keyof typeof _input], p.join("."));
         if (found) return found;
       }
     }
@@ -155,10 +148,10 @@ export function extractWithPattern(input: any, pattern: string): any {
   }
 
   if (p.length === 0) {
-    return input[_p];
+    return input[_p as keyof typeof input];
   }
 
-  return extractWithPattern(input[_p], p.join("."));
+  return extractWithPattern(input[_p as keyof typeof input], p.join("."));
 }
 
 /**
@@ -178,12 +171,12 @@ export function replaceVariablesInStrings(text: string, data: Record<string, str
   return textCopy;
 }
 
-export async function getLanguageNameFromLanguageCode(languageCode: string): Promise<Language> {
+export async function getLanguageNameFromLanguageCode(languageCode: string): Promise<Language | undefined> {
   const languages = await translator().getLanguages();
   return languages.find((e) => e.code === languageCode)?.name;
 }
 
-export async function getLanguageCodeFromLanguageName(languageName: string): Promise<Language> {
+export async function getLanguageCodeFromLanguageName(languageName: string): Promise<Language | undefined> {
   const languages = await translator().getLanguages();
   return languages.find((e) => e.name === languageName)?.code;
 }

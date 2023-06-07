@@ -40,13 +40,13 @@ class OpenAI {
   private _brain: string;
   private _brainExpiration: number;
 
-  constructor(private config: Config) {
-    this.api = new OpenAIApi(new Configuration({ apiKey: this.config.apiKey }));
+  constructor(private conf: Config) {
+    this.api = new OpenAIApi(new Configuration({ apiKey: this.conf.apiKey }));
   }
 
   private async getBrain(session: Session): Promise<string> {
     if (!this._brainExpiration || this._brainExpiration < Math.floor(Date.now() / 1000)) {
-      this._brain = await (await fetch(this.config.brainUrl)).text();
+      this._brain = await (await fetch(this.conf.brainUrl)).text();
       this._brainExpiration = new Date(Date.now() + BRAIN_TTL_MIN * 60 * 1000).getTime() / 1000;
     }
     return this._brain;
@@ -183,7 +183,7 @@ class OpenAI {
 
     try {
       const completion = await this.api.createChatCompletion({
-        model: this.config.model,
+        model: this.conf.model,
         messages: messages,
       });
       const answerMessages = completion.data.choices.map((e) => e.message);

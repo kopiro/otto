@@ -41,15 +41,19 @@ class AI {
 
   dfIntentAgentPath: string;
 
-  constructor(private config: AIConfig) {
-    this.dfIntentAgentPath = this.dfIntentsClient.projectAgentPath(this.config.dialogflow.projectId);
+  constructor(private conf: AIConfig) {
+    this.dfIntentAgentPath = this.dfIntentsClient.projectAgentPath(this.conf.dialogflow.projectId);
   }
 
   /**
    * Transform a Fulfillment by making some edits based on the current session settings
    */
-  async fulfillmentFinalizer(fulfillment: Fulfillment, session: Session, source: string): Promise<Fulfillment> {
-    if (!fulfillment) return;
+  async fulfillmentFinalizer(
+    fulfillment: Fulfillment | null,
+    session: Session,
+    source: string,
+  ): Promise<Fulfillment | null> {
+    if (!fulfillment) return null;
 
     console.log("Finalizing fuflillment", fulfillment);
 
@@ -62,7 +66,7 @@ class AI {
 
     // Always translate fulfillment speech in the user language
     if (fulfillment.text) {
-      const fromLanguage = fulfillment.options.translateFrom ?? this.config.language;
+      const fromLanguage = fulfillment.options.translateFrom ?? this.conf.language;
       const toLanguage = fulfillment.options.translateTo || getSessionTranslateTo(session);
       if (toLanguage !== fromLanguage) {
         try {
@@ -81,7 +85,7 @@ class AI {
     }).save();
 
     // Add other info
-    fulfillment.options.finalizerUid = this.config.uid;
+    fulfillment.options.finalizerUid = this.conf.uid;
     fulfillment.options.finalizedAt = Date.now();
     fulfillment.options.sessionId = session.id;
 
@@ -93,13 +97,13 @@ class AI {
    */
   getDfSessionPath(sessionId: string) {
     const dfSessionId = sessionId.replace(/\//g, "_");
-    if (!this.config.dialogflow.environment) {
-      return this.dfSessionClient.projectAgentSessionPath(this.config.dialogflow.projectId, dfSessionId);
+    if (!this.conf.dialogflow.environment) {
+      return this.dfSessionClient.projectAgentSessionPath(this.conf.dialogflow.projectId, dfSessionId);
     }
 
     return this.dfSessionClient.projectAgentEnvironmentUserSessionPath(
-      this.config.dialogflow.projectId,
-      this.config.dialogflow.environment,
+      this.conf.dialogflow.projectId,
+      this.conf.dialogflow.environment,
       "-",
       dfSessionId,
     );
@@ -122,10 +126,10 @@ class AI {
     session: Session,
     bag: IOManager.IOBag,
     source: string,
-  ): Promise<[Fulfillment, IOManager.OutputResult][]> {
+  ) {
     console.info("Using generator resolver", fulfillmentGenerator);
 
-    const fulfillmentsAndOutputResults: [Fulfillment, IOManager.OutputResult][] = [];
+    const fulfillmentsAndOutputResults: [Fulfillment | null, IOManager.OutputResult][] = [];
 
     for await (const fulfillment of fulfillmentGenerator) {
       const finalFulfillment = await this.fulfillmentFinalizer(fulfillment, session, source);
@@ -194,7 +198,8 @@ class AI {
   }
 
   extractMessages(fulfillmentMessages: protos.google.cloud.dialogflow.v2.Intent.IMessage[], key: string) {
-    return fulfillmentMessages.find((m) => m?.payload?.fields?.[key] !== undefined)?.payload.fields[key].stringValue;
+    return fulfillmentMessages?.find((m) => m?.payload?.fields?.[key] !== undefined)?.payload?.fields?.[key]
+      .stringValue;
   }
 
   /**
@@ -206,30 +211,29 @@ class AI {
     bag: IOManager.IOBag,
     originalRequestType: "text" | "event",
     source: string,
-  ): Promise<Fulfillment> {
-    const { fulfillmentText, fulfillmentMessages } = body.queryResult;
+  ): Promise<Fulfillment | null> {
+    const { fulfillmentText, fulfillmentMessages, action, intent, queryText, parameters } = body.queryResult || {};
 
     // If we have an "action", call the package with the specified name
-    if (body.queryResult.action) {
-      console.debug(`Resolving action: ${body.queryResult.action}`);
-      return this.dfActionResolver(body.queryResult.action, body, session, bag, source);
+    if (action) {
+      console.debug(`Resolving action: ${action}`);
+      return this.dfActionResolver(action, body, session, bag, source);
     }
 
     // Otherwise, check if at least an intent is match and direct return that fulfillment
-    if (!body.queryResult.intent || body.queryResult.intent?.isFallback) {
-      if (originalRequestType === "text") {
-        const answerText = await OpenAI().textRequest(body.queryResult.queryText, session);
+    if (!intent || intent?.isFallback) {
+      if (queryText && originalRequestType === "text") {
+        const answerText = await OpenAI().textRequest(queryText, session);
         return { text: answerText };
       }
-      return;
+      return null;
     }
 
-    let maybeOpenAIPrompt = body.queryResult.fulfillmentMessages.find(
-      (m) => m?.payload?.fields?.openai_prompt?.stringValue,
-    )?.payload.fields?.openai_prompt?.stringValue;
+    let maybeOpenAIPrompt = fulfillmentMessages?.find((m) => m?.payload?.fields?.openai_prompt?.stringValue)?.payload
+      ?.fields?.openai_prompt?.stringValue;
     if (maybeOpenAIPrompt) {
-      for (const [key, value] of Object.entries(body.queryResult.parameters.fields ?? [])) {
-        maybeOpenAIPrompt = maybeOpenAIPrompt.replace(new RegExp(`{${key}}`, "g"), value.stringValue);
+      for (const [key, value] of Object.entries(parameters?.fields ?? [])) {
+        maybeOpenAIPrompt = maybeOpenAIPrompt.replace(new RegExp(`{${key}}`, "g"), value.stringValue || "UNKNOWN");
       }
 
       const answerText = await OpenAI().textRequest(
@@ -242,22 +246,22 @@ class AI {
       return { text: answerText };
     }
 
-    // Otherwise, just remap our common keys as standard object
-    return {
-      text: fulfillmentText,
-      ...FullfillmentStringKeys.reduce((acc, key) => {
-        const value = this.extractMessages(fulfillmentMessages, key);
-        if (value) acc[key] = value;
-        return acc;
-      }, {}),
-    } as Fulfillment;
+    const spreadFulfillment: Fulfillment = {};
+    if (fulfillmentText) {
+      spreadFulfillment.text = fulfillmentText;
+    }
+    for (const key of FullfillmentStringKeys) {
+      const value = this.extractMessages(fulfillmentMessages || [], key);
+      if (value) spreadFulfillment[key] = value;
+    }
+    return spreadFulfillment;
   }
 
   private async dfRequest(queryInput: IQueryInput, session: Session, bag?: IOManager.IOBag) {
-    if (queryInput.text) {
+    if (queryInput.text?.text) {
       queryInput.text.text = await translator().translate(
         queryInput.text.text,
-        this.config.dialogflow.language,
+        this.conf.dialogflow.language,
         getSessionTranslateFrom(session),
       );
     }
@@ -278,12 +282,7 @@ class AI {
   /**
    * Get the command to execute and return an executor
    */
-  async commandRequest(
-    command: InputParams["command"],
-    session: Session,
-    bag: IOManager.IOBag,
-    source: string,
-  ): Promise<Fulfillment> {
+  async commandRequest(command: string, session: Session, bag: IOManager.IOBag, source: string): Promise<Fulfillment> {
     console.info("command request:", command);
 
     new Interaction({
@@ -303,11 +302,11 @@ class AI {
     session: Session,
     bag: IOManager.IOBag,
     source: string,
-  ): Promise<Fulfillment> {
+  ): Promise<Fulfillment | null> {
     console.info("[df] text request:", text);
 
     const queryInput: IQueryInput = { text: { text } };
-    queryInput.text.languageCode = this.config.dialogflow.language;
+    queryInput.text!.languageCode = this.conf.dialogflow.language;
 
     new Interaction({
       session: session.id,
@@ -323,22 +322,27 @@ class AI {
    * Make an event request to DialogFlow and let the flow begin
    */
   async eventRequest(
-    event: InputParams["event"],
+    event:
+      | string
+      | {
+          name: string;
+          parameters?: Record<string, string>;
+        },
     session: Session,
     bag: IOManager.IOBag,
     source: string,
-  ): Promise<Fulfillment> {
+  ): Promise<Fulfillment | null> {
     console.info("[df] event request:", event);
 
     const queryInput: IQueryInput = { event: {} };
 
     if (typeof event === "string") {
-      queryInput.event.name = event;
+      queryInput.event!.name = event;
     } else {
-      queryInput.event.name = event.name;
-      queryInput.event.parameters = event.parameters ? struct.encode(event.parameters) : {};
+      queryInput.event!.name = event.name;
+      queryInput.event!.parameters = event.parameters ? struct.encode(event.parameters) : {};
     }
-    queryInput.event.languageCode = this.config.dialogflow.language;
+    queryInput.event!.languageCode = this.conf.dialogflow.language;
 
     new Interaction({
       session: session.id,
@@ -350,7 +354,7 @@ class AI {
     return this.dfBodyParser(body, session, bag, "event", source);
   }
 
-  async getFullfilmentForInput(params: InputParams, session: Session): Promise<Fulfillment> {
+  async getFullfilmentForInput(params: InputParams, session: Session): Promise<Fulfillment | null> {
     let fulfillment: any = null;
     let source = "";
     if (params.text) {
@@ -384,7 +388,7 @@ class AI {
     console.info("processInput", { params, session });
 
     // Check if we have repeatModeSessions - if so, just output to all of them
-    if (session.repeatModeSessions?.length > 0 && params.text) {
+    if (session.repeatModeSessions?.length && params.text) {
       console.info("using repeatModeSessions", session.repeatModeSessions);
       return Promise.all(
         session.repeatModeSessions.map(async (e) => {

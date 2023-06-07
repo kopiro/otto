@@ -20,10 +20,10 @@ export enum Authorizations {
   "COMMAND" = "COMMAND",
 }
 
-export type IODriverOutput = [string, any][];
+export type IODriverOutput = [string | null, any][];
 export interface IODriverModule {
   emitter: EventEmitter;
-  start: () => Promise<boolean>;
+  start: () => Promise<void>;
   output: (fulfillment: Fulfillment, session: Session, bag: IOBag) => Promise<IODriverOutput>;
 }
 
@@ -105,7 +105,7 @@ export async function getAccessoryForDriver(e: IOAccessory, driver: IODriverModu
  * Process an input to a specific IO driver based on the session
  */
 export async function output(
-  fulfillment: Fulfillment,
+  fulfillment: Fulfillment | null,
   session: Session,
   bag?: IOBag,
   loadDriverIfNotEnabled = false,

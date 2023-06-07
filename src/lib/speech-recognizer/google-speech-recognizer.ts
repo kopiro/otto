@@ -5,8 +5,10 @@ import { SpeechRecognizer } from "../../abstracts/speech-recognizer";
 import { SpeechClient } from "@google-cloud/speech/build/src/v1";
 import { Language } from "../../types";
 import { promisify } from "util";
+// @ts-ignore
 import wavFileInfo from "wav-file-info";
 import { Signale } from "signale";
+import Pumpify from "pumpify";
 
 const TAG = "GoogleSpeechRecognizer";
 const console = new Signale({
@@ -24,7 +26,11 @@ export class GoogleSpeechRecognizer extends SpeechRecognizer {
   /**
    * Create a recognition stream
    */
-  createRecognizeStream(language: Language, callback: (err: any, text?: string) => void, audioConfig: any = {}) {
+  createRecognizeStream(
+    language: Language,
+    callback: (err: any, text?: string) => void,
+    audioConfig: any = {},
+  ): Pumpify {
     let resolved = false;
 
     const stream = this.client.streamingRecognize({
@@ -77,8 +83,8 @@ export class GoogleSpeechRecognizer extends SpeechRecognizer {
       stream.pipe(
         this.createRecognizeStream(
           language,
-          (err: any, text?: string) => {
-            if (err) {
+          (err: any, text: string | undefined) => {
+            if (err || !text) {
               reject(err);
               return;
             }

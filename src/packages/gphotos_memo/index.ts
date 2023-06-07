@@ -8,8 +8,10 @@ const POLL_DATE_CHOICES_COUNT = 4;
 const POLL_DATE_RANGE_DAYS = 1460;
 const POLL_DATE_ANSWER_MINUTES = 10;
 
-const gPhotosMemoAction: AIAction = async ({ queryResult }, _session) => {
-  const { parameters: p } = queryResult;
+export const id = "gphotos_memo";
+
+const gPhotosMemoAction: AIAction = async ({ queryResult }) => {
+  const { parameters: p } = queryResult || {};
 
   const token = await gogleOAuthService().getAccessToken();
 
@@ -42,10 +44,10 @@ const gPhotosMemoAction: AIAction = async ({ queryResult }, _session) => {
 
   const fulfillment: Fulfillment = {
     image: url,
-    caption: queryResult.fulfillmentText,
+    caption: queryResult?.fulfillmentText || "",
   };
 
-  const pollDateQuestion: string = p?.fields?.poll_date_question.stringValue;
+  const pollDateQuestion: string = p?.fields?.poll_date_question.stringValue || "";
   if (pollDateQuestion) {
     const creationTime = moment()(media.mediaMetadata?.creationTime);
     if (creationTime.isValid()) {

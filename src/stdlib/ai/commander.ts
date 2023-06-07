@@ -14,7 +14,7 @@ class AICommander {
     name: string;
     executor: CommandFunction;
     description: string;
-    authorization?: Authorizations;
+    authorization: Authorizations | null;
   }> = [
     {
       matcher: /^\/start/,
@@ -63,7 +63,9 @@ class AICommander {
   }
 
   private async start(_: RegExpMatchArray, session: Session): Promise<Fulfillment> {
-    return ai().getFullfilmentForInput({ event: "welcome" }, session);
+    const fulfillment = await ai().getFullfilmentForInput({ event: "welcome" }, session);
+    if (fulfillment !== null) return fulfillment;
+    return { text: "Welcome!" };
   }
 
   private async whoami(_: RegExpMatchArray, session: Session): Promise<Fulfillment> {
@@ -88,7 +90,7 @@ class AICommander {
       const matches = text.match(cmd.matcher);
       if (matches) {
         if (
-          session.authorizations.includes(cmd.authorization) ||
+          (cmd.authorization && session.authorizations.includes(cmd.authorization)) ||
           session.authorizations.includes(Authorizations.ADMIN) ||
           cmd.authorization == null
         ) {
@@ -96,8 +98,8 @@ class AICommander {
             try {
               const result = await cmd.executor.call(this, matches, session, bag);
               return result;
-            } catch (e) {
-              return { error: { message: e.message, data: e } };
+            } catch (err) {
+              return { error: { message: String(err), data: err } };
             }
           };
         } else {

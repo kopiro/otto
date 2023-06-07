@@ -1,6 +1,6 @@
 import * as Data from "../data";
 import config from "../config";
-import { Fulfillment, Scheduler as SchedulerModel, Session } from "../types";
+import { Fulfillment, Scheduler as IScheduler, Session } from "../types";
 import moment from "../lib/moment";
 import { Signale } from "signale";
 
@@ -14,11 +14,11 @@ const FORMAT = "YYYY-MM-DD HH:mm:ss";
 export type SchedulerProgramName = "input";
 
 export abstract class SchedulerProgramClass {
-  job: SchedulerModel;
-  constructor(job: SchedulerModel) {
+  job: IScheduler;
+  constructor(job: IScheduler) {
     this.job = job;
   }
-  abstract run();
+  abstract run(): any;
 }
 
 type SchedulerConfig = { uid: string };
@@ -51,7 +51,7 @@ export class Scheduler {
     return job.save();
   }
 
-  async getJobs(conditions = []): Promise<SchedulerModel[]> {
+  async getJobs(conditions: Partial<IScheduler>[] = []): Promise<IScheduler[]> {
     const time = this.flatDate(moment()());
     const query = [
       { yearly: time.format("DDD HH:mm:ss") },
@@ -69,13 +69,14 @@ export class Scheduler {
       ...conditions,
     ];
     const jobs = await Data.Scheduler.find({
+      // @ts-ignore
       managerUid: this.getManagerUid(),
       $or: query,
     });
     return jobs;
   }
 
-  async getProgram(job: SchedulerModel): Promise<SchedulerProgramClass> {
+  async getProgram(job: IScheduler): Promise<SchedulerProgramClass> {
     switch (job.programName) {
       case "input":
         return new (await import("../scheduler/input")).default(job);
@@ -85,10 +86,12 @@ export class Scheduler {
         return new (await import("../scheduler/camera")).default(job);
       case "countdown":
         return new (await import("../scheduler/countdown")).default(job);
+      default:
+        throw new Error(`Program <${job.programName}> not found`);
     }
   }
 
-  async runJob(job: SchedulerModel) {
+  async runJob(job: IScheduler) {
     console.debug(Date.now(), "running job", {
       programName: job.programName,
       programArgs: job.programArgs,
@@ -114,7 +117,7 @@ export class Scheduler {
     }
   }
 
-  async tick(conditions = []) {
+  async tick(conditions: Partial<IScheduler>[] = []) {
     const jobs = await this.getJobs(conditions);
     if (jobs.length > 0) {
       console.debug("jobs", jobs);

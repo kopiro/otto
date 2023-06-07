@@ -23,17 +23,19 @@ export class GoogleOAuthService extends OAuthService {
     const credentials = (await this.getCredentials()) as Credentials | null;
     if (!credentials) return null;
     this.oauth2Client.setCredentials(credentials);
-    return (await this.oauth2Client.getAccessToken()).token;
+    const token = (await this.oauth2Client.getAccessToken()).token;
+    return token ?? null;
   }
 
   async initializeForAuthorization(): Promise<void> {
     Server.routerOAuth.get("/google", async (req, res) => {
       try {
+        if (!req.query.code) throw new Error("No code provided");
         const { tokens } = await this.oauth2Client.getToken(req.query.code.toString());
         this.writeCredentials(tokens);
         res.send("You can close this window now");
       } catch (err) {
-        res.send(`Error: ${err.message}`);
+        res.send(`Error: ${err}`);
       }
     });
   }

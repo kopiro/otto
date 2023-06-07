@@ -34,14 +34,20 @@ export class PollyTextToSpeech extends TextToSpeech {
           }
 
           // Filter voice by selected gender
-          let voice = data.Voices.find((v) => v.Gender === gender);
+          let voice = data.Voices?.find((v) => v.Gender === gender);
           if (!voice) {
             voice = await this.getVoice(config().language, gender);
-            return resolve(voice);
+            if (voice) {
+              return resolve(voice);
+            }
           }
 
           // Save for later uses
-          return resolve(voice);
+          if (voice) {
+            return resolve(voice);
+          }
+
+          return reject(err);
         },
       );
     });
@@ -50,7 +56,7 @@ export class PollyTextToSpeech extends TextToSpeech {
   /**
    * Download the audio file for that sentence and options
    */
-  _getAudioFile(text: string, language: Language, gender: Gender): Promise<crypto.BinaryLike> {
+  _getAudioFile(text: string, language: Language, gender: Gender): Promise<Buffer | string> {
     return new Promise((resolve, reject) => {
       (async () => {
         // Find the voice title by options
@@ -64,11 +70,11 @@ export class PollyTextToSpeech extends TextToSpeech {
             OutputFormat: config().audio.encoding,
           },
           async (err, data) => {
-            if (err) {
+            if (err || !data.AudioStream) {
               return reject(err);
             }
 
-            resolve(data.AudioStream as crypto.BinaryLike);
+            resolve(data.AudioStream as Buffer | string);
           },
         );
       })();

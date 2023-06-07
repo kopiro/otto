@@ -8,26 +8,30 @@ export type Locale = string;
 export type Gender = string;
 
 export type AIAction = (
-  body?: IDetectIntentResponse,
-  session?: Session,
-  bag?: IOBag,
+  body: IDetectIntentResponse,
+  session: Session,
+  bag: IOBag,
 ) => Promise<Fulfillment> | IterableIterator<Fulfillment> | Fulfillment;
 
-export interface CustomError {
-  message?: string;
-  data?: Record<string, any>;
-}
+export type CustomError =
+  | Error
+  | unknown
+  | {
+      message?: string;
+      data?: Record<string, any>;
+    };
 
-export const FullfillmentStringKeys = ["audio", "video", "image", "caption", "document"];
+export type FullfillmentStringKeysTypes = "audio" | "video" | "image" | "caption" | "document";
+export const FullfillmentStringKeys: FullfillmentStringKeysTypes[] = ["audio", "video", "image", "caption", "document"];
 
 export interface Fulfillment {
-  text?: string;
+  text?: string | null;
   audio?: string;
   video?: string;
   image?: string;
   document?: string;
   caption?: string;
-  error?: CustomError;
+  error?: unknown | CustomError;
   data?: string;
   poll?: {
     question: string;
@@ -84,6 +88,7 @@ export interface Scheduler extends Document {
   hourly?: string; // set minute
   onTick?: boolean; // every second
   onDate?: string; // on a date
+  onBoot?: boolean;
   onDateISOString?: string;
   deleteAfterRun?: boolean;
 }

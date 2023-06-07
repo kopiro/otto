@@ -39,12 +39,9 @@
   "voice": {
     "addArgs": []
   },
-  "sonos": {
-    "ip": null
-  },
   "server": {
     "protocol": "http",
-    "domain": null,
+    "domain": "",
     "port": 9000
   },
   "mongo": {
@@ -55,17 +52,17 @@
     "password": null
   },
   "dialogflow": {
-    "projectId": null,
-    "environment": null,
+    "projectId": "",
+    "environment": "",
     "language": "it"
   },
   "openai": {
-    "apiKey": null,
-    "brainUrl": null,
+    "apiKey": "",
+    "brainUrl": "",
     "model": "gpt-3.5-turbo"
   },
   "telegram": {
-    "token": null,
+    "token": "",
     "options": {
       "polling": false
     }
@@ -76,22 +73,9 @@
     "enableMic": false,
     "defaultBinaryRecorder": "sox"
   },
-  "messenger": {
-    "token": null,
-    "verify": null,
-    "appId": null,
-    "appSecret": null,
-    "port": null
-  },
-  "facebook": {
-    "appId": null,
-    "secret": null,
-    "pageId": null,
-    "accessToken": null
-  },
   "gcloud": {
-    "cseId": null,
-    "apiKey": null,
+    "cseId": "",
+    "apiKey": "",
     "storage": {
       "bucket": null
     }
@@ -111,13 +95,6 @@
   },
   "wunderground": {
     "apiKey": null
-  },
-  "transmission": {
-    "host": null,
-    "port": null,
-    "username": null,
-    "password": null,
-    "ssl": false
   },
   "gpio_button": {
     "pin": null

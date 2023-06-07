@@ -13,7 +13,7 @@ export class GoogleTextToSpeech extends TextToSpeech {
     this.client = new GCTTS.TextToSpeechClient();
   }
 
-  getVoice(language: Language, gender: Gender) {
+  getVoice(language: Language, gender: Gender): any {
     const key = this.getCacheKeyForVoice(language, gender);
     if (this.cache.voices[key]) {
       return this.cache.voices[key];
@@ -27,23 +27,23 @@ export class GoogleTextToSpeech extends TextToSpeech {
   /**
    * Retrieve the voice title based on language and gender
    */
-  async _getVoice(language: Language, gender: Gender) {
+  async _getVoice(language: Language, gender: Gender): Promise<any> {
     const [response] = await this.client.listVoices({ languageCode: language });
     const availableVoices = response.voices?.filter((voice) => voice.ssmlGender === gender.toUpperCase());
 
-    if (availableVoices?.[0]) {
-      const { ssmlGender, name } = availableVoices[0];
-      const voice = {
-        languageCode: language,
-        ssmlGender,
-        name,
-      };
-      this.setCacheForVoice(language, gender, voice);
-      return voice;
+    if (!availableVoices?.[0]) {
+      // Fallback to config().language
+      return this.getVoice(config().language, gender);
     }
 
-    // Fallback to config().language
-    return this.getVoice(config().language, gender);
+    const { ssmlGender, name } = availableVoices[0];
+    const voice = {
+      languageCode: language,
+      ssmlGender,
+      name,
+    };
+    this.setCacheForVoice(language, gender, voice);
+    return voice;
   }
 
   /**
@@ -63,6 +63,10 @@ export class GoogleTextToSpeech extends TextToSpeech {
         audioEncoding: config().audio.encoding as unknown as google.cloud.texttospeech.v1.AudioEncoding,
       },
     });
+    if (!audioContent) {
+      throw new Error("Failed to get audio content");
+    }
+
     return audioContent;
   }
 }

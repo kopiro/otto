@@ -5,7 +5,7 @@ import config from "../../config";
 
 export class GoogleTranslator extends Translator {
   client: v2.Translate;
-  languages: v2.LanguageResult[] | null;
+  _languages?: v2.LanguageResult[];
 
   constructor() {
     super();
@@ -21,14 +21,14 @@ export class GoogleTranslator extends Translator {
   }
 
   async getLanguages(): Promise<Array<{ name: string; code: string }>> {
-    if (!this.languages) {
+    if (!this._languages) {
       const [languages] = await this.client.getLanguages("en");
-      this.languages = languages;
+      this._languages = languages;
     }
-    return this.languages;
+    return this._languages;
   }
 
-  async getFullnameForLanguage(target: Language): Promise<string> {
+  async getFullnameForLanguage(target: Language): Promise<string | undefined> {
     const languages = await this.getLanguages();
     return languages.find((e) => e.code === target)?.name;
   }

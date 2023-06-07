@@ -12,9 +12,7 @@ import { File } from "../stdlib/file";
 import textToSpeech from "../stdlib/text-to-speech";
 import { Signale } from "signale";
 import ai from "../stdlib/ai";
-
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const formidable = require("formidable");
+import { formidable } from "formidable";
 
 const TAG = "IO.Web";
 const console = new Signale({
@@ -57,7 +55,7 @@ export class Web implements IOManager.IODriverModule {
     const session = await IOManager.registerSession(DRIVER_ID, req.body.sessionId, req.headers);
 
     let resolvedInput = false;
-    let fulfillment: Fulfillment;
+    let fulfillment: Fulfillment | null | undefined;
 
     // First check if the request contains any text or event
     if (req.body.params) {
@@ -92,46 +90,50 @@ export class Web implements IOManager.IODriverModule {
       throw new Error("Unable to find a suitable input: body.params OR files.audio");
     }
 
-    const accepts = req.headers.accept.split(",").map((e: string) => e.trim());
+    const accepts = req.headers.accept?.split(",").map((e: string) => e.trim());
 
-    let audio: string;
-    if (accepts.includes(AcceptHeader.AUDIO)) {
-      const audioFile = await this.getVoiceFile(fulfillment, session);
-      audio = audioFile.getRelativePath();
+    let audio: string | undefined;
+
+    if (fulfillment) {
+      if (accepts?.includes(AcceptHeader.AUDIO)) {
+        const audioFile = await this.getVoiceFile(fulfillment, session);
+        audio = audioFile.getRelativePath();
+      }
+
+      if (accepts?.[0] === AcceptHeader.AUDIO) {
+        if (!audio) {
+          return res.status(400);
+        }
+
+        res.redirect(audio);
+        return;
+      }
     }
 
-    if (accepts[0] === AcceptHeader.AUDIO) {
-      res.redirect(audio);
-      return;
-    }
-
-    const jsonResponse: Record<string, any> = { ...fulfillment, audio };
-    return res.json(jsonResponse);
+    return res.json({ ...fulfillment, audio });
   }
 
   private async getVoiceFile(fulfillment: Fulfillment, session: Session): Promise<File> {
     const audioFile = await textToSpeech().getAudioFile(
-      fulfillment.text,
-      fulfillment.options.language || getSessionTranslateTo(session),
+      fulfillment.text || "",
+      fulfillment.options?.language || getSessionTranslateTo(session),
       config().tts.gender,
     );
     return voice().getFile(audioFile);
   }
 
   async start() {
-    if (this.started) return true;
+    if (this.started) return;
     this.started = true;
 
     // Attach the route
     routerIO.post("/web", bodyParser.json(), async (req: Request, res: Response) => {
       try {
         await this.requestEndpoint(req, res);
-      } catch (ex) {
-        res.status(400).json({ error: { message: ex.message } });
+      } catch (err) {
+        res.status(400).json({ error: { message: String(err) } });
       }
     });
-
-    return true;
   }
 }
 

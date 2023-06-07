@@ -1,11 +1,10 @@
 import mongoose from "mongoose";
 import autopopulate from "mongoose-autopopulate";
-import config from "../config";
-import { Language, Session } from "../types";
+import { Session as ISession } from "../types";
 
 const { Schema } = mongoose;
 
-export const SessionSchema = new Schema<Session>({
+export const SessionSchema = new Schema<ISession>({
   _id: String,
   ioDriver: String,
   ioId: String,

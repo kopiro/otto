@@ -1,26 +1,25 @@
 import config from "../../config";
 import translator from "../../stdlib/translator";
+import { AIAction, Fulfillment } from "../../types";
 
 export const id = "translate.text";
 
-export default async function main({ queryResult }) {
-  const { parameters: p } = queryResult;
+const translateText: AIAction = async ({ queryResult }): Promise<Fulfillment> => {
+  const { parameters: p } = queryResult || {};
+  if (!p?.fields?.q?.stringValue) throw new Error("Missing parameter 'q'");
 
   const languages = await translator().getLanguages();
-  const language = languages.find((e) => e.name === p.language);
+  const language = languages.find((e) => e.name === p?.fields?.language?.stringValue);
+  if (!language) throw new Error("Language not found");
 
-  if (!language) {
-    return {
-      fulfillmentText: `Non riconosco questa lingua: ${p.language}`,
-    };
-  }
-
-  const text = await translator().translate(p.q, language.code, config().language);
+  const text = await translator().translate(p?.fields?.q.stringValue, language.code, config().language);
   return {
-    fulfillmentText: text,
-    payload: {
+    text,
+    options: {
       includeVoice: true,
       language: language.code,
     },
   };
-}
+};
+
+export default translateText;

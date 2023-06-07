@@ -7,6 +7,7 @@ import voice from "../stdlib/voice";
 import textToSpeech from "./text-to-speech";
 import { getSession } from "./iomanager";
 import ai from "./ai";
+// @ts-ignore
 import rateLimit from "express-rate-limit";
 import * as IOManager from "./iomanager";
 
@@ -32,6 +33,8 @@ routerApi.use(express.urlencoded({ extended: true }));
 // GET /api/speech?text=Hello&language=en
 routerApi.get("/speech", async (req: express.Request, res: express.Response) => {
   try {
+    if (!req.query.text) throw new Error("No text provided");
+
     const audioFile = await textToSpeech().getAudioFile(
       req.query.text.toString(),
       req.query.language?.toString() || config().language,
@@ -39,6 +42,7 @@ routerApi.get("/speech", async (req: express.Request, res: express.Response) => 
     );
     const audioFileMixed = await voice().getFile(audioFile);
     const audioFilePath = audioFileMixed.getRelativePath();
+
     res.redirect(audioFilePath);
   } catch (err) {
     return res.status(400).json({
@@ -64,7 +68,7 @@ routerApi.get("/fulfillment", async (req, res) => {
     console.error("/api/fulfillment error", err);
     return res.status(400).json({
       error: {
-        message: err.message,
+        message: String(err),
       },
     });
   }
@@ -87,7 +91,7 @@ routerApi.post("/input", async (req, res) => {
     console.error("/api/input error", err);
     return res.status(400).json({
       error: {
-        message: err.message,
+        message: String(err),
       },
     });
   }
@@ -112,7 +116,7 @@ routerApi.get("/dnd", async (req, res) => {
     console.error("/api/dnd error", err);
     return res.status(400).json({
       error: {
-        message: err.message,
+        message: String(err),
       },
     });
   }
@@ -133,7 +137,7 @@ routerApi.post("/dnd", async (req, res) => {
     console.error("/api/dnd error", err);
     return res.status(400).json({
       error: {
-        message: err.message,
+        message: String(err),
       },
     });
   }

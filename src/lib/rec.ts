@@ -8,7 +8,7 @@ const console = new Signale({
   scope: TAG,
 });
 
-let proc: ChildProcess = null;
+let proc: ChildProcess | null = null;
 
 // returns a Readable stream
 export function start(sampleRate = 16000, threshold = 3, stopOnSilence = false, time = 0): stream.Readable {
@@ -30,18 +30,14 @@ export function start(sampleRate = 16000, threshold = 3, stopOnSilence = false, 
 
   proc = spawn("rec", args);
 
-  proc.stdout.on("end", () => {
+  proc.stdout!.on("end", () => {
     console.debug("end");
   });
 
-  return proc.stdout;
+  return proc.stdout!;
 }
 
-export function getProc(): ChildProcess {
-  return proc;
-}
-
-export function getStream(): stream.Readable {
+export function getStream(): stream.Readable | null | undefined {
   return proc?.stdout;
 }
 

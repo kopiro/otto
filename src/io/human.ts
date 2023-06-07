@@ -6,8 +6,11 @@ import { getSessionTranslateFrom, getSessionTranslateTo, timeout } from "../help
 import { Fulfillment, Session } from "../types";
 import { etcDir } from "../paths";
 import path from "path";
+// @ts-ignore
 import recorder from "node-record-lpcm16";
+// @ts-ignore
 import { COMPUTER } from "@picovoice/porcupine-node/builtin_keywords";
+// @ts-ignore
 import { getPlatform } from "@picovoice/porcupine-node/platforms";
 import os from "os";
 import fs from "fs";
@@ -38,7 +41,7 @@ type HumanConfig = {
   defaultBinaryRecorder: string;
 };
 
-function chunkArray(array: any[], size: number) {
+function chunkArray(array: number[], size: number) {
   return Array.from({ length: Math.ceil(array.length / size) }, (v, index) =>
     array.slice(index * size, index * size + size),
   );
@@ -56,12 +59,12 @@ export class Human implements IOManager.IODriverModule {
   /**
    * Current item processed by the queue
    */
-  currentSpokenFulfillment = null;
+  currentSpokenFulfillment: Fulfillment | null | undefined;
 
   /**
    * ID for setInterval used by HOTWORD_SILENCE_MAX
    */
-  hotwordSilenceSecIntv = null;
+  hotwordSilenceSecIntv: NodeJS.Timer | undefined;
 
   /**
    * Tick used by HOTWORD_SILENCE_MAX
@@ -71,8 +74,8 @@ export class Human implements IOManager.IODriverModule {
   /**
    * Microphone stream
    */
-  porcupine = null;
-  mic = null;
+  porcupine: any | undefined;
+  mic: any | undefined;
 
   /**
    * Constructor
@@ -130,7 +133,7 @@ export class Human implements IOManager.IODriverModule {
     });
 
     // Pipe current mic stream to SR stream
-    this.mic.stream().pipe(recognizeStream);
+    this.mic?.stream().pipe(recognizeStream);
     this.isRecognizing = true;
     this.emitter.emit("recognizing");
   }
@@ -202,7 +205,7 @@ export class Human implements IOManager.IODriverModule {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const Porcupine = require("@picovoice/porcupine-node");
 
-    let frameAccumulator = [];
+    let frameAccumulator: number[] = [];
 
     const ppnFile = path.join(etcDir, `hey_otto_${getPlatform()}.ppn`);
     if (fs.existsSync(ppnFile)) {
@@ -212,7 +215,7 @@ export class Human implements IOManager.IODriverModule {
       this.porcupine = new Porcupine([COMPUTER], [0.5]);
     }
 
-    this.mic.stream().on("data", (data) => {
+    this.mic.stream().on("data", (data: Buffer) => {
       // Two bytes per Int16 from the data buffer
       const newFrames16 = new Array(data.length / 2);
       for (let i = 0; i < data.length; i += 2) {
@@ -226,7 +229,7 @@ export class Human implements IOManager.IODriverModule {
 
       if (frames[frames.length - 1].length !== this.porcupine.frameLength) {
         // store remainder from divisions of frameLength
-        frameAccumulator = frames.pop();
+        frameAccumulator = frames.pop()!;
       } else {
         frameAccumulator = [];
       }
@@ -241,8 +244,8 @@ export class Human implements IOManager.IODriverModule {
     });
   }
 
-  async _output(fulfillment: Fulfillment, session: Session) {
-    const results = [];
+  async _output(fulfillment: Fulfillment, session: Session): Promise<IOManager.IODriverOutput> {
+    const results: IOManager.IODriverOutput = [];
 
     this.hotwordSilenceSec = -1; // Temporary disable timer variables
 
@@ -259,12 +262,14 @@ export class Human implements IOManager.IODriverModule {
           getSessionTranslateTo(session),
           config().tts.gender,
         );
+
         const file = await voice().getFile(audioFile);
         await speaker().play(file);
-        results.push(["file", file]);
+
+        results.push(["file", file.getAbsolutePath()]);
       }
     } catch (err) {
-      results.push(["error", err]);
+      results.push(["error", err as Error]);
       console.error(err);
     }
 
@@ -273,7 +278,8 @@ export class Human implements IOManager.IODriverModule {
       if (fulfillment.audio) {
         const file = await voice().getFile(fulfillment.audio);
         await speaker().play(file);
-        results.push(["file", file]);
+
+        results.push(["file", file.getAbsolutePath()]);
       }
     } catch (err) {
       results.push(["error", err]);
@@ -302,7 +308,8 @@ export class Human implements IOManager.IODriverModule {
     this.currentSpokenFulfillment = fulfillment;
 
     try {
-      results = results.concat(await this._output(fulfillment, session));
+      const result = await this._output(fulfillment, session);
+      results = results.concat(result);
     } finally {
       this.currentSpokenFulfillment = null;
     }
@@ -313,7 +320,7 @@ export class Human implements IOManager.IODriverModule {
   /**
    * Start the session
    */
-  async start(): Promise<boolean> {
+  async start() {
     const session = await this.registerInternalSession();
     console.debug(`started, sessionID: ${session.id}`);
 
@@ -337,8 +344,6 @@ export class Human implements IOManager.IODriverModule {
         }
       }
     }
-
-    return true;
   }
 }
 

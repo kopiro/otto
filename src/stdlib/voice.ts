@@ -16,11 +16,7 @@ type VoiceConfig = {
 };
 
 class Voice {
-  config: VoiceConfig;
-
-  constructor(config: VoiceConfig) {
-    this.config = config;
-  }
+  constructor(private conf: VoiceConfig) {}
 
   /**
    * Play an item
@@ -34,7 +30,7 @@ class Voice {
     }
 
     console.debug(`writing remixed file to ${finalUri.getAbsolutePath()}}`);
-    await Proc.spawn("sox", [localUri, finalUri.getAbsolutePath()].concat(this.config.addArgs)).result;
+    await Proc.spawn("sox", [localUri, finalUri.getAbsolutePath()].concat(this.conf.addArgs)).result;
     return finalUri;
   }
 }

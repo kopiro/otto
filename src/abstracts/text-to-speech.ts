@@ -15,7 +15,7 @@ export type TextToSpeechDriver = "google" | "polly";
 export abstract class TextToSpeech {
   cache: {
     audio: Record<string, string>;
-    voices: Record<string, string>;
+    voices: Record<string, any>;
   };
   TAG = "tts";
   CACHE_REGISTRY_FILE = `${cacheDir}/${this.TAG}.json`;
@@ -44,7 +44,7 @@ export abstract class TextToSpeech {
     return `${String(language)}$${String(gender)}`;
   }
 
-  abstract _getVoice(language: Language, gender: Gender);
+  abstract _getVoice(language: Language, gender: Gender): any;
 
   getVoice(language: Language, gender: Gender) {
     const key = this.getCacheKeyForVoice(language, gender);
@@ -63,7 +63,7 @@ export abstract class TextToSpeech {
     this.writeCacheRegistry();
   }
 
-  abstract _getAudioFile(text: string, language: Language, gender: Gender): Promise<crypto.BinaryLike | undefined>;
+  abstract _getAudioFile(text: string, language: Language, gender: Gender): Promise<string | Buffer | Uint8Array>;
 
   async getAudioFile(text: string, language: Language, gender: Gender) {
     // If file has been downloaded, just serve it
@@ -72,9 +72,16 @@ export abstract class TextToSpeech {
       return cachedFile;
     }
     const data = await this._getAudioFile(text, language, gender);
-    if (!data) return null;
+    if (!data) {
+      throw new Error("Failed to get audio file");
+    }
 
     const file = `${cacheDir}/${this.TAG}_${uuid()}.mp3`;
+    // if is blob
+    if (data instanceof Blob) {
+      throw new Error("Blob not supported yet");
+    }
+
     fs.writeFileSync(file, data, "binary");
 
     // Save this entry onto cache
@@ -91,7 +98,7 @@ export abstract class TextToSpeech {
   /**
    * Get the cache item for an audio
    */
-  getCacheForAudio(text: string, language: Language, gender: Gender): string | null {
+  getCacheForAudio(text: string, language: Language, gender: Gender) {
     const key = this.getCacheKeyForAudio(text, language, gender);
     const file = this.cache.audio[key];
     if (file != null && fs.existsSync(file)) {
