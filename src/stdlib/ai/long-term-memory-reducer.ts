@@ -23,7 +23,13 @@ type GroupedInteractionsByDayThenSession = Record<number, GroupedInteractionsByS
 export class LongTermMemoryReducer {
   async getInteractionsGroupedByDayThenSession(): Promise<GroupedInteractionsByDayThenSession> {
     const unreducedInteractions = await Interaction.find({
+      managerUid: config().uid,
       reducedLongTermMemory: { $exists: false },
+      $or: [
+        { "fulfillment.text": { $exists: true }, source: "text" },
+        { "fulfillment.text": { $exists: true }, source: "audio" },
+        { "input.text": { $exists: true } },
+      ],
     }).sort({ createdAt: +1 });
 
     const groupedInteractionsByDayThenSession = unreducedInteractions.reduce((acc, interaction) => {
@@ -39,6 +45,7 @@ export class LongTermMemoryReducer {
 
   async saveLongTermMemory(forDate: Date, text: string): Promise<ILongTermMemory> {
     const longTermMemory = new LongTermMemory({
+      managerUid: config().uid,
       text,
       createdAt: new Date(),
       type: "daily",

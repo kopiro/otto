@@ -20,19 +20,8 @@ export abstract class SchedulerProgramClass {
   }
   abstract run(): any;
 }
-
-type SchedulerConfig = { uid: string };
 export class Scheduler {
   private started = false;
-  private _config: SchedulerConfig;
-
-  constructor(_config: SchedulerConfig) {
-    this._config = _config;
-  }
-
-  getManagerUid(): string {
-    return this._config.uid;
-  }
 
   flatDate(date: moment.Moment) {
     return date.seconds(0).milliseconds(0);
@@ -40,7 +29,7 @@ export class Scheduler {
 
   async scheduleFulfillment(fulfillment: Fulfillment, session: Session, date: Date) {
     const job = new Data.Scheduler({
-      managerUid: this.getManagerUid(),
+      managerUid: config().uid,
       session: session.id,
       onDateISOString: this.flatDate(moment()(date)).toISOString(),
       programName: "output",
@@ -70,7 +59,7 @@ export class Scheduler {
     ];
     const jobs = await Data.Scheduler.find({
       // @ts-ignore
-      managerUid: this.getManagerUid(),
+      managerUid: config().uid,
       $or: query,
     });
     return jobs;
@@ -142,6 +131,6 @@ export class Scheduler {
 
 let _instance: Scheduler;
 export default (): Scheduler => {
-  _instance = _instance || new Scheduler(config());
+  _instance = _instance || new Scheduler();
   return _instance;
 };

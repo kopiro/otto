@@ -14,6 +14,7 @@ const { Schema } = mongoose;
 export const Session = mongoose.model<ISession>("session", SessionSchema);
 
 const InteractionSchema = new Schema<IInteraction>({
+  managerUid: String,
   session: { type: String, ref: "session", autopopulate: true },
   reducedLongTermMemory: { type: String, ref: "long_term_memory", autopopulate: true },
   createdAt: Date,
@@ -31,6 +32,7 @@ InteractionSchema.plugin(autopopulate);
 export const Interaction = mongoose.model("interaction", InteractionSchema);
 
 const LongTermMemorySchema = new Schema<ILongTermMemory>({
+  managerUid: String,
   text: String,
   createdAt: Date,
   type: String,

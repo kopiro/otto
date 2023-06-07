@@ -1,16 +1,23 @@
 import dialogflow, { protos, SessionsClient, IntentsClient } from "@google-cloud/dialogflow";
 import * as IOManager from "../iomanager";
 import config from "../../config";
-import { Fulfillment, CustomError, AIAction, InputParams, Session, FullfillmentStringKeys } from "../../types";
+import {
+  Fulfillment,
+  CustomError,
+  AIAction,
+  InputParams,
+  Session,
+  FullfillmentStringKeys,
+  InputSource,
+} from "../../types";
 import { struct } from "pb-util";
 import Events from "events";
 import speechRecognizer from "../speech-recognizer";
 import translator from "../translator";
 import { Signale } from "signale";
 import OpenAI from "./openai";
-import { getSessionTranslateFrom, getSessionTranslateTo, isJsonString } from "../../helpers";
+import { createInteraction, getSessionTranslateFrom, getSessionTranslateTo, isJsonString } from "../../helpers";
 import { ChatCompletionRequestMessageRoleEnum } from "openai";
-import { Interaction } from "../../data";
 import AICommander from "./commander";
 
 export type IDetectIntentResponse = protos.google.cloud.dialogflow.v2.IDetectIntentResponse;
@@ -25,7 +32,6 @@ type AIConfig = {
   aiName: string;
   uid: string;
   language: string;
-  trainingSessionId: string;
   dialogflow: {
     projectId: string;
     environment?: string;
@@ -51,7 +57,7 @@ class AI {
   async fulfillmentFinalizer(
     fulfillment: Fulfillment | null,
     session: Session,
-    source: string,
+    source: InputSource,
   ): Promise<Fulfillment | null> {
     if (!fulfillment) return null;
 
@@ -77,12 +83,10 @@ class AI {
       }
     }
 
-    new Interaction({
-      session: session.id,
-      createdAt: new Date(),
-      fulfillment: fulfillment,
+    createInteraction(session, {
+      fulfillment,
       source,
-    }).save();
+    });
 
     // Add other info
     fulfillment.options.finalizerUid = this.conf.uid;
@@ -125,7 +129,7 @@ class AI {
     fulfillmentGenerator: IterableIterator<Fulfillment>,
     session: Session,
     bag: IOManager.IOBag,
-    source: string,
+    source: InputSource,
   ) {
     console.info("Using generator resolver", fulfillmentGenerator);
 
@@ -148,7 +152,7 @@ class AI {
     body: IDetectIntentResponse,
     session: Session,
     bag: IOManager.IOBag,
-    source: string,
+    source: InputSource,
   ): Promise<Fulfillment> {
     console.info(`calling action <${actionName}>`);
 
@@ -210,7 +214,7 @@ class AI {
     session: Session,
     bag: IOManager.IOBag,
     originalRequestType: "text" | "event",
-    source: string,
+    source: InputSource,
   ): Promise<Fulfillment | null> {
     const { fulfillmentText, fulfillmentMessages, action, intent, queryText, parameters } = body.queryResult || {};
 
@@ -282,14 +286,17 @@ class AI {
   /**
    * Get the command to execute and return an executor
    */
-  async commandRequest(command: string, session: Session, bag: IOManager.IOBag, source: string): Promise<Fulfillment> {
+  async commandRequest(
+    command: string,
+    session: Session,
+    bag: IOManager.IOBag,
+    source: InputSource,
+  ): Promise<Fulfillment> {
     console.info("command request:", command);
 
-    new Interaction({
-      session: session.id,
-      createdAt: new Date(),
+    createInteraction(session, {
       input: { command: command },
-    }).save();
+    });
 
     return AICommander().getCommandExecutor(command, session)(session, bag);
   }
@@ -301,18 +308,16 @@ class AI {
     text: InputParams["text"],
     session: Session,
     bag: IOManager.IOBag,
-    source: string,
+    source: InputSource,
   ): Promise<Fulfillment | null> {
     console.info("[df] text request:", text);
 
     const queryInput: IQueryInput = { text: { text } };
     queryInput.text!.languageCode = this.conf.dialogflow.language;
 
-    new Interaction({
-      session: session.id,
-      createdAt: new Date(),
+    createInteraction(session, {
       input: { text },
-    }).save();
+    });
 
     const body = await this.dfRequest(queryInput, session, bag);
     return this.dfBodyParser(body, session, bag, "text", source);
@@ -330,7 +335,7 @@ class AI {
         },
     session: Session,
     bag: IOManager.IOBag,
-    source: string,
+    source: InputSource,
   ): Promise<Fulfillment | null> {
     console.info("[df] event request:", event);
 
@@ -344,11 +349,9 @@ class AI {
     }
     queryInput.event!.languageCode = this.conf.dialogflow.language;
 
-    new Interaction({
-      session: session.id,
-      createdAt: new Date(),
-      input: { event: queryInput.event },
-    }).save();
+    createInteraction(session, {
+      input: { event },
+    });
 
     const body = await this.dfRequest(queryInput, session, bag);
     return this.dfBodyParser(body, session, bag, "event", source);
@@ -356,7 +359,7 @@ class AI {
 
   async getFullfilmentForInput(params: InputParams, session: Session): Promise<Fulfillment | null> {
     let fulfillment: any = null;
-    let source = "";
+    let source: InputSource = "unknown";
     if (params.text) {
       source = "text";
       fulfillment = await this.textRequest(params.text, session, params.bag, source);
@@ -364,14 +367,14 @@ class AI {
       source = "event";
       fulfillment = await this.eventRequest(params.event, session, params.bag, source);
     } else if (params.audio) {
-      source = "audio";
+      source = "voice";
       const text = await speechRecognizer().recognizeFile(params.audio, getSessionTranslateFrom(session));
       fulfillment = await this.textRequest(text, session, params.bag, source);
     } else if (params.command) {
       source = "command";
       fulfillment = await this.commandRequest(params.command, session, params.bag, source);
     } else if (params.repeatText) {
-      source = "repeatText";
+      source = "repeat";
       fulfillment = { text: params.repeatText };
     } else {
       source = "unknown";
@@ -392,7 +395,7 @@ class AI {
       console.info("using repeatModeSessions", session.repeatModeSessions);
       return Promise.all(
         session.repeatModeSessions.map(async (e) => {
-          const trFulfillment = await this.fulfillmentFinalizer({ text: params.text }, e, "repeatSessions");
+          const trFulfillment = await this.fulfillmentFinalizer({ text: params.text }, e, "repeat");
           return IOManager.output(trFulfillment, e, params.bag);
         }),
       );

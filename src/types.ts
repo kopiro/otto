@@ -1,11 +1,12 @@
 import type { Document } from "mongoose";
 import type { IDetectIntentResponse } from "./stdlib/ai";
 import type { IODriver, IOBag, Authorizations } from "./stdlib/iomanager";
-import { ChatCompletionRequestMessageRoleEnum } from "openai";
 
 export type Language = string;
 export type Locale = string;
 export type Gender = string;
+
+export type InputSource = "text" | "voice" | "event" | "command" | "repeat" | "unknown";
 
 export type AIAction = (
   body: IDetectIntentResponse,
@@ -95,6 +96,7 @@ export interface Scheduler extends Document {
 
 export interface Interaction extends Document {
   id: string;
+  managerUid: string;
   session: Session;
   reducedLongTermMemory: LongTermMemory;
   createdAt: Date;
@@ -105,6 +107,7 @@ export interface Interaction extends Document {
 
 export interface LongTermMemory extends Document {
   id: string;
+  managerUid: string;
   session: Session;
   text: string;
   createdAt: Date;

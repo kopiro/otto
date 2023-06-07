@@ -8,6 +8,8 @@ import { Language, Locale, Session } from "./types";
 import { v4 as uuid } from "uuid";
 import crypto from "crypto";
 import { Signale } from "signale";
+import { Interaction } from "./data";
+import { Interaction as IInteraction } from "./types";
 
 /**
  * Get the name of the AI
@@ -245,4 +247,13 @@ export function getSessionName(session: Session): string {
 export function getSessionLocaleTimeString(session: Session): string {
   const date = new Date();
   return date.toLocaleString(session.translateTo, { timeZone: session.timeZone || "Europe/Rome" });
+}
+
+export async function createInteraction(session: Session, params: Partial<IInteraction>): Promise<IInteraction> {
+  return new Interaction({
+    managerUid: config().uid,
+    session: session.id,
+    createdAt: new Date(),
+    ...params,
+  }).save();
 }

@@ -155,11 +155,11 @@ class OpenAI {
 
     let systemMessage = null;
     if (role === "user") {
-      const systemPrompt = `${config().aiName} is now chatting with ${getSessionName(
+      const systemPrompt = `${config().aiName} is now chatting with "${getSessionName(
         session,
-      )}, speaking ${await getLanguageNameFromLanguageCode(
+      )}", speak "${await getLanguageNameFromLanguageCode(
         getSessionTranslateTo(session),
-      )} to them. Current time is: ${getSessionLocaleTimeString(session)}`;
+      )}" to them. Current time is: "${getSessionLocaleTimeString(session)}"`;
 
       systemMessage = {
         role: ChatCompletionRequestMessageRoleEnum.System,
