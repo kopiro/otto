@@ -154,7 +154,7 @@ class OpenAI {
     };
 
     let systemMessage = null;
-    if (role === "user") {
+    if (session) {
       const systemPrompt = `${config().aiName} is now chatting with "${getSessionName(
         session,
       )}", speak "${await getLanguageNameFromLanguageCode(
