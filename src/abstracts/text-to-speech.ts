@@ -77,11 +77,6 @@ export abstract class TextToSpeech {
     }
 
     const file = `${cacheDir}/${this.TAG}_${uuid()}.mp3`;
-    // if is blob
-    if (data instanceof Blob) {
-      throw new Error("Blob not supported yet");
-    }
-
     fs.writeFileSync(file, data, "binary");
 
     // Save this entry onto cache
