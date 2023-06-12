@@ -61,11 +61,11 @@ export class GoogleSpeechRecognizer extends SpeechRecognizer {
       if (data.results.length > 0) {
         const r = data.results[0];
         if (r.alternatives) {
-          console.debug(r.alternatives[0].transcript);
+          console.debug("Alternatives", r.alternatives[0].transcript);
         }
         if (r.isFinal) {
           const text = r.alternatives[0].transcript;
-          console.info("recognized", text);
+          console.info("Recognized", text);
           resolved = true;
           callback(null, text);
         }

@@ -58,8 +58,8 @@ export class Telegram implements IOManager.IODriverModule {
   /**
    * Handle a voice input by recognizing the text
    */
-  private async handleInputVoice(e: TelegramBot.Message, session: ISession): Promise<string> {
-    return new Promise((resolve) => {
+  private async handleVoiceInput(e: TelegramBot.Message, session: ISession): Promise<string> {
+    return new Promise((resolve, reject) => {
       (async () => {
         const fileLink = await this.bot.getFileLink(e.voice!.file_id);
         const voiceFile = path.join(tmpDir, `${uuid()}.ogg`);
@@ -68,9 +68,14 @@ export class Telegram implements IOManager.IODriverModule {
         request(fileLink)
           .pipe(fs.createWriteStream(voiceFile))
           .on("close", async () => {
-            await Proc.spawn("opusdec", [voiceFile, voiceWavFile, "--rate", speechRecognizer().SAMPLE_RATE]).result;
-            const text = await speechRecognizer().recognizeFile(voiceWavFile, getSessionTranslateFrom(session));
-            resolve(text);
+            Proc.spawn("opusdec", [voiceFile, voiceWavFile, "--rate", speechRecognizer().SAMPLE_RATE])
+              .result.then(async () => {
+                const text = await speechRecognizer().recognizeFile(voiceWavFile, getSessionTranslateFrom(session));
+                resolve(text);
+              })
+              .catch((err) => {
+                reject(err);
+              });
           });
       })();
     });
@@ -204,7 +209,7 @@ export class Telegram implements IOManager.IODriverModule {
 
     // Process a Voice object
     if (e.voice) {
-      const text = await this.handleInputVoice(e, session);
+      const text = await this.handleVoiceInput(e, session);
       const isMentionInVoice = this.getIsMention(text);
 
       // If we are in a group, only listen for activators

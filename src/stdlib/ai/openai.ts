@@ -138,12 +138,11 @@ export class AIOpenAI {
           `Speak ${await getLanguageNameFromLanguageCode(
             getSessionTranslateTo(session),
           )} to them, unless they speak a different language to you.`,
-          `Current user time (in their timezone) is: ${getSessionLocaleTimeString(session)}.`,
         ].join("\n"),
       );
-    } else {
-      systemPrompt.push(`Current time is: ${new Date().toLocaleTimeString()}`);
     }
+
+    systemPrompt.push(`Your time is: ${new Date().toLocaleTimeString()}`);
 
     let longTermMemories =
       memoriesOp === "only_memories" || memoriesOp === "all" ? await this.retrieveLongTermMemories() : "";
