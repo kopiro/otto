@@ -34,7 +34,10 @@ export class AIDirector {
     source: InputSource,
   ): Promise<Fulfillment | null> {
     if (!fulfillment) return null;
+
     fulfillment.runtime = fulfillment.runtime || {};
+    fulfillment.analytics = fulfillment.analytics || {};
+    fulfillment.options = fulfillment.options || {};
 
     // If this fulfillment has already been transformed, let's skip this
     if (fulfillment.runtime.finalizerUid) {

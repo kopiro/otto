@@ -26,7 +26,7 @@ export interface Fulfillment {
     includeVoice?: boolean;
   };
   analytics: {
-    engine: "dialogflow" | "openai" | "commander" | "repeater" | "action";
+    engine?: "dialogflow" | "openai" | "commander" | "repeater" | "action";
     sessionId?: string;
   };
   runtime?: {
