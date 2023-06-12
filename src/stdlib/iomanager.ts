@@ -115,12 +115,6 @@ export async function output(
     return { rejectReason: { message: "FULFILLMENT_IS_NULL" } };
   }
 
-  // If this fulfillment has been handled by a generator, simply skip
-  if (fulfillment.options?.handledByGenerator) {
-    console.warn("Skipping output because is handled by an external generator");
-    return { rejectReason: { message: "HANDLED_BY_GENERATOR" } };
-  }
-
   // Redirecting output to another session
   if (session.redirectSessions?.length > 0) {
     console.info("using redirectSessions", session.redirectSessions);

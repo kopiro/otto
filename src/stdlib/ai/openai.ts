@@ -1,28 +1,20 @@
 import { ChatCompletionRequestMessageRoleEnum, Configuration, CreateChatCompletionRequest, OpenAIApi } from "openai";
-import {
-  Fulfillment,
-  CustomError,
-  AIAction,
-  InputParams,
-  Session,
-  Interaction as IInteraction,
-  LongTermMemory as ILongTermMemory,
-} from "../../types";
+import { Fulfillment, InputParams, Session } from "../../types";
 import config from "../../config";
 import { Signale } from "signale";
-import ai from ".";
 import {
   getLanguageNameFromLanguageCode,
+  getSessionDriverName,
   getSessionLocaleTimeString,
   getSessionName,
   getSessionTranslateTo,
 } from "../../helpers";
 import { Interaction, LongTermMemory } from "../../data";
 import fetch from "node-fetch";
+import openai from "../../lib/openai";
 
 type Config = {
   apiKey: string;
-  model: string;
   brainUrl: string;
 };
 
@@ -31,17 +23,23 @@ const console = new Signale({
   scope: TAG,
 });
 
+const OPENAI_MODEL = "gpt-3.5-turbo";
 const BRAIN_TTL_MIN = 10;
 
 type MemoriesOperation = "none" | "only_interactions" | "only_memories" | "all";
 
-class OpenAI {
-  private api: OpenAIApi;
+export class AIOpenAI {
   private _brain: string;
   private _brainExpiration: number;
 
-  constructor(private conf: Config) {
-    this.api = new OpenAIApi(new Configuration({ apiKey: this.conf.apiKey }));
+  constructor(private conf: Config) {}
+
+  private static instance: AIOpenAI;
+  static getInstance(): AIOpenAI {
+    if (!AIOpenAI.instance) {
+      AIOpenAI.instance = new AIOpenAI(config().openai);
+    }
+    return AIOpenAI.instance;
   }
 
   private async getBrain(session: Session): Promise<string> {
@@ -52,47 +50,23 @@ class OpenAI {
     return this._brain;
   }
 
-  async imageRequest(query: string, session: Session) {
-    const sessionPath = ai().getDfSessionPath("SYSTEM");
-    const [dfResponse] = await ai().dfSessionClient.detectIntent({
-      session: sessionPath,
-      queryInput: {
-        event: {
-          name: "OPENAI_IMAGE_BRAIN",
-          languageCode: config().language,
-        },
-      },
-    });
-    const prompt = dfResponse.queryResult.fulfillmentText.replace("{query}", query);
-
-    console.log("image prompt", prompt);
-
-    const openaiResponse = await this.api.createImage({
-      prompt,
-      n: 1,
-      size: "256x256",
-      response_format: "url",
-      user: session.id,
-    });
-
-    console.log("image completion :>> ", openaiResponse.data);
-    return openaiResponse.data.data[0].url;
+  private async retrieveLongTermMemories(): Promise<string> {
+    const memories = await LongTermMemory.find().sort({ createdAt: +1 });
+    return memories.map((memory) => `(${memory.forDate.toDateString()}) ${memory.text}`).join("\n");
   }
 
-  private async retrieveLongTermMemories(): Promise<CreateChatCompletionRequest["messages"]> {
-    const memories = await LongTermMemory.find().sort({ createdAt: +1 });
-    return memories.map((memory) => {
-      return {
-        role: ChatCompletionRequestMessageRoleEnum.System,
-        content: `(${memory.forDate.toDateString()}) ${memory.text}`,
-      };
-    });
+  private getCleanSessionName(session: Session): string {
+    return getSessionName(session)
+      .replace(/[^a-zA-Z0-9_-]/g, "")
+      .substring(0, 64);
   }
 
   private async retrieveInteractions(
     session: Session,
     inputText: string,
   ): Promise<CreateChatCompletionRequest["messages"]> {
+    const sessionName = this.getCleanSessionName(session);
+
     // Get all Interaction where we have a input.text or fulfillment.text in the last 20m
     const interactions = await Interaction.find({
       $or: [
@@ -132,6 +106,7 @@ class OpenAI {
         if (interaction.input.text) {
           return {
             role: ChatCompletionRequestMessageRoleEnum.User,
+            name: sessionName,
             content: interaction.input.text,
           };
         }
@@ -139,51 +114,71 @@ class OpenAI {
       .filter(Boolean);
   }
 
-  async textRequest(
-    text: string,
+  async getFulfillmentForInput(
+    params: InputParams,
     session: Session | null,
     role: "system" | "user" | "assistant" = "user",
     memoriesOp: MemoriesOperation = "all",
-  ): Promise<string> {
-    console.debug("text request :>> ", text);
+  ): Promise<Fulfillment> {
+    const { text } = params;
 
-    const brainPrompt = await this.getBrain(session);
-    const brainMessage = {
-      role: ChatCompletionRequestMessageRoleEnum.System,
-      content: brainPrompt,
-    };
+    let sessionName = undefined;
 
-    let systemMessage = null;
+    const systemPrompt = [];
+
+    const brain = await this.getBrain(session);
+    systemPrompt.push(brain);
+
+    // Append session related info
     if (session) {
-      const systemPrompt = `${config().aiName} is now chatting with "${getSessionName(
-        session,
-      )}", speak "${await getLanguageNameFromLanguageCode(
-        getSessionTranslateTo(session),
-      )}" to them. Current time is: "${getSessionLocaleTimeString(session)}"`;
-
-      systemMessage = {
-        role: ChatCompletionRequestMessageRoleEnum.System,
-        content: systemPrompt,
-      };
+      sessionName = this.getCleanSessionName(session);
+      systemPrompt.push(
+        [
+          `You are now chatting with ${getSessionName(session)} - ${getSessionDriverName(session)}.`,
+          `Speak ${await getLanguageNameFromLanguageCode(
+            getSessionTranslateTo(session),
+          )} to them, unless they speak a different language to you.`,
+          `Current user time (in their timezone) is: ${getSessionLocaleTimeString(session)}.`,
+        ].join("\n"),
+      );
+    } else {
+      systemPrompt.push(`Current time is: ${new Date().toLocaleTimeString()}`);
     }
 
-    const userMessage = {
-      role: role,
-      content: text,
-    };
-
     let longTermMemories =
-      memoriesOp === "only_memories" || memoriesOp === "all" ? await this.retrieveLongTermMemories() : [];
+      memoriesOp === "only_memories" || memoriesOp === "all" ? await this.retrieveLongTermMemories() : "";
+    if (longTermMemories.length > 0) {
+      systemPrompt.push("Recent interactions:\n" + longTermMemories);
+    }
+
     let interactions =
       memoriesOp === "only_interactions" || memoriesOp === "all" ? await this.retrieveInteractions(session, text) : [];
 
-    // Prepend system
-    const messages = [brainMessage, systemMessage, ...longTermMemories, ...interactions, userMessage].filter(Boolean);
-    console.debug("input :>> ", messages);
+    const systemText = systemPrompt.join("\n\n----\n");
+
+    const messages = [
+      ...interactions,
+      {
+        role: role,
+        content: text,
+        name: sessionName,
+      },
+    ].filter(Boolean);
+
+    console.debug("System text :>>", systemText);
+    console.debug("Messages :>> ", messages);
+
+    messages.unshift({
+      role: ChatCompletionRequestMessageRoleEnum.System,
+      content: systemText,
+    });
 
     try {
-      const completion = await this.api.createChatCompletion({
-        model: this.conf.model,
+      const completion = await openai().createChatCompletion({
+        model: OPENAI_MODEL,
+        temperature: 0.9,
+        user: session?.id,
+        n: 1,
         messages: messages,
       });
       const answerMessages = completion.data.choices.map((e) => e.message);
@@ -192,16 +187,15 @@ class OpenAI {
 
       console.debug("completion :>> ", answerText);
 
-      return answerText;
+      return { text: answerText, analytics: { engine: "openai" }, options: { translatePolicy: "never" } };
     } catch (error) {
-      console.error("error :>> ", "toJSON" in error ? error.toJSON() : error);
-      throw error;
+      console.error("error", error?.response?.data);
+      return {
+        error: {
+          message: error?.response?.data?.error?.message || error?.response?.data?.error || error?.message,
+        },
+        analytics: { engine: "openai" },
+      };
     }
   }
 }
-
-let _instance: OpenAI;
-export default (): OpenAI => {
-  _instance = _instance || new OpenAI(config().openai);
-  return _instance;
-};

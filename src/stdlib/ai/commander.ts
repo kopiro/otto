@@ -1,6 +1,5 @@
-import ai from ".";
-import { Interaction } from "../../data";
-import { Fulfillment, Session } from "../../types";
+import { AIDirector } from "./director";
+import { Fulfillment, InputParams, Session } from "../../types";
 import { Authorizations } from "../iomanager";
 import { IOBag } from "../iomanager";
 import { output } from "../iomanager";
@@ -8,7 +7,15 @@ import { getSession } from "../iomanager";
 
 type CommandFunction = (args: RegExpMatchArray, session: Session, bag: IOBag) => Promise<Fulfillment>;
 
-class AICommander {
+export class AICommander {
+  private static instance: AICommander;
+  static getInstance(): AICommander {
+    if (!AICommander.instance) {
+      AICommander.instance = new AICommander();
+    }
+    return AICommander.instance;
+  }
+
   public readonly commandMapping: Array<{
     matcher: RegExp;
     name: string;
@@ -54,38 +61,38 @@ class AICommander {
   ];
 
   private async notFound(): Promise<Fulfillment> {
-    return { text: "Command not found" };
+    return { text: "Command not found", analytics: { engine: "commander" } };
   }
 
   private async appStop(): Promise<Fulfillment> {
     setTimeout(() => process.exit(0), 5000);
-    return { text: "Scheduled shutdown in 5 seconds" };
+    return { text: "Scheduled shutdown in 5 seconds", analytics: { engine: "commander" } };
   }
 
   private async start(_: RegExpMatchArray, session: Session): Promise<Fulfillment> {
-    const fulfillment = await ai().getFullfilmentForInput({ event: "welcome" }, session);
+    const fulfillment = await AIDirector.getInstance().getFullfilmentForInput({ event: "welcome" }, session);
     if (fulfillment !== null) return fulfillment;
-    return { text: "Welcome!" };
+    return { text: "Welcome!", analytics: { engine: "commander" } };
   }
 
   private async whoami(_: RegExpMatchArray, session: Session): Promise<Fulfillment> {
-    return { data: JSON.stringify(session, null, 2) };
+    return { data: JSON.stringify(session, null, 2), analytics: { engine: "commander" } };
   }
 
   private async input([, cmdSessionId, paramsStr]: RegExpMatchArray): Promise<Fulfillment> {
     const cmdSession = await getSession(cmdSessionId);
     const params = JSON.parse(paramsStr);
-    const result = await ai().processInput(params, cmdSession);
-    return { data: JSON.stringify(result, null, 2) };
+    const result = await AIDirector.getInstance().processInput(params, cmdSession);
+    return { data: JSON.stringify(result, null, 2), analytics: { engine: "commander" } };
   }
 
   private async commandOutputText([, cmdSessionId, cmdText]: RegExpMatchArray): Promise<Fulfillment> {
     const cmdSession = await getSession(cmdSessionId);
-    const result = await output({ text: cmdText }, cmdSession, {});
-    return { data: JSON.stringify(result, null, 2) };
+    const result = await output({ text: cmdText, analytics: { engine: "commander" } }, cmdSession, {});
+    return { data: JSON.stringify(result, null, 2), analytics: { engine: "commander" } };
   }
 
-  public getCommandExecutor(text: string, session: Session): (session: Session, bag: IOBag) => Promise<Fulfillment> {
+  private getCommandExecutor(text: string, session: Session): (session: Session) => Promise<Fulfillment> {
     for (const cmd of this.commandMapping) {
       const matches = text.match(cmd.matcher);
       if (matches) {
@@ -94,26 +101,25 @@ class AICommander {
           session.authorizations.includes(Authorizations.ADMIN) ||
           cmd.authorization == null
         ) {
-          return async (session: Session, bag: IOBag) => {
+          return async (session: Session) => {
             try {
-              const result = await cmd.executor.call(this, matches, session, bag);
+              const result = await cmd.executor.call(this, matches, session);
               return result;
             } catch (err) {
               return { error: { message: String(err), data: err } };
             }
           };
         } else {
-          return async () => ({ text: "User not authorized" });
+          return async () => ({ text: "User not authorized", analytics: { engine: "commander" } });
         }
       }
     }
 
     return () => this.notFound();
   }
-}
 
-let _instance: AICommander;
-export default (): AICommander => {
-  _instance = _instance || new AICommander();
-  return _instance;
-};
+  public async getFulfillmentForInput(params: InputParams, session: Session): Promise<Fulfillment> {
+    const executor = this.getCommandExecutor(params.command, session);
+    return executor(session);
+  }
+}

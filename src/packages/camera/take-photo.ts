@@ -4,8 +4,8 @@ import { Authorizations } from "../../stdlib/iomanager";
 
 export const authorizations = [Authorizations.CAMERA];
 
-const cameraAction: AIAction = async () => {
-  return { image: await camera().takePhoto() };
+const takePhoto: AIAction = async () => {
+  return { image: await camera().takePhoto(), analytics: { engine: "action" } };
 };
 
-export default cameraAction;
+export default takePhoto;

@@ -1,10 +1,10 @@
 import config from "./config";
-import ai from "./stdlib/ai";
 import * as Server from "./stdlib/server";
 import * as IOManager from "./stdlib/iomanager";
 import scheduler from "./stdlib/scheduler";
 import { Signale } from "signale";
 import { warmup } from "./boot";
+import { AIDirector } from "./stdlib/ai/director";
 
 warmup().then(() => {
   if (config().serverMode) {
@@ -16,6 +16,6 @@ warmup().then(() => {
   }
 
   IOManager.start((params, session) => {
-    ai().processInput(params, session);
+    AIDirector.getInstance().processInput(params, session);
   });
 });

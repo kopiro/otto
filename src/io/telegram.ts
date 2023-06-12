@@ -17,7 +17,7 @@ import textToSpeech from "../stdlib/text-to-speech";
 import speechRecognizer from "../stdlib/speech-recognizer";
 import { Signale } from "signale";
 import { getAINameRegexp, getSessionTranslateFrom, getSessionTranslateTo } from "../helpers";
-import AICommander from "../stdlib/ai/commander";
+import { AICommander } from "../stdlib/ai/commander";
 
 const TAG = "IO.Telegram";
 const console = new Signale({
@@ -37,6 +37,11 @@ export type TelegramBag = {
   };
 };
 
+export type IODataTelegram = {
+  from: TelegramBot.User;
+  chat: TelegramBot.Chat;
+};
+
 export class Telegram implements IOManager.IODriverModule {
   emitter: Events.EventEmitter = new Events.EventEmitter();
 
@@ -53,7 +58,7 @@ export class Telegram implements IOManager.IODriverModule {
   /**
    * Handle a voice input by recognizing the text
    */
-  async handleInputVoice(e: TelegramBot.Message, session: ISession): Promise<string> {
+  private async handleInputVoice(e: TelegramBot.Message, session: ISession): Promise<string> {
     return new Promise((resolve) => {
       (async () => {
         const fileLink = await this.bot.getFileLink(e.voice!.file_id);
@@ -74,11 +79,11 @@ export class Telegram implements IOManager.IODriverModule {
   /**
    * Remove any XML tag
    */
-  cleanOutputText(text: string) {
+  private cleanOutputText(text: string) {
     return text.replace(/<[^>]+>/g, "");
   }
 
-  cleanInputText(e: TelegramBot.Message) {
+  private cleanInputText(e: TelegramBot.Message) {
     let text = e.text || "";
     text = text.replace(`@${this.botMe!.username}`, "");
     return text;
@@ -87,11 +92,11 @@ export class Telegram implements IOManager.IODriverModule {
   /**
    * Send a message to the user
    */
-  async sendMessage(chatId: string, text: string, opt: any = {}) {
+  private async sendMessage(chatId: string, text: string, opt: any = {}) {
     return this.bot.sendMessage(chatId, this.cleanOutputText(text), { ...{ parse_mode: "HTML" }, ...opt });
   }
 
-  async getVoiceFile(fulfillment: Fulfillment, session: ISession): Promise<File> {
+  private async getVoiceFile(fulfillment: Fulfillment, session: ISession): Promise<File> {
     const audioFile = await textToSpeech().getAudioFile(
       fulfillment.text || "",
       fulfillment.options?.language || getSessionTranslateTo(session),
@@ -114,23 +119,31 @@ export class Telegram implements IOManager.IODriverModule {
     return this.bot.sendVoice(chatId, voiceFile.getAbsolutePath(), botOpt);
   }
 
-  getIsMention(text: string) {
-    console.log("this.aiMentionRegex, text :>> ", getAINameRegexp(), text);
+  private getIsMention(text: string) {
     return this.botMentionRegex?.test(text) || getAINameRegexp().test(text);
   }
 
-  getIsGroup(msg: TelegramBot.Message) {
+  private getIsGroup(msg: TelegramBot.Message) {
     return msg.chat.type === "group" || msg.chat.type === "supergroup";
   }
 
-  getIsCommand(msg: TelegramBot.Message) {
+  private getIsCommand(msg: TelegramBot.Message) {
     return msg.text?.startsWith("/");
+  }
+
+  private getIsReply(msg: TelegramBot.Message) {
+    return msg.reply_to_message?.from?.id === this.botMe?.id;
+  }
+
+  private getIOData(msg: TelegramBot.Message): IODataTelegram {
+    return { from: msg.from, chat: msg.chat };
   }
 
   private async parseMessage(e: TelegramBot.Message) {
     const sessionId = `u${e.from?.id || "unknown"}c${e.chat.id}`;
+    const ioData = this.getIOData(e);
 
-    const session = await IOManager.registerSession(DRIVER_ID, sessionId, { from: e.from, chat: e.chat });
+    const session = await IOManager.registerSession(DRIVER_ID, sessionId, ioData);
 
     const bag: TelegramBag = {
       encodable: {
@@ -140,19 +153,18 @@ export class Telegram implements IOManager.IODriverModule {
 
     const isGroup = this.getIsGroup(e);
     const isMention = this.getIsMention(e.text || "");
-    const isReply = e.reply_to_message?.from?.id === this.botMe?.id;
+    const isReply = this.getIsReply(e);
     const isCommand = this.getIsCommand(e);
 
     return { session, bag, isGroup, isMention, isReply, isCommand };
   }
 
   async onBotInput(e: TelegramBot.Message) {
-    console.info("input", e);
-
     // Register the session
-    const { session, bag, isGroup, isMention, isReply, isCommand } = await this.parseMessage(e);
+    const parsedMessage = await this.parseMessage(e);
+    const { session, bag, isGroup, isMention, isReply, isCommand } = parsedMessage;
 
-    console.info(`session = ${session.id}`);
+    console.info("input", e, parsedMessage);
 
     // Process a command
     if (isCommand) {
@@ -255,7 +267,9 @@ export class Telegram implements IOManager.IODriverModule {
     });
 
     // Add list of commands
-    this.bot.setMyCommands(AICommander().commandMapping.map((c) => ({ command: c.name, description: c.description })));
+    this.bot.setMyCommands(
+      AICommander.getInstance().commandMapping.map((c) => ({ command: c.name, description: c.description })),
+    );
 
     // We could attach the webhook to the Router API or via polling
     if (this.conf.options.polling === false) {
@@ -361,7 +375,11 @@ export class Telegram implements IOManager.IODriverModule {
 
     try {
       if (f.error) {
-        const r = await this.sendMessage(chatId, `<pre>${JSON.stringify(f.error, null, 2)}</pre>`, botOpt);
+        const r = await this.sendMessage(
+          chatId,
+          `An error has been thrown:\n\n<code>${JSON.stringify(f, null, 2)}</code>`,
+          botOpt,
+        );
         results.push(["message", r]);
       }
     } catch (err) {
@@ -371,7 +389,7 @@ export class Telegram implements IOManager.IODriverModule {
 
     try {
       if (f.data) {
-        const r = await this.sendMessage(chatId, `<pre>${f.data}</pre>`, botOpt);
+        const r = await this.sendMessage(chatId, `<code>${f.data}</code>`, botOpt);
         results.push(["data", r]);
       }
     } catch (err) {

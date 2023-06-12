@@ -10,6 +10,8 @@ import crypto from "crypto";
 import { Signale } from "signale";
 import { Interaction } from "./data";
 import { Interaction as IInteraction } from "./types";
+import TelegramBot from "node-telegram-bot-api";
+import { IODataTelegram } from "./io/telegram";
 
 /**
  * Get the name of the AI
@@ -218,12 +220,22 @@ export function isJsonString(str: string): boolean {
   return true;
 }
 
+export function getSessionLanguage(session: Session): Language {
+  switch (session.ioDriver) {
+    case "telegram":
+      const ioData = session.ioData as IODataTelegram;
+      return ioData.from?.language_code || config().language;
+    default:
+      return config().language;
+  }
+}
+
 export function getSessionTranslateFrom(session: Session): Language {
-  return session.translateFrom || config().language;
+  return session.translateFrom || getSessionLanguage(session);
 }
 
 export function getSessionTranslateTo(session: Session): Language {
-  return session.translateTo || config().language;
+  return session.translateTo || getSessionLanguage(session);
 }
 
 export function getSessionName(session: Session): string {
@@ -231,17 +243,47 @@ export function getSessionName(session: Session): string {
     return session.name;
   }
 
-  if (session.ioDriver === "telegram") {
-    const { first_name, last_name } = session.ioData.from;
-    if (first_name && last_name) {
-      return `${first_name} ${last_name}`;
+  switch (session.ioDriver) {
+    case "telegram": {
+      const ioData = session.ioData as IODataTelegram;
+      const { first_name, last_name } = ioData?.from || {};
+      if (first_name && last_name) {
+        return `${first_name} ${last_name}`;
+      }
+      if (first_name) {
+        return first_name;
+      }
+      return "Unknown";
     }
-    if (first_name) {
-      return first_name;
-    }
+    default:
+      return "Unknown";
   }
+}
 
-  return "Unknown";
+export function getSessionDriverName(session: Session): string {
+  switch (session.ioDriver) {
+    case "telegram": {
+      const ioData = session.ioData as IODataTelegram;
+      let chatName = "";
+      switch (ioData?.chat.type) {
+        case "supergroup":
+        case "group":
+          chatName = `in the group chat "${ioData.chat.title}"`;
+        case "channel":
+          chatName = `in the channel "${ioData.chat.title}"`;
+          break;
+        case "private":
+          chatName = "in a private conversation";
+          break;
+      }
+      return `via Telegram (${chatName})`;
+    }
+    case "human":
+    case "web":
+      return "Face to face";
+    default:
+      return "-";
+  }
 }
 
 export function getSessionLocaleTimeString(session: Session): string {

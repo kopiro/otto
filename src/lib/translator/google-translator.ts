@@ -12,11 +12,8 @@ export class GoogleTranslator extends Translator {
     this.client = new v2.Translate();
   }
 
-  async translate(text: string, toLanguage: Language, fromLanguage: Language): Promise<string> {
-    if (toLanguage === fromLanguage) {
-      return text;
-    }
-    const [translations] = await this.client.translate(text, toLanguage);
+  async translate(text: string, language: Language): Promise<string> {
+    const [translations] = await this.client.translate(text, language);
     return Array.isArray(translations) ? translations[0] : translations;
   }
 

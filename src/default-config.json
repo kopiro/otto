@@ -57,8 +57,7 @@
   },
   "openai": {
     "apiKey": "",
-    "brainUrl": "",
-    "model": "gpt-3.5-turbo"
+    "brainUrl": ""
   },
   "telegram": {
     "token": "",

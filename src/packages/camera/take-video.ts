@@ -5,7 +5,7 @@ import { Authorizations } from "../../stdlib/iomanager";
 export const authorizations = [Authorizations.CAMERA];
 
 const takeVideo: AIAction = async () => {
-  return { video: await camera().takeVideo() };
+  return { video: await camera().takeVideo(), analytics: { engine: "action" } };
 };
 
 export default takeVideo;

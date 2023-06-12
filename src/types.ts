@@ -1,29 +1,12 @@
 import type { Document } from "mongoose";
-import type { IDetectIntentResponse } from "./stdlib/ai";
 import type { IODriver, IOBag, Authorizations } from "./stdlib/iomanager";
+import { IDetectIntentResponse } from "./stdlib/ai/dialogflow";
 
 export type Language = string;
 export type Locale = string;
 export type Gender = string;
 
-export type InputSource = "text" | "voice" | "event" | "command" | "repeat" | "unknown";
-
-export type AIAction = (
-  body: IDetectIntentResponse,
-  session: Session,
-  bag: IOBag,
-) => Promise<Fulfillment> | IterableIterator<Fulfillment> | Fulfillment;
-
-export type CustomError =
-  | Error
-  | unknown
-  | {
-      message?: string;
-      data?: Record<string, any>;
-    };
-
-export type FullfillmentStringKeysTypes = "audio" | "video" | "image" | "caption" | "document";
-export const FullfillmentStringKeys: FullfillmentStringKeysTypes[] = ["audio", "video", "image", "caption", "document"];
+export type InputSource = "text" | "event" | "command" | "repeat" | "unknown";
 
 export interface Fulfillment {
   text?: string | null;
@@ -34,40 +17,50 @@ export interface Fulfillment {
   caption?: string;
   error?: unknown | CustomError;
   data?: string;
-  poll?: {
-    question: string;
-    choices: string[];
-    is_anonymous?: boolean;
-    type?: "regular" | "quiz";
-    allows_multiple_answers?: boolean;
-    correct_option_id?: number;
-    explanation?: string;
-    close_date?: number;
-    is_closed?: boolean;
-  };
   outputContexts?: Array<Record<string, any>>;
   options?: {
     language?: Language;
-    finalizerUid?: string;
-    finalizedAt?: number;
     translateTo?: Language;
     translateFrom?: Language;
-    handledByGenerator?: boolean;
+    translatePolicy?: "always" | "when_necessary" | "never";
     includeVoice?: boolean;
+  };
+  analytics: {
+    engine: "dialogflow" | "openai" | "commander" | "repeater" | "action";
     sessionId?: string;
   };
+  runtime?: {
+    finalizerUid?: string;
+    finalizedAt?: number;
+  };
 }
+
+export type AIActionArgs = {
+  inputParams: InputParams;
+  session: Session;
+  dialogFlowOutputParams: IDetectIntentResponse | null;
+};
+
+export type AIAction = (args: AIActionArgs) => Promise<Fulfillment> | Fulfillment;
+
+export type CustomError =
+  | Error
+  | unknown
+  | {
+      message?: string;
+      data?: Record<string, any>;
+    };
+
 export interface InputParams {
   text?: string;
-  repeatText?: string;
   event?:
     | string
     | {
         name: string;
         parameters?: Record<string, string>;
       };
-  audio?: string;
   command?: string;
+  repeatText?: string;
   bag?: any;
 }
 export interface IOQueue extends Document {
@@ -120,7 +113,7 @@ export interface Session extends Document {
   uid: string;
   ioDriver: IODriver;
   ioId: string;
-  ioData: Record<string, any>;
+  ioData?: Record<string, any>;
   name?: string;
   timeZone?: string;
   translateFrom: Language;

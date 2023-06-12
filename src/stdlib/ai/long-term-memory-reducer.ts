@@ -1,6 +1,6 @@
 import { Signale } from "signale";
 import { Interaction, Session, LongTermMemory } from "../../data";
-import openai from "./openai";
+import { AIOpenAI } from "./openai";
 import { Interaction as IInteraction, Session as ISession, LongTermMemory as ILongTermMemory } from "../../types";
 import { getSessionName } from "../../helpers";
 import config from "../../config";
@@ -86,15 +86,20 @@ export class LongTermMemoryReducer {
     }
 
     const reducerPrompt =
-      `I have the following interactions between ${aiName} and users, happening at ${forDate.toDateString()}, please reduce them to a single sentence. Keep the output as short as possible and, if possible, below ${MAX_CHARS} characters; try to only keep new informations and discard already known informations. In case of error, strictly return "ERROR".\n\n` +
+      `I have the following interactions between YOU and your friends, happening at ${forDate.toDateString()}, please reduce them to a single sentence. Keep the output as short as possible and, if possible, below ${MAX_CHARS} characters; try to only keep new informations and discard already known informations. In case of error, strictly return "ERROR".\n\n` +
       interactionsText.join("\n");
 
-    const reducedMemory = await openai().textRequest(reducerPrompt, null, "system", "none");
-    if (reducedMemory.trim().toUpperCase() === "ERROR") {
+    const reducedMemory = await AIOpenAI.getInstance().getFulfillmentForInput(
+      { text: reducerPrompt },
+      null,
+      "system",
+      "none",
+    );
+    if (!reducedMemory.text || reducedMemory.text.toUpperCase() === "ERROR") {
       return "";
     }
 
-    return reducedMemory;
+    return reducedMemory.text;
   }
 
   async reduce(): Promise<void> {
