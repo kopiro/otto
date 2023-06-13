@@ -164,8 +164,6 @@ export class AIOpenAI {
       },
     ].filter(Boolean);
 
-    messages.unshift();
-
     try {
       const completion = await openai().createChatCompletion({
         model: OPENAI_MODEL,
