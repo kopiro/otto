@@ -57,7 +57,11 @@
   },
   "openai": {
     "apiKey": "",
-    "brainUrl": ""
+    "promptUrl": "",
+    "declarativeMemoryUrl": ""
+  },
+  "qdrant": {
+    "url": ""
   },
   "telegram": {
     "token": "",

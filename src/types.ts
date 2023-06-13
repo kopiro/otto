@@ -85,7 +85,7 @@ export interface Interaction extends Document {
   id: string;
   managerUid: string;
   session: Session;
-  reducedLongTermMemory: LongTermMemory;
+  reducedAt: Date;
   createdAt: Date;
   input: InputParams;
   fulfillment: Fulfillment;

@@ -6,7 +6,6 @@ import {
   IOQueue as IIOQueue,
   Scheduler as IScheduler,
   Interaction as IInteraction,
-  LongTermMemory as ILongTermMemory,
 } from "../types";
 
 const { Schema } = mongoose;
@@ -16,7 +15,7 @@ export const Session = mongoose.model<ISession>("session", SessionSchema);
 const InteractionSchema = new Schema<IInteraction>({
   managerUid: String,
   session: { type: String, ref: "session", autopopulate: true },
-  reducedLongTermMemory: { type: String, ref: "long_term_memory", autopopulate: true },
+  reducedAt: Date,
   createdAt: Date,
   input: {
     text: String,
@@ -30,16 +29,6 @@ const InteractionSchema = new Schema<IInteraction>({
 });
 InteractionSchema.plugin(autopopulate);
 export const Interaction = mongoose.model("interaction", InteractionSchema);
-
-const LongTermMemorySchema = new Schema<ILongTermMemory>({
-  managerUid: String,
-  text: String,
-  createdAt: Date,
-  type: String,
-  forDate: Date,
-});
-LongTermMemorySchema.plugin(autopopulate);
-export const LongTermMemory = mongoose.model("long_term_memory", LongTermMemorySchema);
 
 const IOQueueSchema = new Schema({
   ioId: String,
