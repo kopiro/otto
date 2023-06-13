@@ -30,7 +30,6 @@ type MemoriesOperation = "none" | "only_interactions" | "only_memories" | "all";
 
 export class AIOpenAI {
   private _brain: string;
-  private _brainExpiration: number;
 
   constructor(private conf: Config) {}
 
@@ -42,11 +41,8 @@ export class AIOpenAI {
     return AIOpenAI.instance;
   }
 
-  private async getBrain(session: Session): Promise<string> {
-    if (!this._brainExpiration || this._brainExpiration < Math.floor(Date.now() / 1000)) {
-      this._brain = await (await fetch(this.conf.brainUrl)).text();
-      this._brainExpiration = new Date(Date.now() + BRAIN_TTL_MIN * 60 * 1000).getTime() / 1000;
-    }
+  private async getBrain(): Promise<string> {
+    this._brain = this._brain || (await (await fetch(this.conf.brainUrl)).text());
     return this._brain;
   }
 
@@ -126,7 +122,7 @@ export class AIOpenAI {
 
     const systemPrompt = [];
 
-    const brain = await this.getBrain(session);
+    const brain = await this.getBrain();
     systemPrompt.push(brain);
 
     // Append session related info
@@ -156,6 +152,10 @@ export class AIOpenAI {
     const systemText = systemPrompt.join("\n\n----\n");
 
     const messages = [
+      {
+        role: ChatCompletionRequestMessageRoleEnum.System,
+        content: systemText,
+      },
       ...interactions,
       {
         role: role,
@@ -164,18 +164,13 @@ export class AIOpenAI {
       },
     ].filter(Boolean);
 
-    console.debug("System text :>>", systemText);
     console.debug("Messages :>> ", messages);
 
-    messages.unshift({
-      role: ChatCompletionRequestMessageRoleEnum.System,
-      content: systemText,
-    });
+    messages.unshift();
 
     try {
       const completion = await openai().createChatCompletion({
         model: OPENAI_MODEL,
-        temperature: 0.9,
         user: session?.id,
         n: 1,
         messages: messages,

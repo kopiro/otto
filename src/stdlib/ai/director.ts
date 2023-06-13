@@ -134,7 +134,7 @@ export class AIDirector {
    * Process a fulfillment to a session
    */
   async processInput(params: InputParams, session: Session) {
-    console.info("processInput", { params, session });
+    console.info("processInput", params, session.id);
     const fulfillment = await this.getFullfilmentForInput(params, session);
     return IOManager.output(fulfillment, session, params.bag);
   }
