@@ -8,7 +8,7 @@ export async function warmup() {
     dotEnvConfig();
 
     if (!config().uid) {
-      throw new Error("Please define config.uid with your Universal ID (username)");
+      throw new Error("Please define config.uid with a unique identifier for this instance.");
     }
 
     if (config().sentry?.dsn && process.env.NODE_ENV === "production") {
