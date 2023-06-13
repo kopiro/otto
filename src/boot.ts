@@ -4,8 +4,6 @@ import * as Sentry from "@sentry/node";
 import * as Database from "./stdlib/database";
 
 export async function warmup() {
-  console.info("Warming up...");
-
   try {
     dotEnvConfig();
 

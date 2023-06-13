@@ -5,17 +5,17 @@ import { Signale } from "signale";
 import {
   getLanguageNameFromLanguageCode,
   getSessionDriverName,
-  getSessionLocaleTimeString,
   getSessionName,
   getSessionTranslateTo,
 } from "../../helpers";
-import { Interaction, LongTermMemory } from "../../data";
+import { Interaction } from "../../data";
 import fetch from "node-fetch";
 import openai from "../../lib/openai";
+import { VectorMemory } from "./vectormemory";
 
 type Config = {
   apiKey: string;
-  brainUrl: string;
+  promptUrl: string;
 };
 
 const TAG = "OpenAI";
@@ -23,13 +23,8 @@ const console = new Signale({
   scope: TAG,
 });
 
-const OPENAI_MODEL = "gpt-3.5-turbo";
-const BRAIN_TTL_MIN = 10;
-
-type MemoriesOperation = "none" | "only_interactions" | "only_memories" | "all";
-
 export class AIOpenAI {
-  private _brain: string;
+  private prompt: string;
 
   constructor(private conf: Config) {}
 
@@ -41,14 +36,9 @@ export class AIOpenAI {
     return AIOpenAI.instance;
   }
 
-  private async getBrain(): Promise<string> {
-    this._brain = this._brain || (await (await fetch(this.conf.brainUrl)).text());
-    return this._brain;
-  }
-
-  private async retrieveLongTermMemories(): Promise<string> {
-    const memories = await LongTermMemory.find().sort({ createdAt: +1 });
-    return memories.map((memory) => `(${memory.forDate.toDateString()}) ${memory.text}`).join("\n");
+  private async getPrompt(): Promise<string> {
+    this.prompt = this.prompt || (await (await fetch(this.conf.promptUrl)).text());
+    return this.prompt;
   }
 
   private getCleanSessionName(session: Session): string {
@@ -69,13 +59,13 @@ export class AIOpenAI {
         {
           "fulfillment.text": { $ne: null },
           session: session.id,
-          reducedLongTermMemory: { $exists: false },
+          reducedAt: { $exists: false },
           createdAt: { $gte: new Date(Date.now() - 20 * 60_000) },
         },
         {
           "input.text": { $ne: null },
           session: session.id,
-          reducedLongTermMemory: { $exists: false },
+          reducedAt: { $exists: false },
           createdAt: { $gte: new Date(Date.now() - 20 * 60_000) },
         },
       ],
@@ -110,57 +100,60 @@ export class AIOpenAI {
       .filter(Boolean);
   }
 
-  private async getPromptContext(session: Session) {
+  private async getSessionContext(session: Session): Promise<string> {
     const contextPrompt = [];
+
+    contextPrompt.push("## User");
+
+    contextPrompt.push(`Current time is: ${new Date().toLocaleTimeString()}`);
 
     // Append session related info
     if (session) {
-      contextPrompt.push(
-        [
-          `You are now chatting with ${getSessionName(session)} - ${getSessionDriverName(session)}.`,
-          `Speak ${await getLanguageNameFromLanguageCode(
-            getSessionTranslateTo(session),
-          )} to them, unless they speak a different language to you.`,
-        ].join("\n"),
-      );
+      const userLanguage = await getLanguageNameFromLanguageCode(getSessionTranslateTo(session));
+      contextPrompt.push(`
+You are now chatting with ${getSessionName(session)} - ${getSessionDriverName(session)}.
+Speak ${userLanguage} to them, unless they speak a different language to you.
+`);
     }
-    contextPrompt.push(`Your time is: ${new Date().toLocaleTimeString()}`);
 
-    console.debug("contextPrompt :>> ", contextPrompt);
-    return contextPrompt;
+    return contextPrompt.join("\n");
+  }
+
+  private async getMemoryContext(text: string): Promise<string> {
+    const memory = VectorMemory.getInstance();
+    const vector = await memory.createEmbedding(text);
+
+    const [declarativeMemories, episodicMemories] = await Promise.all([
+      memory.searchByVector(vector, "declarative"),
+      memory.searchByVector(vector, "episodic"),
+    ]);
+
+    return `
+## Memories:\n${declarativeMemories.join("\n")}
+## Episodes:\n${episodicMemories.join("\n")}
+`;
   }
 
   async getFulfillmentForInput(
     params: InputParams,
     session: Session | null,
     role: "system" | "user" | "assistant" = "user",
-    memoriesOp: MemoriesOperation = "all",
   ): Promise<Fulfillment> {
     const { text } = params;
 
     let sessionName = session ? this.getCleanSessionName(session) : undefined;
 
-    const systemPrompt = [];
+    const systemPrompt: string[] = [];
 
     // Add brain
-    systemPrompt.push(await this.getBrain());
+    systemPrompt.push(await this.getPrompt());
 
-    // Add context
-    systemPrompt.push(this.getPromptContext(session));
-
-    // Add long term memories
-    if (memoriesOp === "only_memories" || memoriesOp === "all") {
-      let longTermMemories = await this.retrieveLongTermMemories();
-      if (longTermMemories.length > 0) {
-        systemPrompt.push("Recent interactions:\n" + longTermMemories);
-      }
-    }
+    systemPrompt.push("# Context");
+    systemPrompt.push(await this.getSessionContext(session));
+    systemPrompt.push(await this.getMemoryContext(text));
 
     // Add interactions
-    let interactions = [];
-    if (memoriesOp === "only_interactions" || memoriesOp === "all") {
-      interactions = await this.retrieveInteractions(session, text);
-    }
+    let interactions = await this.retrieveInteractions(session, text);
 
     // Build messages
     const messages = [
@@ -176,16 +169,16 @@ export class AIOpenAI {
       },
     ].filter(Boolean);
 
+    console.debug("Messages:", messages);
+
     try {
       const completion = await openai().createChatCompletion({
-        model: OPENAI_MODEL,
+        model: "gpt-3.5-turbo",
         user: session?.id,
-        n: 1,
         messages: messages,
       });
       const answerMessages = completion.data.choices.map((e) => e.message);
-      const answerMessage = answerMessages[0];
-      const answerText = answerMessage?.content;
+      const answerText = answerMessages[0]?.content;
 
       return { text: answerText, analytics: { engine: "openai" }, options: { translatePolicy: "never" } };
     } catch (error) {

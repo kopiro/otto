@@ -77,7 +77,7 @@ export class AIDirector {
     const { text } = params;
     console.info("text request:", text);
 
-    return AIOpenAI.getInstance().getFulfillmentForInput(params, session, "user", "all");
+    return AIOpenAI.getInstance().getFulfillmentForInput(params, session, "user");
   }
 
   async eventRequest(params: InputParams, session: Session): Promise<Fulfillment | null> {
