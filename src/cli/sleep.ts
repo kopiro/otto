@@ -3,12 +3,12 @@ import { warmup } from "../boot";
 
 import { LongTermMemoryReducer } from "../stdlib/ai/long-term-memory-reducer";
 
-console.log("Sleeping...");
+console.info("Sleeping...");
 
 warmup()
   .then(async () => {
     await new LongTermMemoryReducer().reduce();
-    console.log("Done");
+    console.info("Done");
     process.exit(0);
   })
   .catch((err) => {

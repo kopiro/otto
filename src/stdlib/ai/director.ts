@@ -70,8 +70,6 @@ export class AIDirector {
       source,
     });
 
-    console.info("Finalized fuflillment", fulfillment);
-
     return fulfillment;
   }
 
@@ -134,8 +132,9 @@ export class AIDirector {
    * Process a fulfillment to a session
    */
   async processInput(params: InputParams, session: Session) {
-    console.info("processInput", params, session.id);
+    console.info("input", params, session.id);
     const fulfillment = await this.getFullfilmentForInput(params, session);
+    console.info("output", fulfillment, session.id);
     return IOManager.output(fulfillment, session, params.bag);
   }
 }

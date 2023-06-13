@@ -110,25 +110,12 @@ export class AIOpenAI {
       .filter(Boolean);
   }
 
-  async getFulfillmentForInput(
-    params: InputParams,
-    session: Session | null,
-    role: "system" | "user" | "assistant" = "user",
-    memoriesOp: MemoriesOperation = "all",
-  ): Promise<Fulfillment> {
-    const { text } = params;
-
-    let sessionName = undefined;
-
-    const systemPrompt = [];
-
-    const brain = await this.getBrain();
-    systemPrompt.push(brain);
+  private async getPromptContext(session: Session) {
+    const contextPrompt = [];
 
     // Append session related info
     if (session) {
-      sessionName = this.getCleanSessionName(session);
-      systemPrompt.push(
+      contextPrompt.push(
         [
           `You are now chatting with ${getSessionName(session)} - ${getSessionDriverName(session)}.`,
           `Speak ${await getLanguageNameFromLanguageCode(
@@ -137,24 +124,49 @@ export class AIOpenAI {
         ].join("\n"),
       );
     }
+    contextPrompt.push(`Your time is: ${new Date().toLocaleTimeString()}`);
 
-    systemPrompt.push(`Your time is: ${new Date().toLocaleTimeString()}`);
+    console.debug("contextPrompt :>> ", contextPrompt);
+    return contextPrompt;
+  }
 
-    let longTermMemories =
-      memoriesOp === "only_memories" || memoriesOp === "all" ? await this.retrieveLongTermMemories() : "";
-    if (longTermMemories.length > 0) {
-      systemPrompt.push("Recent interactions:\n" + longTermMemories);
+  async getFulfillmentForInput(
+    params: InputParams,
+    session: Session | null,
+    role: "system" | "user" | "assistant" = "user",
+    memoriesOp: MemoriesOperation = "all",
+  ): Promise<Fulfillment> {
+    const { text } = params;
+
+    let sessionName = session ? this.getCleanSessionName(session) : undefined;
+
+    const systemPrompt = [];
+
+    // Add brain
+    systemPrompt.push(await this.getBrain());
+
+    // Add context
+    systemPrompt.push(this.getPromptContext(session));
+
+    // Add long term memories
+    if (memoriesOp === "only_memories" || memoriesOp === "all") {
+      let longTermMemories = await this.retrieveLongTermMemories();
+      if (longTermMemories.length > 0) {
+        systemPrompt.push("Recent interactions:\n" + longTermMemories);
+      }
     }
 
-    let interactions =
-      memoriesOp === "only_interactions" || memoriesOp === "all" ? await this.retrieveInteractions(session, text) : [];
+    // Add interactions
+    let interactions = [];
+    if (memoriesOp === "only_interactions" || memoriesOp === "all") {
+      interactions = await this.retrieveInteractions(session, text);
+    }
 
-    const systemText = systemPrompt.join("\n\n----\n");
-
+    // Build messages
     const messages = [
       {
         role: ChatCompletionRequestMessageRoleEnum.System,
-        content: systemText,
+        content: systemPrompt.join("\n"),
       },
       ...interactions,
       {
@@ -174,8 +186,6 @@ export class AIOpenAI {
       const answerMessages = completion.data.choices.map((e) => e.message);
       const answerMessage = answerMessages[0];
       const answerText = answerMessage?.content;
-
-      console.debug("completion :>> ", answerText);
 
       return { text: answerText, analytics: { engine: "openai" }, options: { translatePolicy: "never" } };
     } catch (error) {
