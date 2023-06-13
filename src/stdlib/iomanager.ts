@@ -14,6 +14,10 @@ export type IOAccessory = "gpio_button" | "leds";
 
 export type IOBag = any;
 
+type StartArgs = {
+  onDriverInput: (params: InputParams, session: Session) => void;
+};
+
 export enum Authorizations {
   "ADMIN" = "ADMIN",
   "CAMERA" = "CAMERA",
@@ -217,7 +221,26 @@ export async function configureDriver(driverName: IODriver): Promise<[IODriverMo
   return [driver, driverId];
 }
 
-function startDrivers(onDriverInput: (params: InputParams, session: Session) => void) {
+async function onDriverInputWrapper(onDriverInput: StartArgs["onDriverInput"], params: InputParams, session: Session) {
+  // Check if we have repeatModeSessions - if so, just output to all of them
+  if (session.repeatModeSessions?.length) {
+    console.info("using repeatModeSessions", session.repeatModeSessions);
+
+    if (!params.text) {
+      throw new Error("repeatModeSessions requires text");
+    }
+
+    return Promise.all(
+      session.repeatModeSessions.map((repeaterSession) => {
+        return output({ text: params.text, analytics: { engine: "repeater" } }, repeaterSession, params.bag);
+      }),
+    );
+  }
+
+  return onDriverInput(params, session);
+}
+
+function startDrivers({ onDriverInput }: StartArgs) {
   return Promise.all(
     getDriversToLoad().map(async (driverName) => {
       configureDriver(driverName)
@@ -229,11 +252,15 @@ function startDrivers(onDriverInput: (params: InputParams, session: Session) => 
         })
         .then(([driver, driverId]) => {
           driver.emitter.on("input", (input) => {
-            if (input.params) {
-              onDriverInput(input.params as InputParams, input.session as Session);
-            } else {
+            if (!input.params) {
               console.error("driver emitted unkown events", input);
+              return;
             }
+
+            const params = input.params as InputParams;
+            const session = input.session as Session;
+
+            onDriverInputWrapper(onDriverInput, params, session);
           });
 
           enabledDrivers[driverName] = driver;
@@ -331,8 +358,8 @@ export async function processIOQueue(callback?: (item: IOQueue | null) => void):
 /**
  * Start drivers and start processing the queue
  */
-export async function start(onDriverInput: (params: InputParams, session: Session) => void) {
-  await startDrivers(onDriverInput);
+export async function start({ onDriverInput }: StartArgs) {
+  await startDrivers({ onDriverInput });
 
   if (config().ioQueue?.enabled) {
     setInterval(processIOQueue, config().ioQueue.timeout);

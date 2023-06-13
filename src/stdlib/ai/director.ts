@@ -121,16 +121,12 @@ export class AIDirector {
     } else if (params.command) {
       source = "command";
       fulfillment = await this.commandRequest(params, session);
-    } else if (params.repeatText) {
-      source = "repeat";
-      fulfillment = { text: params.repeatText };
     } else {
       source = "unknown";
       console.warn("No suitable inputs params in the request");
     }
 
     const finalFulfillment = await this.fulfillmentFinalizer(fulfillment, session, source);
-
     return finalFulfillment;
   }
 
@@ -139,23 +135,6 @@ export class AIDirector {
    */
   async processInput(params: InputParams, session: Session) {
     console.info("processInput", { params, session });
-
-    // Check if we have repeatModeSessions - if so, just output to all of them
-    if (session.repeatModeSessions?.length && params.text) {
-      console.info("using repeatModeSessions", session.repeatModeSessions);
-
-      return Promise.all(
-        session.repeatModeSessions.map(async (e) => {
-          const trFulfillment = await this.fulfillmentFinalizer(
-            { text: params.text, analytics: { engine: "repeater" } },
-            e,
-            "repeat",
-          );
-          return IOManager.output(trFulfillment, e, params.bag);
-        }),
-      );
-    }
-
     const fulfillment = await this.getFullfilmentForInput(params, session);
     return IOManager.output(fulfillment, session, params.bag);
   }

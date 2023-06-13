@@ -169,8 +169,6 @@ export class Telegram implements IOManager.IODriverModule {
     const parsedMessage = await this.parseMessage(e);
     const { session, bag, isGroup, isMention, isReply, isCommand } = parsedMessage;
 
-    console.info("input", e, parsedMessage);
-
     // Process a command
     if (isCommand) {
       this.emitter.emit("input", {
@@ -187,7 +185,7 @@ export class Telegram implements IOManager.IODriverModule {
     if (e.text) {
       // If we are in a group, only listen for activators
       if (isGroup && !(isMention || isReply)) {
-        console.debug("Skipping input for missing activator", { isMention, isReply });
+        console.debug("Skipping input for missing activator");
         return false;
       }
 

@@ -88,8 +88,7 @@ export class AIDialogFlow {
     // If we have an "action", call the package with the specified name
     if (action) {
       console.debug(`Resolving action: ${action}`);
-
-      return AIActionResolver.getInstance().resolveAction(action, params, session, body);
+      return AIActionResolver.getInstance().resolveAction(action, params, session, body, null);
     }
 
     let prompt = fulfillmentMessages?.find((m) => m?.payload?.fields?.openai_prompt?.stringValue)?.payload?.fields

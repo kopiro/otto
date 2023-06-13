@@ -1,23 +1,22 @@
 import type { Document } from "mongoose";
-import type { IODriver, IOBag, Authorizations } from "./stdlib/iomanager";
+import type { IODriver, Authorizations, IOBag } from "./stdlib/iomanager";
 import { IDetectIntentResponse } from "./stdlib/ai/dialogflow";
 
 export type Language = string;
 export type Locale = string;
 export type Gender = string;
 
-export type InputSource = "text" | "event" | "command" | "repeat" | "unknown";
+export type InputSource = "text" | "event" | "command" | "unknown";
 
-export interface Fulfillment {
+export type Fulfillment = {
   text?: string | null;
   audio?: string;
   video?: string;
   image?: string;
   document?: string;
   caption?: string;
-  error?: unknown | CustomError;
+  error?: CustomError;
   data?: string;
-  outputContexts?: Array<Record<string, any>>;
   options?: {
     language?: Language;
     translateTo?: Language;
@@ -33,25 +32,20 @@ export interface Fulfillment {
     finalizerUid?: string;
     finalizedAt?: number;
   };
-}
+};
 
 export type AIActionArgs = {
   inputParams: InputParams;
   session: Session;
   dialogFlowOutputParams: IDetectIntentResponse | null;
+  openaiOutputParams: any | null;
 };
 
 export type AIAction = (args: AIActionArgs) => Promise<Fulfillment> | Fulfillment;
 
-export type CustomError =
-  | Error
-  | unknown
-  | {
-      message?: string;
-      data?: Record<string, any>;
-    };
+export type CustomError = Error | unknown;
 
-export interface InputParams {
+export type InputParams = {
   text?: string;
   event?:
     | string
@@ -60,17 +54,17 @@ export interface InputParams {
         parameters?: Record<string, string>;
       };
   command?: string;
-  repeatText?: string;
-  bag?: any;
-}
+  bag?: IOBag;
+};
 export interface IOQueue extends Document {
   id: string;
   fulfillment: Fulfillment;
   session: Session;
-  bag?: any;
+  bag?: IOBag;
 }
 
 export interface Scheduler extends Document {
+  id: string;
   session: Session;
   managerUid: string;
   programName: string;
@@ -116,12 +110,12 @@ export interface Session extends Document {
   ioData?: Record<string, any>;
   name?: string;
   timeZone?: string;
-  translateFrom: Language;
-  translateTo: Language;
-  authorizations: Authorizations[];
-  fallbackSession: Session | undefined;
-  redirectSessions: Session[] | undefined;
-  forwardSessions: Session[] | undefined;
-  repeatModeSessions: Session[] | undefined;
+  translateFrom?: Language;
+  translateTo?: Language;
+  authorizations?: Authorizations[];
+  fallbackSession?: Session;
+  redirectSessions?: Session[];
+  forwardSessions?: Session[];
+  repeatModeSessions?: Session[];
   doNotDisturb?: boolean;
 }

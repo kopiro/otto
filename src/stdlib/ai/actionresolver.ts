@@ -12,19 +12,6 @@ export class AIActionResolver {
   }
 
   /**
-   * Transform an error into a fulfillment
-   */
-  errorToFulfillment(error: CustomError): Fulfillment {
-    const fulfillment: Fulfillment = {
-      analytics: {
-        engine: "action",
-      },
-    };
-    fulfillment.error = error;
-    return fulfillment;
-  }
-
-  /**
    * Transform a body from DialogFlow into a Fulfillment by calling the internal action
    */
   async resolveAction(
@@ -32,6 +19,7 @@ export class AIActionResolver {
     inputParams: InputParams,
     session: Session,
     dialogFlowOutputParams: IDetectIntentResponse | null,
+    openaiOutputParams: any,
   ): Promise<Fulfillment> {
     console.info(`calling action <${actionName}>`);
 
@@ -59,13 +47,19 @@ export class AIActionResolver {
       const actionResult = await pkgCallable({
         inputParams,
         dialogFlowOutputParams,
+        openaiOutputParams,
         session,
       });
 
-      return actionResult as Fulfillment;
-    } catch (err) {
-      console.error("error while executing action", err);
-      return this.errorToFulfillment(err);
+      return actionResult;
+    } catch (error) {
+      console.error("Error while executing action", error);
+      return {
+        error,
+        analytics: {
+          engine: "action",
+        },
+      };
     }
   }
 }

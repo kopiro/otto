@@ -45,7 +45,6 @@ const IOQueueSchema = new Schema({
   ioId: String,
   session: { type: String, ref: "session", autopopulate: true },
   fulfillment: Schema.Types.Mixed,
-  bag: Schema.Types.Mixed,
 });
 IOQueueSchema.plugin(autopopulate);
 export const IOQueue = mongoose.model<IIOQueue>("io_queue", IOQueueSchema);
