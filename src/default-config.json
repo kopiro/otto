@@ -82,23 +82,7 @@
       "bucket": null
     }
   },
-  "spotify": {
-    "clientId": null,
-    "clientSecret": null
-  },
-  "wolfram": {
-    "appId": null
-  },
-  "youtube": {
-    "apiKey": null
-  },
-  "musixmatch": {
-    "apiKey": null
-  },
-  "wunderground": {
-    "apiKey": null
-  },
   "gpio_button": {
-    "pin": null
+    "pin": 16
   }
 }

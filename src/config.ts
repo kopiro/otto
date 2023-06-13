@@ -1,13 +1,15 @@
+import path from "path";
 import defaultConfig from "./default-config.json";
 import { readFileSync } from "fs";
+import { keysDir } from "./paths";
 
 let _instance: typeof defaultConfig = null;
 
-function parseLocalConfig(config, localConfig, path = "") {
+function extendConfig(config, localConfig, path = "") {
   for (const [key, value] of Object.entries(localConfig)) {
     if (typeof value === "object" && !Array.isArray(value)) {
       if (key in config) {
-        parseLocalConfig(config[key], localConfig[key], `${path}.${key}`);
+        extendConfig(config[key], localConfig[key], `${path}.${key}`);
       } else {
         throw new Error(`Invalid key ${path}.${key} in config`);
       }
@@ -20,10 +22,12 @@ function parseLocalConfig(config, localConfig, path = "") {
 
 export default () => {
   if (!_instance) {
+    const baseConfig = JSON.parse(readFileSync(path.join(keysDir, "config.json"), "utf8"));
+    _instance = extendConfig(defaultConfig, baseConfig);
+
     if (process.env.CONFIG_FILE) {
-      _instance = parseLocalConfig(defaultConfig, JSON.parse(readFileSync(process.env.CONFIG_FILE, "utf8")));
-    } else {
-      _instance = defaultConfig;
+      const runtimeConfig = JSON.parse(readFileSync(process.env.CONFIG_FILE, "utf8"));
+      _instance = extendConfig(_instance, runtimeConfig);
     }
   }
   return _instance;
