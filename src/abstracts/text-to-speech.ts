@@ -28,6 +28,11 @@ export abstract class TextToSpeech {
     this.loadCacheRegistry();
   }
 
+  cleanText(text: string) {
+    // Remove any emoji
+    return text.replace(/[\u{1F600}-\u{1F6FF}]/gmu, "");
+  }
+
   loadCacheRegistry() {
     try {
       this.cache = JSON.parse(fs.readFileSync(this.CACHE_REGISTRY_FILE).toString());
@@ -66,12 +71,14 @@ export abstract class TextToSpeech {
   abstract _getAudioFile(text: string, language: Language, gender: Gender): Promise<string | Buffer | Uint8Array>;
 
   async getAudioFile(text: string, language: Language, gender: Gender) {
+    const cleanText = this.cleanText(text);
+
     // If file has been downloaded, just serve it
-    const cachedFile = this.getCacheForAudio(text, language, gender);
+    const cachedFile = this.getCacheForAudio(cleanText, language, gender);
     if (cachedFile) {
       return cachedFile;
     }
-    const data = await this._getAudioFile(text, language, gender);
+    const data = await this._getAudioFile(cleanText, language, gender);
     if (!data) {
       throw new Error("Failed to get audio file");
     }
@@ -80,7 +87,7 @@ export abstract class TextToSpeech {
     fs.writeFileSync(file, data, "binary");
 
     // Save this entry onto cache
-    this.setCacheForAudio(text, language, gender, file);
+    this.setCacheForAudio(cleanText, language, gender, file);
 
     return file;
   }

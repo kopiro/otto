@@ -173,7 +173,10 @@ export async function output(
   }
 
   if (session.forwardSessions?.length > 0) {
-    console.info("using forwardSessions", session.forwardSessions);
+    console.info(
+      "using forwardSessions",
+      session.forwardSessions.map((e) => e.id),
+    );
     Promise.all(session.forwardSessions.map((e) => output(fulfillment, e, bag, loadDriverIfNotEnabled)));
   }
 
