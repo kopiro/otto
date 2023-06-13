@@ -2,7 +2,7 @@ import { Signale } from "signale";
 import { Interaction } from "../../data";
 import { AIOpenAI } from "./openai";
 import { Interaction as IInteraction, Session as ISession, LongTermMemory as ILongTermMemory } from "../../types";
-import { getSessionName } from "../../helpers";
+import { getSessionDriverName, getSessionName } from "../../helpers";
 import config from "../../config";
 import qdrant from "../../lib/qdrant";
 import openai from "../../lib/openai";
@@ -158,14 +158,16 @@ export class VectorMemory {
 
     for (const [_, interactions] of Object.entries(groupedInteractionsBySession)) {
       const sessionName = getSessionName(interactions[0].session);
-      interactionsText.push(`Conversation with ${sessionName}:`);
+      const sessionSimpleName = sessionName.split(" ")[0];
+      const sessionDriverName = getSessionDriverName(interactions[0].session);
+      interactionsText.push(`Conversation between ${aiName} and ${sessionName}   - ${sessionDriverName}`);
       for (const interaction of interactions) {
         const time = interaction.createdAt.toLocaleTimeString();
         if (interaction.fulfillment.text) {
           interactionsText.push(`${aiName} (${time}): ${interaction.fulfillment.text}`);
         }
         if (interaction.input.text) {
-          interactionsText.push(`${sessionName} (${time}): ${interaction.input.text}`);
+          interactionsText.push(`${sessionSimpleName} (${time}): ${interaction.input.text}`);
         }
       }
       interactionsText.push("\n");
