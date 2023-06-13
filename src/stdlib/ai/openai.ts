@@ -164,8 +164,6 @@ export class AIOpenAI {
       },
     ].filter(Boolean);
 
-    console.debug("Messages :>> ", messages);
-
     messages.unshift();
 
     try {
