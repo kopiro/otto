@@ -6,4 +6,4 @@ sudo apt-get -y install \
     opus-tools \
     gpac
 
-su -c otto "pnpm install --production"
+runuser -l otto -c 'cd /home/otto/ai && pnpm install --production'

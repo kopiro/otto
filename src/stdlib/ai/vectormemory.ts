@@ -64,7 +64,7 @@ export class VectorMemory {
   private async getInteractionsGroupedByDayThenSession(): Promise<GroupedInteractionsByDayThenSession> {
     const unreducedInteractions = await Interaction.find({
       managerUid: config().uid,
-      reducedLongTermMemory: { $exists: false },
+      reducedAt: { $exists: false },
       $or: [
         { "fulfillment.text": { $exists: true }, source: "text" },
         { "fulfillment.text": { $exists: true }, source: "audio" },
@@ -172,7 +172,7 @@ export class VectorMemory {
     }
 
     const reducedPrompt =
-      `I have the following interactions between two people, happening at ${forDate.toDateString()}, please reduce them to a single sentence. Include the date of the conversations in the output.\n\n` +
+      `I have the following interactions, happening on ${forDate.toDateString()}, please reduce them to a single sentence. Only keep necessary informations. Include the date of the conversations in the output.\n\n` +
       interactionsText.join("\n");
 
     console.debug("Reduced prompt:\n", reducedPrompt);

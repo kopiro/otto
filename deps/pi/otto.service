@@ -11,7 +11,7 @@ Group=otto
 Restart=on-failure
 RestartSec=5s
 WorkingDirectory=/home/otto/ai
-ExecStart=npm run start:pi
+ExecStart=pnpm run start:pi
 
 [Install]
 WantedBy=default.target
