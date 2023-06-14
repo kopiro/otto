@@ -9,7 +9,8 @@ importers:
       '@google-cloud/storage': ^5.0.0
       '@google-cloud/text-to-speech': ^3.4.0
       '@google-cloud/translate': ^6.3.1
-      '@picovoice/porcupine-node': ^1
+      '@picovoice/porcupine-node': ^2.2.1
+      '@picovoice/pvrecorder-node': ^1.1.2
       '@qdrant/js-client-rest': ^1.2.2
       '@qdrant/qdrant-js': ^1.2.2
       '@sentry/node': ^5.15.4
@@ -61,7 +62,7 @@ importers:
       node-record-lpcm16: ^1.0.1
       node-telegram-bot-api: ^0.61.0
       nodemon: ^2.0.7
-      openai: ^3.2.1
+      openai: ^3.3.0
       pb-util: ^0.1.3
       prettier: ^2.2.1
       readline: ^1.3.0
@@ -80,7 +81,8 @@ importers:
       '@google-cloud/storage': 5.20.5
       '@google-cloud/text-to-speech': 3.4.0
       '@google-cloud/translate': 6.3.1
-      '@picovoice/porcupine-node': 1.9.2
+      '@picovoice/porcupine-node': 2.2.1
+      '@picovoice/pvrecorder-node': 1.1.2
       '@qdrant/js-client-rest': 1.2.2_typescript@5.0.4
       '@qdrant/qdrant-js': 1.2.2_typescript@5.0.4
       '@sentry/node': 5.30.0
@@ -103,7 +105,7 @@ importers:
       node-fetch: 2.6.7
       node-record-lpcm16: 1.0.1
       node-telegram-bot-api: 0.61.0
-      openai: 3.2.1
+      openai: 3.3.0
       pb-util: 0.1.3
       readline: 1.3.0
       request: 2.88.2
@@ -1757,11 +1759,15 @@ packages:
       fastq: 1.14.0
     dev: true
 
-  /@picovoice/porcupine-node/1.9.2:
-    resolution: {integrity: sha512-b3dP7ufPGBu/g3HwWKBO9/X2+f3iTTd1h8JkFi1NLc369hBXE1DnSFRqOCNgsDd7w3Jjlgs6qxJgQ8E6ivHJ7A==}
-    engines: {node: '>=10.0.0'}
+  /@picovoice/porcupine-node/2.2.1:
+    resolution: {integrity: sha512-+sc3uY2ZdZabUW7kYZ2wDezg2CZYy729Xy387fMuNw8fa2aoHuU9pcpaUR2KfLDRC+s2hbWdAqnxjCuSvt/NYw==}
+    engines: {node: '>=12.0.0'}
     cpu: ['!ia32', '!mips', '!ppc', '!ppc64']
-    deprecated: This version is no longer supported. Please use latest version.
+    dev: false
+
+  /@picovoice/pvrecorder-node/1.1.2:
+    resolution: {integrity: sha512-LWGwR6NGPA5QIBtI+7gcHSmMO/pHwKa8vcY4kxstKNTYCR6zbqgpUMli6pZWfv3RtVXiRZshZkLKfBzy1dGM9Q==}
+    engines: {node: '>=14.0.0'}
     dev: false
 
   /@protobufjs/aspromise/1.1.2:
@@ -7046,8 +7052,8 @@ packages:
       mimic-fn: 2.1.0
     dev: true
 
-  /openai/3.2.1:
-    resolution: {integrity: sha512-762C9BNlJPbjjlWZi4WYK9iM2tAVAv0uUp1UmI34vb0CN5T2mjB/qM6RYBmNKMh/dN9fC+bxqPwWJZUTWW052A==}
+  /openai/3.3.0:
+    resolution: {integrity: sha512-uqxI/Au+aPRnsaQRe8CojU0eCR7I0mBiKjD3sNMzY6DaC1ZVrc85u98mtJW6voDug8fgGN+DIZmTDxTthxb7dQ==}
     dependencies:
       axios: 0.26.1
       form-data: 4.0.0

@@ -1,4 +1,4 @@
 packages:
-  - 'src/packages/*'
+  - 'src/functions/*'
   - 'src/lib/*'
   - 'src-client'

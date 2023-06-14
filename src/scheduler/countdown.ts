@@ -1,5 +1,5 @@
 import moment from "../lib/moment";
-import { AIDirector } from "../stdlib/ai/director";
+import { AIManager } from "../stdlib/ai/ai-manager";
 
 import { SchedulerProgramClass } from "../stdlib/scheduler";
 
@@ -14,7 +14,7 @@ export default class CountdownScheduler extends SchedulerProgramClass {
     const time = momentDate.fromNow();
     const timeNoSuffix = momentDate.fromNow(true);
 
-    return AIDirector.getInstance().processInput(
+    return AIManager.getInstance().processInput(
       {
         event: {
           name: eventName,

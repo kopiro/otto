@@ -7,3 +7,4 @@ export const storageDir = `${baseDir}/storage`;
 export const logsDir = `${baseDir}/logs`;
 export const publicDir = `${baseDir}/public`;
 export const publicTmpDir = `${baseDir}/public/tmp`;
+export const functionsDir = `${baseDir}/src/functions`;

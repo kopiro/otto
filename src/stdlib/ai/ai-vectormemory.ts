@@ -1,6 +1,5 @@
 import { Signale } from "signale";
 import { Interaction } from "../../data";
-import { AIOpenAI } from "./openai";
 import { Interaction as IInteraction, Session as ISession, LongTermMemory as ILongTermMemory } from "../../types";
 import { getSessionDriverName, getSessionName } from "../../helpers";
 import config from "../../config";
@@ -24,13 +23,13 @@ type QdrantPayload = {
   date: string;
 };
 
-export class VectorMemory {
-  private static instance: VectorMemory;
-  static getInstance(): VectorMemory {
-    if (!VectorMemory.instance) {
-      VectorMemory.instance = new VectorMemory();
+export class AIVectorMemory {
+  private static instance: AIVectorMemory;
+  static getInstance(): AIVectorMemory {
+    if (!AIVectorMemory.instance) {
+      AIVectorMemory.instance = new AIVectorMemory();
     }
-    return VectorMemory.instance;
+    return AIVectorMemory.instance;
   }
 
   async createQdrantCollection(collection: MemoryType) {

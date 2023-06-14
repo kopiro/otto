@@ -1,9 +1,10 @@
-import { AIDirector } from "./director";
+import { AIManager } from "./ai-manager";
 import { Fulfillment, InputParams, Session } from "../../types";
 import { Authorizations } from "../iomanager";
 import { IOBag } from "../iomanager";
 import { output } from "../iomanager";
 import { getSession } from "../iomanager";
+import { throwIfMissingAuthorizations } from "../../helpers";
 
 type CommandFunction = (args: RegExpMatchArray, session: Session, bag: IOBag) => Promise<Fulfillment>;
 
@@ -21,42 +22,42 @@ export class AICommander {
     name: string;
     executor: CommandFunction;
     description: string;
-    authorization: Authorizations | null;
+    authorizations: Authorizations[];
   }> = [
     {
       matcher: /^\/start/,
       name: "start",
       executor: this.start,
       description: "Start the bot",
-      authorization: null,
+      authorizations: [],
     },
     {
       matcher: /^\/whoami/,
       name: "whoami",
       executor: this.whoami,
       description: "Get your session",
-      authorization: null,
+      authorizations: [],
     },
     {
       matcher: /^\/outputtext ([^\s]+) (.+)/,
       name: "outputtext",
       executor: this.commandOutputText,
       description: "[sessionid] [text] - Send a text message to a specific session",
-      authorization: Authorizations.COMMAND,
+      authorizations: ["command"],
     },
     {
       matcher: /^\/input ([^\s]+) (.+)/,
       name: "input",
       executor: this.input,
       description: "[sessionid] [params_json] - Process an input param for a specific session",
-      authorization: Authorizations.COMMAND,
+      authorizations: ["command"],
     },
     {
       matcher: /^\/appstop/,
       name: "appstop",
       executor: this.appStop,
       description: "/appstop - Cause the application to crash",
-      authorization: Authorizations.ADMIN,
+      authorizations: ["command"],
     },
   ];
 
@@ -70,7 +71,7 @@ export class AICommander {
   }
 
   private async start(_: RegExpMatchArray, session: Session): Promise<Fulfillment> {
-    const fulfillment = await AIDirector.getInstance().getFullfilmentForInput({ event: "welcome" }, session);
+    const fulfillment = await AIManager.getInstance().getFullfilmentForInput({ event: "welcome" }, session);
     if (fulfillment !== null) return fulfillment;
     return { text: "Welcome!", analytics: { engine: "commander" } };
   }
@@ -82,7 +83,7 @@ export class AICommander {
   private async input([, cmdSessionId, paramsStr]: RegExpMatchArray): Promise<Fulfillment> {
     const cmdSession = await getSession(cmdSessionId);
     const params = JSON.parse(paramsStr);
-    const result = await AIDirector.getInstance().processInput(params, cmdSession);
+    const result = await AIManager.getInstance().processInput(params, cmdSession);
     return { data: JSON.stringify(result, null, 2), analytics: { engine: "commander" } };
   }
 
@@ -96,22 +97,15 @@ export class AICommander {
     for (const cmd of this.commandMapping) {
       const matches = text.match(cmd.matcher);
       if (matches) {
-        if (
-          (cmd.authorization && session.authorizations.includes(cmd.authorization)) ||
-          session.authorizations.includes(Authorizations.ADMIN) ||
-          cmd.authorization == null
-        ) {
-          return async (session: Session) => {
-            try {
-              const result = await cmd.executor.call(this, matches, session);
-              return result;
-            } catch (err) {
-              return { error: { message: String(err), data: err } };
-            }
-          };
-        } else {
-          return async () => ({ text: "User not authorized", analytics: { engine: "commander" } });
-        }
+        return async (session: Session) => {
+          try {
+            throwIfMissingAuthorizations(session.authorizations, cmd.authorizations);
+            const result = await cmd.executor.call(this, matches, session);
+            return result;
+          } catch (err) {
+            return { error: { message: err.message, error: err } };
+          }
+        };
       }
     }
 

@@ -6,18 +6,14 @@ import { getSessionTranslateFrom, getSessionTranslateTo, timeout } from "../help
 import { Fulfillment, Session } from "../types";
 import { etcDir } from "../paths";
 import path from "path";
-// @ts-ignore
-import recorder from "node-record-lpcm16";
-// @ts-ignore
-import { COMPUTER } from "@picovoice/porcupine-node/builtin_keywords";
-// @ts-ignore
-import { getPlatform } from "@picovoice/porcupine-node/platforms";
-import os from "os";
-import fs from "fs";
 import textToSpeech from "../stdlib/text-to-speech";
 import speechRecognizer from "../stdlib/speech-recognizer";
 import speaker from "../stdlib/speaker";
 import { Signale } from "signale";
+import { Porcupine } from "@picovoice/porcupine-node";
+import { Platform, getPlatform } from "../stdlib/platform";
+// @ts-ignore
+import recorder from "node-record-lpcm16";
 
 const TAG = "IO.Human";
 const console = new Signale({
@@ -26,8 +22,11 @@ const console = new Signale({
 
 const DRIVER_ID = "human";
 
-const PLATFORM_RECORDER_MAP: Map<NodeJS.Platform, string> = new Map();
-PLATFORM_RECORDER_MAP.set("linux", "arecord");
+const MIC_PLATFORM_TO_BINARY: Record<Platform, string> = {
+  pi: "arecord",
+  macos: "sox",
+  unknown: "sox",
+};
 
 /**
  * Number of seconds of silence after that
@@ -38,7 +37,6 @@ const HOTWORD_SILENCE_MAX = 8;
 type HumanConfig = {
   enableHotword: boolean;
   enableMic: boolean;
-  defaultBinaryRecorder: string;
 };
 
 function chunkArray(array: number[], size: number) {
@@ -74,7 +72,7 @@ export class Human implements IOManager.IODriverModule {
   /**
    * Microphone stream
    */
-  porcupine: any | undefined;
+  porcupine: Porcupine | undefined;
   mic: any | undefined;
 
   /**
@@ -203,17 +201,13 @@ export class Human implements IOManager.IODriverModule {
   startHotwordDetection() {
     // We need to dynamically load this as it may be not necessary to include it
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const Porcupine = require("@picovoice/porcupine-node");
 
     let frameAccumulator: number[] = [];
 
-    const ppnFile = path.join(etcDir, `hey_otto_${getPlatform()}.ppn`);
-    if (fs.existsSync(ppnFile)) {
-      this.porcupine = new Porcupine([ppnFile], [0.5]);
-    } else {
-      console.error(`ppnFile ${ppnFile} not present, fallback to "COMPUTER" keyword`);
-      this.porcupine = new Porcupine([COMPUTER], [0.5]);
-    }
+    const pvFile = path.join(etcDir, `porcupine`, `language.pv`);
+    const ppnFile = path.join(etcDir, `porcupine`, `wakeword_${getPlatform()}.ppn`);
+
+    this.porcupine = new Porcupine(config().porcupine.apiKey, [ppnFile], [0.5], pvFile);
 
     this.mic.stream().on("data", (data: Buffer) => {
       // Two bytes per Int16 from the data buffer
@@ -235,7 +229,7 @@ export class Human implements IOManager.IODriverModule {
       }
 
       for (const frame of frames) {
-        const index = this.porcupine.process(frame);
+        const index = this.porcupine.process(frame as unknown as Int16Array);
         if (index !== -1) {
           console.debug(`Detected hotword!`);
           this.wake();
@@ -332,7 +326,7 @@ export class Human implements IOManager.IODriverModule {
         sampleRate: 16000,
         channels: 1,
         audioType: "raw",
-        recorder: PLATFORM_RECORDER_MAP.get(os.platform()) ?? this.config.defaultBinaryRecorder,
+        recorder: MIC_PLATFORM_TO_BINARY[getPlatform()],
       });
 
       if (this.config.enableHotword) {

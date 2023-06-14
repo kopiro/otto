@@ -3,7 +3,7 @@ import * as Server from "./stdlib/server";
 import * as IOManager from "./stdlib/iomanager";
 import scheduler from "./stdlib/scheduler";
 import { warmup } from "./boot";
-import { AIDirector } from "./stdlib/ai/director";
+import { AIManager } from "./stdlib/ai/ai-manager";
 
 warmup().then(() => {
   if (config().serverMode) {
@@ -16,7 +16,7 @@ warmup().then(() => {
 
   IOManager.start({
     onDriverInput: (params, session) => {
-      AIDirector.getInstance().processInput(params, session);
+      AIManager.getInstance().processInput(params, session);
     },
   });
 });

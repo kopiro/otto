@@ -18,11 +18,7 @@ type StartArgs = {
   onDriverInput: (params: InputParams, session: Session) => void;
 };
 
-export enum Authorizations {
-  "ADMIN" = "ADMIN",
-  "CAMERA" = "CAMERA",
-  "COMMAND" = "COMMAND",
-}
+export type Authorizations = "admin" | "camera" | "command";
 
 export type IODriverOutput = [string | null, any][];
 export interface IODriverModule {

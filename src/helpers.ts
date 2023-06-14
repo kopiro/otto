@@ -10,8 +10,8 @@ import crypto from "crypto";
 import { Signale } from "signale";
 import { Interaction } from "./data";
 import { Interaction as IInteraction } from "./types";
-import TelegramBot from "node-telegram-bot-api";
 import { IODataTelegram } from "./io/telegram";
+import { Authorizations } from "./stdlib/iomanager";
 
 /**
  * Get the name of the AI
@@ -298,4 +298,22 @@ export async function createInteraction(session: Session, params: Partial<IInter
     createdAt: new Date(),
     ...params,
   }).save();
+}
+
+export function throwIfMissingAuthorizations(
+  authorizations: Authorizations[],
+  requiredAuthorizations: Authorizations[],
+): void {
+  authorizations = authorizations || [];
+  requiredAuthorizations = requiredAuthorizations || [];
+
+  if (authorizations.includes("admin")) {
+    return;
+  }
+
+  for (const requiredAuth of requiredAuthorizations) {
+    if (!authorizations.includes(requiredAuth)) {
+      throw new Error(`Required authorization "${requiredAuth}" is missing for your account.`);
+    }
+  }
 }

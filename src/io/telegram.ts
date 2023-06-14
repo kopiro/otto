@@ -17,7 +17,7 @@ import textToSpeech from "../stdlib/text-to-speech";
 import speechRecognizer from "../stdlib/speech-recognizer";
 import { Signale } from "signale";
 import { getAINameRegexp, getSessionTranslateFrom, getSessionTranslateTo } from "../helpers";
-import { AICommander } from "../stdlib/ai/commander";
+import { AICommander } from "../stdlib/ai/ai-commander";
 
 const TAG = "IO.Telegram";
 const console = new Signale({
@@ -97,8 +97,8 @@ export class Telegram implements IOManager.IODriverModule {
   /**
    * Send a message to the user
    */
-  private async sendMessage(chatId: string, text: string, opt: any = {}) {
-    return this.bot.sendMessage(chatId, this.cleanOutputText(text), { ...{ parse_mode: "HTML" }, ...opt });
+  private async sendMessage(chatId: string, text: string, botOpt: TelegramBot.SendMessageOptions = {}) {
+    return this.bot.sendMessage(chatId, this.cleanOutputText(text), { ...{ parse_mode: "HTML" }, ...botOpt });
   }
 
   private async getVoiceFile(fulfillment: Fulfillment, session: ISession): Promise<File> {
@@ -113,13 +113,12 @@ export class Telegram implements IOManager.IODriverModule {
   /**
    * Send a voice message to the user
    */
-  async sendAudioNote(
+  async sendAudioNoteFromText(
     chatId: string,
     fulfillment: Fulfillment,
     session: ISession,
     botOpt: TelegramBot.SendMessageOptions = {},
   ) {
-    await this.bot.sendChatAction(chatId, "record_voice");
     const voiceFile = await this.getVoiceFile(fulfillment, session);
     return this.bot.sendVoice(chatId, voiceFile.getAbsolutePath(), botOpt);
   }
@@ -312,11 +311,13 @@ export class Telegram implements IOManager.IODriverModule {
     // Process a Text Object
     try {
       if (f.text) {
+        this.bot.sendChatAction(chatId, "typing");
         const r = await this.sendMessage(chatId, f.text, botOpt);
         results.push(["message", r]);
 
         if (bag?.encodable?.respondWithAudioNote || f.options?.includeVoice) {
-          const r = await this.sendAudioNote(chatId, f, session, botOpt);
+          this.bot.sendChatAction(chatId, "record_voice");
+          const r = await this.sendAudioNoteFromText(chatId, f, session, botOpt);
           results.push(["audionote", r]);
         }
       }
@@ -352,6 +353,18 @@ export class Telegram implements IOManager.IODriverModule {
       results.push(["error", err]);
     }
 
+    // Process a Voice Object
+    try {
+      if (f.voice) {
+        this.bot.sendChatAction(chatId, "record_voice");
+        const r = await this.bot.sendVoice(chatId, f.voice, botOpt);
+        results.push(["voice", r]);
+      }
+    } catch (err) {
+      results.push(["error", err]);
+      console.error(err);
+    }
+
     // Process an Audio Object
     try {
       if (f.audio) {
@@ -378,11 +391,8 @@ export class Telegram implements IOManager.IODriverModule {
 
     try {
       if (f.error) {
-        const r = await this.sendMessage(
-          chatId,
-          `An error has been thrown:\n\n<code>${JSON.stringify(f, null, 2)}</code>`,
-          botOpt,
-        );
+        this.bot.sendChatAction(chatId, "typing");
+        const r = await this.sendMessage(chatId, f.error.message || "Unknown error", botOpt);
         results.push(["message", r]);
       }
     } catch (err) {
@@ -392,7 +402,8 @@ export class Telegram implements IOManager.IODriverModule {
 
     try {
       if (f.data) {
-        const r = await this.sendMessage(chatId, `<code>${f.data}</code>`, botOpt);
+        this.bot.sendChatAction(chatId, "typing");
+        const r = await this.sendMessage(chatId, `<pre>${f.data}</pre>`, botOpt);
         results.push(["data", r]);
       }
     } catch (err) {

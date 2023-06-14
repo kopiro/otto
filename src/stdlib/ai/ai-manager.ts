@@ -4,23 +4,23 @@ import { Fulfillment, InputParams, Session, InputSource } from "../../types";
 import Events from "events";
 import translator from "../translator";
 import { Signale } from "signale";
-import { createInteraction, getSessionTranslateFrom, getSessionTranslateTo, isJsonString } from "../../helpers";
-import { AICommander } from "./commander";
-import { AIOpenAI } from "./openai";
-import { AIDialogFlow } from "./dialogflow";
+import { createInteraction, getSessionTranslateTo } from "../../helpers";
+import { AICommander } from "./ai-commander";
+import { AIOpenAI } from "./ai-openai";
+import { AIDialogFlow } from "./ai-dialogflow";
 
 const TAG = "AI";
 const console = new Signale({
   scope: TAG,
 });
 
-export class AIDirector {
-  private static instance: AIDirector;
-  static getInstance(): AIDirector {
-    if (!AIDirector.instance) {
-      AIDirector.instance = new AIDirector();
+export class AIManager {
+  private static instance: AIManager;
+  static getInstance(): AIManager {
+    if (!AIManager.instance) {
+      AIManager.instance = new AIManager();
     }
-    return AIDirector.instance;
+    return AIManager.instance;
   }
 
   emitter: Events.EventEmitter = new Events.EventEmitter();

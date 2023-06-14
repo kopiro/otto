@@ -11,7 +11,7 @@ import bodyParser from "body-parser";
 import { File } from "../stdlib/file";
 import textToSpeech from "../stdlib/text-to-speech";
 import { Signale } from "signale";
-import { AIDirector } from "../stdlib/ai/director";
+import { AIManager } from "../stdlib/ai/ai-manager";
 import { formidable } from "formidable";
 import { SpeechRecognizer } from "../abstracts/speech-recognizer";
 import speechRecognizer from "../stdlib/speech-recognizer";
@@ -62,7 +62,7 @@ export class Web implements IOManager.IODriverModule {
     // First check if the request contains any text or event
     if (req.body.params) {
       resolvedInput = true;
-      fulfillment = await AIDirector.getInstance().getFullfilmentForInput(req.body.params, session);
+      fulfillment = await AIManager.getInstance().getFullfilmentForInput(req.body.params, session);
     } else {
       // Otherwise, parse for incoming audio
       const form = formidable();
@@ -80,7 +80,7 @@ export class Web implements IOManager.IODriverModule {
         const tmpAudioFile = getTmpFile("wav");
         fs.renameSync(files.audio.path, tmpAudioFile);
         const text = await speechRecognizer().recognizeFile(tmpAudioFile, getSessionTranslateTo(session));
-        fulfillment = await AIDirector.getInstance().getFullfilmentForInput(
+        fulfillment = await AIManager.getInstance().getFullfilmentForInput(
           {
             text,
           },

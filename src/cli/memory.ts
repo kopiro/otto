@@ -1,12 +1,12 @@
 import { warmup } from "../boot";
 
-import { VectorMemory } from "../stdlib/ai/vectormemory";
+import { AIVectorMemory } from "../stdlib/ai/ai-vectormemory";
 
 process.env.MEMORY_TYPE = process.env.MEMORY_TYPE || "";
 
 warmup()
   .then(async () => {
-    const memory = VectorMemory.getInstance();
+    const memory = AIVectorMemory.getInstance();
 
     if (process.env.MEMORY_TYPE.includes("episodic")) {
       if (process.env.ERASE) {

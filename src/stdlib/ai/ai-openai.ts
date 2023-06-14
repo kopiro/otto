@@ -1,4 +1,10 @@
-import { ChatCompletionRequestMessageRoleEnum, Configuration, CreateChatCompletionRequest, OpenAIApi } from "openai";
+import {
+  ChatCompletionRequestMessage,
+  ChatCompletionRequestMessageRoleEnum,
+  Configuration,
+  CreateChatCompletionRequest,
+  OpenAIApi,
+} from "openai";
 import { Fulfillment, InputParams, Session } from "../../types";
 import config from "../../config";
 import { Signale } from "signale";
@@ -11,7 +17,8 @@ import {
 import { Interaction } from "../../data";
 import fetch from "node-fetch";
 import openai from "../../lib/openai";
-import { VectorMemory } from "./vectormemory";
+import { AIVectorMemory } from "./ai-vectormemory";
+import { AIFunction } from "./ai-function";
 
 type Config = {
   apiKey: string;
@@ -100,7 +107,7 @@ export class AIOpenAI {
       .filter(Boolean);
   }
 
-  private async getSessionContext(session: Session): Promise<string> {
+  private async getSessionContext(session: Session | null): Promise<string> {
     const contextPrompt = [];
 
     contextPrompt.push("## User");
@@ -120,7 +127,7 @@ Speak ${userLanguage} to them, unless they speak a different language to you.
   }
 
   private async getMemoryContext(text: string): Promise<string> {
-    const memory = VectorMemory.getInstance();
+    const memory = AIVectorMemory.getInstance();
     const vector = await memory.createEmbedding(text);
 
     const [declarativeMemories, episodicMemories] = await Promise.all([
@@ -134,15 +141,12 @@ Speak ${userLanguage} to them, unless they speak a different language to you.
 `;
   }
 
-  async getFulfillmentForInput(
-    params: InputParams,
+  async sendMessageToOpenAI(
+    openAIMessages: ChatCompletionRequestMessage[],
+    inputParams: InputParams,
     session: Session | null,
-    role: "system" | "user" | "assistant" = "user",
-  ): Promise<Fulfillment> {
-    const { text } = params;
-
-    let sessionName = session ? this.getCleanSessionName(session) : undefined;
-
+    text: string,
+  ): Promise<Omit<Fulfillment, "analytics">> {
     const systemPrompt: string[] = [];
 
     // Add brain
@@ -156,36 +160,92 @@ Speak ${userLanguage} to them, unless they speak a different language to you.
     let interactions = await this.retrieveInteractions(session, text);
 
     // Build messages
-    const messages = [
+    const messages: ChatCompletionRequestMessage[] = [
       {
         role: ChatCompletionRequestMessageRoleEnum.System,
         content: systemPrompt.join("\n"),
       },
       ...interactions,
+      ...openAIMessages,
+    ].filter(Boolean);
+
+    console.debug("Messages:", messages);
+
+    const completion = await openai().createChatCompletion({
+      model: "gpt-3.5-turbo-0613",
+      user: session?.id,
+      n: 1,
+      messages,
+      functions: AIFunction.getInstance().getFunctionDefinitions(),
+      function_call: "auto",
+    });
+
+    const answer = completion.data.choices.map((e) => e.message)[0];
+    console.debug("Completion:", answer);
+
+    if (answer.function_call) {
+      const functionName = answer.function_call.name;
+      const functionParams = JSON.parse(answer.function_call.arguments);
+      const result = await AIFunction.getInstance().call(functionName, functionParams, inputParams, session);
+
+      if (result.functionResult) {
+        return this.sendMessageToOpenAI(
+          [
+            ...openAIMessages,
+            {
+              role: ChatCompletionRequestMessageRoleEnum.Function,
+              name: functionName,
+              content: result.functionResult,
+            },
+          ],
+          inputParams,
+          session,
+          text,
+        );
+      }
+
+      return result;
+    }
+
+    if (answer.content) {
+      return { text: answer.content };
+    }
+
+    throw new Error("Invalid response: " + JSON.stringify(answer));
+  }
+
+  async getFulfillmentForInput(
+    inputParams: InputParams,
+    session: Session | null,
+    role: ChatCompletionRequestMessageRoleEnum = "user",
+  ): Promise<Fulfillment> {
+    const { text } = inputParams;
+
+    let sessionName = session ? this.getCleanSessionName(session) : undefined;
+    const openAIMessages = [
       {
         role: role,
         content: text,
         name: sessionName,
       },
-    ].filter(Boolean);
-
-    console.debug("Messages:", messages);
+    ];
 
     try {
-      const completion = await openai().createChatCompletion({
-        model: "gpt-3.5-turbo",
-        user: session?.id,
-        messages: messages,
-      });
-      const answerMessages = completion.data.choices.map((e) => e.message);
-      const answerText = answerMessages[0]?.content;
-
-      return { text: answerText, analytics: { engine: "openai" }, options: { translatePolicy: "never" } };
+      const result = await this.sendMessageToOpenAI(openAIMessages, inputParams, session, text);
+      return {
+        ...result,
+        analytics: {
+          engine: "openai",
+        },
+        options: { translatePolicy: "never" },
+      };
     } catch (error) {
-      console.error("error", error?.response?.data);
+      const errorMessage = error?.response?.data?.error?.message || error?.response?.data?.error || error?.message;
+      console.error("error", errorMessage);
       return {
         error: {
-          message: error?.response?.data?.error?.message || error?.response?.data?.error || error?.message,
+          message: errorMessage,
+          error: error,
         },
         analytics: { engine: "openai" },
       };
