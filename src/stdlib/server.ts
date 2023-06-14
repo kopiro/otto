@@ -6,7 +6,7 @@ import { publicDir, cacheDir } from "../paths";
 import voice from "../stdlib/voice";
 import textToSpeech from "./text-to-speech";
 import { getSession } from "./iomanager";
-import { AIDirector } from "./ai/director";
+import { AIManager } from "./ai/ai-manager";
 // @ts-ignore
 import rateLimit from "express-rate-limit";
 import * as IOManager from "./iomanager";
@@ -62,7 +62,7 @@ routerApi.get("/fulfillment", async (req, res) => {
     const session = await getSession(obj.session);
     if (!session) throw new Error("Session not found");
 
-    const output = await AIDirector.getInstance().getFullfilmentForInput(obj.params, session);
+    const output = await AIManager.getInstance().getFullfilmentForInput(obj.params, session);
     return res.json({ data: output });
   } catch (err) {
     console.error("/api/fulfillment error", err);
@@ -85,7 +85,7 @@ routerApi.post("/input", async (req, res) => {
     const session = await getSession(obj.session);
     if (!session) throw new Error("Session not found");
 
-    const output = await AIDirector.getInstance().processInput(obj.params, session);
+    const output = await AIManager.getInstance().processInput(obj.params, session);
     return res.json({ data: output });
   } catch (err) {
     console.error("/api/input error", err);

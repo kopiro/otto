@@ -1,0 +1,9 @@
+{
+	"name": "otto-cameravideo",
+	"description": "Record a video of the user",
+	"parameters": {
+		"type": "object",
+		"properties": {},
+	  "required": []
+	}
+}

@@ -4,10 +4,10 @@ import config from "../../config";
 import { Fulfillment, InputParams, Session } from "../../types";
 import { struct } from "pb-util";
 import translator from "../translator";
-import { AIOpenAI } from "./openai";
+import { AIOpenAI } from "./ai-openai";
 import { createInteraction } from "../../helpers";
 import { ChatCompletionRequestMessageRoleEnum } from "openai";
-import { AIActionResolver } from "./actionresolver";
+import { AIFunction } from "./ai-function";
 
 export type IDetectIntentResponse = protos.google.cloud.dialogflow.v2.IDetectIntentResponse;
 export type IQueryInput = protos.google.cloud.dialogflow.v2.IQueryInput;
@@ -87,10 +87,11 @@ export class AIDialogFlow {
 
     // If we have an "action", call the package with the specified name
     if (action) {
-      console.debug(`Resolving action: ${action}`);
-      return AIActionResolver.getInstance().resolveAction(action, params, session, body, null);
+      const actionParameters = struct.decode(body.queryResult.parameters.fields);
+      return AIFunction.getInstance().call(action, actionParameters, params, session);
     }
 
+    // Deprecate this shit
     let prompt = fulfillmentMessages?.find((m) => m?.payload?.fields?.openai_prompt?.stringValue)?.payload?.fields
       ?.openai_prompt?.stringValue;
     if (prompt) {

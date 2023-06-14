@@ -1,0 +1,14 @@
+{
+	"name": "otto-datetimenow",
+	"description": "Get current date and time in a specific timezone",
+	"parameters": {
+		"type": "object",
+		"properties": {
+			 "timezone": {
+				  "type": "string",
+				  "description": "The timezone"
+			 }
+		},
+		"required": ["timezone"]
+  }
+}

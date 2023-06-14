@@ -8,7 +8,24 @@ export class MacOSCamera extends Camera {
     await Proc.spawn("imagesnap", ["-o", tmpFile]).result;
     return tmpFile;
   }
+
   async takeVideo(): Promise<string> {
-    return "";
+    const tmpFile = getTmpFile("mp4");
+    await Proc.spawn("ffmpeg", [
+      "-f",
+      "avfoundation",
+      "-framerate",
+      "30",
+      "-i",
+      "0",
+      "-t",
+      5,
+      "-target",
+      "pal-vcd",
+      "-vcodec",
+      "libx264",
+      tmpFile,
+    ]).result;
+    return tmpFile;
   }
 }

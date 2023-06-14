@@ -1,22 +1,19 @@
 import { RaspiCamera } from "../lib/camera/raspi-camera";
-import isPi from "detect-rpi";
 import { MacOSCamera } from "../lib/camera/macos-camera";
 import { Camera } from "../abstracts/camera";
 import { Signale } from "signale";
+import { getPlatform } from "./platform";
 
 const TAG = "Camera";
-const console = new Signale({
-  scope: TAG,
-});
 
 let _instance: Camera;
 export default () => {
   if (!_instance) {
-    switch (true) {
-      case isPi():
+    switch (getPlatform()) {
+      case "pi":
         _instance = new RaspiCamera();
         break;
-      case process.platform === "darwin":
+      case "macos":
         _instance = new MacOSCamera();
         break;
       default:

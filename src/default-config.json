@@ -72,8 +72,7 @@
   "web": {},
   "human": {
     "enableHotword": false,
-    "enableMic": false,
-    "defaultBinaryRecorder": "sox"
+    "enableMic": false
   },
   "gcloud": {
     "cseId": "",
@@ -84,5 +83,8 @@
   },
   "gpio_button": {
     "pin": 16
+  },
+  "porcupine": {
+    "apiKey": ""
   }
 }

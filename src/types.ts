@@ -1,6 +1,5 @@
 import type { Document } from "mongoose";
 import type { IODriver, Authorizations, IOBag } from "./stdlib/iomanager";
-import { IDetectIntentResponse } from "./stdlib/ai/dialogflow";
 
 export type Language = string;
 export type Locale = string;
@@ -9,12 +8,14 @@ export type Gender = string;
 export type InputSource = "text" | "event" | "command" | "unknown";
 
 export type Fulfillment = {
-  text?: string | null;
+  text?: string;
   audio?: string;
+  voice?: string;
   video?: string;
   image?: string;
   document?: string;
   caption?: string;
+  functionResult?: string;
   error?: CustomError;
   data?: string;
   options?: {
@@ -34,16 +35,18 @@ export type Fulfillment = {
   };
 };
 
-export type AIActionArgs = {
+export type AIRuntimeFunctionArguments<T> = {
   inputParams: InputParams;
   session: Session;
-  dialogFlowOutputParams: IDetectIntentResponse | null;
-  openaiOutputParams: any | null;
+  parameters: T;
 };
 
-export type AIAction = (args: AIActionArgs) => Promise<Fulfillment> | Fulfillment;
+export type AIRuntimeFunction<T> = (args: AIRuntimeFunctionArguments<T>) => Promise<Fulfillment> | Fulfillment;
 
-export type CustomError = Error | unknown;
+export type CustomError = {
+  message: string;
+  error?: Error;
+};
 
 export type InputParams = {
   text?: string;
