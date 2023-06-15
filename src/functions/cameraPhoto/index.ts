@@ -1,10 +1,11 @@
 import { AIRuntimeFunction } from "../../types";
-import camera from "../../stdlib/camera";
+import { Camera } from "../../stdlib/camera";
 
 export const authorizations = ["camera"];
 
 const takePhoto: AIRuntimeFunction<null> = async () => {
-  return { image: await camera().takePhoto(), analytics: { engine: "action" } };
+  const photo = await Camera.getInstance().takePhoto();
+  return { image: photo.getAbsolutePath(), analytics: { engine: "action" } };
 };
 
 export default takePhoto;

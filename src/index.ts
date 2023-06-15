@@ -1,22 +1,18 @@
 import config from "./config";
-import * as Server from "./stdlib/server";
-import * as IOManager from "./stdlib/iomanager";
-import scheduler from "./stdlib/scheduler";
 import { warmup } from "./boot";
+import { start as startServer } from "./stdlib/server";
+import { start as startScheduler } from "./stdlib/scheduler";
 import { AIManager } from "./stdlib/ai/ai-manager";
+import { IOManager } from "./stdlib/iomanager";
 
 warmup().then(() => {
   if (config().serverMode) {
-    Server.start();
+    startServer();
   }
 
   if (config().scheduler?.enabled) {
-    scheduler().start();
+    startScheduler();
   }
 
-  IOManager.start({
-    onDriverInput: (params, session) => {
-      AIManager.getInstance().processInput(params, session);
-    },
-  });
+  IOManager.getInstance().start();
 });

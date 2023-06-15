@@ -1,26 +1,23 @@
 import http from "http";
 import express from "express";
-
 import config from "../config";
 import { publicDir, cacheDir } from "../paths";
-import voice from "../stdlib/voice";
-import textToSpeech from "./text-to-speech";
-import { getSession } from "./iomanager";
+import { getVoiceFileFromURI } from "../stdlib/voice";
+import { TextToSpeech } from "./text-to-speech";
+import { IOManager } from "./iomanager";
 import { AIManager } from "./ai/ai-manager";
 // @ts-ignore
 import rateLimit from "express-rate-limit";
-import * as IOManager from "./iomanager";
-
 import { Signale } from "signale";
+import { Session } from "../data/session";
 
 const TAG = "Server";
-const console = new Signale({
+const logger = new Signale({
   scope: TAG,
 });
 
 export const routerIO = express.Router();
 export const routerApi = express.Router();
-export const routerOAuth = express.Router();
 
 // Routers
 
@@ -35,12 +32,11 @@ routerApi.get("/speech", async (req: express.Request, res: express.Response) => 
   try {
     if (!req.query.text) throw new Error("No text provided");
 
-    const audioFile = await textToSpeech().getAudioFile(
+    const audioFile = await TextToSpeech.getInstance().getAudioFile(
       req.query.text.toString(),
       req.query.language?.toString() || config().language,
-      config().tts.gender,
     );
-    const audioFileMixed = await voice().getFile(audioFile);
+    const audioFileMixed = await getVoiceFileFromURI(audioFile);
     const audioFilePath = audioFileMixed.getRelativePath();
 
     res.redirect(audioFilePath);
@@ -59,13 +55,13 @@ routerApi.get("/fulfillment", async (req, res) => {
     if (!obj.session) throw new Error("'session' key not provided");
     if (!obj.params) throw new Error("'params' key not provided");
 
-    const session = await getSession(obj.session);
+    const session = await Session.findById(obj.session);
     if (!session) throw new Error("Session not found");
 
     const output = await AIManager.getInstance().getFullfilmentForInput(obj.params, session);
     return res.json({ data: output });
   } catch (err) {
-    console.error("/api/fulfillment error", err);
+    logger.error("/api/fulfillment error", err);
     return res.status(400).json({
       error: {
         message: String(err),
@@ -82,13 +78,13 @@ routerApi.post("/input", async (req, res) => {
     if (!obj.session) throw new Error("'session' key not provided");
     if (!obj.params) throw new Error("'params' key not provided");
 
-    const session = await getSession(obj.session);
+    const session = await Session.findById(obj.session);
     if (!session) throw new Error("Session not found");
 
-    const output = await AIManager.getInstance().processInput(obj.params, session);
+    const output = await IOManager.getInstance().processInput(obj.params, session);
     return res.json({ data: output });
   } catch (err) {
-    console.error("/api/input error", err);
+    logger.error("/api/input error", err);
     return res.status(400).json({
       error: {
         message: String(err),
@@ -99,7 +95,7 @@ routerApi.post("/input", async (req, res) => {
 
 // Inform the Queue to process new elements immediately
 routerApi.post("/signal/queue", (_, res) => {
-  IOManager.processIOQueue((item) => {
+  IOManager.getInstance().processQueue((item) => {
     res.json({ item });
   });
 });
@@ -109,11 +105,13 @@ routerApi.post("/signal/queue", (_, res) => {
 routerApi.get("/dnd", async (req, res) => {
   try {
     if (!req.query.session) throw new Error("'session' key not provided");
-    const session = await getSession(req.query.session.toString());
+
+    const session = await Session.findById(req.query.session.toString());
     if (!session) throw new Error("Session not found");
+
     return res.json({ status: Boolean(session.doNotDisturb) });
   } catch (err) {
-    console.error("/api/dnd error", err);
+    logger.error("/api/dnd error", err);
     return res.status(400).json({
       error: {
         message: String(err),
@@ -128,13 +126,16 @@ routerApi.post("/dnd", async (req, res) => {
   try {
     if (!req.body.session) throw new Error("'session' key not provided");
     if (!("status" in req.body)) throw new Error("'status' key not provided");
-    const session = await getSession(req.body.session);
+
+    const session = await Session.findById(req.body.session);
     if (!session) throw new Error("Session not found");
+
     session.doNotDisturb = Boolean(req.body.status);
     await session.save();
+
     return res.json({ status: Boolean(session.doNotDisturb) });
   } catch (err) {
-    console.error("/api/dnd error", err);
+    logger.error("/api/dnd error", err);
     return res.status(400).json({
       error: {
         message: String(err),
@@ -166,22 +167,21 @@ export function initializeRoutes(): { app: any; server: any } {
     }),
     routerApi,
   );
-  app.use("/oauth", routerOAuth);
 
   return { app, server };
 }
 
 export function start(): Promise<void> {
   return new Promise<void>((resolve) => {
-    const _config = config().server;
+    const conf = config().server;
     const { server } = initializeRoutes();
     server.listen(
       {
-        port: _config.port,
+        port: conf.port,
         server: "0.0.0.0",
       },
       () => {
-        console.info(`started: http://0.0.0.0:${_config.port}`);
+        logger.info(`started: http://0.0.0.0:${conf.port}`);
         resolve();
       },
     );

@@ -1,7 +1,5 @@
 import speech from "@google-cloud/speech";
 import fs from "fs";
-import { getLocaleFromLanguageCode } from "../../helpers";
-import { SpeechRecognizer } from "../../abstracts/speech-recognizer";
 import { SpeechClient } from "@google-cloud/speech/build/src/v1";
 import { Language } from "../../types";
 import { promisify } from "util";
@@ -9,18 +7,18 @@ import { promisify } from "util";
 import wavFileInfo from "wav-file-info";
 import { Signale } from "signale";
 import Pumpify from "pumpify";
+import { ISpeechRecognizer } from "../../stdlib/speech-recognizer";
 
 const TAG = "GoogleSpeechRecognizer";
-const console = new Signale({
+const logger = new Signale({
   scope: TAG,
 });
 
-export class GoogleSpeechRecognizer extends SpeechRecognizer {
+export class GoogleSpeechRecognizer implements ISpeechRecognizer {
   client: SpeechClient;
   SAMPLE_RATE = 16000;
 
   constructor() {
-    super();
     this.client = new speech.SpeechClient();
   }
   /**
@@ -40,7 +38,7 @@ export class GoogleSpeechRecognizer extends SpeechRecognizer {
         encoding: "LINEAR16",
         sampleRateHertz: this.SAMPLE_RATE,
         ...audioConfig,
-        languageCode: getLocaleFromLanguageCode(language),
+        languageCode: language,
       },
     });
 
@@ -53,7 +51,7 @@ export class GoogleSpeechRecognizer extends SpeechRecognizer {
     });
 
     stream.on("error", (err) => {
-      console.error(err);
+      logger.error(err);
       callback(err);
     });
 
@@ -61,11 +59,11 @@ export class GoogleSpeechRecognizer extends SpeechRecognizer {
       if (data.results.length > 0) {
         const r = data.results[0];
         if (r.alternatives) {
-          console.debug("Alternatives", r.alternatives[0].transcript);
+          logger.debug("->", r.alternatives[0].transcript);
         }
         if (r.isFinal) {
           const text = r.alternatives[0].transcript;
-          console.info("Recognized", text);
+          logger.info("Recognized", text);
           resolved = true;
           callback(null, text);
         }

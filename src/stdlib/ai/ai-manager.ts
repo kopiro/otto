@@ -1,16 +1,17 @@
-import * as IOManager from "../iomanager";
 import config from "../../config";
-import { Fulfillment, InputParams, Session, InputSource } from "../../types";
+import { Fulfillment, InputParams, InputSource } from "../../types";
 import Events from "events";
-import translator from "../translator";
+import { Translator } from "../translator";
 import { Signale } from "signale";
-import { createInteraction, getSessionTranslateTo } from "../../helpers";
 import { AICommander } from "./ai-commander";
 import { AIOpenAI } from "./ai-openai";
 import { AIDialogFlow } from "./ai-dialogflow";
+import { IOManager } from "../iomanager";
+import { TSession } from "../../data/session";
+import { Interaction } from "../../data/interaction";
 
 const TAG = "AI";
-const console = new Signale({
+const logger = new Signale({
   scope: TAG,
 });
 
@@ -30,7 +31,7 @@ export class AIManager {
    */
   async fulfillmentFinalizer(
     fulfillment: Fulfillment | null,
-    session: Session,
+    session: TSession,
     source: InputSource,
   ): Promise<Fulfillment | null> {
     if (!fulfillment) return null;
@@ -48,11 +49,10 @@ export class AIManager {
 
     // Always translate fulfillment speech in the user language
     if (fulfillment.text && translatePolicy !== "never") {
-      const { translateFrom = config().language, translateTo = getSessionTranslateTo(session) } =
-        fulfillment.options || {};
-      if (translatePolicy === "always" || (translatePolicy === "when_necessary" && translateFrom !== translateTo)) {
+      const { translateTo = session.getLanguage() } = fulfillment.options || {};
+      if (translatePolicy === "always" || (translatePolicy === "when_necessary" && config().language !== translateTo)) {
         try {
-          fulfillment.text = await translator().translate(fulfillment.text, translateTo);
+          fulfillment.text = await Translator.getInstance().translate(fulfillment.text, translateTo);
         } catch (err) {
           fulfillment.text += ` [untranslated]`;
         }
@@ -62,10 +62,9 @@ export class AIManager {
     // Add other info
     fulfillment.runtime.finalizerUid = config().uid;
     fulfillment.runtime.finalizedAt = Date.now();
-    fulfillment.analytics.sessionId = session.id;
 
     // Create interaction before adding final options
-    createInteraction(session, {
+    Interaction.createNew(session, {
       fulfillment,
       source,
     });
@@ -73,40 +72,40 @@ export class AIManager {
     return fulfillment;
   }
 
-  async textRequest(params: InputParams, session: Session): Promise<Fulfillment | null> {
+  async textRequest(params: InputParams, session: TSession): Promise<Fulfillment | null> {
     const { text } = params;
-    console.info("text request:", text);
+    logger.info("text request:", text);
 
     return AIOpenAI.getInstance().getFulfillmentForInput(params, session, "user");
   }
 
-  async eventRequest(params: InputParams, session: Session): Promise<Fulfillment | null> {
+  async eventRequest(params: InputParams, session: TSession): Promise<Fulfillment | null> {
     const { event } = params;
-    console.info("event request:", event);
+    logger.info("event request:", event);
 
-    createInteraction(session, {
+    Interaction.createNew(session, {
       input: { event },
     });
 
     return AIDialogFlow.getInstance().getFulfillmentForInput(params, session);
   }
 
-  async commandRequest(params: InputParams, session: Session): Promise<Fulfillment> {
+  async commandRequest(params: InputParams, session: TSession): Promise<Fulfillment> {
     const { command } = params;
-    console.info("command request:", command);
+    logger.info("command request:", command);
 
-    createInteraction(session, {
+    Interaction.createNew(session, {
       input: { command },
     });
 
     return AICommander.getInstance().getFulfillmentForInput(params, session);
   }
 
-  async getFullfilmentForInput(params: InputParams, session: Session): Promise<Fulfillment | null> {
+  async getFullfilmentForInput(params: InputParams, session: TSession): Promise<Fulfillment | null> {
     let fulfillment: any = null;
     let source: InputSource = "unknown";
 
-    createInteraction(session, {
+    Interaction.createNew(session, {
       input: params,
     });
 
@@ -121,20 +120,10 @@ export class AIManager {
       fulfillment = await this.commandRequest(params, session);
     } else {
       source = "unknown";
-      console.warn("No suitable inputs params in the request");
+      logger.warn("No suitable inputs params in the request");
     }
 
     const finalFulfillment = await this.fulfillmentFinalizer(fulfillment, session, source);
     return finalFulfillment;
-  }
-
-  /**
-   * Process a fulfillment to a session
-   */
-  async processInput(params: InputParams, session: Session) {
-    console.info("input", params, session.id);
-    const fulfillment = await this.getFullfilmentForInput(params, session);
-    console.info("output", fulfillment, session.id);
-    return IOManager.output(fulfillment, session, params.bag);
   }
 }

@@ -1,23 +1,20 @@
 import Events from "events";
-import config from "../config";
-import * as IOManager from "../stdlib/iomanager";
-import voice from "../stdlib/voice";
-import { Fulfillment, InputParams, Session } from "../types";
+import { IODriverRuntime, IODriverOutput } from "../stdlib/iomanager";
+import { Fulfillment } from "../types";
 import { Request, Response } from "express";
 import { routerIO } from "../stdlib/server";
-import { getSessionTranslateTo, getTmpFile } from "../helpers";
 import fs from "fs";
 import bodyParser from "body-parser";
-import { File } from "../stdlib/file";
-import textToSpeech from "../stdlib/text-to-speech";
 import { Signale } from "signale";
 import { AIManager } from "../stdlib/ai/ai-manager";
 import { formidable } from "formidable";
-import { SpeechRecognizer } from "../abstracts/speech-recognizer";
-import speechRecognizer from "../stdlib/speech-recognizer";
+import { SpeechRecognizer } from "../stdlib/speech-recognizer";
+import { getVoiceFileFromFulfillment } from "../stdlib/voice";
+import { File } from "../stdlib/file";
+import { Session } from "../data/session";
 
 const TAG = "IO.Web";
-const console = new Signale({
+const logger = new Signale({
   scope: TAG,
 });
 
@@ -25,17 +22,12 @@ const DRIVER_ID = "web";
 
 type WebConfig = null;
 
-type WebBag = {
-  req: Request;
-  res: Response;
-};
-
 enum AcceptHeader {
   TEXT = "text",
   AUDIO = "audio",
 }
 
-export class Web implements IOManager.IODriverModule {
+export class Web implements IODriverRuntime {
   config: WebConfig;
   emitter: Events.EventEmitter;
   started = false;
@@ -45,7 +37,7 @@ export class Web implements IOManager.IODriverModule {
     this.emitter = new Events.EventEmitter();
   }
 
-  output(): Promise<IOManager.IODriverOutput> {
+  output(): Promise<IODriverOutput> {
     throw new Error("IODriver.Web doesn't support direct output");
   }
 
@@ -54,7 +46,10 @@ export class Web implements IOManager.IODriverModule {
       throw new Error("body.sessionId is required");
     }
 
-    const session = await IOManager.registerSession(DRIVER_ID, req.body.sessionId, req.headers);
+    const session = await Session.findById(req.body.sessionId);
+    if (!session) {
+      throw new Error(`Session with ID <${req.body.sessionId}> not found`);
+    }
 
     let resolvedInput = false;
     let fulfillment: Fulfillment | null | undefined;
@@ -77,9 +72,14 @@ export class Web implements IOManager.IODriverModule {
 
       if (files.audio) {
         resolvedInput = true;
-        const tmpAudioFile = getTmpFile("wav");
-        fs.renameSync(files.audio.path, tmpAudioFile);
-        const text = await speechRecognizer().recognizeFile(tmpAudioFile, getSessionTranslateTo(session));
+
+        const tmpAudioFile = File.getTmpFile("wav");
+        fs.renameSync(files.audio.path, tmpAudioFile.getAbsolutePath());
+        const text = await SpeechRecognizer.getInstance().recognizeFile(
+          tmpAudioFile.getAbsolutePath(),
+          session.getLanguage(),
+        );
+
         fulfillment = await AIManager.getInstance().getFullfilmentForInput(
           {
             text,
@@ -99,7 +99,7 @@ export class Web implements IOManager.IODriverModule {
 
     if (fulfillment) {
       if (accepts?.includes(AcceptHeader.AUDIO)) {
-        const audioFile = await this.getVoiceFile(fulfillment, session);
+        const audioFile = await getVoiceFileFromFulfillment(fulfillment, session);
         audio = audioFile.getRelativePath();
       }
 
@@ -114,15 +114,6 @@ export class Web implements IOManager.IODriverModule {
     }
 
     return res.json({ ...fulfillment, audio });
-  }
-
-  private async getVoiceFile(fulfillment: Fulfillment, session: Session): Promise<File> {
-    const audioFile = await textToSpeech().getAudioFile(
-      fulfillment.text || "",
-      fulfillment.options?.language || getSessionTranslateTo(session),
-      config().tts.gender,
-    );
-    return voice().getFile(audioFile);
   }
 
   async start() {

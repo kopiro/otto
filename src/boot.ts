@@ -2,6 +2,12 @@ import { config as dotEnvConfig } from "dotenv";
 import config from "./config";
 import * as Sentry from "@sentry/node";
 import * as Database from "./stdlib/database";
+import { Signale } from "signale";
+
+const TAG = "Boot";
+const logger = new Signale({
+  scope: TAG,
+});
 
 export async function warmup() {
   try {
@@ -16,10 +22,8 @@ export async function warmup() {
     }
 
     await Database.connect();
-
-    console.info("Warmup completed.");
   } catch (err) {
-    console.error(err);
+    logger.error(err);
     process.exit(1);
   }
 }

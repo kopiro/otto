@@ -2,16 +2,18 @@ import request from "request";
 import fs from "fs";
 import path from "path";
 import config from "./config";
-import translator from "./stdlib/translator";
-import { cacheDir, tmpDir } from "./paths";
-import { Language, Locale, Session } from "./types";
-import { v4 as uuid } from "uuid";
+import { Translator } from "./stdlib/translator";
+import { cacheDir } from "./paths";
+import { Authorizations, Language } from "./types";
 import crypto from "crypto";
+import { File } from "./stdlib/file";
+
 import { Signale } from "signale";
-import { Interaction } from "./data";
-import { Interaction as IInteraction } from "./types";
-import { IODataTelegram } from "./io/telegram";
-import { Authorizations } from "./stdlib/iomanager";
+
+const TAG = "Helpers";
+const logger = new Signale({
+  scope: TAG,
+});
 
 /**
  * Get the name of the AI
@@ -22,10 +24,12 @@ export function getAINameRegexp(): RegExp {
 }
 
 /**
- * Return a temporary file path
+ * Chunk an array into array of size
  */
-export function getTmpFile(extension: string) {
-  return path.join(tmpDir, `${uuid()}.${extension}`);
+export function chunkArray(array: number[], size: number) {
+  return Array.from({ length: Math.ceil(array.length / size) }, (v, index) =>
+    array.slice(index * size, index * size + size),
+  );
 }
 
 /**
@@ -43,68 +47,19 @@ export function timeout(ms: number) {
 }
 
 /**
- * Get the locale string from a language
- */
-export function getLocaleFromLanguageCode(language: Language): Locale {
-  switch (language) {
-    case "de":
-      return "de-DE";
-    case "da":
-      return "da-DK";
-    case "it":
-      return "it-IT";
-    case "is":
-      return "is-IS";
-    case "fr":
-      return "fr-FR";
-    case "es":
-      return "es-ES";
-    case "tr":
-      return "tr-TR";
-    case "ru":
-      return "ru-RU";
-    case "ro":
-      return "ro-RO";
-    case "en":
-      return "en-GB";
-    case "ja":
-      return "ja-JP";
-    case "cy":
-      return "cy-GB";
-    case "pt":
-      return "pt-PT";
-    case "nl":
-      return "nl-NL";
-    case "nb":
-      return "nb-NO";
-    case "sv":
-      return "sv-SE";
-    default:
-      return "";
-  }
-}
-
-/**
  * Get the local URI of a remote object by downloading it
  */
-export function getLocalObjectFromURI(uri: string | Buffer, extension: string): Promise<string> {
-  const TAG = "getLocalObjectFromURI";
-  const console = new Signale({
-    scope: TAG,
-  });
-
-  return new Promise((resolve, reject) => {
-    if (!uri) {
-      return reject("Invalid URI/Buffer");
+export function getLocalObjectFromURI(uri: string | Buffer | File, extension: string): Promise<File> {
+  return new Promise((resolve) => {
+    if (uri instanceof File) {
+      return resolve(uri);
     }
 
-    const hash = crypto.createHash("md5").update(uri).digest("hex");
-    const localFile = path.join(cacheDir, `${hash}.${extension}`);
-
     if (Buffer.isBuffer(uri)) {
-      if (!fs.existsSync(localFile)) {
-        console.debug(`writing buffer to local file <${localFile}>`);
-        return fs.promises.writeFile(localFile, uri).then(() => {
+      const hash = crypto.createHash("md5").update(uri).digest("hex");
+      const localFile = new File(path.join(cacheDir, `${hash}.${extension}`));
+      if (!fs.existsSync(localFile.getAbsolutePath())) {
+        return fs.promises.writeFile(localFile.getAbsolutePath(), uri).then(() => {
           resolve(localFile);
         });
       }
@@ -112,12 +67,13 @@ export function getLocalObjectFromURI(uri: string | Buffer, extension: string): 
     }
 
     if (typeof uri === "string" && /^https?:\/\//.test(uri)) {
-      if (!fs.existsSync(localFile)) {
-        console.debug(`writing ${uri} to local file <${localFile}>`);
+      const hash = crypto.createHash("md5").update(uri).digest("hex");
+      const localFile = new File(path.join(cacheDir, `${hash}.${extension}`));
+      if (!fs.existsSync(localFile.getAbsolutePath())) {
         return request(uri, {
           followAllRedirects: true,
         })
-          .pipe(fs.createWriteStream(localFile))
+          .pipe(fs.createWriteStream(localFile.getAbsolutePath()))
           .on("close", () => {
             resolve(localFile);
           });
@@ -125,43 +81,14 @@ export function getLocalObjectFromURI(uri: string | Buffer, extension: string): 
       return resolve(localFile);
     }
 
-    return resolve(uri as string);
+    return resolve(new File(uri));
   });
-}
-
-/**
- * Extract a pattern from a string
- */
-export function extractWithPattern(input: any, pattern: string): any {
-  if (input == null) return null;
-  if (pattern == "") return input;
-
-  const p = pattern.split(".");
-  let _p = p.shift();
-
-  // Array search
-  if (_p === "[]") {
-    _p = p.shift();
-    for (const _input of input) {
-      if (_input[_p as keyof typeof _input] != null) {
-        const found = extractWithPattern(_input[_p as keyof typeof _input], p.join("."));
-        if (found) return found;
-      }
-    }
-    return null;
-  }
-
-  if (p.length === 0) {
-    return input[_p as keyof typeof input];
-  }
-
-  return extractWithPattern(input[_p as keyof typeof input], p.join("."));
 }
 
 /**
  * Replace any %var% into a string literal with provided data as second arg
  */
-export function replaceVariablesInStrings(text: string, data: Record<string, string>): string {
+export function replaceVariablesInStrings(text: string, data: Record<string, string>, encloser = "%"): string {
   let reLoop = null;
   let textCopy = text;
   const re = /%(\w+)%/g;
@@ -169,19 +96,19 @@ export function replaceVariablesInStrings(text: string, data: Record<string, str
   while ((reLoop = re.exec(text))) {
     const inVar = reLoop[1];
     if (data[inVar]) {
-      textCopy = textCopy.replace(`%${inVar}%`, data[inVar] || "");
+      textCopy = textCopy.replace(`${encloser}${inVar}${encloser}`, data[inVar] || "");
     }
   }
   return textCopy;
 }
 
 export async function getLanguageNameFromLanguageCode(languageCode: string): Promise<Language | undefined> {
-  const languages = await translator().getLanguages();
+  const languages = await Translator.getInstance().getLanguages();
   return languages.find((e) => e.code === languageCode)?.name;
 }
 
 export async function getLanguageCodeFromLanguageName(languageName: string): Promise<Language | undefined> {
-  const languages = await translator().getLanguages();
+  const languages = await Translator.getInstance().getLanguages();
   return languages.find((e) => e.name === languageName)?.code;
 }
 
@@ -189,7 +116,7 @@ export function tryCatch<T>(callable: () => T, defaultValue: any): T | typeof de
   try {
     return callable();
   } catch (error) {
-    console.debug("Catched to default error", error);
+    logger.debug("Catched to default error", error);
     return defaultValue;
   }
 }
@@ -211,6 +138,15 @@ export function shuffle<T>(array: T[]): T[] {
   return array;
 }
 
+export function tryJsonParse<T>(value: string | undefined, defaultValue: T): T {
+  try {
+    return value !== undefined ? JSON.parse(value) : defaultValue;
+  } catch (error) {
+    logger.debug("Catched to default error", error);
+    return defaultValue;
+  }
+}
+
 export function isJsonString(str: string): boolean {
   try {
     JSON.parse(str);
@@ -220,88 +156,20 @@ export function isJsonString(str: string): boolean {
   return true;
 }
 
-export function getSessionLanguage(session: Session): Language {
-  switch (session.ioDriver) {
-    case "telegram":
-      const ioData = session.ioData as IODataTelegram;
-      return ioData.from?.language_code || config().language;
-    default:
-      return config().language;
-  }
-}
+export function ensureError(value: unknown): Error {
+  if (value instanceof Error) return value;
 
-export function getSessionTranslateFrom(session: Session): Language {
-  return session.translateFrom || getSessionLanguage(session);
-}
+  let stringified = "[Unable to stringify the thrown value]";
+  try {
+    stringified = JSON.stringify(value);
+  } catch {}
 
-export function getSessionTranslateTo(session: Session): Language {
-  return session.translateTo || getSessionLanguage(session);
-}
-
-export function getSessionName(session: Session): string {
-  if (session.name) {
-    return session.name;
-  }
-
-  switch (session.ioDriver) {
-    case "telegram": {
-      const ioData = session.ioData as IODataTelegram;
-      const { first_name, last_name } = ioData?.from || {};
-      if (first_name && last_name) {
-        return `${first_name} ${last_name}`;
-      }
-      if (first_name) {
-        return first_name;
-      }
-      return "Unknown";
-    }
-    default:
-      return "Unknown";
-  }
-}
-
-export function getSessionDriverName(session: Session): string {
-  switch (session.ioDriver) {
-    case "telegram": {
-      const ioData = session.ioData as IODataTelegram;
-      let chatName = "";
-      switch (ioData?.chat.type) {
-        case "supergroup":
-        case "group":
-          chatName = `in the group chat "${ioData.chat.title}"`;
-        case "channel":
-          chatName = `in the channel "${ioData.chat.title}"`;
-          break;
-        case "private":
-          chatName = "in a private conversation";
-          break;
-      }
-      return `via Telegram (${chatName})`;
-    }
-    case "human":
-    case "web":
-      return "Face to face";
-    default:
-      return "-";
-  }
-}
-
-export function getSessionLocaleTimeString(session: Session): string {
-  const date = new Date();
-  return date.toLocaleString(session.translateTo, { timeZone: session.timeZone || "Europe/Rome" });
-}
-
-export async function createInteraction(session: Session, params: Partial<IInteraction>): Promise<IInteraction> {
-  return new Interaction({
-    managerUid: config().uid,
-    session: session.id,
-    createdAt: new Date(),
-    ...params,
-  }).save();
+  const error = new Error(`This value was thrown as is, not through an Error: ${stringified}`);
+  return error;
 }
 
 export function throwIfMissingAuthorizations(
-  authorizations: Authorizations[],
+  authorizations: Authorizations[] = [],
   requiredAuthorizations: Authorizations[],
 ): void {
   authorizations = authorizations || [];

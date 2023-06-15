@@ -1,66 +1,80 @@
 import GCTTS from "@google-cloud/text-to-speech";
 import config from "../../config";
-import { Language, Gender } from "../../types";
+import { Language } from "../../types";
 import { google } from "@google-cloud/text-to-speech/build/protos/protos";
-import { TextToSpeech } from "../../abstracts/text-to-speech";
 import { TextToSpeechClient } from "@google-cloud/text-to-speech";
+import { writeFile } from "fs/promises";
+import { File } from "../../stdlib/file";
+import { ITextToSpeech } from "../../stdlib/text-to-speech";
 
-export class GoogleTextToSpeech extends TextToSpeech {
-  client: TextToSpeechClient;
+import { Signale } from "signale";
+
+const TAG = "GoogleTextToSpeech";
+const logger = new Signale({
+  scope: TAG,
+});
+
+export class GoogleTextToSpeech implements ITextToSpeech {
+  private client: TextToSpeechClient;
+  private voices: Record<string, google.cloud.texttospeech.v1.IVoice> = {};
+  private conf: {
+    gender: string;
+    encoding: string;
+  };
 
   constructor() {
-    super();
     this.client = new GCTTS.TextToSpeechClient();
+    this.conf = config().tts;
   }
 
-  getVoice(language: Language, gender: Gender): any {
-    const key = this.getCacheKeyForVoice(language, gender);
-    if (this.cache.voices[key]) {
-      return this.cache.voices[key];
+  private cleanText(text: string) {
+    // Removi all emojies
+    return text.replace(/[\u{1F600}-\u{1F6FF}]/gu, "");
+  }
+
+  private async getCachedVoice(language: Language) {
+    const key = language;
+    if (!this.voices[key]) {
+      const voice = await this.getVoice(language);
+      this.voices[key] = voice;
     }
-
-    const voice = this._getVoice(language, gender);
-    this.cache.voices[key] = voice;
-    return voice;
+    return this.voices[key];
   }
 
-  /**
-   * Retrieve the voice title based on language and gender
-   */
-  async _getVoice(language: Language, gender: Gender): Promise<any> {
+  private async getVoice(language: Language) {
     const [response] = await this.client.listVoices({ languageCode: language });
-    const availableVoices = response.voices?.filter((voice) => voice.ssmlGender === gender.toUpperCase());
+    const availableVoices = response.voices?.filter((voice) => voice.ssmlGender === this.conf.gender.toUpperCase());
 
     if (!availableVoices?.[0]) {
       // Fallback to config().language
-      return this.getVoice(config().language, gender);
+      return this.getCachedVoice(config().language);
     }
 
-    const { ssmlGender, name } = availableVoices[0];
-    const voice = {
-      languageCode: language,
-      ssmlGender,
-      name,
-    };
-    this.setCacheForVoice(language, gender, voice);
-    return voice;
+    logger.debug("Voice", availableVoices[0]);
+
+    return availableVoices[0];
   }
 
   /**
    * Download the audio file for that sentence and options
    */
-  async _getAudioFile(text: string, language: Language, gender: Gender) {
+  async getAudio(text: string, language: Language) {
+    const cleanText = this.cleanText(text);
+
     // Find the voice title by options
-    const voice = await this.getVoice(language, gender);
+    const voice = await this.getCachedVoice(language);
 
     // Call the API
     const [{ audioContent }] = await this.client.synthesizeSpeech({
       input: {
-        [/<speak>/.test(text) ? "ssml" : "text"]: text,
+        [/<speak>/.test(cleanText) ? "ssml" : "text"]: cleanText,
       },
-      voice,
+      voice: {
+        ...voice,
+        languageCode: voice.languageCodes[0],
+      },
       audioConfig: {
-        audioEncoding: config().audio.encoding as unknown as google.cloud.texttospeech.v1.AudioEncoding,
+        audioEncoding: this.conf.encoding as unknown as google.cloud.texttospeech.v1.AudioEncoding,
       },
     });
     if (!audioContent) {
@@ -68,5 +82,19 @@ export class GoogleTextToSpeech extends TextToSpeech {
     }
 
     return audioContent;
+  }
+
+  async getAudioFile(text: string, language: Language): Promise<File> {
+    const data = await this.getAudio(text, language);
+    if (!data) {
+      throw new Error("Failed to get audio file");
+    }
+
+    const file = File.getTmpFile(this.conf.encoding.toLowerCase());
+    await writeFile(file.getAbsolutePath(), data, {
+      encoding: "binary",
+    });
+
+    return file;
   }
 }

@@ -1,24 +1,18 @@
 import {
   ChatCompletionRequestMessage,
   ChatCompletionRequestMessageRoleEnum,
-  Configuration,
   CreateChatCompletionRequest,
-  OpenAIApi,
 } from "openai";
-import { Fulfillment, InputParams, Session } from "../../types";
+import { Fulfillment, InputParams } from "../../types";
 import config from "../../config";
 import { Signale } from "signale";
-import {
-  getLanguageNameFromLanguageCode,
-  getSessionDriverName,
-  getSessionName,
-  getSessionTranslateTo,
-} from "../../helpers";
-import { Interaction } from "../../data";
+import { ensureError, getLanguageNameFromLanguageCode, tryJsonParse } from "../../helpers";
 import fetch from "node-fetch";
-import openai from "../../lib/openai";
+import { OpenAIApiSDK } from "../../lib/openai";
 import { AIVectorMemory } from "./ai-vectormemory";
 import { AIFunction } from "./ai-function";
+import { Interaction } from "../../data/interaction";
+import { TSession } from "../../data/session";
 
 type Config = {
   apiKey: string;
@@ -26,12 +20,12 @@ type Config = {
 };
 
 const TAG = "OpenAI";
-const console = new Signale({
+const logger = new Signale({
   scope: TAG,
 });
 
 export class AIOpenAI {
-  private prompt: string;
+  private prompt!: string;
 
   constructor(private conf: Config) {}
 
@@ -48,16 +42,14 @@ export class AIOpenAI {
     return this.prompt;
   }
 
-  private getCleanSessionName(session: Session): string {
-    return getSessionName(session)
+  private getCleanSessionName(session: TSession): string {
+    return session
+      .getName()
       .replace(/[^a-zA-Z0-9_-]/g, "")
       .substring(0, 64);
   }
 
-  private async retrieveInteractions(
-    session: Session,
-    inputText: string,
-  ): Promise<CreateChatCompletionRequest["messages"]> {
+  private async retrieveInteractions(session: TSession, inputText: string): Promise<ChatCompletionRequestMessage[]> {
     const sessionName = this.getCleanSessionName(session);
 
     // Get all Interaction where we have a input.text or fulfillment.text in the last 20m
@@ -82,7 +74,7 @@ export class AIOpenAI {
       .map((interaction, i) => {
         if (i === interactions.length - 1) {
           if (
-            inputText === interaction.input.text &&
+            inputText === interaction.input?.text &&
             // last minute
             interaction.createdAt > new Date(Date.now() - 1000 * 60)
           ) {
@@ -90,13 +82,13 @@ export class AIOpenAI {
           }
         }
 
-        if (interaction.fulfillment.text) {
+        if (interaction.fulfillment?.text) {
           return {
             role: ChatCompletionRequestMessageRoleEnum.Assistant,
             content: interaction.fulfillment.text,
           };
         }
-        if (interaction.input.text) {
+        if (interaction.input?.text) {
           return {
             role: ChatCompletionRequestMessageRoleEnum.User,
             name: sessionName,
@@ -104,10 +96,10 @@ export class AIOpenAI {
           };
         }
       })
-      .filter(Boolean);
+      .filter(Boolean) as ChatCompletionRequestMessage[];
   }
 
-  private async getSessionContext(session: Session | null): Promise<string> {
+  private async getSessionContext(session: TSession | null): Promise<string> {
     const contextPrompt = [];
 
     contextPrompt.push("## User");
@@ -116,9 +108,9 @@ export class AIOpenAI {
 
     // Append session related info
     if (session) {
-      const userLanguage = await getLanguageNameFromLanguageCode(getSessionTranslateTo(session));
+      const userLanguage = await getLanguageNameFromLanguageCode(session.getLanguage());
       contextPrompt.push(`
-You are now chatting with ${getSessionName(session)} - ${getSessionDriverName(session)}.
+You are now chatting with ${session.getName()} - ${session.getDriverName()}.
 Speak ${userLanguage} to them, unless they speak a different language to you.
 `);
     }
@@ -144,7 +136,7 @@ Speak ${userLanguage} to them, unless they speak a different language to you.
   async sendMessageToOpenAI(
     openAIMessages: ChatCompletionRequestMessage[],
     inputParams: InputParams,
-    session: Session | null,
+    session: TSession | null,
     text: string,
   ): Promise<Omit<Fulfillment, "analytics">> {
     const systemPrompt: string[] = [];
@@ -157,7 +149,7 @@ Speak ${userLanguage} to them, unless they speak a different language to you.
     systemPrompt.push(await this.getMemoryContext(text));
 
     // Add interactions
-    let interactions = await this.retrieveInteractions(session, text);
+    const interactions = session ? await this.retrieveInteractions(session, text) : [];
 
     // Build messages
     const messages: ChatCompletionRequestMessage[] = [
@@ -169,9 +161,9 @@ Speak ${userLanguage} to them, unless they speak a different language to you.
       ...openAIMessages,
     ].filter(Boolean);
 
-    console.debug("Messages:", messages);
+    logger.debug("Messages:", messages);
 
-    const completion = await openai().createChatCompletion({
+    const completion = await OpenAIApiSDK().createChatCompletion({
       model: "gpt-3.5-turbo-0613",
       user: session?.id,
       n: 1,
@@ -180,12 +172,17 @@ Speak ${userLanguage} to them, unless they speak a different language to you.
       function_call: "auto",
     });
 
-    const answer = completion.data.choices.map((e) => e.message)[0];
-    console.debug("Completion:", answer);
+    const answer = completion.data.choices.map((e) => e.message)?.[0];
+    logger.debug("Completion:", answer);
 
-    if (answer.function_call) {
+    if (answer?.function_call) {
       const functionName = answer.function_call.name;
-      const functionParams = JSON.parse(answer.function_call.arguments);
+      if (!functionName) {
+        throw new Error("Invalid function name: " + JSON.stringify(answer));
+      }
+
+      const functionParams = tryJsonParse<any>(answer.function_call.arguments, {});
+
       const result = await AIFunction.getInstance().call(functionName, functionParams, inputParams, session);
 
       if (result.functionResult) {
@@ -207,7 +204,7 @@ Speak ${userLanguage} to them, unless they speak a different language to you.
       return result;
     }
 
-    if (answer.content) {
+    if (answer?.content) {
       return { text: answer.content };
     }
 
@@ -216,12 +213,16 @@ Speak ${userLanguage} to them, unless they speak a different language to you.
 
   async getFulfillmentForInput(
     inputParams: InputParams,
-    session: Session | null,
+    session: TSession | null,
     role: ChatCompletionRequestMessageRoleEnum = "user",
   ): Promise<Fulfillment> {
+    if (!inputParams.text) {
+      throw new Error("Missing inputParams.text");
+    }
+
     const { text } = inputParams;
 
-    let sessionName = session ? this.getCleanSessionName(session) : undefined;
+    const sessionName = session ? this.getCleanSessionName(session) : undefined;
     const openAIMessages = [
       {
         role: role,
@@ -239,13 +240,13 @@ Speak ${userLanguage} to them, unless they speak a different language to you.
         },
         options: { translatePolicy: "never" },
       };
-    } catch (error) {
+    } catch (err) {
+      const error = ensureError(err) as any;
       const errorMessage = error?.response?.data?.error?.message || error?.response?.data?.error || error?.message;
-      console.error("error", errorMessage);
+
       return {
         error: {
           message: errorMessage,
-          error: error,
         },
         analytics: { engine: "openai" },
       };

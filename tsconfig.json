@@ -1,5 +1,8 @@
+
 {
   "compilerOptions": {
+    "strict": false,
+
     "lib": ["es2021"],
     "module": "commonjs",
     "target": "es2021",
@@ -9,7 +12,9 @@
     "forceConsistentCasingInFileNames": true,
     "moduleResolution": "node",
 
-    "strict": false,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+
     "resolveJsonModule": true,
     "outDir": "build"
   },

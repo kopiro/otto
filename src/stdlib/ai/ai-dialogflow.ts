@@ -1,13 +1,14 @@
 import dialogflow, { protos, SessionsClient, IntentsClient } from "@google-cloud/dialogflow";
-import * as IOManager from "../iomanager";
 import config from "../../config";
-import { Fulfillment, InputParams, Session } from "../../types";
+import { Fulfillment, InputParams } from "../../types";
 import { struct } from "pb-util";
-import translator from "../translator";
+import { Translator } from "../translator";
 import { AIOpenAI } from "./ai-openai";
-import { createInteraction } from "../../helpers";
 import { ChatCompletionRequestMessageRoleEnum } from "openai";
 import { AIFunction } from "./ai-function";
+import { IOBag } from "../iomanager";
+import { TSession } from "../../data/session";
+import { Interaction } from "../../data/interaction";
 
 export type IDetectIntentResponse = protos.google.cloud.dialogflow.v2.IDetectIntentResponse;
 export type IQueryInput = protos.google.cloud.dialogflow.v2.IQueryInput;
@@ -38,17 +39,16 @@ export class AIDialogFlow {
     this.dfIntentAgentPath = this.dfIntentsClient.projectAgentPath(this.conf.projectId);
   }
 
-  private getSessionPath(sessionId: string) {
-    const dfSessionId = sessionId.replace(/\//g, "_");
+  private getSessionPath(session: TSession) {
     if (!this.conf.environment) {
-      return this.dfSessionClient.projectAgentSessionPath(this.conf.projectId, dfSessionId);
+      return this.dfSessionClient.projectAgentSessionPath(this.conf.projectId, session.id);
     }
 
     return this.dfSessionClient.projectAgentEnvironmentUserSessionPath(
       this.conf.projectId,
       this.conf.environment,
       "-",
-      dfSessionId,
+      session.id,
     );
   }
 
@@ -57,12 +57,12 @@ export class AIDialogFlow {
       .stringValue;
   }
 
-  private async request(queryInput: IQueryInput, session: Session, bag: IOManager.IOBag) {
+  private async request(queryInput: IQueryInput, session: TSession, bag: IOBag) {
     if (queryInput.text?.text) {
-      queryInput.text.text = await translator().translate(queryInput.text.text, this.conf.language);
+      queryInput.text.text = await Translator.getInstance().translate(queryInput.text.text, this.conf.language);
     }
 
-    const sessionPath = this.getSessionPath(session.id);
+    const sessionPath = this.getSessionPath(session);
     const payload = {
       session: sessionPath,
       queryInput,
@@ -81,7 +81,7 @@ export class AIDialogFlow {
   private async bodyParser(
     params: InputParams,
     body: IDetectIntentResponse,
-    session: Session,
+    session: TSession,
   ): Promise<Fulfillment | null> {
     const { fulfillmentText, fulfillmentMessages, action, queryText, parameters } = body.queryResult || {};
 
@@ -124,33 +124,33 @@ export class AIDialogFlow {
   /**
    * @deprecated
    */
-  async textRequest(params: InputParams, session: Session): Promise<Fulfillment | null> {
+  async textRequest(params: InputParams, session: TSession): Promise<Fulfillment | null> {
     const { text } = params;
 
-    createInteraction(session, {
+    Interaction.createNew(session, {
       input: { text },
     });
 
     const queryInput: IQueryInput = { text: { text } };
-    queryInput.text!.languageCode = this.conf.language;
+    queryInput.text.languageCode = this.conf.language;
 
     const body = await this.request(queryInput, session, params.bag);
     return this.bodyParser(params, body, session);
   }
 
-  async eventRequest(params: InputParams, session: Session): Promise<Fulfillment | null> {
+  async eventRequest(params: InputParams, session: TSession): Promise<Fulfillment | null> {
     const { event } = params;
     const queryInput: IQueryInput = { event: {} };
 
     if (typeof event === "string") {
-      queryInput.event!.name = event;
+      queryInput.event.name = event;
     } else {
-      queryInput.event!.name = event.name;
-      queryInput.event!.parameters = event.parameters ? struct.encode(event.parameters) : {};
+      queryInput.event.name = event.name;
+      queryInput.event.parameters = event.parameters ? struct.encode(event.parameters) : {};
     }
-    queryInput.event!.languageCode = this.conf.language;
+    queryInput.event.languageCode = this.conf.language;
 
-    createInteraction(session, {
+    Interaction.createNew(session, {
       input: { event },
     });
 
@@ -158,7 +158,7 @@ export class AIDialogFlow {
     return this.bodyParser(params, body, session);
   }
 
-  async getFulfillmentForInput(params: InputParams, session: Session) {
+  async getFulfillmentForInput(params: InputParams, session: TSession) {
     if (params.text) {
       return this.textRequest(params, session);
     }

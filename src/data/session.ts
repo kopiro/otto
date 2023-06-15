@@ -1,29 +1,158 @@
-import mongoose from "mongoose";
-import autopopulate from "mongoose-autopopulate";
-import { Session as ISession } from "../types";
+import config from "../config";
+import { IODataTelegram } from "../io/telegram";
+import { IODriverId } from "../stdlib/iomanager";
+import { Authorizations, Language } from "../types";
+import { getModelForClass, Ref, ReturnModelType, DocumentType, prop, modelOptions } from "@typegoose/typegoose";
 
-const { Schema } = mongoose;
+import { Signale } from "signale";
 
-export const SessionSchema = new Schema<ISession>({
-  _id: String,
-  ioDriver: String,
-  ioId: String,
-  ioData: Schema.Types.Mixed,
-
-  name: String,
-
-  translateFrom: String,
-  translateTo: String,
-
-  doNotDisturb: Boolean,
-  timeZone: String,
-
-  authorizations: [String],
-
-  fallbackSession: { type: String, ref: "session", autopopulate: true },
-  redirectSessions: [{ type: String, ref: "session", autopopulate: true }],
-  forwardSessions: [{ type: String, ref: "session", autopopulate: true }],
-  repeatModeSessions: [{ type: String, ref: "session", autopopulate: true }],
+const TAG = "Session";
+const logger = new Signale({
+  scope: TAG,
 });
 
-SessionSchema.plugin(autopopulate);
+@modelOptions({ schemaOptions: { collection: "sessions" } })
+export class ISession {
+  @prop({ required: true })
+  public managerUid!: string;
+
+  @prop({ required: true })
+  public ioDriver!: IODriverId;
+
+  @prop({ required: true })
+  public identifier!: string;
+
+  @prop()
+  public ioData?: Record<string, any>;
+
+  @prop()
+  public name?: string;
+
+  @prop()
+  public language?: Language;
+
+  @prop({ type: () => [String] })
+  public authorizations?: Authorizations[];
+
+  @prop({ ref: () => ISession })
+  public fallbackSession?: Ref<ISession>;
+
+  @prop({ ref: () => ISession })
+  public redirectSessions?: Ref<ISession>[];
+
+  @prop({ ref: () => ISession })
+  public forwardSessions?: Ref<ISession>[];
+
+  @prop({ ref: () => ISession })
+  public repeatModeSessions?: Ref<ISession>[];
+
+  @prop()
+  public doNotDisturb?: boolean;
+
+  public getLanguage(this: DocumentType<ISession>): Language {
+    switch (this.ioDriver) {
+      case "telegram": {
+        const ioData = this.ioData as IODataTelegram;
+        return this.language || ioData.from?.language_code || config().language;
+      }
+      default:
+        return config().language;
+    }
+  }
+
+  public getName(this: DocumentType<ISession>): string {
+    if (this.name) {
+      return this.name;
+    }
+
+    switch (this.ioDriver) {
+      case "telegram": {
+        const ioData = this.ioData as IODataTelegram;
+        const { first_name, last_name } = ioData?.from || {};
+        if (first_name && last_name) {
+          return `${first_name} ${last_name}`;
+        }
+        if (first_name) {
+          return first_name;
+        }
+        return "Unknown";
+      }
+      default:
+        return "Unknown";
+    }
+  }
+
+  public getDriverName(this: DocumentType<ISession>) {
+    switch (this.ioDriver) {
+      case "telegram": {
+        const ioData = this.ioData as IODataTelegram;
+        let chatName = "";
+        switch (ioData?.chat.type) {
+          case "supergroup":
+          case "group":
+            chatName = `in the group chat "${ioData.chat.title}"`;
+            break;
+          case "channel":
+            chatName = `in the channel "${ioData.chat.title}"`;
+            break;
+          case "private":
+            chatName = "in a private conversation";
+            break;
+        }
+        return `via Telegram (${chatName})`;
+      }
+      case "human":
+      case "web":
+        return "Face to face";
+      default:
+        return "-";
+    }
+  }
+
+  static async findByIOIdentifierOrCreate(
+    this: ReturnModelType<typeof ISession>,
+    ioDriver: string,
+    identifier: string,
+    ioData: any = undefined,
+  ) {
+    const existingSession = await Session.findByIOIdentifier(ioDriver, identifier);
+
+    if (existingSession) {
+      // Only update ioData if it's different
+      if (JSON.stringify(existingSession.ioData) !== JSON.stringify(ioData)) {
+        logger.debug(
+          "Updating ioData for existing session, ioData = ",
+          ioData,
+          "old ioData = ",
+          existingSession.ioData,
+        );
+        await existingSession.updateOne({
+          ioData,
+        });
+      }
+      return existingSession;
+    }
+
+    const newSession = await Session.create({
+      managerUid: config().uid,
+      ioDriver: ioDriver as IODriverId,
+      ioData,
+      identifier,
+    });
+
+    logger.info("New session model registered", newSession);
+
+    return newSession;
+  }
+
+  static async findByIOIdentifier(this: ReturnModelType<typeof ISession>, ioDriver: string, identifier: string) {
+    return Session.findOne({
+      managerUid: config().uid,
+      ioDriver,
+      identifier,
+    });
+  }
+}
+
+export const Session = getModelForClass(ISession);
+export type TSession = DocumentType<ISession>;

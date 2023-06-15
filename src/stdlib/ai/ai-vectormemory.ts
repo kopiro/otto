@@ -1,21 +1,20 @@
 import { Signale } from "signale";
-import { Interaction } from "../../data";
-import { Interaction as IInteraction, Session as ISession, LongTermMemory as ILongTermMemory } from "../../types";
-import { getSessionDriverName, getSessionName } from "../../helpers";
 import config from "../../config";
-import qdrant from "../../lib/qdrant";
-import openai from "../../lib/openai";
+import { QDrantSDK } from "../../lib/qdrant";
+import { OpenAIApiSDK } from "../../lib/openai";
 import { ChatCompletionRequestMessageRoleEnum } from "openai";
 import fetch from "node-fetch";
+import { Interaction, TInteraction } from "../../data/interaction";
+import { isDocument } from "@typegoose/typegoose";
 
 const TAG = "VectorMemory";
-const console = new Signale({
+const logger = new Signale({
   scope: TAG,
 });
 
 type MemoryType = "episodic" | "declarative";
 
-type GroupedInteractionsBySession = Record<string, IInteraction[]>;
+type GroupedInteractionsBySession = Record<string, TInteraction[]>;
 type GroupedInteractionsByDayThenSession = Record<number, GroupedInteractionsBySession>;
 
 type QdrantPayload = {
@@ -33,14 +32,14 @@ export class AIVectorMemory {
   }
 
   async createQdrantCollection(collection: MemoryType) {
-    console.debug("Creating Qdrant collection", collection);
+    logger.debug("Creating Qdrant collection", collection);
 
-    const allCollections = await qdrant().getCollections();
+    const allCollections = await QDrantSDK().getCollections();
     if (allCollections.collections.find((e) => e.name === collection)) {
       return;
     }
 
-    return qdrant().createCollection(collection, {
+    return QDrantSDK().createCollection(collection, {
       vectors: {
         size: 1536, // this is text-embedding-ada-002 vector size
         distance: "Cosine",
@@ -56,8 +55,8 @@ export class AIVectorMemory {
   }
 
   async deleteQdrantCollection(collection: MemoryType) {
-    console.debug("Deleting Qdrant collection", collection);
-    return qdrant().deleteCollection(collection);
+    logger.debug("Deleting Qdrant collection", collection);
+    return QDrantSDK().deleteCollection(collection);
   }
 
   private async getInteractionsGroupedByDayThenSession(): Promise<GroupedInteractionsByDayThenSession> {
@@ -72,10 +71,12 @@ export class AIVectorMemory {
     }).sort({ createdAt: +1 });
 
     const groupedInteractionsByDayThenSession = unreducedInteractions.reduce((acc, interaction) => {
-      const day = Math.floor(interaction.createdAt.getTime() / (1000 * 60 * 60 * 24));
-      acc[day] = acc[day] || {};
-      acc[day][interaction.session.id] = acc[day][interaction.session.id] || [];
-      acc[day][interaction.session.id].push(interaction);
+      if (isDocument(interaction.session)) {
+        const day = Math.floor(interaction.createdAt.getTime() / (1000 * 60 * 60 * 24));
+        acc[day] = acc[day] || {};
+        acc[day][interaction.session.id] = acc[day][interaction.session.id] || [];
+        acc[day][interaction.session.id].push(interaction);
+      }
       return acc;
     }, {} as GroupedInteractionsByDayThenSession);
 
@@ -83,7 +84,7 @@ export class AIVectorMemory {
   }
 
   async createEmbedding(text: string) {
-    const { data } = await openai().createEmbedding({
+    const { data } = await OpenAIApiSDK().createEmbedding({
       input: text,
       model: "text-embedding-ada-002",
     });
@@ -96,7 +97,7 @@ export class AIVectorMemory {
   }
 
   async searchByVector(vector: number[], memoryType: MemoryType): Promise<string[]> {
-    const data = await qdrant().search(memoryType, {
+    const data = await QDrantSDK().search(memoryType, {
       vector: vector,
       with_payload: true,
       with_vector: false,
@@ -122,7 +123,7 @@ export class AIVectorMemory {
 
     const vectors = await Promise.all(sentences.map((sentence) => this.createEmbedding(sentence)));
 
-    const operation = await qdrant().upsert(memoryType, {
+    const operation = await QDrantSDK().upsert(memoryType, {
       wait: true,
       batch: {
         ids: sentences.map((_, i) => i),
@@ -156,12 +157,21 @@ export class AIVectorMemory {
     const interactionsText = [];
 
     for (const [_, interactions] of Object.entries(groupedInteractionsBySession)) {
-      const sessionName = getSessionName(interactions[0].session);
+      const session = interactions[0].session;
+      if (!isDocument(session)) {
+        logger.warn("Session is not a document while processing interaction", interactions[0]);
+        continue;
+      }
+
+      const sessionName = session.getName();
       const sessionSimpleName = sessionName.split(" ")[0];
-      const sessionDriverName = getSessionDriverName(interactions[0].session);
+      const sessionDriverName = session.getDriverName();
+
       interactionsText.push(`Conversation between ${aiName} and ${sessionName}   - ${sessionDriverName}`);
+
       for (const interaction of interactions) {
         const time = interaction.createdAt.toLocaleTimeString();
+
         if (interaction.fulfillment.text) {
           interactionsText.push(`${aiName} (${time}): ${interaction.fulfillment.text}`);
         }
@@ -169,6 +179,7 @@ export class AIVectorMemory {
           interactionsText.push(`${sessionSimpleName} (${time}): ${interaction.input.text}`);
         }
       }
+
       interactionsText.push("\n");
     }
 
@@ -176,9 +187,9 @@ export class AIVectorMemory {
       `I have the following interactions, happening on ${forDate.toDateString()}, please reduce them to a single sentence. Only keep necessary informations. Include the date of the conversations in the output.\n\n` +
       interactionsText.join("\n");
 
-    console.debug("Reduced prompt:\n", reducedPrompt);
+    logger.debug("Reduced prompt:\n", reducedPrompt);
 
-    const reducedMemory = await openai().createChatCompletion({
+    const reducedMemory = await OpenAIApiSDK().createChatCompletion({
       model: "gpt-3.5-turbo",
       messages: [
         {
@@ -200,12 +211,12 @@ export class AIVectorMemory {
     await this.createQdrantCollection("episodic");
 
     const interactions = await this.getInteractionsGroupedByDayThenSession();
-    console.info("Found " + Object.keys(interactions).length + " total days to reduce");
+    logger.info("Found " + Object.keys(interactions).length + " total days to reduce");
 
     for (const day in interactions) {
       try {
         const forDate = new Date(Number(day) * 1000 * 60 * 60 * 24);
-        console.info(`Reducing interactions for Date: ${forDate.toDateString()}`);
+        logger.info(`Reducing interactions for Date: ${forDate.toDateString()}`);
 
         // Extract all interactions IDs
         const allInteractionIds = Object.values(interactions[day]).reduce<string[]>((acc, interactions) => {
@@ -213,18 +224,18 @@ export class AIVectorMemory {
           return acc;
         }, []);
 
-        console.info(`Found ${allInteractionIds.length} interactions to reduce`);
+        logger.info(`Found ${allInteractionIds.length} interactions to reduce`);
         const reducedInteractionText = await this.reduceInteractionsOfTheDay(forDate, interactions[day]);
 
-        console.debug("Reduced text:\n", reducedInteractionText);
+        logger.debug("Reduced text:\n", reducedInteractionText);
 
         await this.save(reducedInteractionText, forDate, "episodic");
-        console.info("Saved into memory");
+        logger.info("Saved into memory");
 
         await this.markInteractionsAsReduced(allInteractionIds);
-        console.info(`Marked ${allInteractionIds.length} interactions as reduced`);
+        logger.info(`Marked ${allInteractionIds.length} interactions as reduced`);
       } catch (err) {
-        console.error(`Error reducing interactions`, err);
+        logger.error(`Error reducing interactions`, err);
       }
     }
   }
@@ -236,9 +247,9 @@ export class AIVectorMemory {
     await this.createQdrantCollection("declarative");
 
     const declarativeMemory = await (await fetch(config().openai.declarativeMemoryUrl)).text();
-    console.info("Declarative memory", declarativeMemory);
+    logger.info("Declarative memory", declarativeMemory);
 
     await this.save(declarativeMemory, new Date(), "declarative");
-    console.info("Saved declarative memory");
+    logger.info("Saved declarative memory");
   }
 }

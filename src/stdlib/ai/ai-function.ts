@@ -1,13 +1,13 @@
-import * as IOManager from "../iomanager";
-import { Fulfillment, AIRuntimeFunction, Session, InputParams } from "../../types";
+import { Fulfillment, AIRuntimeFunction, InputParams, Authorizations } from "../../types";
 import { functionsDir } from "../../paths";
 import { readFileSync, readdirSync } from "fs";
 import path from "path";
 import { throwIfMissingAuthorizations } from "../../helpers";
 import { Signale } from "signale";
+import { TSession } from "../../data/session";
 
 const TAG = "AIFunction";
-const console = new Signale({
+const logger = new Signale({
   scope: TAG,
 });
 
@@ -23,7 +23,7 @@ type FunctionDefinition = {
 
 type FunctionRuntime = {
   default: AIRuntimeFunction<any>;
-  authorizations?: IOManager.Authorizations[];
+  authorizations?: Authorizations[];
 };
 
 export class AIFunction {
@@ -61,10 +61,10 @@ export class AIFunction {
     functionName: string,
     functionParameters: object,
     inputParams: InputParams,
-    session: Session,
+    session: TSession,
   ): Promise<Fulfillment> {
     try {
-      console.info(`Calling AI function <${functionName}> with arguments <${JSON.stringify(functionParameters)}>`);
+      logger.info(`Calling AI function <${functionName}> with arguments <${JSON.stringify(functionParameters)}>`);
 
       if (functionName.includes("..") || functionName.includes("..")) {
         throw new Error(`Unsafe action name <${functionName}>`);
@@ -85,12 +85,11 @@ export class AIFunction {
 
       return result;
     } catch (error) {
-      console.error("Error while executing action", error);
+      logger.error("Error while executing action", error);
 
       return {
         error: {
           message: error.message,
-          error: error,
         },
         analytics: {
           engine: "action",

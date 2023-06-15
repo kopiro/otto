@@ -1,22 +1,22 @@
 import config from "../../config";
 import { Storage as GStorage } from "@google-cloud/storage";
-import { Storage } from "../../abstracts/storage";
-
-export class GoogleStorage extends Storage {
+import { IStorage } from "../../stdlib/storage";
+export class GoogleStorage implements IStorage {
   storage: GStorage;
-  config: any;
+  conf: {
+    bucket: string;
+  };
 
   constructor() {
-    super();
-    this.config = config().gcloud.storage;
+    this.conf = config().gcloud.storage;
     this.storage = new GStorage();
   }
 
   async getDefaultDirectory() {
-    return this.storage.bucket(this.config.bucket);
+    return this.storage.bucket(this.conf.bucket);
   }
 
   getPublicBaseURL() {
-    return `https://storage.googleapis.com/${this.config.bucket}`;
+    return `https://storage.googleapis.com/${this.conf.bucket}`;
   }
 }

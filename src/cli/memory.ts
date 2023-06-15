@@ -21,10 +21,10 @@ warmup()
       await memory.createDeclarativeMemory();
     }
 
-    console.info("Done");
+    logger.info("Done");
     process.exit(0);
   })
   .catch((err) => {
-    console.error(err);
+    logger.error(err);
     process.exit(1);
   });

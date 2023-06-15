@@ -1,8 +1,8 @@
-import { output } from "../stdlib/iomanager";
-import { SchedulerProgramClass } from "../stdlib/scheduler";
+import { IOManager } from "../stdlib/iomanager";
+import { SchedulerRuntimeFunction } from "../stdlib/scheduler";
 
-export default class OutputScheduler extends SchedulerProgramClass {
+export default class OutputScheduler extends SchedulerRuntimeFunction {
   async run() {
-    return output(this.job.programArgs?.fulfillment, this.job.session);
+    return IOManager.getInstance().output(this.job.programArgs?.fulfillment, this.job.session);
   }
 }

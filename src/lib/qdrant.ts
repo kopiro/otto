@@ -1,11 +1,12 @@
 import config from "../config";
 import { QdrantClient } from "@qdrant/js-client-rest";
 
-let _instance: QdrantClient;
-export default () => {
-  if (!_instance) {
+let instance: QdrantClient | undefined;
+
+export function QDrantSDK(): QdrantClient {
+  if (!instance) {
     const _config = config().qdrant;
-    _instance = new QdrantClient({ url: _config.url });
+    instance = new QdrantClient({ url: _config.url });
   }
-  return _instance;
-};
+  return instance;
+}

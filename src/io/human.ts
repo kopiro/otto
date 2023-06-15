@@ -1,22 +1,22 @@
 import Events from "events";
 import config from "../config";
-import * as IOManager from "../stdlib/iomanager";
-import voice from "../stdlib/voice";
-import { getSessionTranslateFrom, getSessionTranslateTo, timeout } from "../helpers";
-import { Fulfillment, Session } from "../types";
+import { IODriverRuntime, IODriverOutput } from "../stdlib/iomanager";
+import { chunkArray, timeout } from "../helpers";
+import { Fulfillment } from "../types";
 import { etcDir } from "../paths";
 import path from "path";
-import textToSpeech from "../stdlib/text-to-speech";
-import speechRecognizer from "../stdlib/speech-recognizer";
-import speaker from "../stdlib/speaker";
+import { SpeechRecognizer } from "../stdlib/speech-recognizer";
+import { Speaker } from "../stdlib/speaker";
 import { Signale } from "signale";
 import { Porcupine } from "@picovoice/porcupine-node";
 import { Platform, getPlatform } from "../stdlib/platform";
 // @ts-ignore
 import recorder from "node-record-lpcm16";
+import { getVoiceFileFromFulfillment, getVoiceFileFromURI } from "../stdlib/voice";
+import { Session, TSession } from "../data/session";
 
 const TAG = "IO.Human";
-const console = new Signale({
+const logger = new Signale({
   scope: TAG,
 });
 
@@ -39,14 +39,8 @@ type HumanConfig = {
   enableMic: boolean;
 };
 
-function chunkArray(array: number[], size: number) {
-  return Array.from({ length: Math.ceil(array.length / size) }, (v, index) =>
-    array.slice(index * size, index * size + size),
-  );
-}
-
-export class Human implements IOManager.IODriverModule {
-  config: HumanConfig;
+export class Human implements IODriverRuntime {
+  conf: HumanConfig;
   emitter: Events.EventEmitter = new Events.EventEmitter();
 
   /**
@@ -80,7 +74,7 @@ export class Human implements IOManager.IODriverModule {
    * @param config
    */
   constructor(config: HumanConfig) {
-    this.config = config;
+    this.conf = config;
   }
 
   /**
@@ -88,17 +82,17 @@ export class Human implements IOManager.IODriverModule {
    */
   stopOutput() {
     // Kill any audible
-    return speaker().kill();
+    return Speaker.getInstance().kill();
   }
 
   /**
    * Create and assign the SR stream by attaching
    * the microphone input to GCP-SR stream
    */
-  startRecognition(session: Session) {
-    console.debug("recognizing microphone stream");
+  startRecognition(session: TSession) {
+    logger.debug("recognizing microphone stream");
 
-    const recognizeStream = speechRecognizer().createRecognizeStream(getSessionTranslateFrom(session), (err, text) => {
+    const recognizeStream = SpeechRecognizer.getInstance().createRecognizeStream(session.getLanguage(), (err, text) => {
       this.isRecognizing = false;
       this.emitter.emit("notrecognizing");
 
@@ -140,7 +134,7 @@ export class Human implements IOManager.IODriverModule {
    * Register the global session used by this driver
    */
   async registerInternalSession() {
-    return IOManager.registerSession(DRIVER_ID);
+    return Session.findByIOIdentifierOrCreate(DRIVER_ID, "any");
   }
 
   /**
@@ -148,10 +142,10 @@ export class Human implements IOManager.IODriverModule {
    */
   processHotwordSilence() {
     if (this.hotwordSilenceSec === 0) {
-      console.info("timeout exceeded, user should pronunce hotword again");
+      logger.info("timeout exceeded, user should pronunce hotword again");
       this.hotwordSilenceSec = -1;
     } else if (this.hotwordSilenceSec > 0) {
-      console.debug(`${this.hotwordSilenceSec}s left before reset`);
+      logger.debug(`${this.hotwordSilenceSec}s left before reset`);
       this.hotwordSilenceSec--;
     }
   }
@@ -170,13 +164,13 @@ export class Human implements IOManager.IODriverModule {
   async wake() {
     const session = await this.registerInternalSession();
 
-    console.info("wake");
+    logger.info("wake");
     this.emitter.emit("woken");
 
     this.stopOutput(); // Stop any previous output
 
     // Play a recognizable sound
-    speaker().play(`${etcDir}/wake.wav`);
+    Speaker.getInstance().play(`${etcDir}/wake.wav`);
 
     // Reset any timer variable
     this.hotwordSilenceSec = HOTWORD_SILENCE_MAX;
@@ -189,7 +183,7 @@ export class Human implements IOManager.IODriverModule {
    * Stop the recognizer
    */
   stop() {
-    console.info("stop");
+    logger.info("stop");
     this.stopOutput();
     this.hotwordSilenceSec = -1;
     this.emitter.emit("stopped");
@@ -219,9 +213,9 @@ export class Human implements IOManager.IODriverModule {
       // Split the incoming PCM integer data into arrays of size Porcupine.frameLength. If there's insufficient frames, or a remainder,
       // store it in 'frameAccumulator' for the next iteration, so that we don't miss any audio data
       frameAccumulator = frameAccumulator.concat(newFrames16);
-      const frames = chunkArray(frameAccumulator, this.porcupine.frameLength);
+      const frames = chunkArray(frameAccumulator, this.porcupine!.frameLength);
 
-      if (frames[frames.length - 1].length !== this.porcupine.frameLength) {
+      if (frames[frames.length - 1].length !== this.porcupine!.frameLength) {
         // store remainder from divisions of frameLength
         frameAccumulator = frames.pop()!;
       } else {
@@ -229,17 +223,17 @@ export class Human implements IOManager.IODriverModule {
       }
 
       for (const frame of frames) {
-        const index = this.porcupine.process(frame as unknown as Int16Array);
+        const index = this.porcupine!.process(frame as unknown as Int16Array);
         if (index !== -1) {
-          console.debug(`Detected hotword!`);
+          logger.debug(`Detected hotword!`);
           this.wake();
         }
       }
     });
   }
 
-  async _output(fulfillment: Fulfillment, session: Session): Promise<IOManager.IODriverOutput> {
-    const results: IOManager.IODriverOutput = [];
+  async _output(fulfillment: Fulfillment, session: TSession): Promise<IODriverOutput> {
+    const results: IODriverOutput = [];
 
     this.hotwordSilenceSec = -1; // Temporary disable timer variables
 
@@ -251,33 +245,26 @@ export class Human implements IOManager.IODriverModule {
     // Process a text if we do not find a audio
     try {
       if (fulfillment.text) {
-        const audioFile = await textToSpeech().getAudioFile(
-          fulfillment.text,
-          getSessionTranslateTo(session),
-          config().tts.gender,
-        );
-
-        const file = await voice().getFile(audioFile);
-        await speaker().play(file);
-
+        const file = await getVoiceFileFromFulfillment(fulfillment, session);
+        console.log("file :>> ", file);
+        await Speaker.getInstance().play(file);
         results.push(["file", file.getAbsolutePath()]);
       }
     } catch (err) {
       results.push(["error", err as Error]);
-      console.error(err);
+      logger.error(err);
     }
 
     // Process an Audio Object
     try {
       if (fulfillment.audio) {
-        const file = await voice().getFile(fulfillment.audio);
-        await speaker().play(file);
-
+        const file = await getVoiceFileFromURI(fulfillment.audio);
+        await Speaker.getInstance().play(file);
         results.push(["file", file.getAbsolutePath()]);
       }
     } catch (err) {
       results.push(["error", err]);
-      console.error(err);
+      logger.error(err);
     }
 
     return results;
@@ -288,12 +275,13 @@ export class Human implements IOManager.IODriverModule {
   /**
    * Process the item in the output queue
    */
-  async output(fulfillment: Fulfillment, session: Session): Promise<any[]> {
+  async output(fulfillment: Fulfillment, session: TSession): Promise<any[]> {
+    console.log("output :>> ", fulfillment);
     let results = [];
 
     // If we have a current processed item, let's wait until it's null
     while (this.currentSpokenFulfillment) {
-      console.debug("waiting until agent is not speaking...");
+      logger.debug("waiting until agent is not speaking...");
       // eslint-disable-next-line no-await-in-loop
       results.push(["timeout", Human.SLEEP_WAIT_STILL_SPEAKING]);
       await timeout(Human.SLEEP_WAIT_STILL_SPEAKING);
@@ -316,12 +304,12 @@ export class Human implements IOManager.IODriverModule {
    */
   async start() {
     const session = await this.registerInternalSession();
-    console.debug(`started, sessionID: ${session.id}`);
+    logger.debug(`Started, session ID: ${session.id}`);
 
     this.emitter.on("wake", this.wake);
     this.emitter.on("stop", this.stop);
 
-    if (this.config.enableMic) {
+    if (this.conf.enableMic) {
       this.mic = recorder.record({
         sampleRate: 16000,
         channels: 1,
@@ -329,12 +317,12 @@ export class Human implements IOManager.IODriverModule {
         recorder: MIC_PLATFORM_TO_BINARY[getPlatform()],
       });
 
-      if (this.config.enableHotword) {
+      if (this.conf.enableHotword) {
         try {
           this.startHotwordDetection();
           this.registerHotwordSilenceSecIntv();
         } catch (err) {
-          console.warn(err);
+          logger.warn(err);
         }
       }
     }

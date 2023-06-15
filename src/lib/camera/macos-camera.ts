@@ -1,17 +1,17 @@
-import { Camera } from "../../abstracts/camera";
-import * as Proc from "../proc";
-import { getTmpFile } from "../../helpers";
+import * as Proc from "../../stdlib/proc";
+import { ICamera } from "../../stdlib/camera";
+import { File } from "../../stdlib/file";
 
-export class MacOSCamera extends Camera {
-  async takePhoto(): Promise<string> {
-    const tmpFile = getTmpFile("jpg");
-    await Proc.spawn("imagesnap", ["-o", tmpFile]).result;
+export class MacOSCamera implements ICamera {
+  async takePhoto(): Promise<File> {
+    const tmpFile = File.getTmpFile("jpg");
+    await Proc.processSpawn("imagesnap", ["-o", tmpFile.getAbsolutePath()]).result;
     return tmpFile;
   }
 
-  async takeVideo(): Promise<string> {
-    const tmpFile = getTmpFile("mp4");
-    await Proc.spawn("ffmpeg", [
+  async takeVideo(): Promise<File> {
+    const tmpFile = File.getTmpFile("mp4");
+    await Proc.processSpawn("ffmpeg", [
       "-f",
       "avfoundation",
       "-framerate",
@@ -24,7 +24,7 @@ export class MacOSCamera extends Camera {
       "pal-vcd",
       "-vcodec",
       "libx264",
-      tmpFile,
+      tmpFile.getAbsolutePath(),
     ]).result;
     return tmpFile;
   }

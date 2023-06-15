@@ -1,13 +1,12 @@
-import config from "../config";
 import { gpioButtonStart } from "../lib/raspi/gpio";
-import { IOAccessoryModule, IODriverModule } from "../stdlib/iomanager";
+import { IOAccessoryModule, IODriverRuntime } from "../stdlib/iomanager";
 
 export const id = "gpio_button";
 
 class GPIOButton implements IOAccessoryModule {
-  driver: IODriverModule;
+  driver: IODriverRuntime;
 
-  constructor(driver: IODriverModule) {
+  constructor(driver: IODriverRuntime) {
     this.driver = driver;
   }
 

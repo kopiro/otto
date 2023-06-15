@@ -1,5 +1,5 @@
 import * as RaspiLeds from "../lib/raspi/leds";
-import { IODriverModule, IOAccessoryModule } from "../stdlib/iomanager";
+import { IODriverRuntime, IOAccessoryModule } from "../stdlib/iomanager";
 
 export const id = "leds";
 
@@ -8,9 +8,9 @@ const colorForOutput = [255, 0, 0];
 const colorForThinking = [255, 255, 0];
 
 class Leds implements IOAccessoryModule {
-  driver: IODriverModule;
+  driver: IODriverRuntime;
 
-  constructor(driver: IODriverModule) {
+  constructor(driver: IODriverRuntime) {
     this.driver = driver;
   }
 

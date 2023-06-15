@@ -1,18 +1,25 @@
-import { GoogleTranslator } from "../lib/translator/google-translator";
 import config from "../config";
-import { Translator } from "../abstracts/translator";
+import { GoogleTranslator } from "../lib/translator/google-translator";
+import { Language } from "../types";
 
-let _instance: Translator;
-export default (): Translator => {
-  if (!_instance) {
-    const driverName = config().translatorDriver;
-    switch (driverName) {
-      case "google":
-        _instance = new GoogleTranslator();
-        break;
-      default:
-        throw new Error(`Invalid translator: <${driverName}>`);
+export interface ITranslator {
+  translate(text: string, language: Language): Promise<string>;
+  getLanguages(): Promise<Array<{ name: string; code: string }>>;
+}
+
+export class Translator {
+  private static instance: ITranslator;
+  public static getInstance(): ITranslator {
+    if (!Translator.instance) {
+      const driverName = config().translatorDriver;
+      switch (driverName) {
+        case "google":
+          Translator.instance = new GoogleTranslator();
+          break;
+        default:
+          throw new Error(`Invalid translator: <${driverName}>`);
+      }
     }
+    return Translator.instance;
   }
-  return _instance;
-};
+}

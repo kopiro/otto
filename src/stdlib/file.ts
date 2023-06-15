@@ -1,5 +1,7 @@
-import { baseDir } from "../paths";
+import { baseDir, tmpDir } from "../paths";
 import config from "../config";
+import { v4 as uuid } from "uuid";
+import path from "path";
 
 export class File {
   private absolutePath: string;
@@ -18,5 +20,10 @@ export class File {
 
   getURI(protocol: string = config().server.protocol) {
     return [protocol, "://", config().server.domain, this.getRelativePath()].join("");
+  }
+
+  static getTmpFile(extension: string) {
+    const name = path.join(tmpDir, `${uuid()}.${extension}`);
+    return new File(name);
   }
 }

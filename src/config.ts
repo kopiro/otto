@@ -3,13 +3,19 @@ import defaultConfig from "./default-config.json";
 import { readFileSync } from "fs";
 import { keysDir } from "./paths";
 
-let _instance: typeof defaultConfig = null;
+let instance: object = null;
 
-function extendConfig(config, localConfig, path = "") {
+type TConfig = typeof defaultConfig;
+
+function extendConfig(config: object, localConfig: object, path = ""): object {
   for (const [key, value] of Object.entries(localConfig)) {
     if (typeof value === "object" && !Array.isArray(value)) {
       if (key in config) {
-        extendConfig(config[key], localConfig[key], `${path}.${key}`);
+        extendConfig(
+          config[key as keyof typeof config],
+          localConfig[key as keyof typeof localConfig],
+          `${path}.${key}`,
+        );
       } else {
         throw new Error(`Invalid key ${path}.${key} in config`);
       }
@@ -20,15 +26,15 @@ function extendConfig(config, localConfig, path = "") {
   return config;
 }
 
-export default () => {
-  if (!_instance) {
+export default (): TConfig => {
+  if (!instance) {
     const baseConfig = JSON.parse(readFileSync(path.join(keysDir, "config.json"), "utf8"));
-    _instance = extendConfig(defaultConfig, baseConfig);
+    instance = extendConfig(defaultConfig, baseConfig);
 
     if (process.env.CONFIG_FILE) {
       const runtimeConfig = JSON.parse(readFileSync(process.env.CONFIG_FILE, "utf8"));
-      _instance = extendConfig(_instance, runtimeConfig);
+      instance = extendConfig(instance, runtimeConfig);
     }
   }
-  return _instance;
+  return instance as TConfig;
 };

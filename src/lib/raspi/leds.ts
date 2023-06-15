@@ -3,7 +3,7 @@ import Apa102spi from "apa102-spi";
 import { Signale } from "signale";
 
 const TAG = "Camera";
-const console = new Signale({
+const logger = new Signale({
   scope: TAG,
 });
 

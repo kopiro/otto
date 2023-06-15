@@ -9,14 +9,7 @@
   "speakerDriver": "direct",
   "ioDrivers": [],
   "ioAccessoriesMap": {},
-  "language": "it",
-  "oauth": {
-    "google": {
-      "clientId": "",
-      "clientSecret": "",
-      "scopes": []
-    }
-  },
+  "language": "en-GB",
   "scheduler": {
     "enabled": true
   },
@@ -28,12 +21,9 @@
     "dsn": ""
   },
   "serverMode": false,
-  "audio": {
-    "encoding": "MP3",
-    "extension": "mp3"
-  },
   "tts": {
-    "gender": "Female"
+    "gender": "Female",
+    "encoding": "MP3"
   },
   "voice": {
     "addArgs": []

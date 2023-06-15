@@ -1,18 +1,26 @@
 import config from "../config";
-import { Speaker } from "../abstracts/speaker";
 import { DirectSpeaker } from "../lib/speaker/direct-speaker";
 
-let _instance: Speaker;
-export default () => {
-  if (!_instance) {
-    const driverName = config().speakerDriver;
-    switch (driverName) {
-      case "direct":
-        _instance = new DirectSpeaker();
-        break;
-      default:
-        throw new Error(`Invalid speaker: <${driverName}>`);
+import { File } from "../stdlib/file";
+
+export interface ISpeaker {
+  play(file: string | File): Promise<void>;
+  kill(): void;
+}
+
+export class Speaker {
+  private static instance: ISpeaker;
+  static getInstance(): ISpeaker {
+    if (!Speaker.instance) {
+      const driverName = config().speakerDriver;
+      switch (driverName) {
+        case "direct":
+          Speaker.instance = new DirectSpeaker();
+          break;
+        default:
+          throw new Error(`Invalid speaker: <${driverName}>`);
+      }
     }
+    return Speaker.instance;
   }
-  return _instance;
-};
+}

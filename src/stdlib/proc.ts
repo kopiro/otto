@@ -3,14 +3,20 @@ import { ChildProcess, spawn as systemSpawn } from "child_process";
 import { Signale } from "signale";
 
 const TAG = "Proc";
-const console = new Signale({
+const logger = new Signale({
   scope: TAG,
 });
 
-export function spawn(program: string, args: Array<any> = []): { child: ChildProcess; result: Promise<string> } {
-  console.debug(program, args.join(" "));
+export function processSpawn(
+  program: string,
+  args: (string | number)[] = [],
+): { child: ChildProcess; result: Promise<string> } {
+  logger.debug(program, args.join(" "));
 
-  const child = systemSpawn(program, args);
+  const child = systemSpawn(
+    program,
+    args.map((arg) => String(arg)),
+  );
 
   let stdout = "";
   let stderr = "";

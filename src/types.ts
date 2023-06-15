@@ -1,9 +1,10 @@
-import type { Document } from "mongoose";
-import type { IODriver, Authorizations, IOBag } from "./stdlib/iomanager";
+import { TSession } from "./data/session";
+import type { IOBag } from "./stdlib/iomanager";
 
 export type Language = string;
-export type Locale = string;
-export type Gender = string;
+export type Gender = "Male" | "Female";
+
+export type Authorizations = "admin" | "camera" | "command";
 
 export type InputSource = "text" | "event" | "command" | "unknown";
 
@@ -21,13 +22,11 @@ export type Fulfillment = {
   options?: {
     language?: Language;
     translateTo?: Language;
-    translateFrom?: Language;
     translatePolicy?: "always" | "when_necessary" | "never";
     includeVoice?: boolean;
   };
   analytics: {
     engine?: "dialogflow" | "openai" | "commander" | "repeater" | "action";
-    sessionId?: string;
   };
   runtime?: {
     finalizerUid?: string;
@@ -35,17 +34,16 @@ export type Fulfillment = {
   };
 };
 
-export type AIRuntimeFunctionArguments<T> = {
+export type AIRuntimeFunctionArguments<TParams> = {
   inputParams: InputParams;
-  session: Session;
-  parameters: T;
+  session: TSession;
+  parameters: TParams;
 };
 
 export type AIRuntimeFunction<T> = (args: AIRuntimeFunctionArguments<T>) => Promise<Fulfillment> | Fulfillment;
 
 export type CustomError = {
   message: string;
-  error?: Error;
 };
 
 export type InputParams = {
@@ -59,66 +57,3 @@ export type InputParams = {
   command?: string;
   bag?: IOBag;
 };
-export interface IOQueue extends Document {
-  id: string;
-  fulfillment: Fulfillment;
-  session: Session;
-  bag?: IOBag;
-}
-
-export interface Scheduler extends Document {
-  id: string;
-  session: Session;
-  managerUid: string;
-  programName: string;
-  programArgs: any;
-  yearly?: string; // set "dayofyear hour:minute"
-  monthly?: string; // set "dayofmonth hour:minute"
-  weekly?: string; // set "dayofweek hour:minute"
-  daily?: string; // set "hour:minute"
-  hourly?: string; // set minute
-  onTick?: boolean; // every second
-  onDate?: string; // on a date
-  onBoot?: boolean;
-  onDateISOString?: string;
-  deleteAfterRun?: boolean;
-}
-
-export interface Interaction extends Document {
-  id: string;
-  managerUid: string;
-  session: Session;
-  reducedAt: Date;
-  createdAt: Date;
-  input: InputParams;
-  fulfillment: Fulfillment;
-  source: string;
-}
-
-export interface LongTermMemory extends Document {
-  id: string;
-  managerUid: string;
-  session: Session;
-  text: string;
-  createdAt: Date;
-  type: string;
-  forDate: Date;
-}
-
-export interface Session extends Document {
-  id: string;
-  uid: string;
-  ioDriver: IODriver;
-  ioId: string;
-  ioData?: Record<string, any>;
-  name?: string;
-  timeZone?: string;
-  translateFrom?: Language;
-  translateTo?: Language;
-  authorizations?: Authorizations[];
-  fallbackSession?: Session;
-  redirectSessions?: Session[];
-  forwardSessions?: Session[];
-  repeatModeSessions?: Session[];
-  doNotDisturb?: boolean;
-}

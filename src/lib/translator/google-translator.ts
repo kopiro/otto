@@ -1,14 +1,12 @@
 import { v2 } from "@google-cloud/translate";
 import { Language } from "../../types";
-import { Translator } from "../../abstracts/translator";
-import config from "../../config";
+import { ITranslator } from "../../stdlib/translator";
 
-export class GoogleTranslator extends Translator {
+export class GoogleTranslator implements ITranslator {
   client: v2.Translate;
   _languages?: v2.LanguageResult[];
 
   constructor() {
-    super();
     this.client = new v2.Translate();
   }
 

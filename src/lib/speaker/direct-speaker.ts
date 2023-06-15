@@ -1,12 +1,11 @@
-import { Speaker } from "../../abstracts/speaker";
-import * as Proc from "../proc";
+import * as Proc from "../../stdlib/proc";
 import { File } from "../../stdlib/file";
 import { ChildProcess } from "child_process";
-
-export class DirectSpeaker extends Speaker {
+import { ISpeaker } from "../../stdlib/speaker";
+export class DirectSpeaker implements ISpeaker {
   private pids = new Set<ChildProcess>();
 
-  play(file: string | File) {
+  async play(file: string | File) {
     let uri;
     if (typeof file === "string") {
       uri = file;
@@ -14,14 +13,14 @@ export class DirectSpeaker extends Speaker {
       uri = file.getAbsolutePath();
     }
 
-    const { child, result } = Proc.spawn("play", [uri]);
+    const { child, result } = Proc.processSpawn("play", [uri]);
 
     this.pids.add(child);
     child.on("close", () => {
       this.pids.delete(child);
     });
 
-    return result;
+    await result;
   }
 
   kill() {

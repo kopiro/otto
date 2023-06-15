@@ -1,18 +1,23 @@
-import { Storage } from "../abstracts/storage";
 import config from "../config";
 import { GoogleStorage } from "../lib/storage/google-storage";
 
-let _instance: Storage;
-export default (): Storage => {
-  if (!_instance) {
-    const driverName = config().storageDriver;
-    switch (driverName) {
-      case "google":
-        _instance = new GoogleStorage();
-        break;
-      default:
-        throw new Error(`Invalid storage: <${driverName}>`);
+export interface IStorage {
+  getPublicBaseURL(): string;
+}
+
+export class Storage {
+  private static instance: Storage;
+  static getInstance(): Storage {
+    if (!Storage.instance) {
+      const driverName = config().storageDriver;
+      switch (driverName) {
+        case "google":
+          Storage.instance = new GoogleStorage();
+          break;
+        default:
+          throw new Error(`Invalid storage: <${driverName}>`);
+      }
     }
+    return Storage.instance;
   }
-  return _instance;
-};
+}
