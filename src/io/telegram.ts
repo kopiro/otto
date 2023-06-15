@@ -1,5 +1,3 @@
-import fs from "fs";
-import path from "path";
 import TelegramBot from "node-telegram-bot-api";
 import Events from "events";
 import config from "../config";
@@ -7,8 +5,6 @@ import * as Server from "../stdlib/server";
 import { IODriverRuntime, IODriverOutput } from "../stdlib/iomanager";
 import { getVoiceFileFromFulfillment } from "../stdlib/voice";
 import * as Proc from "../stdlib/proc";
-import { v4 as uuid } from "uuid";
-import { tmpDir } from "../paths";
 import { Fulfillment } from "../types";
 import bodyParser from "body-parser";
 import { SpeechRecognizer } from "../stdlib/speech-recognizer";

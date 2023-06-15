@@ -1,6 +1,12 @@
 import { warmup } from "../boot";
 
 import { AIVectorMemory } from "../stdlib/ai/ai-vectormemory";
+import { Signale } from "signale";
+
+const TAG = "Memory";
+const logger = new Signale({
+  scope: TAG,
+});
 
 process.env.MEMORY_TYPE = process.env.MEMORY_TYPE || "";
 

@@ -15,7 +15,7 @@ export class IScheduler {
   public programName!: string;
 
   @prop({ required: true })
-  public programArgs!: Record<string, string>;
+  public programArgs!: Record<string, any>;
 
   @prop()
   public yearly?: string; // set "dayofyear hour:minute"
