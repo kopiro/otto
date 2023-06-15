@@ -1,5 +1,4 @@
-import request from "request";
-import fs from "fs";
+import { existsSync } from "fs";
 import path from "path";
 import config from "./config";
 import { Translator } from "./stdlib/translator";
@@ -9,6 +8,8 @@ import crypto from "crypto";
 import { File } from "./stdlib/file";
 
 import { Signale } from "signale";
+import { writeFile } from "fs/promises";
+import fetch from "node-fetch";
 
 const TAG = "Helpers";
 const logger = new Signale({
@@ -49,40 +50,40 @@ export function timeout(ms: number) {
 /**
  * Get the local URI of a remote object by downloading it
  */
-export function getLocalObjectFromURI(uri: string | Buffer | File, extension: string): Promise<File> {
-  return new Promise((resolve) => {
-    if (uri instanceof File) {
-      return resolve(uri);
+export async function getLocalObjectFromURI(uri: string | Buffer | File, extension: string): Promise<File> {
+  if (uri instanceof File) {
+    return uri;
+  }
+
+  if (Buffer.isBuffer(uri)) {
+    const hash = crypto.createHash("md5").update(uri).digest("hex");
+    const localFile = new File(path.join(cacheDir, `${hash}.${extension}`));
+
+    if (!existsSync(localFile.getAbsolutePath())) {
+      await writeFile(localFile.getAbsolutePath(), uri);
     }
 
-    if (Buffer.isBuffer(uri)) {
-      const hash = crypto.createHash("md5").update(uri).digest("hex");
-      const localFile = new File(path.join(cacheDir, `${hash}.${extension}`));
-      if (!fs.existsSync(localFile.getAbsolutePath())) {
-        return fs.promises.writeFile(localFile.getAbsolutePath(), uri).then(() => {
-          resolve(localFile);
-        });
-      }
-      return resolve(localFile);
+    return localFile;
+  }
+
+  if (typeof uri === "string" && /^https?:\/\//.test(uri)) {
+    const hash = crypto.createHash("md5").update(uri).digest("hex");
+    const localFile = new File(path.join(cacheDir, `${hash}.${extension}`));
+
+    if (!existsSync(localFile.getAbsolutePath())) {
+      const response = await fetch(uri);
+      const buffer = await response.buffer();
+      await writeFile(localFile.getAbsolutePath(), buffer);
     }
 
-    if (typeof uri === "string" && /^https?:\/\//.test(uri)) {
-      const hash = crypto.createHash("md5").update(uri).digest("hex");
-      const localFile = new File(path.join(cacheDir, `${hash}.${extension}`));
-      if (!fs.existsSync(localFile.getAbsolutePath())) {
-        return request(uri, {
-          followAllRedirects: true,
-        })
-          .pipe(fs.createWriteStream(localFile.getAbsolutePath()))
-          .on("close", () => {
-            resolve(localFile);
-          });
-      }
-      return resolve(localFile);
-    }
+    return localFile;
+  }
 
-    return resolve(new File(uri));
-  });
+  if (typeof uri === "string" && existsSync(uri)) {
+    return new File(uri);
+  }
+
+  throw new Error(`Cannot get local object from URI ${uri}`);
 }
 
 /**

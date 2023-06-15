@@ -1,6 +1,5 @@
 import fs from "fs";
 import path from "path";
-import request from "request";
 import TelegramBot from "node-telegram-bot-api";
 import Events from "events";
 import config from "../config";
@@ -17,6 +16,9 @@ import { Signale } from "signale";
 import { getAINameRegexp } from "../helpers";
 import { AICommander } from "../stdlib/ai/ai-commander";
 import { Session, TSession } from "../data/session";
+import fetch from "node-fetch";
+import { writeFile } from "fs/promises";
+import { File } from "../stdlib/file";
 
 const TAG = "IO.Telegram";
 const logger = new Signale({
@@ -58,31 +60,24 @@ export class Telegram implements IODriverRuntime {
    * Handle a voice input by recognizing the text
    */
   private async handleVoiceInput(e: TelegramBot.Message, session: TSession): Promise<string> {
-    return new Promise((resolve, reject) => {
-      (async () => {
-        const fileLink = await this.bot.getFileLink(e.voice!.file_id);
-        const voiceFile = path.join(tmpDir, `${uuid()}.ogg`);
-        const voiceWavFile = `${voiceFile}.wav`;
+    const fileLink = await this.bot.getFileLink(e.voice.file_id);
+    const oggFile = File.getTmpFile("ogg");
+    const wavFile = File.getTmpFile("wav");
 
-        request(fileLink)
-          .pipe(fs.createWriteStream(voiceFile))
-          .on("close", async () => {
-            Proc.processSpawn("opusdec", [
-              voiceFile,
-              voiceWavFile,
-              "--rate",
-              SpeechRecognizer.getInstance().SAMPLE_RATE,
-            ])
-              .result.then(async () => {
-                const text = await SpeechRecognizer.getInstance().recognizeFile(voiceWavFile, session.getLanguage());
-                resolve(text);
-              })
-              .catch((err) => {
-                reject(err);
-              });
-          });
-      })();
-    });
+    const response = await fetch(fileLink);
+    const buffer = await response.buffer();
+    await writeFile(oggFile.getAbsolutePath(), buffer);
+
+    await Proc.processSpawn("opusdec", [
+      oggFile.getAbsolutePath(),
+      wavFile.getAbsolutePath(),
+      "--rate",
+      SpeechRecognizer.getInstance().SAMPLE_RATE,
+    ]).result;
+
+    const text = await SpeechRecognizer.getInstance().recognizeFile(wavFile.getAbsolutePath(), session.getLanguage());
+
+    return text;
   }
 
   /**
@@ -94,7 +89,7 @@ export class Telegram implements IODriverRuntime {
 
   private cleanInputText(e: TelegramBot.Message) {
     let text = e.text || "";
-    text = text.replace(`@${this.botMe!.username}`, "");
+    text = text.replace(`@${this.botMe.username}`, "");
     return text;
   }
 
