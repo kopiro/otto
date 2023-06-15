@@ -33,10 +33,6 @@ class Leds implements IOAccessoryModule {
       RaspiLeds.setColor(colorForRecognizing);
     });
 
-    this.driver.emitter.on("notrecognizing", () => {
-      RaspiLeds.off();
-    });
-
     this.driver.emitter.on("stopped", () => {
       RaspiLeds.off();
     });

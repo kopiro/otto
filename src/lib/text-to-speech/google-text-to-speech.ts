@@ -1,8 +1,8 @@
-import GCTTS from "@google-cloud/text-to-speech";
 import config from "../../config";
 import { Language } from "../../types";
 import { google } from "@google-cloud/text-to-speech/build/protos/protos";
-import { TextToSpeechClient } from "@google-cloud/text-to-speech";
+import { v1beta1 } from "@google-cloud/text-to-speech";
+import { TextToSpeechClient } from "@google-cloud/text-to-speech/build/src/v1beta1";
 import { writeFile } from "fs/promises";
 import { File } from "../../stdlib/file";
 import { ITextToSpeech } from "../../stdlib/text-to-speech";
@@ -17,19 +17,20 @@ const logger = new Signale({
 export class GoogleTextToSpeech implements ITextToSpeech {
   private client: TextToSpeechClient;
   private voices: Map<string, google.cloud.texttospeech.v1.IVoice> = new Map();
+
   private conf: {
     gender: string;
     encoding: string;
   };
 
   constructor() {
-    this.client = new GCTTS.TextToSpeechClient();
+    this.client = new v1beta1.TextToSpeechClient();
     this.conf = config().tts;
   }
 
   private cleanText(text: string) {
     // Removi all emojies
-    return text.replace(/[\u{1F600}-\u{1F6FF}]/gu, "");
+    return text.replace(/[\u{1F600}-\u{1F6FF}]/gmu, "");
   }
 
   private async getVoice(language: Language) {

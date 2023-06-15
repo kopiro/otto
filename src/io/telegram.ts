@@ -173,7 +173,7 @@ export class Telegram implements IODriverRuntime {
     if (e.text) {
       // If we are in a group, only listen for activators
       if (isGroup && !(isMention || isReply)) {
-        logger.debug("Skipping input for missing activator");
+        logger.debug("Skipping input for missing activator", e);
         return false;
       }
 

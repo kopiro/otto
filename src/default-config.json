@@ -14,6 +14,9 @@
   "scheduler": {
     "enabled": true
   },
+  "speechRecognizer": {
+    "voiceActivityTimeout": 1500
+  },
   "ioQueue": {
     "enabled": true,
     "timeout": 1000

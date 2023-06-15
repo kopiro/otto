@@ -74,14 +74,14 @@ export class AIManager {
 
   async textRequest(params: InputParams, session: TSession): Promise<Fulfillment | null> {
     const { text } = params;
-    logger.info("text request:", text);
+    logger.info("Text request:", text);
 
     return AIOpenAI.getInstance().getFulfillmentForInput(params, session, "user");
   }
 
   async eventRequest(params: InputParams, session: TSession): Promise<Fulfillment | null> {
     const { event } = params;
-    logger.info("event request:", event);
+    logger.info("Event request:", event);
 
     Interaction.createNew(session, {
       input: { event },
@@ -92,7 +92,7 @@ export class AIManager {
 
   async commandRequest(params: InputParams, session: TSession): Promise<Fulfillment> {
     const { command } = params;
-    logger.info("command request:", command);
+    logger.info("Command request:", command);
 
     Interaction.createNew(session, {
       input: { command },

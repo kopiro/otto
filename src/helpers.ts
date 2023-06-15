@@ -2,7 +2,7 @@ import { existsSync } from "fs";
 import path from "path";
 import config from "./config";
 import { Translator } from "./stdlib/translator";
-import { cacheDir } from "./paths";
+import { cacheDir, logsDir } from "./paths";
 import { Authorizations, Language } from "./types";
 import crypto from "crypto";
 import { File } from "./stdlib/file";
@@ -185,4 +185,8 @@ export function throwIfMissingAuthorizations(
       throw new Error(`Required authorization "${requiredAuth}" is missing for your account.`);
     }
   }
+}
+
+export async function logStacktrace(fileName: string, response: object) {
+  return writeFile(path.join(logsDir, fileName), JSON.stringify(response, null, 2));
 }

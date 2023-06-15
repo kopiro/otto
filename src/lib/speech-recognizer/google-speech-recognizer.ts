@@ -1,6 +1,5 @@
-import speech from "@google-cloud/speech";
 import fs from "fs";
-import { SpeechClient } from "@google-cloud/speech/build/src/v1";
+import { v1p1beta1 } from "@google-cloud/speech";
 import { Language } from "../../types";
 import { promisify } from "util";
 // @ts-ignore
@@ -8,6 +7,7 @@ import wavFileInfo from "wav-file-info";
 import { Signale } from "signale";
 import Pumpify from "pumpify";
 import { ISpeechRecognizer } from "../../stdlib/speech-recognizer";
+import { SpeechClient } from "@google-cloud/speech/build/src/v1p1beta1";
 
 const TAG = "GoogleSpeechRecognizer";
 const logger = new Signale({
@@ -15,11 +15,11 @@ const logger = new Signale({
 });
 
 export class GoogleSpeechRecognizer implements ISpeechRecognizer {
-  client: SpeechClient;
-  SAMPLE_RATE = 16000;
+  private client: SpeechClient;
+  public SAMPLE_RATE = 16000;
 
   constructor() {
-    this.client = new speech.SpeechClient();
+    this.client = new v1p1beta1.SpeechClient();
   }
   /**
    * Create a recognition stream
@@ -43,6 +43,8 @@ export class GoogleSpeechRecognizer implements ISpeechRecognizer {
     });
 
     stream.on("end", () => {
+      stream.destroy();
+
       if (resolved === false) {
         callback({
           unrecognized: true,
@@ -63,7 +65,7 @@ export class GoogleSpeechRecognizer implements ISpeechRecognizer {
         }
         if (r.isFinal) {
           const text = r.alternatives[0].transcript;
-          logger.info("Recognized", text);
+          logger.info("Recognized -> ", text);
           resolved = true;
           callback(null, text);
         }

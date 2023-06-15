@@ -248,8 +248,13 @@ export class IOManager {
 
         // Route the input to the right driver
         driverRuntime.emitter.on("input", (e) => {
+          if (e.error) {
+            logger.error("Driver emitted error", e.error);
+            return;
+          }
+
           if (!e.params || !e.session) {
-            logger.error("Driver emitted unkown event", e);
+            logger.error("Driver emitted unknown event", e);
             return;
           }
 

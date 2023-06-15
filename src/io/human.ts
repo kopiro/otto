@@ -28,10 +28,9 @@ const MIC_PLATFORM_TO_BINARY: Record<Platform, string> = {
   unknown: "sox",
 };
 
-const SLEEP_WAIT_STILL_SPEAKING_SEC = 2;
-const HOTWORD_SILENCE_MAX_SEC = 8;
+const TIMEOUT_POLL_AI_STILL_SPEAKING = 2;
+const HOTWORD_SILENCE_MAX_SEC = 3;
 
-const MIC_SAMPLE_RATE = 16000;
 const MIC_CHANNELS = 1;
 
 type HumanConfig = {
@@ -63,11 +62,8 @@ export class Human implements IODriverRuntime {
    */
   hotwordSilenceSec = -1;
 
-  /**
-   * Microphone stream
-   */
-  porcupine: Porcupine | undefined;
-  mic: any | undefined;
+  porcupine?: Porcupine | undefined;
+  recorder: any | undefined;
 
   /**
    * Constructor
@@ -90,20 +86,22 @@ export class Human implements IODriverRuntime {
    * the microphone input to GCP-SR stream
    */
   startRecognition(session: TSession) {
-    logger.debug("recognizing microphone stream");
+    logger.debug("Recognizing microphone stream");
 
     const recognizeStream = SpeechRecognizer.getInstance().createRecognizeStream(session.getLanguage(), (err, text) => {
       this.isRecognizing = false;
-      this.emitter.emit("notrecognizing");
 
       // If erred, emit an error and exit
       if (err) {
         if (err.unrecognized) {
           return;
         }
+
         this.emitter.emit("input", {
           session,
-          error: err,
+          error: {
+            message: err.message,
+          },
         });
         return;
       }
@@ -125,7 +123,8 @@ export class Human implements IODriverRuntime {
     });
 
     // Pipe current mic stream to SR stream
-    this.mic?.stream().pipe(recognizeStream);
+    this.recorder.stream().pipe(recognizeStream);
+
     this.isRecognizing = true;
     this.emitter.emit("recognizing");
   }
@@ -134,7 +133,9 @@ export class Human implements IODriverRuntime {
    * Register the global session used by this driver
    */
   async registerInternalSession() {
-    return Session.findByIOIdentifierOrCreate(DRIVER_ID, "any");
+    const session = Session.findByIOIdentifierOrCreate(DRIVER_ID, "any");
+    logger.info("Session", session);
+    return session;
   }
 
   /**
@@ -142,10 +143,10 @@ export class Human implements IODriverRuntime {
    */
   processHotwordSilence() {
     if (this.hotwordSilenceSec === 0) {
-      logger.info("timeout exceeded, user should pronunce hotword again");
+      logger.info("Timeout exceeded, user should pronunce hotword again");
       this.hotwordSilenceSec = -1;
     } else if (this.hotwordSilenceSec > 0) {
-      logger.debug(`${this.hotwordSilenceSec}s left before reset`);
+      logger.debug(`Stopping SR in ${this.hotwordSilenceSec}s`);
       this.hotwordSilenceSec--;
     }
   }
@@ -154,7 +155,9 @@ export class Human implements IODriverRuntime {
    * Register the HWS setInterval ID
    */
   registerHotwordSilenceSecIntv() {
-    if (this.hotwordSilenceSecIntv) clearInterval(this.hotwordSilenceSecIntv);
+    if (this.hotwordSilenceSecIntv) {
+      clearInterval(this.hotwordSilenceSecIntv);
+    }
     this.hotwordSilenceSecIntv = setInterval(this.processHotwordSilence.bind(this), 1000);
   }
 
@@ -164,7 +167,7 @@ export class Human implements IODriverRuntime {
   async wake() {
     const session = await this.registerInternalSession();
 
-    logger.info("wake");
+    logger.info("Wake");
     this.emitter.emit("woken");
 
     this.stopOutput(); // Stop any previous output
@@ -183,9 +186,11 @@ export class Human implements IODriverRuntime {
    * Stop the recognizer
    */
   stop() {
-    logger.info("stop");
+    logger.info("Stop");
+
     this.stopOutput();
     this.hotwordSilenceSec = -1;
+
     this.emitter.emit("stopped");
   }
 
@@ -200,7 +205,7 @@ export class Human implements IODriverRuntime {
 
     this.porcupine = new Porcupine(config().porcupine.apiKey, [ppnFile], [0.5], pvFile);
 
-    this.mic.stream().on("data", (data: Buffer) => {
+    this.recorder.stream().on("data", (data: Buffer) => {
       // Two bytes per Int16 from the data buffer
       const newFrames16 = new Array(data.length / 2);
       for (let i = 0; i < data.length; i += 2) {
@@ -230,9 +235,9 @@ export class Human implements IODriverRuntime {
   }
 
   async actualOutput(fulfillment: Fulfillment, session: TSession): Promise<IODriverOutput> {
-    logger.info("Actual output", { fulfillment, session: session.id });
-
     const results: IODriverOutput = [];
+
+    logger.info("Proceeding to speak");
 
     this.hotwordSilenceSec = -1; // Temporary disable timer variables
 
@@ -241,6 +246,10 @@ export class Human implements IODriverRuntime {
       session,
       fulfillment,
     });
+
+    if (this.recorder) {
+      this.recorder.pause();
+    }
 
     // Process a text if we do not find a audio
     try {
@@ -265,6 +274,10 @@ export class Human implements IODriverRuntime {
       logger.error(err);
     }
 
+    if (this.recorder) {
+      this.recorder.resume();
+    }
+
     return results;
   }
 
@@ -280,8 +293,8 @@ export class Human implements IODriverRuntime {
     while (this.currentSpokenFulfillment) {
       logger.debug("Waiting until agent is not speaking...");
       // eslint-disable-next-line no-await-in-loop
-      results.push(["timeout", SLEEP_WAIT_STILL_SPEAKING_SEC]);
-      await timeout(SLEEP_WAIT_STILL_SPEAKING_SEC * 1000);
+      results.push(["timeout", TIMEOUT_POLL_AI_STILL_SPEAKING]);
+      await timeout(TIMEOUT_POLL_AI_STILL_SPEAKING * 1000);
     }
 
     this.currentSpokenFulfillment = fulfillment;
@@ -303,12 +316,12 @@ export class Human implements IODriverRuntime {
     const session = await this.registerInternalSession();
     logger.debug(`Started, session ID: ${session.id}`);
 
-    this.emitter.on("wake", this.wake);
-    this.emitter.on("stop", this.stop);
+    this.emitter.on("wake", this.wake.bind(this));
+    this.emitter.on("stop", this.stop.bind(this));
 
     if (this.conf.enableMic) {
-      this.mic = recorder.record({
-        sampleRate: MIC_SAMPLE_RATE,
+      this.recorder = recorder.record({
+        sampleRate: SpeechRecognizer.getInstance().SAMPLE_RATE,
         channels: MIC_CHANNELS,
         audioType: "raw",
         recorder: MIC_PLATFORM_TO_BINARY[getPlatform()],

@@ -39,9 +39,9 @@
   },
   "dependencies": {
     "@google-cloud/dialogflow": "^4.7.0",
-    "@google-cloud/speech": "^4.10.2",
+    "@google-cloud/speech": "^5.5.0",
     "@google-cloud/storage": "^5.0.0",
-    "@google-cloud/text-to-speech": "^3.4.0",
+    "@google-cloud/text-to-speech": "^4.2.2",
     "@google-cloud/translate": "^6.3.1",
     "@picovoice/porcupine-node": "^2.2.1",
     "@picovoice/pvrecorder-node": "^1.1.2",

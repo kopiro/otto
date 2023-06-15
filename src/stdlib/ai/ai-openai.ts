@@ -6,7 +6,7 @@ import {
 import { Fulfillment, InputParams } from "../../types";
 import config from "../../config";
 import { Signale } from "signale";
-import { ensureError, getLanguageNameFromLanguageCode, tryJsonParse } from "../../helpers";
+import { ensureError, getLanguageNameFromLanguageCode, logStacktrace, tryJsonParse } from "../../helpers";
 import fetch from "node-fetch";
 import { OpenAIApiSDK } from "../../lib/openai";
 import { AIVectorMemory } from "./ai-vectormemory";
@@ -14,7 +14,7 @@ import { AIFunction } from "./ai-function";
 import { Interaction } from "../../data/interaction";
 import { TSession } from "../../data/session";
 import { writeFile } from "fs/promises";
-import { tmpDir } from "../../paths";
+import { logsDir, tmpDir } from "../../paths";
 import { join } from "path";
 
 type Config = {
@@ -164,21 +164,22 @@ Speak ${userLanguage} to them, unless they speak a different language to you.
       ...openAIMessages,
     ].filter(Boolean);
 
-    writeFile(join(tmpDir, "last-openai-prompt.json"), JSON.stringify(messages, null, 2));
-
-    const completion = await OpenAIApiSDK().createChatCompletion({
+    const request = {
       model: "gpt-3.5-turbo-0613",
       user: session?.id,
       n: 1,
       messages,
       functions: AIFunction.getInstance().getFunctionDefinitions(),
       function_call: "auto",
-    });
+    };
 
-    writeFile(join(tmpDir, "last-openai-completion.json"), JSON.stringify(completion, null, 2));
+    logStacktrace("openai-request.json", request);
+
+    const completion = await OpenAIApiSDK().createChatCompletion(request);
+
+    logStacktrace("openai-completions.json", completion.data);
 
     const answer = completion.data.choices.map((e) => e.message)?.[0];
-    logger.debug("Completion:", answer);
 
     if (answer?.function_call) {
       const functionName = answer.function_call.name;
@@ -245,9 +246,10 @@ Speak ${userLanguage} to them, unless they speak a different language to you.
         },
         options: { translatePolicy: "never" },
       };
-    } catch (err) {
-      const error = ensureError(err) as any;
-      const errorMessage = error?.response?.data?.error?.message || error?.response?.data?.error || error?.message;
+    } catch (error) {
+      logStacktrace("openai-error.json", error);
+
+      const errorMessage = error?.response?.data?.error?.message || error?.message;
 
       return {
         error: {
