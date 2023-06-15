@@ -34,15 +34,19 @@ export class ISession {
   @prop({ type: () => [String] })
   public authorizations?: Authorizations[];
 
-  @prop({ ref: () => ISession })
-  public fallbackSession?: Ref<ISession>;
-
+  /**
+   * This property is used to redirect the output of this session to another session.
+   * This is useful for example if you want to also speak when you're replying to a user.
+   */
   @prop({ ref: () => ISession })
   public redirectSessions?: Ref<ISession>[];
 
-  @prop({ ref: () => ISession })
-  public forwardSessions?: Ref<ISession>[];
-
+  /**
+   * Instead of using this session to kick-in the normal input/output flow,
+   * the session will be used to repeat the last input of the session.
+   * This way, you can simply built a bot that repeats the last input of the user.
+   * For example, you can input on Telegram to output to Human.
+   */
   @prop({ ref: () => ISession })
   public repeatModeSessions?: Ref<ISession>[];
 

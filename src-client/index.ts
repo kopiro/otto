@@ -86,7 +86,7 @@ formConversation.addEventListener("submit", (e) => {
     JSON.stringify({
       params: { text: textInputEl.value },
       language: inputLanguage.value,
-      sessionId: inputSessionId.value,
+      session: inputSessionId.value,
     }),
   );
 
@@ -106,7 +106,7 @@ formEvent.addEventListener("submit", (e) => {
     JSON.stringify({
       params: { event: { name: textInputEl.value } },
       language: inputLanguage.value,
-      sessionId: inputSessionId.value,
+      session: inputSessionId.value,
     }),
   );
 

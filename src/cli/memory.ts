@@ -1,4 +1,5 @@
 import { warmup } from "../boot";
+import config from "../config";
 
 import { AIVectorMemory } from "../stdlib/ai/ai-vectormemory";
 import { Signale } from "signale";
@@ -7,6 +8,11 @@ const TAG = "Memory";
 const logger = new Signale({
   scope: TAG,
 });
+
+if (!config().centralNode) {
+  logger.error("This script should only be run on the central node");
+  process.exit(1);
+}
 
 process.env.MEMORY_TYPE = process.env.MEMORY_TYPE || "";
 

@@ -1,8 +1,8 @@
 import http from "http";
 import express from "express";
 import config from "../config";
-import { publicDir, cacheDir } from "../paths";
-import { getVoiceFileFromURI } from "../stdlib/voice";
+import { publicDir, cacheDir, tmpDir } from "../paths";
+import { getVoiceFileFromMixedContent } from "../stdlib/voice";
 import { TextToSpeech } from "./text-to-speech";
 import { IOManager } from "./iomanager";
 import { AIManager } from "./ai/ai-manager";
@@ -36,7 +36,7 @@ routerApi.get("/speech", async (req: express.Request, res: express.Response) => 
       req.query.text.toString(),
       req.query.language?.toString() || config().language,
     );
-    const audioFileMixed = await getVoiceFileFromURI(audioFile);
+    const audioFileMixed = await getVoiceFileFromMixedContent(audioFile);
     const audioFilePath = audioFileMixed.getRelativePath();
 
     res.redirect(audioFilePath);
@@ -51,15 +51,14 @@ routerApi.get("/speech", async (req: express.Request, res: express.Response) => 
 // GET /api/fulfillment?session=ID&params={ "text": "Hello" }
 routerApi.get("/fulfillment", async (req, res) => {
   try {
-    const obj = req.body;
-    if (!obj.session) throw new Error("'session' key not provided");
-    if (!obj.params) throw new Error("'params' key not provided");
+    if (!req.body.session) throw new Error("'session' key not provided");
+    if (!req.body.params) throw new Error("'params' key not provided");
 
-    const session = await Session.findById(obj.session);
+    const session = await Session.findById(req.body.session);
     if (!session) throw new Error("Session not found");
 
-    const output = await AIManager.getInstance().getFullfilmentForInput(obj.params, session);
-    return res.json({ data: output });
+    const fulfillment = await AIManager.getInstance().getFullfilmentForInput(req.body.params, session);
+    return res.json({ fulfillment });
   } catch (err) {
     logger.error("/api/fulfillment error", err);
     return res.status(400).json({
@@ -81,8 +80,8 @@ routerApi.post("/input", async (req, res) => {
     const session = await Session.findById(obj.session);
     if (!session) throw new Error("Session not found");
 
-    const output = await IOManager.getInstance().processInput(obj.params, session);
-    return res.json({ data: output });
+    const result = await IOManager.getInstance().processInput(obj.params, session);
+    return res.json({ result });
   } catch (err) {
     logger.error("/api/input error", err);
     return res.status(400).json({
@@ -155,7 +154,7 @@ export function initializeRoutes(): { app: any; server: any } {
   app.set("trust proxy", 1);
 
   app.use(express.static(publicDir));
-  app.use("/cache", express.static(cacheDir));
+  app.use("/tmp", express.static(tmpDir));
 
   // Handle all routers
   app.use("/io", routerIO);
@@ -181,7 +180,7 @@ export function start(): Promise<void> {
         server: "0.0.0.0",
       },
       () => {
-        logger.info(`started: http://0.0.0.0:${conf.port}`);
+        logger.info(`Started on ${conf.protocol}://${conf.domain}`);
         resolve();
       },
     );

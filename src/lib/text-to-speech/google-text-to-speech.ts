@@ -16,7 +16,7 @@ const logger = new Signale({
 
 export class GoogleTextToSpeech implements ITextToSpeech {
   private client: TextToSpeechClient;
-  private voices: Record<string, google.cloud.texttospeech.v1.IVoice> = {};
+  private voices: Map<string, google.cloud.texttospeech.v1.IVoice> = new Map();
   private conf: {
     gender: string;
     encoding: string;
@@ -32,15 +32,6 @@ export class GoogleTextToSpeech implements ITextToSpeech {
     return text.replace(/[\u{1F600}-\u{1F6FF}]/gu, "");
   }
 
-  private async getCachedVoice(language: Language) {
-    const key = language;
-    if (!this.voices[key]) {
-      const voice = await this.getVoice(language);
-      this.voices[key] = voice;
-    }
-    return this.voices[key];
-  }
-
   private async getVoice(language: Language) {
     const [response] = await this.client.listVoices({ languageCode: language });
     const availableVoices = response.voices?.filter((voice) => voice.ssmlGender === this.conf.gender.toUpperCase());
@@ -53,6 +44,15 @@ export class GoogleTextToSpeech implements ITextToSpeech {
     logger.debug("Voice", availableVoices[0]);
 
     return availableVoices[0];
+  }
+
+  private async getCachedVoice(language: Language) {
+    const key = language;
+    if (!this.voices.has(key)) {
+      const voice = await this.getVoice(language);
+      this.voices.set(key, voice);
+    }
+    return this.voices.get(key);
   }
 
   /**

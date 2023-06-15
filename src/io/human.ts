@@ -12,7 +12,7 @@ import { Porcupine } from "@picovoice/porcupine-node";
 import { Platform, getPlatform } from "../stdlib/platform";
 // @ts-ignore
 import recorder from "node-record-lpcm16";
-import { getVoiceFileFromFulfillment, getVoiceFileFromURI } from "../stdlib/voice";
+import { getVoiceFileFromFulfillment, getVoiceFileFromMixedContent } from "../stdlib/voice";
 import { Session, TSession } from "../data/session";
 
 const TAG = "IO.Human";
@@ -28,11 +28,11 @@ const MIC_PLATFORM_TO_BINARY: Record<Platform, string> = {
   unknown: "sox",
 };
 
-/**
- * Number of seconds of silence after that
- * user should proununce wake word again to activate te SR
- */
-const HOTWORD_SILENCE_MAX = 8;
+const SLEEP_WAIT_STILL_SPEAKING_SEC = 2;
+const HOTWORD_SILENCE_MAX_SEC = 8;
+
+const MIC_SAMPLE_RATE = 16000;
+const MIC_CHANNELS = 1;
 
 type HumanConfig = {
   enableHotword: boolean;
@@ -120,7 +120,7 @@ export class Human implements IODriverRuntime {
     // Every time user speaks, reset the HWS timer to the max
     recognizeStream.on("data", (data) => {
       if (data.results.length > 0) {
-        this.hotwordSilenceSec = HOTWORD_SILENCE_MAX;
+        this.hotwordSilenceSec = HOTWORD_SILENCE_MAX_SEC;
       }
     });
 
@@ -173,7 +173,7 @@ export class Human implements IODriverRuntime {
     Speaker.getInstance().play(`${etcDir}/wake.wav`);
 
     // Reset any timer variable
-    this.hotwordSilenceSec = HOTWORD_SILENCE_MAX;
+    this.hotwordSilenceSec = HOTWORD_SILENCE_MAX_SEC;
 
     // Recreate the SRR-stream
     this.startRecognition(session);
@@ -193,9 +193,6 @@ export class Human implements IODriverRuntime {
    * Create and assign the hotword stream to listen for wake word
    */
   startHotwordDetection() {
-    // We need to dynamically load this as it may be not necessary to include it
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-
     let frameAccumulator: number[] = [];
 
     const pvFile = path.join(etcDir, `porcupine`, `language.pv`);
@@ -213,17 +210,17 @@ export class Human implements IODriverRuntime {
       // Split the incoming PCM integer data into arrays of size Porcupine.frameLength. If there's insufficient frames, or a remainder,
       // store it in 'frameAccumulator' for the next iteration, so that we don't miss any audio data
       frameAccumulator = frameAccumulator.concat(newFrames16);
-      const frames = chunkArray(frameAccumulator, this.porcupine!.frameLength);
+      const frames = chunkArray(frameAccumulator, this.porcupine.frameLength);
 
-      if (frames[frames.length - 1].length !== this.porcupine!.frameLength) {
+      if (frames[frames.length - 1].length !== this.porcupine.frameLength) {
         // store remainder from divisions of frameLength
-        frameAccumulator = frames.pop()!;
+        frameAccumulator = frames.pop();
       } else {
         frameAccumulator = [];
       }
 
       for (const frame of frames) {
-        const index = this.porcupine!.process(frame as unknown as Int16Array);
+        const index = this.porcupine.process(frame as unknown as Int16Array);
         if (index !== -1) {
           logger.debug(`Detected hotword!`);
           this.wake();
@@ -232,11 +229,14 @@ export class Human implements IODriverRuntime {
     });
   }
 
-  async _output(fulfillment: Fulfillment, session: TSession): Promise<IODriverOutput> {
+  async actualOutput(fulfillment: Fulfillment, session: TSession): Promise<IODriverOutput> {
+    logger.info("Actual output", { fulfillment, session: session.id });
+
     const results: IODriverOutput = [];
 
     this.hotwordSilenceSec = -1; // Temporary disable timer variables
 
+    // Inform observers
     this.emitter.emit("output", {
       session,
       fulfillment,
@@ -246,9 +246,7 @@ export class Human implements IODriverRuntime {
     try {
       if (fulfillment.text) {
         const file = await getVoiceFileFromFulfillment(fulfillment, session);
-        console.log("file :>> ", file);
         await Speaker.getInstance().play(file);
-        results.push(["file", file.getAbsolutePath()]);
       }
     } catch (err) {
       results.push(["error", err as Error]);
@@ -258,7 +256,7 @@ export class Human implements IODriverRuntime {
     // Process an Audio Object
     try {
       if (fulfillment.audio) {
-        const file = await getVoiceFileFromURI(fulfillment.audio);
+        const file = await getVoiceFileFromMixedContent(fulfillment.audio);
         await Speaker.getInstance().play(file);
         results.push(["file", file.getAbsolutePath()]);
       }
@@ -270,27 +268,26 @@ export class Human implements IODriverRuntime {
     return results;
   }
 
-  static SLEEP_WAIT_STILL_SPEAKING = 2000;
+  static = 2000;
 
   /**
    * Process the item in the output queue
    */
-  async output(fulfillment: Fulfillment, session: TSession): Promise<any[]> {
-    console.log("output :>> ", fulfillment);
-    let results = [];
+  async output(fulfillment: Fulfillment, session: TSession): Promise<IODriverOutput> {
+    let results: IODriverOutput = [];
 
     // If we have a current processed item, let's wait until it's null
     while (this.currentSpokenFulfillment) {
-      logger.debug("waiting until agent is not speaking...");
+      logger.debug("Waiting until agent is not speaking...");
       // eslint-disable-next-line no-await-in-loop
-      results.push(["timeout", Human.SLEEP_WAIT_STILL_SPEAKING]);
-      await timeout(Human.SLEEP_WAIT_STILL_SPEAKING);
+      results.push(["timeout", SLEEP_WAIT_STILL_SPEAKING_SEC]);
+      await timeout(SLEEP_WAIT_STILL_SPEAKING_SEC * 1000);
     }
 
     this.currentSpokenFulfillment = fulfillment;
 
     try {
-      const result = await this._output(fulfillment, session);
+      const result = await this.actualOutput(fulfillment, session);
       results = results.concat(result);
     } finally {
       this.currentSpokenFulfillment = null;
@@ -311,8 +308,8 @@ export class Human implements IODriverRuntime {
 
     if (this.conf.enableMic) {
       this.mic = recorder.record({
-        sampleRate: 16000,
-        channels: 1,
+        sampleRate: MIC_SAMPLE_RATE,
+        channels: MIC_CHANNELS,
         audioType: "raw",
         recorder: MIC_PLATFORM_TO_BINARY[getPlatform()],
       });

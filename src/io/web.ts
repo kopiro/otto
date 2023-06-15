@@ -42,13 +42,13 @@ export class Web implements IODriverRuntime {
   }
 
   async requestEndpoint(req: Request, res: Response) {
-    if (!req.body.sessionId) {
-      throw new Error("body.sessionId is required");
+    if (!req.body.session) {
+      throw new Error("body.session is required");
     }
 
-    const session = await Session.findById(req.body.sessionId);
+    const session = await Session.findById(req.body.session);
     if (!session) {
-      throw new Error(`Session with ID <${req.body.sessionId}> not found`);
+      throw new Error(`Session with ID <${req.body.session}> not found`);
     }
 
     let resolvedInput = false;

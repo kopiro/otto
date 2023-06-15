@@ -13,6 +13,9 @@ import { AIVectorMemory } from "./ai-vectormemory";
 import { AIFunction } from "./ai-function";
 import { Interaction } from "../../data/interaction";
 import { TSession } from "../../data/session";
+import { writeFile } from "fs/promises";
+import { tmpDir } from "../../paths";
+import { join } from "path";
 
 type Config = {
   apiKey: string;
@@ -161,7 +164,7 @@ Speak ${userLanguage} to them, unless they speak a different language to you.
       ...openAIMessages,
     ].filter(Boolean);
 
-    logger.debug("Messages:", messages);
+    writeFile(join(tmpDir, "last-openai-prompt.json"), JSON.stringify(messages, null, 2));
 
     const completion = await OpenAIApiSDK().createChatCompletion({
       model: "gpt-3.5-turbo-0613",
@@ -171,6 +174,8 @@ Speak ${userLanguage} to them, unless they speak a different language to you.
       functions: AIFunction.getInstance().getFunctionDefinitions(),
       function_call: "auto",
     });
+
+    writeFile(join(tmpDir, "last-openai-completion.json"), JSON.stringify(completion, null, 2));
 
     const answer = completion.data.choices.map((e) => e.message)?.[0];
     logger.debug("Completion:", answer);

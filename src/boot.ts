@@ -17,7 +17,7 @@ export async function warmup() {
       throw new Error("Please define config.uid with a unique identifier for this instance.");
     }
 
-    if (config().sentry?.dsn && process.env.NODE_ENV === "production") {
+    if (config().sentry?.dsn && config().env) {
       Sentry.init(config().sentry);
     }
 

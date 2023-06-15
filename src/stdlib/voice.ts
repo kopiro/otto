@@ -14,12 +14,11 @@ const logger = new Signale({
   scope: TAG,
 });
 
-export async function getVoiceFileFromURI(uri: string | File): Promise<File> {
+export async function getVoiceFileFromMixedContent(mixedContent: string | File): Promise<File> {
   const conf = config().voice;
+  const file = await getLocalObjectFromURI(mixedContent, "mp3");
 
-  const localUri = await getLocalObjectFromURI(uri, "mp3");
-
-  const remixedPath = localUri.getAbsolutePath().replace(/\.(.+)$/, "-remixed.$1");
+  const remixedPath = file.getAbsolutePath().replace(/\.(.+)$/, "-remixed.$1");
   const finalUri = new File(remixedPath);
   if (fs.existsSync(finalUri.getAbsolutePath())) {
     logger.debug(`Reusing existing file ${finalUri.getAbsolutePath()}}`);
@@ -27,7 +26,7 @@ export async function getVoiceFileFromURI(uri: string | File): Promise<File> {
   }
 
   logger.debug(`Writing remixed file to ${finalUri.getAbsolutePath()}}`);
-  await Proc.processSpawn("sox", [localUri.getAbsolutePath(), finalUri.getAbsolutePath()].concat(conf.addArgs)).result;
+  await Proc.processSpawn("sox", [file.getAbsolutePath(), finalUri.getAbsolutePath()].concat(conf.addArgs)).result;
 
   return finalUri;
 }
@@ -37,5 +36,5 @@ export async function getVoiceFileFromFulfillment(fulfillment: Fulfillment, sess
     fulfillment.text || "",
     fulfillment.options?.language || session.getLanguage() || config().language,
   );
-  return getVoiceFileFromURI(audioFile);
+  return getVoiceFileFromMixedContent(audioFile);
 }

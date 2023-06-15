@@ -1,15 +1,16 @@
 {
   "uid": "",
   "aiName": "",
-  "mimicOfflineServer": false,
+  "env": "development",
+  "centralNode": false,
   "speechRecognizerDriver": "google",
   "textToSpeechDriver": "google",
   "translatorDriver": "google",
   "storageDriver": "google",
   "speakerDriver": "direct",
+  "language": "en-GB",
   "ioDrivers": [],
   "ioAccessoriesMap": {},
-  "language": "en-GB",
   "scheduler": {
     "enabled": true
   },
@@ -20,7 +21,6 @@
   "sentry": {
     "dsn": ""
   },
-  "serverMode": false,
   "tts": {
     "gender": "Female",
     "encoding": "MP3"
@@ -29,6 +29,7 @@
     "addArgs": []
   },
   "server": {
+    "enabled": false,
     "protocol": "http",
     "domain": "",
     "port": 9000

@@ -11,6 +11,7 @@ const logger = new Signale({
 });
 
 const FORMAT = "YYYY-MM-DD HH:mm:ss";
+const EVERY_MS = 60 * 1000;
 
 export type SchedulerProgramName = "input";
 
@@ -109,14 +110,13 @@ async function tick(conditions: Partial<IScheduler>[] = []) {
 
 export async function start() {
   if (started) {
-    logger.warn("attempted to start an already started instance");
     return;
   }
 
   started = true;
 
-  logger.info(`polling started`);
+  logger.info(`Started polling scheduler every ${EVERY_MS}ms`);
 
   tick([{ onBoot: true }]);
-  setInterval(tick.bind(this), 60 * 1000);
+  setInterval(tick.bind(this), EVERY_MS);
 }

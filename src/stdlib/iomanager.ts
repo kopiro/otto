@@ -132,6 +132,34 @@ export class IOManager {
     };
   }
 
+  async redirectOutputToRedirectSessions(
+    fulfillment: Fulfillment | null,
+    session: TSession,
+    bag?: IOBag,
+    loadDriverIfNotEnabled = false,
+  ) {
+    // Redirecting output to another session, asyncronously
+    await session.populate("redirectSessions");
+
+    if (isDocumentArray(session.redirectSessions) && session.redirectSessions.length > 0) {
+      logger.info(
+        "using redirectSessions",
+        session.redirectSessions.map((s) => s.id),
+      );
+
+      await Promise.all(
+        session.redirectSessions.map((sess) => {
+          if (sess.id === session.id) {
+            logger.warn("Redirecting to same session, skipping", sess);
+            return;
+          }
+
+          return this.output(fulfillment, sess, bag, loadDriverIfNotEnabled);
+        }),
+      );
+    }
+  }
+
   /**
    * Process an input to a specific IO driver based on the session
    */
@@ -141,19 +169,12 @@ export class IOManager {
     bag?: IOBag,
     loadDriverIfNotEnabled = false,
   ): Promise<OutputResult> {
+    // Redirecting output to another session, asyncronously
+    this.redirectOutputToRedirectSessions(fulfillment, session, bag, loadDriverIfNotEnabled);
+
     if (!fulfillment) {
       logger.warn("Early return cause fulfillment is null - this could be intentional, but check your action");
       return { rejectReason: { message: "FULFILLMENT_IS_NULL" } };
-    }
-
-    // Redirecting output to another session, async
-    if (isDocumentArray(session.redirectSessions) && session.redirectSessions.length > 0) {
-      logger.info("using redirectSessions", session.redirectSessions);
-      Promise.all(
-        session.redirectSessions.map((sess) => {
-          return this.output(fulfillment, sess, bag, loadDriverIfNotEnabled);
-        }),
-      );
     }
 
     if (session.doNotDisturb === true) {
@@ -175,43 +196,13 @@ export class IOManager {
       return { rejectReason: { message: "DRIVER_NOT_ENABLED" } };
     }
 
-    await session.populate("forwardSessions");
-
-    if (isDocumentArray(session.forwardSessions) && session.forwardSessions.length > 0) {
-      logger.info(
-        "Using forwardSessions",
-        session.forwardSessions.map((e) => e.id),
-      );
-      Promise.all(
-        session.forwardSessions.map((e) => {
-          return this.output(fulfillment, e, bag, loadDriverIfNotEnabled);
-        }),
-      );
-    }
-
-    // Call the driver
-    let driverOutput: IODriverOutput = [];
-    let driverError: unknown;
-
+    // Actually output to the driver
     try {
-      driverOutput = await driverRuntime.output(fulfillment, session, bag);
-    } catch (err) {
-      driverError = err;
-    }
-
-    if (driverError) {
-      await session.populate("fallbackSession");
-      if (isDocument(session.fallbackSession)) {
-        logger.info("using fallbackSession", session.fallbackSession.id);
-        return this.output(fulfillment, session.fallbackSession, bag);
-      }
-    }
-
-    if (driverError) {
+      const driverOutput = await driverRuntime.output(fulfillment, session, bag);
+      return { driverOutput };
+    } catch (driverError) {
       return { driverError };
     }
-
-    return { driverOutput };
   }
 
   /**
@@ -258,7 +249,7 @@ export class IOManager {
         // Route the input to the right driver
         driverRuntime.emitter.on("input", (e) => {
           if (!e.params || !e.session) {
-            logger.error("Driver emitted unkown events", e);
+            logger.error("Driver emitted unkown event", e);
             return;
           }
 
@@ -271,7 +262,6 @@ export class IOManager {
         this.loadedDrivers[driverId] = driverRuntime;
 
         logger.debug(`Driver ${driverId} started!`);
-        return true;
       }),
     );
   }
@@ -300,7 +290,7 @@ export class IOManager {
 
     if (!isDocument(qitem.session)) {
       logger.error("IOQueue item has no session, removing it", qitem);
-      await IOQueue.deleteOne({ _id: qitem.id });
+      await qitem.deleteOne();
       return null;
     }
 
@@ -308,13 +298,13 @@ export class IOManager {
 
     logger.info("Processing IOQueue item", {
       fulfillment: qitem.fulfillment,
-      "session.id": qitem.session,
+      "session.id": qitem.session.id,
       bag: qitem.bag,
     });
 
     callback?.(qitem);
 
-    await IOQueue.deleteOne({ _id: qitem.id });
+    await qitem.deleteOne();
     await this.output(qitem.fulfillment, qitem.session, qitem.bag);
 
     return qitem;
@@ -324,11 +314,11 @@ export class IOManager {
    * Process a fulfillment to a session
    */
   async processInput(params: InputParams, session: TSession): Promise<OutputResult> {
-    logger.info("input", params, session.id);
+    logger.info("input", { params, session: session.id });
     const fulfillment = await AIManager.getInstance().getFullfilmentForInput(params, session);
-    logger.info("fulfillment", fulfillment, session.id);
-    const result = IOManager.getInstance().output(fulfillment, session, params.bag);
-    logger.info("output result", result, session.id);
+    logger.info("fulfillment", { fulfillment, session: session.id });
+    const result = await IOManager.getInstance().output(fulfillment, session, params.bag);
+    logger.info("output result", { result, session: session.id });
     return result;
   }
 
@@ -343,7 +333,8 @@ export class IOManager {
       if (!ioQueue?.timeout) {
         throw new Error("ioQueue.timeout is not set");
       }
-      setInterval(this.processQueue.bind(this), ioQueue?.timeout);
+      logger.info("Starting IOQueue processing");
+      setInterval(this.processQueue.bind(this), ioQueue.timeout);
     }
   }
 }

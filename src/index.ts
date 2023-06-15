@@ -6,7 +6,7 @@ import { AIManager } from "./stdlib/ai/ai-manager";
 import { IOManager } from "./stdlib/iomanager";
 
 warmup().then(() => {
-  if (config().serverMode) {
+  if (config().server?.enabled) {
     startServer();
   }
 
