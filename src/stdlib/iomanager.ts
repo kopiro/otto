@@ -40,7 +40,7 @@ export interface IOAccessoryModule {
 }
 
 export class IOManager {
-  private loadedDrivers: Record<IODriverId, IODriverRuntime> = {};
+  private loadedDrivers: Partial<Record<IODriverId, IODriverRuntime>> = {};
   private queueInProcess: Record<string, true> = {};
 
   private emitter: EventEmitter = new EventEmitter();
