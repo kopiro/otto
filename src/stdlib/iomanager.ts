@@ -40,7 +40,7 @@ export interface IOAccessoryModule {
 }
 
 export class IOManager {
-  private loadedDrivers: Record<string, IODriverRuntime> = {};
+  private loadedDrivers: Record<IODriverId, IODriverRuntime> = {};
   private queueInProcess: Record<string, true> = {};
 
   private emitter: EventEmitter = new EventEmitter();
@@ -113,12 +113,7 @@ export class IOManager {
   async outputInQueue(fulfillment: Fulfillment, session: TSession, bag?: IOBag): Promise<OutputResult> {
     const loadedDriverIds = Object.keys(this.loadedDrivers);
 
-    const ioQueueElement = await IOQueue.create({
-      session: session.id,
-      fulfillment,
-      a: 1,
-      dateAdded: new Date(),
-    });
+    const ioQueueElement = await IOQueue.createNew(session, fulfillment, bag);
 
     return {
       rejectReason: {
@@ -280,14 +275,16 @@ export class IOManager {
       ioDriver: {
         $in: Object.keys(this.loadedDrivers),
       },
-    }).sort({ dateAdded: +1 });
+    }).sort({ createdAt: +1 });
   }
 
   /**
    * Process items in the queue based on configured drivers
    */
   async processQueue(callback?: (item: TIOQueue | null) => void): Promise<TIOQueue | null> {
-    const qitem = await this.getNextInQueue();
+    const enabledDriverIds = Object.keys(this.loadedDrivers) as IODriverId[];
+    const qitem = await IOQueue.getNextInQueue(enabledDriverIds);
+
     if (!qitem || this.queueInProcess[qitem.id]) {
       callback?.(null);
       return null;
