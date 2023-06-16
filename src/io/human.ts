@@ -14,6 +14,7 @@ import { Platform, getPlatform } from "../stdlib/platform";
 import recorder from "node-record-lpcm16";
 import { getVoiceFileFromFulfillment, getVoiceFileFromMixedContent } from "../stdlib/voice";
 import { Session, TSession } from "../data/session";
+import Pumpify from "pumpify";
 
 const TAG = "IO.Human";
 const logger = new Signale({
@@ -28,7 +29,7 @@ const MIC_PLATFORM_TO_BINARY: Record<Platform, string> = {
   unknown: "sox",
 };
 
-const TIMEOUT_POLL_AI_STILL_SPEAKING = 2;
+const TIMEOUT_POLL_AI_STILL_SPEAKING_SEC = 2;
 const HOTWORD_SILENCE_MAX_SEC = 3;
 
 const MIC_CHANNELS = 1;
@@ -42,24 +43,10 @@ export class Human implements IODriverRuntime {
   conf: HumanConfig;
   emitter: Events.EventEmitter = new Events.EventEmitter();
 
-  /**
-   * TRUE when the audio is recording and it's submitting to GCP-SR
-   */
-  isRecognizing = false;
-
-  /**
-   * Current item processed by the queue
-   */
   currentSpokenFulfillment: Fulfillment | null | undefined;
 
-  /**
-   * ID for setInterval used by HOTWORD_SILENCE_MAX
-   */
-  hotwordSilenceSecIntv: NodeJS.Timer | undefined;
+  recognizeStream: Pumpify | null | undefined;
 
-  /**
-   * Tick used by HOTWORD_SILENCE_MAX
-   */
   hotwordSilenceSec = -1;
 
   porcupine?: Porcupine | undefined;
@@ -88,8 +75,11 @@ export class Human implements IODriverRuntime {
   startRecognition(session: TSession) {
     logger.debug("Recognizing microphone stream");
 
+    // Close any previous stream
+    this.destroyRecognizer();
+
     const recognizeStream = SpeechRecognizer.getInstance().createRecognizeStream(session.getLanguage(), (err, text) => {
-      this.isRecognizing = false;
+      this.recognizeStream = null;
 
       // If erred, emit an error and exit
       if (err) {
@@ -122,10 +112,11 @@ export class Human implements IODriverRuntime {
       }
     });
 
+    this.recognizeStream = recognizeStream;
+
     // Pipe current mic stream to SR stream
     this.recorder.stream().pipe(recognizeStream);
 
-    this.isRecognizing = true;
     this.emitter.emit("recognizing");
   }
 
@@ -133,9 +124,16 @@ export class Human implements IODriverRuntime {
    * Register the global session used by this driver
    */
   async registerInternalSession() {
-    const session = Session.findByIOIdentifierOrCreate(DRIVER_ID, "any");
-    logger.info("Session", session);
+    const session = await Session.findByIOIdentifierOrCreate(DRIVER_ID, "any");
     return session;
+  }
+
+  destroyRecognizer() {
+    if (this.recognizeStream) {
+      logger.debug("Destroying recognizer stream");
+      this.recognizeStream.destroy();
+      this.recognizeStream = null;
+    }
   }
 
   /**
@@ -145,20 +143,14 @@ export class Human implements IODriverRuntime {
     if (this.hotwordSilenceSec === 0) {
       logger.info("Timeout exceeded, user should pronunce hotword again");
       this.hotwordSilenceSec = -1;
-    } else if (this.hotwordSilenceSec > 0) {
-      logger.debug(`Stopping SR in ${this.hotwordSilenceSec}s`);
+      this.destroyRecognizer();
+      return;
+    }
+
+    if (this.hotwordSilenceSec > 0) {
+      logger.debug(`Stopping SR in ${this.hotwordSilenceSec}s ...`);
       this.hotwordSilenceSec--;
     }
-  }
-
-  /**
-   * Register the HWS setInterval ID
-   */
-  registerHotwordSilenceSecIntv() {
-    if (this.hotwordSilenceSecIntv) {
-      clearInterval(this.hotwordSilenceSecIntv);
-    }
-    this.hotwordSilenceSecIntv = setInterval(this.processHotwordSilence.bind(this), 1000);
   }
 
   /**
@@ -227,7 +219,6 @@ export class Human implements IODriverRuntime {
       for (const frame of frames) {
         const index = this.porcupine.process(frame as unknown as Int16Array);
         if (index !== -1) {
-          logger.debug(`Detected hotword!`);
           this.wake();
         }
       }
@@ -236,8 +227,6 @@ export class Human implements IODriverRuntime {
 
   async actualOutput(fulfillment: Fulfillment, session: TSession): Promise<IODriverOutput> {
     const results: IODriverOutput = [];
-
-    logger.info("Proceeding to speak");
 
     this.hotwordSilenceSec = -1; // Temporary disable timer variables
 
@@ -281,8 +270,6 @@ export class Human implements IODriverRuntime {
     return results;
   }
 
-  static = 2000;
-
   /**
    * Process the item in the output queue
    */
@@ -293,8 +280,8 @@ export class Human implements IODriverRuntime {
     while (this.currentSpokenFulfillment) {
       logger.debug("Waiting until agent is not speaking...");
       // eslint-disable-next-line no-await-in-loop
-      results.push(["timeout", TIMEOUT_POLL_AI_STILL_SPEAKING]);
-      await timeout(TIMEOUT_POLL_AI_STILL_SPEAKING * 1000);
+      results.push(["timeout", TIMEOUT_POLL_AI_STILL_SPEAKING_SEC]);
+      await timeout(TIMEOUT_POLL_AI_STILL_SPEAKING_SEC * 1000);
     }
 
     this.currentSpokenFulfillment = fulfillment;
@@ -314,7 +301,7 @@ export class Human implements IODriverRuntime {
    */
   async start() {
     const session = await this.registerInternalSession();
-    logger.debug(`Started, session ID: ${session.id}`);
+    logger.debug(`Started with Session`, session);
 
     this.emitter.on("wake", this.wake.bind(this));
     this.emitter.on("stop", this.stop.bind(this));
@@ -330,7 +317,7 @@ export class Human implements IODriverRuntime {
       if (this.conf.enableHotword) {
         try {
           this.startHotwordDetection();
-          this.registerHotwordSilenceSecIntv();
+          setInterval(this.processHotwordSilence.bind(this), 1000);
         } catch (err) {
           logger.warn(err);
         }

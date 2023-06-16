@@ -54,14 +54,18 @@ export class ISession {
   public doNotDisturb?: boolean;
 
   public getLanguage(this: DocumentType<ISession>): Language {
+    if (this.language) {
+      return this.language;
+    }
+
+    let driverLanguage = null;
     switch (this.ioDriver) {
       case "telegram": {
         const ioData = this.ioData as IODataTelegram;
-        return this.language || ioData.from?.language_code || config().language;
+        driverLanguage = ioData.from?.language_code;
       }
-      default:
-        return config().language;
     }
+    return driverLanguage || config().language;
   }
 
   public getName(this: DocumentType<ISession>): string {
