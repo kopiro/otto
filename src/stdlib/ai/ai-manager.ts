@@ -6,7 +6,6 @@ import { Signale } from "signale";
 import { AICommander } from "./ai-commander";
 import { AIOpenAI } from "./ai-openai";
 import { AIDialogFlow } from "./ai-dialogflow";
-import { IOManager } from "../iomanager";
 import { TSession } from "../../data/session";
 import { Interaction } from "../../data/interaction";
 

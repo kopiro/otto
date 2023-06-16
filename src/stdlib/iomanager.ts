@@ -183,7 +183,7 @@ export class IOManager {
     }
 
     if (!this.canHandleOutput(fulfillment, session)) {
-      logger.debug("This configuration is not able to fulfill this output, putting in IO queue", fulfillment, session);
+      logger.debug("This node can't output, putting in IO queue", { fulfillment, session: session.id });
       return this.outputInQueue(fulfillment, session, bag);
     }
 

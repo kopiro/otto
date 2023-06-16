@@ -1,21 +1,14 @@
-import {
-  ChatCompletionRequestMessage,
-  ChatCompletionRequestMessageRoleEnum,
-  CreateChatCompletionRequest,
-} from "openai";
+import { ChatCompletionRequestMessage, ChatCompletionRequestMessageRoleEnum } from "openai";
 import { Fulfillment, InputParams } from "../../types";
 import config from "../../config";
 import { Signale } from "signale";
-import { ensureError, getLanguageNameFromLanguageCode, logStacktrace, tryJsonParse } from "../../helpers";
+import { logStacktrace, tryJsonParse } from "../../helpers";
 import fetch from "node-fetch";
 import { OpenAIApiSDK } from "../../lib/openai";
 import { AIVectorMemory } from "./ai-vectormemory";
 import { AIFunction } from "./ai-function";
 import { Interaction } from "../../data/interaction";
 import { TSession } from "../../data/session";
-import { writeFile } from "fs/promises";
-import { logsDir, tmpDir } from "../../paths";
-import { join } from "path";
 
 type Config = {
   apiKey: string;
@@ -111,10 +104,9 @@ export class AIOpenAI {
 
     // Append session related info
     if (session) {
-      const userLanguage = await getLanguageNameFromLanguageCode(session.getLanguage());
       contextPrompt.push(`
 You are now chatting with ${session.getName()} - ${session.getDriverName()}.
-Speak ${userLanguage} to them, unless they speak a different language to you.
+Use the language code "${session.getLanguage()}" to speak to them, unless they speak a different language to you.
 `);
     }
 
