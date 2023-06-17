@@ -70,7 +70,7 @@ export class AIFunction {
         throw new Error(`Unsafe action name <${functionName}>`);
       }
 
-      const pkgRuntime = (await import(path.join(functionsDir, functionName))) as FunctionRuntime | null;
+      const pkgRuntime = (await import(path.join(functionsDir, functionName, "index"))) as FunctionRuntime | null;
       if (!pkgRuntime) {
         throw new Error(`Invalid function name <${functionName}>`);
       }

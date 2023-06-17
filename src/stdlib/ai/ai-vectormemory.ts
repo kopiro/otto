@@ -172,10 +172,10 @@ export class AIVectorMemory {
       for (const interaction of interactions) {
         const time = interaction.createdAt.toLocaleTimeString();
 
-        if (interaction.fulfillment.text) {
+        if (interaction.fulfillment?.text) {
           interactionsText.push(`${aiName} (${time}): ${interaction.fulfillment.text}`);
         }
-        if (interaction.input.text) {
+        if (interaction.input?.text) {
           interactionsText.push(`${sessionSimpleName} (${time}): ${interaction.input.text}`);
         }
       }
