@@ -99,14 +99,14 @@ export class AIOpenAI {
     const contextPrompt = [];
 
     contextPrompt.push("## User");
-
     contextPrompt.push(`Current time is: ${new Date().toLocaleTimeString()}`);
 
     // Append session related info
     if (session) {
+      const languageName = new Intl.DisplayNames(["en"], { type: "language" }).of(session.getLanguage());
       contextPrompt.push(`
 You are now chatting with ${session.getName()} - ${session.getDriverName()}.
-Use the language code "${session.getLanguage()}" to speak to them, unless they speak a different language to you.
+Speak to them in ${languageName}, unless they speak a different language to you.
 `);
     }
 

@@ -237,7 +237,7 @@ export class IOManager {
   }
 
   startDrivers() {
-    return Promise.all(
+    return Promise.allSettled(
       this.getDriversToLoad().map(async (driverId) => {
         const driverRuntime = await this.loadDriver(driverId);
 
@@ -256,12 +256,16 @@ export class IOManager {
           this.onDriverInput(e.params, e.session);
         });
 
-        await driverRuntime.start();
-        await this.startAccessoriesForDriver(driverId, driverRuntime);
+        try {
+          await driverRuntime.start();
+          await this.startAccessoriesForDriver(driverId, driverRuntime);
 
-        this.loadedDrivers[driverId] = driverRuntime;
+          this.loadedDrivers[driverId] = driverRuntime;
 
-        logger.debug(`Driver ${driverId} started!`);
+          logger.debug(`Driver ${driverId} started!`);
+        } catch (e) {
+          logger.error(`Driver ${driverId} failed to start`, e);
+        }
       }),
     );
   }
