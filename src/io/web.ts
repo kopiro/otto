@@ -42,6 +42,8 @@ export class Web implements IODriverRuntime {
   }
 
   async requestEndpoint(req: Request, res: Response) {
+    logger.debug("New request with query=", req.query, "body=", req.body);
+
     if (!req.body.session) {
       throw new Error("body.session is required");
     }

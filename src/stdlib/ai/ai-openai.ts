@@ -161,8 +161,8 @@ Speak to them in ${languageName}, unless they speak a different language to you.
       user: session?.id,
       n: 1,
       messages,
-      functions: AIFunction.getInstance().getFunctionDefinitions(),
-      function_call: "auto",
+      // functions: AIFunction.getInstance().getFunctionDefinitions(),
+      // function_call: "auto",
     };
 
     logStacktrace("openai-request.json", request);
