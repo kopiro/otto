@@ -12,6 +12,7 @@ import { SpeechRecognizer } from "../stdlib/speech-recognizer";
 import { getVoiceFileFromFulfillment } from "../stdlib/voice";
 import { File } from "../stdlib/file";
 import { Session } from "../data/session";
+import { rename } from "fs/promises";
 
 const TAG = "IO.Web";
 const logger = new Signale({
@@ -76,7 +77,8 @@ export class Web implements IODriverRuntime {
         resolvedInput = true;
 
         const tmpAudioFile = File.getTmpFile("wav");
-        fs.renameSync(files.audio.path, tmpAudioFile.getAbsolutePath());
+        await rename(files.audio.path, tmpAudioFile.getAbsolutePath());
+
         const text = await SpeechRecognizer.getInstance().recognizeFile(
           tmpAudioFile.getAbsolutePath(),
           session.getLanguage(),
