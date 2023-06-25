@@ -157,7 +157,7 @@ Speak to them in ${languageName}, unless they speak a different language to you.
     ].filter(Boolean);
 
     const request = {
-      model: "gpt-3.5-turbo-0613",
+      model: "gpt-3.5-turbo",
       user: session?.id,
       n: 1,
       messages,

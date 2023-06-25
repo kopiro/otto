@@ -113,15 +113,6 @@ export async function getLanguageCodeFromLanguageName(languageName: string): Pro
   return languages.find((e) => e.name === languageName)?.code;
 }
 
-export function tryCatch<T>(callable: () => T, defaultValue: any): T | typeof defaultValue {
-  try {
-    return callable();
-  } catch (error) {
-    logger.debug("Catched to default error", error);
-    return defaultValue;
-  }
-}
-
 export function shuffle<T>(array: T[]): T[] {
   let currentIndex = array.length,
     randomIndex;
@@ -143,7 +134,7 @@ export function tryJsonParse<T>(value: string | undefined, defaultValue: T): T {
   try {
     return value !== undefined ? JSON.parse(value) : defaultValue;
   } catch (error) {
-    logger.debug("Catched to default error", error);
+    logger.debug(`Unable to parse JSON <${value}>, returning default value <${defaultValue}>`);
     return defaultValue;
   }
 }
@@ -163,7 +154,9 @@ export function ensureError(value: unknown): Error {
   let stringified = "[Unable to stringify the thrown value]";
   try {
     stringified = JSON.stringify(value);
-  } catch {}
+  } catch {
+    logger.error(`Unable to stringify the thrown value: ${value}`);
+  }
 
   const error = new Error(`This value was thrown as is, not through an Error: ${stringified}`);
   return error;
