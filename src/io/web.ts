@@ -1,6 +1,6 @@
 import Events from "events";
 import { IODriverRuntime, IODriverOutput } from "../stdlib/iomanager";
-import { Fulfillment } from "../types";
+import { Fulfillment, InputParams } from "../types";
 import { Request, Response } from "express";
 import { routerIO } from "../stdlib/server";
 import fs from "fs";
@@ -23,6 +23,11 @@ const DRIVER_ID = "web";
 
 type WebConfig = null;
 
+type WebBag = {
+  req: Request;
+  res: Response;
+};
+
 enum AcceptHeader {
   TEXT = "text",
   AUDIO = "audio",
@@ -38,8 +43,21 @@ export class Web implements IODriverRuntime {
     this.emitter = new Events.EventEmitter();
   }
 
-  output(): Promise<IODriverOutput> {
+  output(f: Fulfillment, session: TSession, bag: WebBag): Promise<IODriverOutput> {
     throw new Error("IODriver.Web doesn't support direct output");
+  }
+
+  async handleVoice(req: Request) {
+    const form = formidable();
+    const { files } = await new Promise<{ files: { voice: { path: string } } }>((resolve, reject) => {
+      form.parse(req, (err: any, _: any, files: any) => {
+        if (err) {
+          return reject(err);
+        }
+        resolve({ files });
+      });
+    });
+    return files.voice;
   }
 
   async requestEndpoint(req: Request, res: Response) {
@@ -54,47 +72,24 @@ export class Web implements IODriverRuntime {
       throw new Error(`Session with ID <${req.body.session}> not found`);
     }
 
-    let resolvedInput = false;
-    let fulfillment: Fulfillment | null | undefined;
+    const params = (req.body.params || {}) as InputParams;
 
-    // First check if the request contains any text or event
-    if (req.body.params) {
-      resolvedInput = true;
-      fulfillment = await AIManager.getInstance().getFullfilmentForInput(req.body.params, session);
-    } else {
-      // Otherwise, parse for incoming audio
-      const form = formidable();
-      const { files } = await new Promise<{ files: { audio: { path: string } } }>((resolve, reject) => {
-        form.parse(req, (err: any, _: any, files: any) => {
-          if (err) {
-            return reject(err);
-          }
-          resolve({ files });
-        });
-      });
-
-      if (files.audio) {
-        resolvedInput = true;
-
+    if (!params.text && !params.command) {
+      const audio = await this.handleVoice(req);
+      if (audio) {
         const tmpAudioFile = File.getTmpFile("wav");
-        await rename(files.audio.path, tmpAudioFile.getAbsolutePath());
-
-        const text = await SpeechRecognizer.getInstance().recognizeFile(
+        await rename(audio.path, tmpAudioFile.getAbsolutePath());
+        params.text = await SpeechRecognizer.getInstance().recognizeFile(
           tmpAudioFile.getAbsolutePath(),
           session.getLanguage(),
-        );
-
-        fulfillment = await AIManager.getInstance().getFullfilmentForInput(
-          {
-            text,
-          },
-          session,
         );
       }
     }
 
-    if (!resolvedInput) {
-      throw new Error("Unable to find a suitable input: body.params OR files.audio");
+    const fulfillment = await AIManager.getInstance().getFullfilmentForInput(params, session);
+
+    if (fulfillment === undefined) {
+      throw new Error("Unable to process your input params");
     }
 
     const accepts = req.headers.accept?.split(",").map((e: string) => e.trim());
@@ -129,7 +124,7 @@ export class Web implements IODriverRuntime {
       try {
         await this.requestEndpoint(req, res);
       } catch (err) {
-        res.status(400).json({ error: { message: String(err) } });
+        res.status(400).json({ error: { message: err.message } });
       }
     });
   }

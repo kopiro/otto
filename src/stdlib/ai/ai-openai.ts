@@ -99,16 +99,18 @@ export class AIOpenAI {
     const contextPrompt = [];
 
     contextPrompt.push("## User");
-    contextPrompt.push(`Current time is: ${new Date().toLocaleTimeString()}`);
 
     // Append session related info
     if (session) {
-      const languageName = new Intl.DisplayNames(["en"], { type: "language" }).of(session.getLanguage());
-      contextPrompt.push(`
-You are now chatting with ${session.getName()} - ${session.getDriverName()}.
-Speak to them in ${languageName}, unless they speak a different language to you.
-`);
+      contextPrompt.push(`You are chatting with ${session.getName()} - ${session.getDriverName()}.`);
     }
+
+    if (session) {
+      const languageName = new Intl.DisplayNames(["en"], { type: "language" }).of(session.getLanguage());
+      contextPrompt.push(`You MUST reply in ${languageName}.`);
+    }
+
+    contextPrompt.push(`Current time is: ${new Date().toLocaleTimeString()}`);
 
     // Append context
     for (const [key, value] of Object.entries(context)) {

@@ -63,7 +63,7 @@ routerApi.get("/fulfillment", async (req, res) => {
     logger.error("/api/fulfillment error", err);
     return res.status(400).json({
       error: {
-        message: String(err),
+        message: err.message,
       },
     });
   }

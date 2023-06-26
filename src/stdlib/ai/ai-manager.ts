@@ -73,8 +73,6 @@ export class AIManager {
     let fulfillment: Fulfillment | null = null;
     let source: InputSource = "unknown";
 
-    logger.debug("Request", params, session.id);
-
     Interaction.createNew(session, {
       input: params,
     });
