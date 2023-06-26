@@ -228,7 +228,7 @@ export class IOManager {
 
       return Promise.all(
         session.repeatModeSessions.map((repeaterSession) => {
-          return this.output({ text: params.text, analytics: { engine: "repeater" } }, repeaterSession, params.bag);
+          return this.output({ text: params.text }, repeaterSession, params.bag);
         }),
       );
     }

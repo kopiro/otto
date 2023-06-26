@@ -63,38 +63,25 @@ export class AIFunction {
     inputParams: InputParams,
     session: TSession,
   ): Promise<Fulfillment> {
-    try {
-      logger.info(`Calling AI function <${functionName}> with arguments <${JSON.stringify(functionParameters)}>`);
+    logger.info(`Calling AI function <${functionName}> with arguments <${JSON.stringify(functionParameters)}>`);
 
-      if (functionName.includes("..") || functionName.includes("..")) {
-        throw new Error(`Unsafe action name <${functionName}>`);
-      }
-
-      const pkgRuntime = (await import("../../functions/" + functionName)) as FunctionRuntime | null;
-      if (!pkgRuntime) {
-        throw new Error(`Invalid function name <${functionName}>`);
-      }
-
-      throwIfMissingAuthorizations(session.authorizations, pkgRuntime.authorizations);
-
-      const result = await pkgRuntime.default({
-        inputParams,
-        parameters: functionParameters,
-        session,
-      });
-
-      return result;
-    } catch (error) {
-      logger.error("Error while executing action", error);
-
-      return {
-        error: {
-          message: error.message,
-        },
-        analytics: {
-          engine: "action",
-        },
-      };
+    if (functionName.includes("..") || functionName.includes("..")) {
+      throw new Error(`Unsafe action name <${functionName}>`);
     }
+
+    const pkgRuntime = (await import("../../functions/" + functionName)) as FunctionRuntime | null;
+    if (!pkgRuntime) {
+      throw new Error(`Invalid function name <${functionName}>`);
+    }
+
+    throwIfMissingAuthorizations(session.authorizations, pkgRuntime.authorizations);
+
+    const result = await pkgRuntime.default({
+      inputParams,
+      parameters: functionParameters,
+      session,
+    });
+
+    return result;
   }
 }

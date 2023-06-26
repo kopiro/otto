@@ -3,6 +3,7 @@ import { Authorizations, Fulfillment, InputParams } from "../../types";
 import { IOManager } from "../iomanager";
 import { throwIfMissingAuthorizations } from "../../helpers";
 import { Session, TSession } from "../../data/session";
+import { PROMPT_WELCOME } from "./ai-prompts";
 
 type CommandFunction = (args: RegExpMatchArray, session: TSession) => Promise<Fulfillment>;
 
@@ -60,22 +61,24 @@ export class AICommander {
   ];
 
   private async notFound(): Promise<Fulfillment> {
-    return { text: "Command not found", analytics: { engine: "commander" } };
+    return { text: "Command not found" };
   }
 
   private async appStop(): Promise<Fulfillment> {
     setTimeout(() => process.exit(0), 5000);
-    return { text: "Scheduled shutdown in 5 seconds", analytics: { engine: "commander" } };
+    return { text: "Scheduled shutdown in 5 seconds" };
   }
 
   private async start(_: RegExpMatchArray, session: TSession): Promise<Fulfillment> {
-    const fulfillment = await AIManager.getInstance().getFullfilmentForInput({ event: "welcome" }, session);
-    if (fulfillment !== null) return fulfillment;
-    return { text: "Welcome!", analytics: { engine: "commander" } };
+    const fulfillment = await AIManager.getInstance().getFullfilmentForInput(
+      { text: PROMPT_WELCOME, role: "system" },
+      session,
+    );
+    return fulfillment;
   }
 
   private async whoami(_: RegExpMatchArray, session: TSession): Promise<Fulfillment> {
-    return { data: JSON.stringify(session, null, 2), analytics: { engine: "commander" } };
+    return { data: JSON.stringify(session, null, 2) };
   }
 
   private async input([, cmdSessionId, paramsStr]: RegExpMatchArray): Promise<Fulfillment> {
@@ -84,19 +87,15 @@ export class AICommander {
 
     const params = JSON.parse(paramsStr);
     const result = await IOManager.getInstance().processInput(params, cmdSession);
-    return { data: JSON.stringify(result, null, 2), analytics: { engine: "commander" } };
+    return { data: JSON.stringify(result, null, 2) };
   }
 
   private async commandOutputText([, cmdSessionId, cmdText]: RegExpMatchArray): Promise<Fulfillment> {
     const cmdSession = await Session.findById(cmdSessionId);
     if (!cmdSession) throw new Error(`Session ${cmdSessionId} not found`);
 
-    const result = await IOManager.getInstance().output(
-      { text: cmdText, analytics: { engine: "commander" } },
-      cmdSession,
-      {},
-    );
-    return { data: JSON.stringify(result, null, 2), analytics: { engine: "commander" } };
+    const result = await IOManager.getInstance().output({ text: cmdText }, cmdSession, {});
+    return { data: JSON.stringify(result, null, 2) };
   }
 
   private getCommandExecutor(text: string): (session: TSession) => Promise<Fulfillment> {
@@ -104,16 +103,9 @@ export class AICommander {
       const matches = text.match(cmd.matcher);
       if (matches) {
         return async (session: TSession) => {
-          try {
-            throwIfMissingAuthorizations(session.authorizations, cmd.authorizations);
-            const result = await cmd.executor.call(this, matches, session);
-            return result;
-          } catch (err) {
-            return {
-              error: { message: (err as Error).message, error: err as Error },
-              analytics: { engine: "commander" },
-            };
-          }
+          throwIfMissingAuthorizations(session.authorizations, cmd.authorizations);
+          const result = await cmd.executor.call(this, matches, session);
+          return result;
         };
       }
     }
@@ -122,9 +114,10 @@ export class AICommander {
   }
 
   public async getFulfillmentForInput(params: InputParams, session: TSession): Promise<Fulfillment> {
-    if (!params.command) throw new Error("Missing command");
-
-    const executor = this.getCommandExecutor(params.command);
-    return executor(session);
+    if (params.command) {
+      const executor = this.getCommandExecutor(params.command);
+      return executor(session);
+    }
+    throw new Error("Unable to process request");
   }
 }

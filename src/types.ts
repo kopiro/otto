@@ -25,9 +25,6 @@ export type Fulfillment = {
     translatePolicy?: "always" | "when_necessary" | "never";
     includeVoice?: boolean;
   };
-  analytics: {
-    engine?: "dialogflow" | "openai" | "commander" | "repeater" | "action";
-  };
   runtime?: {
     finalizerUid?: string;
     finalizedAt?: number;
@@ -46,14 +43,12 @@ export type CustomError = {
   message: string;
 };
 
+export type InputContext = Record<string, string>;
+
 export type InputParams = {
   text?: string;
-  event?:
-    | string
-    | {
-        name: string;
-        parameters?: Record<string, string>;
-      };
   command?: string;
+  context?: InputContext;
+  role?: "user" | "system";
   bag?: IOBag;
 };

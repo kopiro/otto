@@ -5,7 +5,7 @@ export const authorizations = ["camera"];
 
 const takeVideo: AIRuntimeFunction<null> = async () => {
   const video = await Camera.getInstance().takeVideo();
-  return { video: video.getAbsolutePath(), analytics: { engine: "action" } };
+  return { video: video.getAbsolutePath() };
 };
 
 export default takeVideo;

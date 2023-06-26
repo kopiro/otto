@@ -1,5 +1,5 @@
 import { ChatCompletionRequestMessage, ChatCompletionRequestMessageRoleEnum } from "openai";
-import { Fulfillment, InputParams } from "../../types";
+import { Fulfillment, InputContext, InputParams } from "../../types";
 import config from "../../config";
 import { Signale } from "signale";
 import { logStacktrace, tryJsonParse } from "../../helpers";
@@ -95,7 +95,7 @@ export class AIOpenAI {
       .filter(Boolean) as ChatCompletionRequestMessage[];
   }
 
-  private async getSessionContext(session: TSession | null): Promise<string> {
+  private async getSessionContext(session: TSession | null, context?: InputContext): Promise<string> {
     const contextPrompt = [];
 
     contextPrompt.push("## User");
@@ -108,6 +108,11 @@ export class AIOpenAI {
 You are now chatting with ${session.getName()} - ${session.getDriverName()}.
 Speak to them in ${languageName}, unless they speak a different language to you.
 `);
+    }
+
+    // Append context
+    for (const [key, value] of Object.entries(context)) {
+      contextPrompt.push(`${key}: ${value}`);
     }
 
     return contextPrompt.join("\n");
@@ -133,14 +138,14 @@ Speak to them in ${languageName}, unless they speak a different language to you.
     inputParams: InputParams,
     session: TSession | null,
     text: string,
-  ): Promise<Omit<Fulfillment, "analytics">> {
+  ): Promise<Fulfillment> {
     const systemPrompt: string[] = [];
 
     // Add brain
     systemPrompt.push(await this.getPrompt());
 
     systemPrompt.push("# Context");
-    systemPrompt.push(await this.getSessionContext(session));
+    systemPrompt.push(await this.getSessionContext(session, inputParams.context));
     systemPrompt.push(await this.getMemoryContext(text));
 
     // Add interactions
@@ -209,46 +214,32 @@ Speak to them in ${languageName}, unless they speak a different language to you.
     throw new Error("Invalid response: " + JSON.stringify(answer));
   }
 
-  async getFulfillmentForInput(
-    inputParams: InputParams,
-    session: TSession | null,
-    role: ChatCompletionRequestMessageRoleEnum = "user",
-  ): Promise<Fulfillment> {
-    if (!inputParams.text) {
-      throw new Error("Missing inputParams.text");
-    }
-
-    const { text } = inputParams;
-
-    const sessionName = session ? this.getCleanSessionName(session) : undefined;
-    const openAIMessages = [
-      {
-        role: role,
-        content: text,
-        name: sessionName,
-      },
-    ];
-
+  async getFulfillmentForInput(params: InputParams, session: TSession | null): Promise<Fulfillment> {
     try {
-      const result = await this.sendMessageToOpenAI(openAIMessages, inputParams, session, text);
-      return {
-        ...result,
-        analytics: {
-          engine: "openai",
-        },
-        options: { translatePolicy: "never" },
-      };
+      const sessionName = session ? this.getCleanSessionName(session) : undefined;
+
+      if (params.text) {
+        const result = await this.sendMessageToOpenAI(
+          [
+            {
+              role: params.role || "user",
+              content: params.text,
+              name: sessionName,
+            },
+          ],
+          params,
+          session,
+          params.text,
+        );
+        return result;
+      }
     } catch (error) {
       logStacktrace("openai-error.json", error);
 
       const errorMessage = error?.response?.data?.error?.message || error?.message;
-
-      return {
-        error: {
-          message: errorMessage,
-        },
-        analytics: { engine: "openai" },
-      };
+      throw new Error(errorMessage);
     }
+
+    throw new Error("Unable to process request");
   }
 }

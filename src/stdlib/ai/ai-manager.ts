@@ -5,7 +5,6 @@ import { Translator } from "../translator";
 import { Signale } from "signale";
 import { AICommander } from "./ai-commander";
 import { AIOpenAI } from "./ai-openai";
-import { AIDialogFlow } from "./ai-dialogflow";
 import { TSession } from "../../data/session";
 import { Interaction } from "../../data/interaction";
 
@@ -36,7 +35,6 @@ export class AIManager {
     if (!fulfillment) return null;
 
     fulfillment.runtime = fulfillment.runtime || {};
-    fulfillment.analytics = fulfillment.analytics || {};
     fulfillment.options = fulfillment.options || {};
 
     // If this fulfillment has already been transformed, let's skip this
@@ -44,7 +42,7 @@ export class AIManager {
       return fulfillment;
     }
 
-    const { translatePolicy = "when_necessary" } = fulfillment.options || {};
+    const { translatePolicy = "never" } = fulfillment.options || {};
 
     // Always translate fulfillment speech in the user language
     if (fulfillment.text && translatePolicy !== "never") {
@@ -71,55 +69,32 @@ export class AIManager {
     return fulfillment;
   }
 
-  async textRequest(params: InputParams, session: TSession): Promise<Fulfillment | null> {
-    const { text } = params;
-    logger.info("Text request:", text);
-
-    return AIOpenAI.getInstance().getFulfillmentForInput(params, session, "user");
-  }
-
-  async eventRequest(params: InputParams, session: TSession): Promise<Fulfillment | null> {
-    const { event } = params;
-    logger.info("Event request:", event);
-
-    Interaction.createNew(session, {
-      input: { event },
-    });
-
-    return AIDialogFlow.getInstance().getFulfillmentForInput(params, session);
-  }
-
-  async commandRequest(params: InputParams, session: TSession): Promise<Fulfillment> {
-    const { command } = params;
-    logger.info("Command request:", command);
-
-    Interaction.createNew(session, {
-      input: { command },
-    });
-
-    return AICommander.getInstance().getFulfillmentForInput(params, session);
-  }
-
   async getFullfilmentForInput(params: InputParams, session: TSession): Promise<Fulfillment | null> {
-    let fulfillment: any = null;
+    let fulfillment: Fulfillment | null = null;
     let source: InputSource = "unknown";
+
+    logger.debug("Request", params, session.id);
 
     Interaction.createNew(session, {
       input: params,
     });
 
-    if (params.text) {
-      source = "text";
-      fulfillment = await this.textRequest(params, session);
-    } else if (params.event) {
-      source = "event";
-      fulfillment = await this.eventRequest(params, session);
-    } else if (params.command) {
-      source = "command";
-      fulfillment = await this.commandRequest(params, session);
-    } else {
-      source = "unknown";
-      logger.warn("No suitable inputs params in the request");
+    try {
+      if (params.text) {
+        source = "text";
+        fulfillment = await AIOpenAI.getInstance().getFulfillmentForInput(params, session);
+      } else if (params.command) {
+        source = "command";
+        fulfillment = await AICommander.getInstance().getFulfillmentForInput(params, session);
+      } else {
+        throw new Error("No valid input provided");
+      }
+    } catch (err) {
+      fulfillment = {
+        error: {
+          message: err.message,
+        },
+      };
     }
 
     const finalFulfillment = await this.fulfillmentFinalizer(fulfillment, session, source);
