@@ -113,7 +113,7 @@ export class Web implements IODriverRuntime {
     const { req, res, timeoutTick } = bag;
 
     if (!req || !res) {
-      throw new Error("IO.Web requires a bag with req,res (you can't output directly from another driver)");
+      throw new Error("IO.Web requires a bag with {req,res} (you can't output directly from another driver)");
     }
 
     if (timeoutTick) {

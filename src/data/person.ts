@@ -39,9 +39,12 @@ export class IPerson {
   ): Promise<TPerson> {
     const person = await Person.findByIOIdentifier(ioDriver, ioIdentifier);
     if (person) {
+      // Update IO Identifier
+      person.ioIdentifiers[ioDriver] = ioIdentifier;
       return person;
     }
-    const newPerson = Person.create({
+
+    const newPerson = await Person.create({
       name: name,
       language: language || config().language,
       ioIdentifiers: {

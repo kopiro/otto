@@ -32,8 +32,8 @@ class IInteraction {
   @prop({ required: true })
   public createdAt!: Date;
 
-  @prop()
-  public source?: string;
+  @prop({ required: true })
+  public inputId?: string;
 
   @prop()
   public input?: InputParams;
@@ -50,16 +50,18 @@ class IInteraction {
 
   static async createNew(
     this: ReturnModelType<typeof IInteraction>,
-    params: Partial<TInteraction>,
+    rest: { input: InputParams } | { fulfillment: Fulfillment },
     ioChannel: TIOChannel,
     person: TPerson | null,
+    inputId: string,
   ) {
     return Interaction.create({
-      ...params,
+      ...rest,
       managerUid: config().uid,
       ioChannel: ioChannel.id,
       person: person?.id,
       createdAt: new Date(),
+      inputId,
     });
   }
 }

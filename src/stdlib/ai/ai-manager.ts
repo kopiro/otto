@@ -1,12 +1,11 @@
 import config from "../../config";
-import { Fulfillment, InputParams, InputSource } from "../../types";
+import { Fulfillment, InputParams } from "../../types";
 import Events from "events";
 import { Translator } from "../translator";
 import { Signale } from "signale";
 import { AICommander } from "./ai-commander";
 import { AIOpenAI } from "./ai-openai";
 import { TIOChannel } from "../../data/io-channel";
-import { Interaction } from "../../data/interaction";
 import { TPerson } from "../../data/person";
 
 const TAG = "AI";
@@ -31,8 +30,7 @@ export class AIManager {
   async fulfillmentFinalizer(
     fulfillment: Fulfillment,
     ioChannel: TIOChannel,
-    person: TPerson,
-    source: InputSource,
+    person: TPerson | null,
   ): Promise<Fulfillment> {
     fulfillment.runtime = fulfillment.runtime || {};
     fulfillment.options = fulfillment.options || {};
@@ -60,16 +58,6 @@ export class AIManager {
     fulfillment.runtime.finalizerUid = config().uid;
     fulfillment.runtime.finalizedAt = Date.now();
 
-    // Create interaction before adding final options
-    Interaction.createNew(
-      {
-        fulfillment,
-        source,
-      },
-      ioChannel,
-      person,
-    );
-
     return fulfillment;
   }
 
@@ -79,22 +67,11 @@ export class AIManager {
     person: TPerson | null,
   ): Promise<Fulfillment> {
     let fulfillment: Fulfillment | null = null;
-    let source: InputSource = "unknown";
-
-    Interaction.createNew(
-      {
-        input: params,
-      },
-      ioChannel,
-      person,
-    );
 
     try {
       if (params.text) {
-        source = "text";
         fulfillment = await AIOpenAI.getInstance().getFulfillmentForInput(params, ioChannel, person);
       } else if (params.command) {
-        source = "command";
         fulfillment = await AICommander.getInstance().getFulfillmentForInput(params, ioChannel, person);
       } else {
         throw new Error("No valid input provided");
@@ -111,7 +88,7 @@ export class AIManager {
       throw new Error("Fulfillment is null");
     }
 
-    const finalFulfillment = await this.fulfillmentFinalizer(fulfillment, ioChannel, person, source);
+    const finalFulfillment = await this.fulfillmentFinalizer(fulfillment, ioChannel, person);
     return finalFulfillment;
   }
 }

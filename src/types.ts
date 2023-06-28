@@ -6,8 +6,6 @@ export type Gender = "Male" | "Female";
 
 export type Authorizations = "admin" | "camera" | "command";
 
-export type InputSource = "text" | "event" | "command" | "unknown";
-
 export type Fulfillment = {
   text?: string;
   voice?: string;

@@ -11,6 +11,8 @@ import { IODataTelegram, IOBagTelegram } from "../io/telegram";
 import TypedEmitter from "typed-emitter";
 import { IOBagWeb, IODataWeb } from "../io/web";
 import { IOBagVoice, IODataVoice } from "../io/voice";
+import { randomUUID } from "crypto";
+import { Interaction } from "../data/interaction";
 
 const TAG = "IOManager";
 const logger = new Signale({
@@ -351,11 +353,36 @@ export class IOManager {
     person: TPerson | null,
     bag: IOBag | null,
   ): Promise<OutputResult> {
-    logger.info("input", params, ioChannel, person);
+    const inputId = randomUUID();
+
+    logger.info(`(${inputId}) Input:`, params, { ioChannelId: ioChannel?.id, personId: person?.id, bag });
+
+    Interaction.createNew(
+      {
+        input: params,
+      },
+      ioChannel,
+      person,
+      inputId,
+    );
+
     const fulfillment = await AIManager.getInstance().getFullfilmentForInput(params, ioChannel, person);
-    logger.info("fulfillment", fulfillment);
+
+    logger.info(`(${inputId}) Fulfillment: `, fulfillment);
+
+    Interaction.createNew(
+      {
+        fulfillment,
+      },
+      ioChannel,
+      person,
+      inputId,
+    );
+
     const result = await IOManager.getInstance().output(fulfillment, ioChannel, person, bag);
-    logger.info("result", result, ioChannel);
+
+    logger.info(`(${inputId}) Result`, result);
+
     return result;
   }
 

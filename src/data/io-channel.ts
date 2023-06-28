@@ -112,14 +112,6 @@ export class IIOChannel {
       return ioChannel;
     }
 
-    console.log({
-      managerUid: config().uid,
-      person: person?.id,
-      ioDriver,
-      ioData,
-      ioIdentifier,
-    });
-
     const ioChannelNew = await IOChannel.create({
       managerUid: config().uid,
       person: person?.id,
