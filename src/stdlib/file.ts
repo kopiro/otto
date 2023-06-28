@@ -18,8 +18,8 @@ export class File {
     return this.absolutePath.replace(baseDir, "");
   }
 
-  getURI(protocol: string = config().server.protocol) {
-    return [protocol, "://", config().server.domain, this.getRelativePath()].join("");
+  getServerURL() {
+    return [config().server.protocol, "://", config().server.domain, this.getRelativePath()].join("");
   }
 
   static getTmpFile(extension: string) {

@@ -122,7 +122,7 @@ export class Web implements IODriverRuntime {
         const textToSpeechOp = req.body.text_to_speech;
         if (textToSpeechOp) {
           const voiceFile = await getVoiceFileFromText(f.text, person.language);
-          response.voice = voiceFile.getRelativePath();
+          response.voice = voiceFile.getServerURL();
 
           if (textToSpeechOp === "redirect") {
             res.redirect(response.voice);
