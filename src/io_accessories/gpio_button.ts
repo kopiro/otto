@@ -4,11 +4,7 @@ import { IOAccessoryModule, IODriverRuntime } from "../stdlib/io-manager";
 export const id = "gpio_button";
 
 class GPIOButton implements IOAccessoryModule {
-  driver: IODriverRuntime;
-
-  constructor(driver: IODriverRuntime) {
-    this.driver = driver;
-  }
+  constructor(private driver: IODriverRuntime) {}
 
   start() {
     gpioButtonStart(() => {

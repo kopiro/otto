@@ -148,7 +148,7 @@ export class Web implements IODriverRuntime {
     this.started = true;
 
     this.ioChannel = await this.registerInternalIOChannel();
-    routerIO.post("/web", bodyParser.json(), this.onRequest);
+    routerIO.post("/web", bodyParser.json(), this.onRequest.bind(this));
   }
 }
 

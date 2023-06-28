@@ -8,11 +8,7 @@ const colorForOutput = [255, 0, 0];
 const colorForThinking = [255, 255, 0];
 
 class Leds implements IOAccessoryModule {
-  driver: IODriverRuntime;
-
-  constructor(driver: IODriverRuntime) {
-    this.driver = driver;
-  }
+  constructor(private driver: IODriverRuntime) {}
 
   start() {
     RaspiLeds.off();
