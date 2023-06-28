@@ -5,6 +5,7 @@ import { Language } from "../types";
 export interface ITranslator {
   translate(text: string, language: Language): Promise<string>;
   getLanguages(): Promise<Array<{ name: string; code: string }>>;
+  detectLanguage(text: string): Promise<Language | null>;
 }
 
 export class Translator {

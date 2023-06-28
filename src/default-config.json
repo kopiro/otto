@@ -8,7 +8,7 @@
   "translatorDriver": "google",
   "storageDriver": "google",
   "speakerDriver": "direct",
-  "language": "en-GB",
+  "language": "en",
   "ioDrivers": [],
   "ioAccessoriesMap": {},
   "voiceSoxArgs": [],

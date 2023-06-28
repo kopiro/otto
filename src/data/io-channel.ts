@@ -26,6 +26,9 @@ export class IIOChannel {
   @prop({ required: false })
   public ioData!: IOData;
 
+  @prop({ required: false })
+  public options?: any;
+
   /**
    * In case there is a direct correlation between the channel and a person (DM),
    * you can use this field directly to refer to the person,

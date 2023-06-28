@@ -1,8 +1,14 @@
 import { EventEmitter } from "events";
 import config from "../config";
-import { IODriverRuntime, IODriverOutput, IODriverEventMap, IODriverId } from "../stdlib/io-manager";
+import {
+  IODriverRuntime,
+  IODriverMultiOutput,
+  IODriverEventMap,
+  IODriverId,
+  IODriverSingleOutput,
+} from "../stdlib/io-manager";
 import { chunkArray, timeout } from "../helpers";
-import { Fulfillment } from "../types";
+import { Fulfillment, Language } from "../types";
 import { etcDir } from "../paths";
 import path from "path";
 import { SpeechRecognizer } from "../stdlib/speech-recognizer";
@@ -12,10 +18,11 @@ import { Porcupine } from "@picovoice/porcupine-node";
 import { Platform, getPlatform } from "../stdlib/platform";
 // @ts-ignore
 import recorder from "node-record-lpcm16";
-import { getVoiceFileFromFulfillment, getVoiceFileFromMixedContent } from "../stdlib/voice-helpers";
+import { getVoiceFileFromMixedContent, getVoiceFileFromText } from "../stdlib/voice-helpers";
 import { IOChannel, TIOChannel } from "../data/io-channel";
 import Pumpify from "pumpify";
 import TypedEmitter from "typed-emitter";
+import { TPerson } from "../data/person";
 
 const TAG = "IO.Voice";
 const logger = new Signale({
@@ -43,10 +50,10 @@ type VoiceConfig = {
 
 export class Voice implements IODriverRuntime {
   driverId: IODriverId = "voice";
-
   emitter = new EventEmitter() as TypedEmitter<IODriverEventMap>;
-
   conf: VoiceConfig;
+  started = false;
+  ioChannel: TIOChannel | undefined;
 
   currentSpokenFulfillment: Fulfillment | undefined;
 
@@ -68,7 +75,7 @@ export class Voice implements IODriverRuntime {
   /**
    * Stop current output by killing processed and flushing the queue
    */
-  stopOutput() {
+  private stopOutput() {
     // Kill any audible
     return Speaker.getInstance().kill();
   }
@@ -77,7 +84,7 @@ export class Voice implements IODriverRuntime {
    * Create and assign the SR stream by attaching
    * the microphone input to GCP-SR stream
    */
-  startRecognition(ioChannel: TIOChannel) {
+  private startRecognition() {
     logger.debug("Recognizing microphone stream");
 
     // Close any previous stream
@@ -92,12 +99,12 @@ export class Voice implements IODriverRuntime {
           return;
         }
 
-        this.emitter.emit("error", err.message, ioChannel, null);
+        this.emitter.emit("error", err.message, this.ioChannel, null);
         return;
       }
 
       // Otherwise, emit an INPUT message with the recognized text
-      this.emitter.emit("input", { text }, ioChannel, null, null);
+      this.emitter.emit("input", { text }, this.ioChannel, null, null);
     });
 
     // Every time user speaks, reset the HWS timer to the max
@@ -115,11 +122,11 @@ export class Voice implements IODriverRuntime {
     this.emitter.emit("recognizing");
   }
 
-  async registerInternalIOChannel() {
+  private async registerInternalIOChannel() {
     return IOChannel.findByIOIdentifierOrCreate(this.driverId, "any", null, null);
   }
 
-  destroyRecognizer() {
+  private destroyRecognizer() {
     if (this.recognizeStream) {
       logger.debug("Destroying recognizer stream");
       this.recognizeStream.destroy();
@@ -130,7 +137,7 @@ export class Voice implements IODriverRuntime {
   /**
    * Process the HWS ticker
    */
-  processHotwordSilence() {
+  private processHotwordSilence() {
     if (this.hotwordSilenceSec === 0) {
       logger.info("Timeout exceeded, user should pronunce hotword again");
       this.hotwordSilenceSec = -1;
@@ -147,9 +154,7 @@ export class Voice implements IODriverRuntime {
   /**
    * Wake the bot and listen for intents
    */
-  async wake() {
-    const ioChannel = await this.registerInternalIOChannel();
-
+  private async wake() {
     logger.info("Wake");
     this.emitter.emit("woken");
 
@@ -162,7 +167,7 @@ export class Voice implements IODriverRuntime {
     this.hotwordSilenceSec = HOTWORD_SILENCE_MAX_SEC;
 
     // Recreate the SRR-stream
-    this.startRecognition(ioChannel);
+    this.startRecognition();
   }
 
   /**
@@ -180,7 +185,7 @@ export class Voice implements IODriverRuntime {
   /**
    * Create and assign the hotword stream to listen for wake word
    */
-  startHotwordDetection() {
+  private startHotwordDetection() {
     let frameAccumulator: number[] = [];
 
     const pvFile = path.join(etcDir, `porcupine`, `language.pv`);
@@ -216,36 +221,53 @@ export class Voice implements IODriverRuntime {
     });
   }
 
-  async actualOutput(fulfillment: Fulfillment): Promise<IODriverOutput> {
-    const results: IODriverOutput = [];
+  private async outputText(text: string, personLanguage: Language | undefined): Promise<IODriverSingleOutput> {
+    try {
+      const file = await getVoiceFileFromText(text, personLanguage);
+      await Speaker.getInstance().play(file);
+      return ["file", file.getAbsolutePath()];
+    } catch (err) {
+      logger.error(err);
+      return ["error", err];
+    }
+  }
 
-    this.hotwordSilenceSec = -1; // Temporary disable timer variables
+  private async outputAudio(audio: string): Promise<IODriverSingleOutput> {
+    try {
+      const file = await getVoiceFileFromMixedContent(audio);
+      await Speaker.getInstance().play(file);
+      return ["file", file.getAbsolutePath()];
+    } catch (err) {
+      return ["error", err];
+    }
+  }
+
+  async actualOutput(
+    f: Fulfillment,
+    ioChannel: TIOChannel,
+    person: TPerson | null,
+    bag: IOBagVoice,
+  ): Promise<IODriverMultiOutput> {
+    const results: IODriverMultiOutput = [];
+
+    // Temporary disable timer variables
+    this.hotwordSilenceSec = -1;
 
     if (this.recorder) {
       this.recorder.pause();
     }
 
-    // Process a text if we do not find a audio
-    try {
-      if (fulfillment.text) {
-        const file = await getVoiceFileFromFulfillment(fulfillment, config().language);
-        await Speaker.getInstance().play(file);
-      }
-    } catch (err) {
-      results.push(["error", err as Error]);
-      logger.error(err);
+    // Process a text by converting it to Audio
+    if (f.text) {
+      results.push(await this.outputText(f.text, person?.language));
     }
 
-    // Process an Audio Object
-    try {
-      if (fulfillment.audio) {
-        const file = await getVoiceFileFromMixedContent(fulfillment.audio);
-        await Speaker.getInstance().play(file);
-        results.push(["file", file.getAbsolutePath()]);
-      }
-    } catch (err) {
-      results.push(["error", err]);
-      logger.error(err);
+    if (f.audio) {
+      results.push(await this.outputAudio(f.audio));
+    }
+
+    if (f.voice) {
+      results.push(await this.outputAudio(f.voice));
     }
 
     if (this.recorder) {
@@ -258,8 +280,13 @@ export class Voice implements IODriverRuntime {
   /**
    * Process the item in the output queue
    */
-  async output(fulfillment: Fulfillment): Promise<IODriverOutput> {
-    let results: IODriverOutput = [];
+  async output(
+    f: Fulfillment,
+    ioChannel: TIOChannel,
+    person: TPerson | null,
+    bag: IOBagVoice,
+  ): Promise<IODriverMultiOutput> {
+    let results: IODriverMultiOutput = [];
 
     // If we have a current processed item, let's wait until it's null
     while (this.currentSpokenFulfillment) {
@@ -269,10 +296,10 @@ export class Voice implements IODriverRuntime {
       await timeout(TIMEOUT_POLL_AI_STILL_SPEAKING_SEC * 1000);
     }
 
-    this.currentSpokenFulfillment = fulfillment;
+    this.currentSpokenFulfillment = f;
 
     try {
-      const result = await this.actualOutput(fulfillment);
+      const result = await this.actualOutput(f, ioChannel, person, bag);
       results = results.concat(result);
     } finally {
       this.currentSpokenFulfillment = null;
@@ -285,8 +312,10 @@ export class Voice implements IODriverRuntime {
    * Start the ioChannel
    */
   async start() {
-    const ioChannel = await this.registerInternalIOChannel();
-    logger.debug(`Internal Voice session`, ioChannel);
+    if (this.started) return;
+    this.started = true;
+
+    this.ioChannel = await this.registerInternalIOChannel();
 
     this.emitter.on("wake", this.wake.bind(this));
     this.emitter.on("stop", this.stop.bind(this));

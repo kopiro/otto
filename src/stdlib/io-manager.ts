@@ -24,7 +24,8 @@ export type IOAccessoryId = "gpio_button" | "leds";
 export type IOBag = IOBagTelegram | IOBagWeb | IOBagVoice;
 export type IOData = IODataTelegram | IODataWeb | IODataVoice;
 
-export type IODriverOutput = [string, any][];
+export type IODriverSingleOutput = [string, any];
+export type IODriverMultiOutput = IODriverSingleOutput[];
 
 export type IODriverEventMap = {
   input: (params: InputParams, ioChannel: TIOChannel, person: TPerson | null, bag: IOBag) => void;
@@ -46,11 +47,11 @@ export interface IODriverRuntime {
     ioChannel: TIOChannel,
     person: TPerson | null,
     bag: IOBag,
-  ) => Promise<IODriverOutput>;
+  ) => Promise<IODriverMultiOutput>;
 }
 
 export type OutputResult = {
-  driverOutput?: IODriverOutput;
+  driverOutput?: IODriverMultiOutput;
   driverError?: Error | unknown;
   rejectReason?: {
     message: string;

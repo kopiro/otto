@@ -86,33 +86,6 @@ export async function getLocalObjectFromURI(uri: string | Buffer | File, extensi
   throw new Error(`Cannot get local object from URI ${uri}`);
 }
 
-/**
- * Replace any %var% into a string literal with provided data as second arg
- */
-export function replaceVariablesInStrings(text: string, data: Record<string, string>, encloser = "%"): string {
-  let reLoop = null;
-  let textCopy = text;
-  const re = /%(\w+)%/g;
-  // eslint-disable-next-line no-cond-assign
-  while ((reLoop = re.exec(text))) {
-    const inVar = reLoop[1];
-    if (data[inVar]) {
-      textCopy = textCopy.replace(`${encloser}${inVar}${encloser}`, data[inVar] || "");
-    }
-  }
-  return textCopy;
-}
-
-export async function getLanguageNameFromLanguageCode(languageCode: string): Promise<Language | undefined> {
-  const languages = await Translator.getInstance().getLanguages();
-  return languages.find((e) => e.code === languageCode)?.name;
-}
-
-export async function getLanguageCodeFromLanguageName(languageName: string): Promise<Language | undefined> {
-  const languages = await Translator.getInstance().getLanguages();
-  return languages.find((e) => e.name === languageName)?.code;
-}
-
 export function shuffle<T>(array: T[]): T[] {
   let currentIndex = array.length,
     randomIndex;

@@ -1,5 +1,5 @@
 import { EventEmitter } from "events";
-import { IODriverRuntime, IODriverOutput, IODriverEventMap, IODriverId } from "../stdlib/io-manager";
+import { IODriverRuntime, IODriverMultiOutput, IODriverEventMap, IODriverId } from "../stdlib/io-manager";
 import { Fulfillment, InputParams, Language } from "../types";
 import { Request, Response } from "express";
 import { routerIO } from "../stdlib/server";
@@ -7,7 +7,7 @@ import bodyParser from "body-parser";
 import { Signale } from "signale";
 import { formidable } from "formidable";
 import { SpeechRecognizer } from "../stdlib/speech-recognizer";
-import { getVoiceFileFromFulfillment } from "../stdlib/voice-helpers";
+import { getVoiceFileFromText } from "../stdlib/voice-helpers";
 import { File } from "../stdlib/file";
 import { IOChannel, TIOChannel } from "../data/io-channel";
 import { rename } from "fs/promises";
@@ -19,9 +19,16 @@ const logger = new Signale({
   scope: TAG,
 });
 
-const TIMEOUT_MS = 10_000;
+const REQUEST_TIMEOUT_MS = 10_000;
 
 type WebConfig = null;
+
+type TRequest = {
+  params: InputParams;
+  person: string;
+  text_to_speech?: boolean | "redirect";
+};
+type TResponse = { fulfillment: Fulfillment; voice?: string } | { error?: { message: string } };
 
 export type IODataWeb = {
   userAgent: string;
@@ -29,21 +36,20 @@ export type IODataWeb = {
 };
 
 export type IOBagWeb = {
-  req: Request;
-  res: Response;
+  req: Request<undefined, undefined, TRequest>;
+  res: Response<TResponse>;
   timeoutTick: NodeJS.Timeout;
 };
 
 export class Web implements IODriverRuntime {
   driverId: IODriverId = "web";
-
   emitter = new EventEmitter() as TypedEmitter<IODriverEventMap>;
-
-  config: WebConfig;
+  conf: WebConfig;
   started = false;
+  ioChannel: TIOChannel | undefined;
 
   constructor(config: WebConfig) {
-    this.config = config;
+    this.conf = config;
   }
 
   async maybeHandleVoice(req: Request, language: Language): Promise<string | null> {
@@ -68,48 +74,37 @@ export class Web implements IODriverRuntime {
     return text;
   }
 
-  async onRequest(req: Request, res: Response) {
-    logger.debug("New request with query =", req.query, "body =", req.body);
+  async onRequest(req: IOBagWeb["req"], res: IOBagWeb["res"]) {
+    try {
+      if (!req.body.person) throw new Error("req.body.person is required");
 
-    if (!req.body.io_channel) throw new Error("req.body.io_channel is required");
-    if (!req.body.person) throw new Error("req.body.person is required");
+      const person = await Person.findByIdOrThrow(req.body.person);
 
-    // TODO: Use username maybe
-    const person = await Person.findByIdOrThrow(req.body.person);
+      const params = (req.body.params || {}) as InputParams;
 
-    const ioChannel = await IOChannel.findByIOIdentifierOrCreate(
-      this.driverId,
-      // TODO: rename this to io_channel_identifier
-      req.body.io_channel,
-      {
-        userAgent: req.headers["user-agent"],
-        ip: req.ip,
-      },
-      person,
-    );
-
-    const params = (req.body.params || {}) as InputParams;
-
-    // Populate text by voice if necessary
-    if (!params.text) {
-      params.text = await this.maybeHandleVoice(req, person.language);
-    }
-
-    const timeoutTick = setTimeout(() => {
-      if (!res.closed) {
-        res.status(408).json({ error: { message: "Lost connection with the driver" } });
+      // Populate text by voice if necessary
+      if (!params.text) {
+        params.text = await this.maybeHandleVoice(req, person.language);
       }
-    }, TIMEOUT_MS);
 
-    this.emitter.emit("input", params, ioChannel, person, { req, res, timeoutTick });
+      const timeoutTick = setTimeout(() => {
+        if (!res.closed) {
+          res.status(408).json({ error: { message: "Lost connection with the driver" } });
+        }
+      }, REQUEST_TIMEOUT_MS);
+
+      this.emitter.emit("input", params, this.ioChannel, person, { req, res, timeoutTick });
+    } catch (err) {
+      res.status(500).json({ error: { message: err.message } });
+    }
   }
 
   async output(
-    fulfillment: Fulfillment,
+    f: Fulfillment,
     ioChannel: TIOChannel,
     person: TPerson | null,
     bag: IOBagWeb,
-  ): Promise<IODriverOutput> {
+  ): Promise<IODriverMultiOutput> {
     const { req, res, timeoutTick } = bag;
 
     if (!req || !res) {
@@ -121,40 +116,39 @@ export class Web implements IODriverRuntime {
     }
 
     try {
-      if (fulfillment.text) {
+      const response: TResponse = { fulfillment: f };
+
+      if (f.text) {
         const textToSpeechOp = req.body.text_to_speech;
         if (textToSpeechOp) {
-          const voiceFile = await getVoiceFileFromFulfillment(fulfillment, person.language);
-          fulfillment.voice = voiceFile.getRelativePath();
+          const voiceFile = await getVoiceFileFromText(f.text, person.language);
+          response.voice = voiceFile.getRelativePath();
+
           if (textToSpeechOp === "redirect") {
-            res.redirect(fulfillment.voice);
-            return [["ok_with_redirect", fulfillment.voice]];
-            return;
+            res.redirect(response.voice);
+            return [["ok_with_redirect", response.voice]];
           }
         }
       }
 
-      const response = { fulfillment };
       res.json(response);
       return [["ok", response]];
     } catch (err) {
-      res.json(400).json({ error: { message: err.message } });
+      res.status(400).json({ error: { message: err.message } });
       return [["error", err]];
     }
+  }
+
+  async registerInternalIOChannel() {
+    return IOChannel.findByIOIdentifierOrCreate(this.driverId, "any", null, null);
   }
 
   async start() {
     if (this.started) return;
     this.started = true;
 
-    // Attach the route
-    routerIO.post("/web", bodyParser.json(), async (req: Request, res: Response) => {
-      try {
-        await this.onRequest(req, res);
-      } catch (err) {
-        res.status(500).json({ error: { message: err.message, preliminary: true } });
-      }
-    });
+    this.ioChannel = await this.registerInternalIOChannel();
+    routerIO.post("/web", bodyParser.json(), this.onRequest);
   }
 }
 

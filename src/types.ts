@@ -13,14 +13,13 @@ export type Fulfillment = {
   video?: string;
   image?: string;
   document?: string;
-  functionResult?: string;
   error?: CustomError;
   data?: string;
+  functionResult?: string;
   options?: {
     language?: Language;
     translateTo?: Language;
     translatePolicy?: "always" | "when_necessary" | "never";
-    includeVoice?: boolean;
   };
   runtime?: {
     finalizerUid?: string;

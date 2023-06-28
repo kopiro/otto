@@ -2,8 +2,8 @@ import TelegramBot from "node-telegram-bot-api";
 import { EventEmitter } from "events";
 import config from "../config";
 import * as Server from "../stdlib/server";
-import { IODriverRuntime, IODriverOutput, IODriverEventMap, IODriverId } from "../stdlib/io-manager";
-import { getVoiceFileFromFulfillment } from "../stdlib/voice-helpers";
+import { IODriverRuntime, IODriverMultiOutput, IODriverEventMap, IODriverId } from "../stdlib/io-manager";
+import { getVoiceFileFromText } from "../stdlib/voice-helpers";
 import * as Proc from "../stdlib/proc";
 import { Fulfillment, Language } from "../types";
 import bodyParser from "body-parser";
@@ -99,11 +99,11 @@ export class Telegram implements IODriverRuntime {
    */
   async sendAudioNoteFromText(
     chatId: number,
-    fulfillment: Fulfillment,
-    language: Language,
+    text: string,
+    fallbackLanguage: Language,
     botOpt: TelegramBot.SendMessageOptions = {},
   ) {
-    const voiceFile = await getVoiceFileFromFulfillment(fulfillment, language);
+    const voiceFile = await getVoiceFileFromText(text, fallbackLanguage);
     return this.bot.sendVoice(chatId, voiceFile.getAbsolutePath(), botOpt);
   }
 
@@ -310,8 +310,8 @@ export class Telegram implements IODriverRuntime {
     ioChannel: TIOChannel,
     person: TPerson | null,
     bag: IOBagTelegram,
-  ): Promise<IODriverOutput> {
-    const results: IODriverOutput = [];
+  ): Promise<IODriverMultiOutput> {
+    const results: IODriverMultiOutput = [];
 
     const ioData = ioChannel.ioData as IODataTelegram;
     const chatId = ioData.id;
@@ -328,9 +328,9 @@ export class Telegram implements IODriverRuntime {
         const r = await this.sendMessage(chatId, f.text, botOpt);
         results.push(["message", r]);
 
-        if (bag?.respondWithAudioNote || f.options?.includeVoice) {
+        if (bag?.respondWithAudioNote || ioChannel.options?.respondWithAudioNote) {
           this.bot.sendChatAction(chatId, "record_voice");
-          const r = await this.sendAudioNoteFromText(chatId, f, person.language, botOpt);
+          const r = await this.sendAudioNoteFromText(chatId, f.text, person.language, botOpt);
           results.push(["audionote", r]);
         }
       }

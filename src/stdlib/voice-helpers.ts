@@ -7,6 +7,7 @@ import { File } from "./file";
 import { Signale } from "signale";
 import { Fulfillment, Language } from "../types";
 import { TextToSpeech } from "./text-to-speech";
+import { Translator } from "./translator";
 
 const TAG = "Voice";
 const logger = new Signale({
@@ -30,10 +31,15 @@ export async function getVoiceFileFromMixedContent(mixedContent: string | File):
   return finalUri;
 }
 
-export async function getVoiceFileFromFulfillment(fulfillment: Fulfillment, language: Language): Promise<File> {
+export async function getVoiceFileFromText(text: string, fallbackLanguage?: Language): Promise<File> {
+  // Detect the language in the text
+  const textLanguage = await Translator.getInstance().detectLanguage(text);
+  logger.debug(`Detected language from text <${text}> is <${textLanguage}>`);
+
   const audioFile = await TextToSpeech.getInstance().getAudioFile(
-    fulfillment.text || "",
-    fulfillment.options?.language || language,
+    text,
+    textLanguage || fallbackLanguage || config().language,
   );
+
   return getVoiceFileFromMixedContent(audioFile);
 }

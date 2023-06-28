@@ -30,7 +30,10 @@ export class GoogleTextToSpeech implements ITextToSpeech {
 
   private cleanText(text: string) {
     // Removi all emojies
-    return text.replace(/[\u{1F600}-\u{1F6FF}]/gmu, "");
+    return text.replace(
+      /([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g,
+      "",
+    );
   }
 
   private async getVoice(language: Language) {
@@ -38,7 +41,7 @@ export class GoogleTextToSpeech implements ITextToSpeech {
     const availableVoices = response.voices?.filter((voice) => voice.ssmlGender === this.conf.gender.toUpperCase());
 
     if (!availableVoices?.[0]) {
-      // Fallback to config().language
+      logger.warn(`The language <${language}> is not available, using ${config().language} instead`);
       return this.getCachedVoice(config().language);
     }
 

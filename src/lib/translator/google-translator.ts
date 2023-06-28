@@ -23,8 +23,12 @@ export class GoogleTranslator implements ITranslator {
     return this._languages;
   }
 
-  async getFullnameForLanguage(target: Language): Promise<string | undefined> {
-    const languages = await this.getLanguages();
-    return languages.find((e) => e.code === target)?.name;
+  async detectLanguage(text: string): Promise<Language | null> {
+    try {
+      const [detection] = await this.client.detect(text);
+      return detection?.language || null;
+    } catch (err) {
+      return null;
+    }
   }
 }
