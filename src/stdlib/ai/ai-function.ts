@@ -4,7 +4,8 @@ import { readFileSync, readdirSync } from "fs";
 import path from "path";
 import { throwIfMissingAuthorizations } from "../../helpers";
 import { Signale } from "signale";
-import { TSession } from "../../data/session";
+import { TIOChannel } from "../../data/io-channel";
+import { TPerson } from "../../data/person";
 
 const TAG = "AIFunction";
 const logger = new Signale({
@@ -61,7 +62,8 @@ export class AIFunction {
     functionName: string,
     functionParameters: object,
     inputParams: InputParams,
-    session: TSession,
+    ioChannel: TIOChannel,
+    person: TPerson | null,
   ): Promise<Fulfillment> {
     logger.info(`Calling AI function <${functionName}> with arguments <${JSON.stringify(functionParameters)}>`);
 
@@ -74,12 +76,12 @@ export class AIFunction {
       throw new Error(`Invalid function name <${functionName}>`);
     }
 
-    throwIfMissingAuthorizations(session.authorizations, pkgRuntime.authorizations);
+    throwIfMissingAuthorizations(person?.authorizations, pkgRuntime.authorizations);
 
     const result = await pkgRuntime.default({
       inputParams,
       parameters: functionParameters,
-      session,
+      ioChannel,
     });
 
     return result;

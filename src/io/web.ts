@@ -1,53 +1,52 @@
-import Events from "events";
-import { IODriverRuntime, IODriverOutput } from "../stdlib/iomanager";
-import { Fulfillment, InputParams } from "../types";
+import { EventEmitter } from "events";
+import { IODriverRuntime, IODriverOutput, IODriverEventMap, IODriverId } from "../stdlib/io-manager";
+import { Fulfillment, InputParams, Language } from "../types";
 import { Request, Response } from "express";
 import { routerIO } from "../stdlib/server";
-import fs from "fs";
 import bodyParser from "body-parser";
 import { Signale } from "signale";
-import { AIManager } from "../stdlib/ai/ai-manager";
 import { formidable } from "formidable";
 import { SpeechRecognizer } from "../stdlib/speech-recognizer";
-import { getVoiceFileFromFulfillment } from "../stdlib/voice";
+import { getVoiceFileFromFulfillment } from "../stdlib/voice-helpers";
 import { File } from "../stdlib/file";
-import { Session } from "../data/session";
+import { IOChannel, TIOChannel } from "../data/io-channel";
 import { rename } from "fs/promises";
+import { Person, TPerson } from "../data/person";
+import TypedEmitter from "typed-emitter";
 
 const TAG = "IO.Web";
 const logger = new Signale({
   scope: TAG,
 });
 
-const DRIVER_ID = "web";
+const TIMEOUT_MS = 10_000;
 
 type WebConfig = null;
 
-type WebBag = {
-  req: Request;
-  res: Response;
+export type IODataWeb = {
+  userAgent: string;
+  ip: string;
 };
 
-enum AcceptHeader {
-  TEXT = "text",
-  AUDIO = "audio",
-}
+export type IOBagWeb = {
+  req: Request;
+  res: Response;
+  timeoutTick: NodeJS.Timeout;
+};
 
 export class Web implements IODriverRuntime {
+  driverId: IODriverId = "web";
+
+  emitter = new EventEmitter() as TypedEmitter<IODriverEventMap>;
+
   config: WebConfig;
-  emitter: Events.EventEmitter;
   started = false;
 
   constructor(config: WebConfig) {
     this.config = config;
-    this.emitter = new Events.EventEmitter();
   }
 
-  output(f: Fulfillment, session: TSession, bag: WebBag): Promise<IODriverOutput> {
-    throw new Error("IODriver.Web doesn't support direct output");
-  }
-
-  async handleVoice(req: Request) {
+  async maybeHandleVoice(req: Request, language: Language): Promise<string | null> {
     const form = formidable();
     const { files } = await new Promise<{ files: { voice: { path: string } } }>((resolve, reject) => {
       form.parse(req, (err: any, _: any, files: any) => {
@@ -57,62 +56,85 @@ export class Web implements IODriverRuntime {
         resolve({ files });
       });
     });
-    return files.voice;
+
+    if (!files.voice) return null;
+
+    const tmpAudioFile = File.getTmpFile("wav");
+    await rename(files.voice.path, tmpAudioFile.getAbsolutePath());
+
+    const text = await SpeechRecognizer.getInstance().recognizeFile(tmpAudioFile.getAbsolutePath(), language);
+    if (!text) return null;
+
+    return text;
   }
 
-  async requestEndpoint(req: Request, res: Response) {
+  async onRequest(req: Request, res: Response) {
     logger.debug("New request with query =", req.query, "body =", req.body);
 
-    if (!req.body.session) {
-      throw new Error("body.session is required");
-    }
+    if (!req.body.io_channel) throw new Error("req.body.io_channel is required");
+    if (!req.body.person) throw new Error("req.body.person is required");
 
-    const session = await Session.findById(req.body.session);
-    if (!session) {
-      throw new Error(`Session with ID <${req.body.session}> not found`);
-    }
+    const person = await Person.findByIdOrThrow(req.body.person);
+
+    const ioChannel = await IOChannel.findByIOIdentifierOrCreate(
+      this.driverId,
+      req.body.io_channel,
+      {
+        userAgent: req.headers["user-agent"],
+        ip: req.ip,
+      },
+      person,
+    );
 
     const params = (req.body.params || {}) as InputParams;
 
-    if (!params.text && !params.command) {
-      const audio = await this.handleVoice(req);
-      if (audio) {
-        const tmpAudioFile = File.getTmpFile("wav");
-        await rename(audio.path, tmpAudioFile.getAbsolutePath());
-        params.text = await SpeechRecognizer.getInstance().recognizeFile(
-          tmpAudioFile.getAbsolutePath(),
-          session.getLanguage(),
-        );
-      }
+    // Populate text by voice if necessary
+    if (!params.text) {
+      params.text = await this.maybeHandleVoice(req, person.language);
     }
 
-    const fulfillment = await AIManager.getInstance().getFullfilmentForInput(params, session);
+    const timeoutTick = setTimeout(() => {
+      if (!res.closed) {
+        res.status(408).json({ error: { message: "Lost connection with the driver" } });
+      }
+    }, TIMEOUT_MS);
 
-    if (fulfillment === undefined) {
-      throw new Error("Unable to process your input params");
+    this.emitter.emit("input", params, ioChannel, person, { req, res, timeoutTick });
+  }
+
+  async output(
+    fulfillment: Fulfillment,
+    ioChannel: TIOChannel,
+    person: TPerson | null,
+    bag: IOBagWeb,
+  ): Promise<IODriverOutput> {
+    const { req, res, timeoutTick } = bag;
+
+    if (!req || !res) {
+      throw new Error("IO.Web requires a bag with req,res (you can't output directly from another driver)");
     }
 
-    const accepts = req.headers.accept?.split(",").map((e: string) => e.trim());
+    clearTimeout(timeoutTick);
 
-    let audio: string | undefined;
-
-    if (fulfillment) {
-      if (accepts?.includes(AcceptHeader.AUDIO)) {
-        const audioFile = await getVoiceFileFromFulfillment(fulfillment, session);
-        audio = audioFile.getRelativePath();
-      }
-
-      if (accepts?.[0] === AcceptHeader.AUDIO) {
-        if (!audio) {
-          return res.status(400);
+    try {
+      if (fulfillment.text) {
+        const textToSpeechOp = req.body.text_to_speech;
+        if (textToSpeechOp) {
+          const voiceFile = await getVoiceFileFromFulfillment(fulfillment, person.language);
+          fulfillment.voice = voiceFile.getRelativePath();
+          if (textToSpeechOp === "redirect") {
+            res.redirect(fulfillment.voice);
+            return;
+          }
         }
-
-        res.redirect(audio);
-        return;
       }
-    }
 
-    return res.json({ ...fulfillment, audio });
+      res.json({ fulfillment });
+      return [["ok", null]];
+    } catch (err) {
+      res.json(400).json({ error: { message: err.message } });
+      return [["error", err]];
+    }
   }
 
   async start() {
@@ -122,9 +144,9 @@ export class Web implements IODriverRuntime {
     // Attach the route
     routerIO.post("/web", bodyParser.json(), async (req: Request, res: Response) => {
       try {
-        await this.requestEndpoint(req, res);
+        await this.onRequest(req, res);
       } catch (err) {
-        res.status(400).json({ error: { message: err.message } });
+        res.status(500).json({ error: { message: err.message, preliminary: true } });
       }
     });
   }

@@ -1,12 +1,16 @@
 import { DocumentType, Ref, getModelForClass, modelOptions, plugin, prop } from "@typegoose/typegoose";
-import { ISession } from "./session";
+import { IIOChannel } from "./io-channel";
 import autopopulate from "mongoose-autopopulate";
+import { IPerson } from "./person";
 
-@modelOptions({ schemaOptions: { collection: "schedulers" } })
+@modelOptions({ schemaOptions: { collection: "scheduler" } })
 @plugin(autopopulate)
 export class IScheduler {
-  @prop({ autopopulate: { maxDepth: 1 }, ref: () => ISession })
-  public session!: Ref<ISession>;
+  @prop({ autopopulate: { maxDepth: 1 }, ref: () => IIOChannel })
+  public ioChannel!: Ref<IIOChannel>;
+
+  @prop({ autopopulate: { maxDepth: 1 }, ref: () => IPerson })
+  public person?: Ref<IPerson>;
 
   @prop({ required: true })
   public managerUid!: string;

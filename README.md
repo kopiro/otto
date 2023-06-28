@@ -50,13 +50,13 @@ You can temporary use a driver without altering your configuration by setting an
 export OTTO_IO_DRIVERS="telegram,test"
 ```
 
-There are 4 I/O drivers available at the moment:
+I/O drivers available at the moment:
 
-- **Human**: handle input using microphone and speech recognizer and output using a TTS via a speaker
+- **Voice**: handle input using microphone and speech recognizer and output using a TTS via a speaker
 - **Telegram**: handle I/O for a Telegram bot
 - **Web**: handle I/O via Rest API
 
-#### IO.Human
+#### IO.Voice
 
 This is the main I/O driver.
 
@@ -76,14 +76,7 @@ The output is used to respond to the user request via Telegram.
 
 #### IO.Web
 
-It provides a clean Socket.IO interface to interact with the bot.
-
-For every request, you must provide a unique session ID.
-
-Params:
-
-- `sessionId`: required
-- `outputType`: optional, define an additional output type (example: `voice`)
+It provides a REST API interface to interact with the bot.
 
 ## I/O Accessories
 
@@ -95,50 +88,3 @@ You can temporary use a accessory without altering your configuration by setting
 ```sh
 export OTTO_IO_ACCESSORIES=telegram,test
 ```
-
-### How to write an action
-
-An action is a responder for an intent that has logic inside.
-
-Your action parameters are:
-
-- The API.AI (Dialogflow) object
-- The mongoose _session_ for this request
-
-There is a main difference in actions.
-
-If an action has _one_ return value, it should be a **Function** or,
-if you need to do async requests, a **Promise / AsyncFunction**.
-
-Otherwise, if an action return multiple values _over time_, it should be a **Generator / AsyncGenerator**.
-
-#### Promise/Async Function
-
-```ts
-export const id = "hello.name";
-export async function main({ queryResult }, session) {
-  let { parameters: p, queryText } = queryResult;
-  if (p.name == null) throw "Invalid parameters";
-  return `Hello ${p.name}!`;
-}
-```
-
-#### Generator Function
-
-```ts
-export const id = "count.to";
-export async function* main({ queryResult }, session) {
-  let { parameters: p, queryText } = queryResult;
-  for (let i = 1; i < Number(p.to); i++) {
-    await timeout(1000);
-    yield String(i);
-  }
-}
-```
-
-#### Naming
-
-The actions must be placed in the `./src/packages` directory.
-
-If an action name is `hello.name`, the final file must be `./src/actions/hello/name.js`;
-shorter, if an action name is `hello`, the final must be `./src/actions/hello/index.js`.

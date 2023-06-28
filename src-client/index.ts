@@ -3,24 +3,23 @@ import Recorder from "recorder-js";
 declare let webkitAudioContext: any; // ADDED
 
 const formConversation = document.querySelector("#conversation") as HTMLFormElement;
-const formEvent = document.querySelector("#event") as HTMLFormElement;
 const formRepeat = document.querySelector("#repeat") as HTMLFormElement;
 
-const inputSessionId = document.querySelector("#sessionid") as HTMLInputElement;
-const inputLanguage = document.querySelector("#language") as HTMLInputElement;
+const inputIOChannel = document.querySelector("#io_channel") as HTMLInputElement;
+const inputPerson = document.querySelector("#person") as HTMLInputElement;
 
 const audio = document.querySelector("audio") as HTMLAudioElement;
 const responseTextarea = document.getElementById("response") as HTMLTextAreaElement;
 const recordStartBtn = document.getElementById("record-start");
 const recordStopBtn = document.getElementById("record-stop");
 
-async function repeatTextToSpeech(text: string, language: string) {
+async function textToSpeech(text: string) {
   audio.src = "";
   audio.volume = 0;
   audio.play();
 
   const url = new URL("/api/speech", location.href);
-  url.search = new URLSearchParams({ text, language }).toString();
+  url.search = new URLSearchParams({ text, language: navigator.language }).toString();
 
   responseTextarea.value = text;
 
@@ -30,7 +29,7 @@ async function repeatTextToSpeech(text: string, language: string) {
   audio.play();
 }
 
-async function sendData(headers, body) {
+async function sendData(body) {
   audio.src = "";
   audio.volume = 0;
   audio.play();
@@ -38,8 +37,7 @@ async function sendData(headers, body) {
   const response = await fetch("/io/web", {
     method: "POST",
     headers: {
-      ...headers,
-      Accept: "text, audio",
+      "content-type": "application/json",
     },
     body: body,
   });
@@ -68,7 +66,7 @@ formRepeat.addEventListener("submit", (e) => {
   const textInputEl = formRepeat.querySelector("input[type=text]") as HTMLInputElement;
   if (!textInputEl.value) return;
 
-  repeatTextToSpeech(textInputEl.value, inputLanguage.value);
+  textToSpeech(textInputEl.value);
 
   textInputEl.value = "";
 });
@@ -80,33 +78,10 @@ formConversation.addEventListener("submit", (e) => {
   if (!textInputEl.value) return;
 
   sendData(
-    {
-      "content-type": "application/json",
-    },
     JSON.stringify({
       params: { text: textInputEl.value },
-      language: inputLanguage.value,
-      session: inputSessionId.value,
-    }),
-  );
-
-  textInputEl.value = "";
-});
-
-formEvent.addEventListener("submit", (e) => {
-  e.preventDefault();
-
-  const textInputEl = formEvent.querySelector("input[type=text]") as HTMLInputElement;
-  if (!textInputEl.value) return;
-
-  sendData(
-    {
-      "content-type": "application/json",
-    },
-    JSON.stringify({
-      params: { event: { name: textInputEl.value } },
-      language: inputLanguage.value,
-      session: inputSessionId.value,
+      io_channel: inputIOChannel.value,
+      person: inputPerson.value,
     }),
   );
 
@@ -134,5 +109,5 @@ recordStopBtn.addEventListener("click", async () => {
   const fd = new FormData();
   fd.append("audio", blob);
 
-  sendData({}, fd);
+  sendData(fd);
 });

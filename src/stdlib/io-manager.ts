@@ -1,0 +1,377 @@
+import config from "../config";
+import { Fulfillment, InputParams } from "../types";
+import { EventEmitter } from "events";
+import { Signale } from "signale";
+import { TIOChannel } from "../data/io-channel";
+import { IOQueue, TIOQueue } from "../data/io-queue";
+import { isDocument, isDocumentArray } from "@typegoose/typegoose";
+import { AIManager } from "./ai/ai-manager";
+import { TPerson } from "../data/person";
+import { IODataTelegram, IOBagTelegram } from "../io/telegram";
+import TypedEmitter from "typed-emitter";
+import { IOBagWeb, IODataWeb } from "../io/web";
+import { IOBagVoice, IODataVoice } from "../io/voice";
+
+const TAG = "IOManager";
+const logger = new Signale({
+  scope: TAG,
+});
+
+export type IODriverId = "telegram" | "voice" | "web";
+export type IOAccessoryId = "gpio_button" | "leds";
+export type IOBag = IOBagTelegram | IOBagWeb | IOBagVoice;
+export type IOData = IODataTelegram | IODataWeb | IODataVoice;
+
+export type IODriverOutput = [string, any][];
+
+export type IODriverEventMap = {
+  input: (params: InputParams, ioChannel: TIOChannel, person: TPerson | null, bag: IOBag) => void;
+  error: (message: string, ioChannel: TIOChannel, person: TPerson | null) => void;
+  output: (fulfillment: Fulfillment, ioChannel: TIOChannel, person: TPerson | null, bag: IOBag) => void;
+  recognizing: () => void;
+  woken: () => void;
+  wake: () => void;
+  stop: () => void;
+  stopped: () => void;
+};
+
+export interface IODriverRuntime {
+  driverId: IODriverId;
+  emitter: TypedEmitter<IODriverEventMap>;
+  start: () => Promise<void>;
+  output: (
+    fulfillment: Fulfillment,
+    ioChannel: TIOChannel,
+    person: TPerson | null,
+    bag: IOBag,
+  ) => Promise<IODriverOutput>;
+}
+
+export type OutputResult = {
+  driverOutput?: IODriverOutput;
+  driverError?: Error | unknown;
+  rejectReason?: {
+    message: string;
+    data?: any;
+  };
+};
+export interface IOAccessoryModule {
+  start: () => void;
+}
+
+export class IOManager {
+  private loadedDrivers: Partial<Record<IODriverId, IODriverRuntime>> = {};
+  private queueInProcess: Record<string, true> = {};
+
+  private emitter: EventEmitter = new EventEmitter();
+
+  private static instance: IOManager;
+  public static getInstance(): IOManager {
+    if (!IOManager.instance) {
+      IOManager.instance = new IOManager();
+    }
+    return IOManager.instance;
+  }
+
+  /**
+   * Return an array of drivers strings to load
+   */
+  private getDriversToLoad(): IODriverId[] {
+    if (process.env.OTTO_IO_DRIVERS) {
+      return process.env.OTTO_IO_DRIVERS.split(",") as unknown as IODriverId[];
+    }
+    return (config().ioDrivers || []) as unknown as IODriverId[];
+  }
+
+  /**
+   * Return an array of accessories strings to load for that driver
+   */
+  private getAccessoriesToLoadForDriver(driver: IODriverId): IOAccessoryId[] {
+    if (process.env.OTTO_IO_ACCESSORIES) {
+      return process.env.OTTO_IO_ACCESSORIES.split(",") as unknown as IOAccessoryId[];
+    }
+    return (config().ioAccessoriesMap as Record<IODriverId, IOAccessoryId[]>)[driver] || [];
+  }
+
+  /**
+   * Load the driver module
+   */
+  private async loadDriver(driverId: IODriverId): Promise<IODriverRuntime> {
+    switch (driverId) {
+      case "telegram":
+        return (await import("../io/telegram")).default();
+      case "voice":
+        return (await import("../io/voice")).default();
+      case "web":
+        return (await import("../io/web")).default();
+      default:
+        throw new Error(`Invalid driver: ${driverId}`);
+    }
+  }
+
+  /**
+   * Load the accessory module
+   */
+  private async getAccessoryForDriver(
+    accessoryName: IOAccessoryId,
+    driver: IODriverRuntime,
+  ): Promise<IOAccessoryModule> {
+    switch (accessoryName) {
+      case "gpio_button":
+        return new (await import("../io_accessories/gpio_button")).default(driver);
+      case "leds":
+        return new (await import("../io_accessories/leds")).default(driver);
+      default:
+        throw new Error(`Invalid accessory: ${accessoryName}`);
+    }
+  }
+
+  canHandleOutput(_: Fulfillment, ioChannel: TIOChannel): boolean {
+    return ioChannel.managerUid === config().uid && Object.keys(this.loadedDrivers).includes(ioChannel.ioDriver);
+  }
+
+  async outputInQueue(
+    fulfillment: Fulfillment,
+    ioChannel: TIOChannel,
+    person: TPerson | null,
+    bag: IOBag,
+  ): Promise<OutputResult> {
+    const loadedDriverIds = Object.keys(this.loadedDrivers);
+
+    const ioQueueElement = await IOQueue.createNew(fulfillment, ioChannel, person, bag);
+
+    return {
+      rejectReason: {
+        message: "OUTPUT_QUEUED",
+        data: {
+          loadedDriverIds,
+          ioQueueElementId: ioQueueElement.id,
+        },
+      },
+    };
+  }
+
+  async maybeRedirectFulfillment(
+    fulfillment: Fulfillment,
+    ioChannel: TIOChannel,
+    person: TPerson | null,
+    bag: IOBag | null,
+    loadDriverIfNotEnabled = false,
+  ) {
+    // Redirecting output to another ioChannel, asyncronously
+    await ioChannel.populate("redirectFulfillmentTo");
+
+    if (isDocumentArray(ioChannel.redirectFulfillmentTo) && ioChannel.redirectFulfillmentTo.length > 0) {
+      logger.info(
+        "using redirectFulfillmentTo",
+        ioChannel.redirectFulfillmentTo.map((s) => s.id),
+      );
+
+      await Promise.all(
+        ioChannel.redirectFulfillmentTo.map((e) => {
+          if (e.id === ioChannel.id) {
+            logger.warn("Redirecting to same ioChannel, skipping", e);
+            return;
+          }
+
+          return this.output(fulfillment, e, person, bag, loadDriverIfNotEnabled);
+        }),
+      );
+    }
+  }
+
+  /**
+   * Process an input to a specific IO driver based on the ioChannel
+   */
+  async output(
+    fulfillment: Fulfillment,
+    ioChannel: TIOChannel,
+    person: TPerson | null,
+    bag: IOBag | null,
+    loadDriverIfNotEnabled = false,
+  ): Promise<OutputResult> {
+    // Redirecting output to another ioChannel, asyncronously
+    setImmediate(() => {
+      this.maybeRedirectFulfillment(fulfillment, ioChannel, person, bag, loadDriverIfNotEnabled);
+    });
+
+    if (ioChannel.doNotDisturb === true) {
+      logger.info("rejecting because doNotDisturb is ON", ioChannel);
+      return { rejectReason: { message: "DO_NOT_DISTURB_ON" } };
+    }
+
+    let driverRuntime: IODriverRuntime = this.loadedDrivers[ioChannel.ioDriver];
+    if (!driverRuntime && loadDriverIfNotEnabled) {
+      driverRuntime = await this.loadDriver(ioChannel.ioDriver);
+    }
+
+    if (!this.canHandleOutput(fulfillment, ioChannel)) {
+      logger.debug("This node can't output, putting in IO queue", {
+        fulfillment,
+        ioChannel: ioChannel.id,
+        person: person?.id,
+      });
+      return this.outputInQueue(fulfillment, ioChannel, person, bag);
+    }
+
+    if (!driverRuntime) {
+      return { rejectReason: { message: "DRIVER_NOT_ENABLED" } };
+    }
+
+    // Actually output to the driver
+    try {
+      driverRuntime.emitter.emit("output", fulfillment, ioChannel, person, bag);
+      const driverOutput = await driverRuntime.output(fulfillment, ioChannel, person, bag);
+      return { driverOutput };
+    } catch (driverError) {
+      return { driverError };
+    }
+  }
+
+  /**
+   * Configure every accessory for that driver
+   */
+  private async startAccessoriesForDriver(driverId: IODriverId, driver: IODriverRuntime) {
+    const accessoriesToLoad = this.getAccessoriesToLoadForDriver(driverId);
+    return Promise.all(
+      accessoriesToLoad.map((accessory) =>
+        this.getAccessoryForDriver(accessory, driver).then((accessoryModule) => accessoryModule.start()),
+      ),
+    );
+  }
+
+  private async onDriverInput(
+    params: InputParams,
+    ioChannel: TIOChannel,
+    person: TPerson | null,
+    bag: IOBag,
+  ): Promise<OutputResult | OutputResult[]> {
+    await ioChannel.populate("mirrorInputToFulfillmentTo");
+
+    // Check if we have repeatTo - if so, just output to all of them
+    if (isDocumentArray(ioChannel.mirrorInputToFulfillmentTo) && ioChannel.mirrorInputToFulfillmentTo.length > 0) {
+      logger.info(
+        "Using mirrorInputToFulfillment",
+        ioChannel.mirrorInputToFulfillmentTo.map((e) => e.id),
+      );
+
+      return Promise.all(
+        ioChannel.mirrorInputToFulfillmentTo.map((e) => {
+          return this.output(params, e, person, bag);
+        }),
+      );
+    }
+
+    return this.processInput(params, ioChannel, person, bag);
+  }
+
+  private onDriverError(message: string, ioChannel: TIOChannel, person: TPerson) {
+    logger.error("Driver emitted error", message, ioChannel.id, person?.id);
+  }
+
+  startDrivers() {
+    const drivers = this.getDriversToLoad();
+    logger.info("Starting drivers", drivers);
+
+    return Promise.allSettled(
+      drivers.map(async (driverId) => {
+        try {
+          const driverRuntime = await this.loadDriver(driverId);
+
+          // Route the input to the right driver
+          driverRuntime.emitter.on("input", this.onDriverInput.bind(this));
+          driverRuntime.emitter.on("error", this.onDriverError.bind(this));
+
+          await driverRuntime.start();
+          await this.startAccessoriesForDriver(driverId, driverRuntime);
+
+          this.loadedDrivers[driverId] = driverRuntime;
+
+          logger.debug(`IO.${driverId} started`);
+        } catch (err) {
+          logger.error(`IO.${driverId} error on startup:`, err.message);
+        }
+      }),
+    );
+  }
+
+  /**
+   * Get the next item into the queue to proces
+   */
+  async getNextInQueue() {
+    return IOQueue.findOne({
+      managerUid: config().uid,
+      ioDriver: {
+        $in: Object.keys(this.loadedDrivers),
+      },
+    }).sort({ createdAt: +1 });
+  }
+
+  /**
+   * Process items in the queue based on configured drivers
+   */
+  async processQueue(callback?: (item: TIOQueue | null) => void): Promise<TIOQueue | null> {
+    const enabledDriverIds = Object.keys(this.loadedDrivers) as IODriverId[];
+    const qitem = await IOQueue.getNextInQueue(enabledDriverIds);
+
+    if (!qitem || this.queueInProcess[qitem.id]) {
+      callback?.(null);
+      return null;
+    }
+
+    if (!isDocument(qitem.ioChannel)) {
+      logger.error("IOQueue item has no ioChannel, removing it", qitem);
+      await qitem.deleteOne();
+      return null;
+    }
+
+    this.queueInProcess[qitem.id] = true;
+
+    logger.info("Processing IOQueue item", {
+      fulfillment: qitem.fulfillment,
+      ioChannel: qitem.ioChannel.id,
+      person: qitem.person?.id,
+      bag: qitem.bag,
+    });
+
+    callback?.(qitem);
+
+    await qitem.deleteOne();
+    await this.output(qitem.fulfillment, qitem.ioChannel, isDocument(qitem.person) ? qitem.person : null, qitem.bag);
+
+    return qitem;
+  }
+
+  /**
+   * Process a fulfillment to a ioChannel
+   */
+  async processInput(
+    params: InputParams,
+    ioChannel: TIOChannel,
+    person: TPerson | null,
+    bag: IOBag | null,
+  ): Promise<OutputResult> {
+    logger.info("input", { params, ioChannel: ioChannel.id, person: person?.id });
+    const fulfillment = await AIManager.getInstance().getFullfilmentForInput(params, ioChannel, person);
+    logger.info("fulfillment", { fulfillment, ioChannel: ioChannel.id });
+    const result = await IOManager.getInstance().output(fulfillment, ioChannel, person, bag);
+    logger.info("output result", { result, ioChannel: ioChannel.id });
+    return result;
+  }
+
+  /**
+   * Start drivers and start processing the queue
+   */
+  async start() {
+    await this.startDrivers();
+
+    const { ioQueue } = config();
+    if (ioQueue?.enabled) {
+      if (!ioQueue?.timeout) {
+        throw new Error("ioQueue.timeout is not set");
+      }
+      logger.info(`IOQueue processing started (every ${ioQueue.timeout}ms)`);
+      setInterval(this.processQueue.bind(this), ioQueue.timeout);
+    }
+  }
+}

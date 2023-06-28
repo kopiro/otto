@@ -1,11 +1,11 @@
 import { AIManager } from "./ai-manager";
 import { Authorizations, Fulfillment, InputParams } from "../../types";
-import { IOManager } from "../iomanager";
+import { IOManager } from "../io-manager";
 import { throwIfMissingAuthorizations } from "../../helpers";
-import { Session, TSession } from "../../data/session";
-import { PROMPT_WELCOME } from "./ai-prompts";
+import { IOChannel, TIOChannel } from "../../data/io-channel";
+import { Person, TPerson } from "../../data/person";
 
-type CommandFunction = (args: RegExpMatchArray, session: TSession) => Promise<Fulfillment>;
+type CommandFunction = (args: RegExpMatchArray, ioChannel: TIOChannel, person: TPerson | null) => Promise<Fulfillment>;
 
 export class AICommander {
   private static instance: AICommander;
@@ -34,21 +34,21 @@ export class AICommander {
       matcher: /^\/whoami/,
       name: "whoami",
       executor: this.whoami,
-      description: "Get your session",
+      description: "Get your ioChannel",
       authorizations: [],
     },
     {
-      matcher: /^\/IOManagertext ([^\s]+) (.+)/,
+      matcher: /^\/outputtext ([^\s]+) (.+)/,
       name: "outputtext",
       executor: this.commandOutputText,
-      description: "[sessionid] [text] - Send a text message to a specific session",
+      description: "[ioChannel] [text] - Send a text message to a specific ioChannel",
       authorizations: ["command"],
     },
     {
-      matcher: /^\/input ([^\s]+) (.+)/,
+      matcher: /^\/input ([^\s]+) ([^\s]+) (.+)/,
       name: "input",
       executor: this.input,
-      description: "[sessionid] [params_json] - Process an input param for a specific session",
+      description: "[ioChannel] [person] [params_json] - Process an input param for a specific ioChannel and person",
       authorizations: ["command"],
     },
     {
@@ -69,42 +69,45 @@ export class AICommander {
     return { text: "Scheduled shutdown in 5 seconds" };
   }
 
-  private async start(_: RegExpMatchArray, session: TSession): Promise<Fulfillment> {
-    const fulfillment = await AIManager.getInstance().getFullfilmentForInput(
-      { text: PROMPT_WELCOME, role: "system" },
-      session,
-    );
+  private async start(_: RegExpMatchArray, ioChannel: TIOChannel, person: TPerson | null): Promise<Fulfillment> {
+    const fulfillment = await AIManager.getInstance().getFullfilmentForInput({ text: "Hello!" }, ioChannel, person);
     return fulfillment;
   }
 
-  private async whoami(_: RegExpMatchArray, session: TSession): Promise<Fulfillment> {
-    return { data: JSON.stringify(session, null, 2) };
+  private async whoami(_: RegExpMatchArray, ioChannel: TIOChannel, person: TPerson | null): Promise<Fulfillment> {
+    return { data: JSON.stringify({ ioChannel, person }, null, 2) };
   }
 
-  private async input([, cmdSessionId, paramsStr]: RegExpMatchArray): Promise<Fulfillment> {
-    const cmdSession = await Session.findById(cmdSessionId);
-    if (!cmdSession) throw new Error(`Session ${cmdSessionId} not found`);
+  private async input([, ioChannelId, personId, paramsStr]: RegExpMatchArray): Promise<Fulfillment> {
+    const ioChannel = await IOChannel.findById(ioChannelId);
+    if (!ioChannel) throw new Error(`Session ${ioChannelId} not found`);
+
+    const person = await Person.findById(personId);
+    if (!person) throw new Error(`Person ${personId} not found`);
 
     const params = JSON.parse(paramsStr);
-    const result = await IOManager.getInstance().processInput(params, cmdSession);
+    const result = await IOManager.getInstance().processInput(params, ioChannel, person, null);
     return { data: JSON.stringify(result, null, 2) };
   }
 
-  private async commandOutputText([, cmdSessionId, cmdText]: RegExpMatchArray): Promise<Fulfillment> {
-    const cmdSession = await Session.findById(cmdSessionId);
-    if (!cmdSession) throw new Error(`Session ${cmdSessionId} not found`);
+  private async commandOutputText([, ioChannelId, personId, cmdText]: RegExpMatchArray): Promise<Fulfillment> {
+    const ioChannel = await IOChannel.findById(ioChannelId);
+    if (!ioChannel) throw new Error(`Session ${ioChannelId} not found`);
 
-    const result = await IOManager.getInstance().output({ text: cmdText }, cmdSession, {});
+    const person = await Person.findById(personId);
+    if (!person) throw new Error(`Person ${personId} not found`);
+
+    const result = await IOManager.getInstance().output({ text: cmdText }, ioChannel, person, {});
     return { data: JSON.stringify(result, null, 2) };
   }
 
-  private getCommandExecutor(text: string): (session: TSession) => Promise<Fulfillment> {
+  private getCommandExecutor(text: string): (ioChannel: TIOChannel, person: TPerson | null) => Promise<Fulfillment> {
     for (const cmd of this.commandMapping) {
       const matches = text.match(cmd.matcher);
       if (matches) {
-        return async (session: TSession) => {
-          throwIfMissingAuthorizations(session.authorizations, cmd.authorizations);
-          const result = await cmd.executor.call(this, matches, session);
+        return async (ioChannel: TIOChannel, person: TPerson | null) => {
+          throwIfMissingAuthorizations(person?.authorizations, cmd.authorizations);
+          const result = await cmd.executor.call(this, matches, ioChannel, person);
           return result;
         };
       }
@@ -113,10 +116,14 @@ export class AICommander {
     return () => this.notFound();
   }
 
-  public async getFulfillmentForInput(params: InputParams, session: TSession): Promise<Fulfillment> {
+  public async getFulfillmentForInput(
+    params: InputParams,
+    ioChannel: TIOChannel,
+    person: TPerson | null,
+  ): Promise<Fulfillment> {
     if (params.command) {
       const executor = this.getCommandExecutor(params.command);
-      return executor(session);
+      return executor(ioChannel, person);
     }
     throw new Error("Unable to process request");
   }

@@ -1,15 +1,15 @@
 import http from "http";
 import express from "express";
 import config from "../config";
-import { publicDir, cacheDir, tmpDir } from "../paths";
-import { getVoiceFileFromMixedContent } from "../stdlib/voice";
+import { publicDir, tmpDir } from "../paths";
+import { getVoiceFileFromMixedContent } from "./voice-helpers";
 import { TextToSpeech } from "./text-to-speech";
-import { IOManager } from "./iomanager";
-import { AIManager } from "./ai/ai-manager";
+import { IOManager } from "./io-manager";
 // @ts-ignore
 import rateLimit from "express-rate-limit";
 import { Signale } from "signale";
-import { Session } from "../data/session";
+import { IOChannel } from "../data/io-channel";
+import { Person } from "../data/person";
 
 const TAG = "Server";
 const logger = new Signale({
@@ -47,40 +47,18 @@ routerApi.get("/speech", async (req: express.Request, res: express.Response) => 
   }
 });
 
-// Get Fullfilment for a given input
-// GET /api/fulfillment?session=ID&params={ "text": "Hello" }
-routerApi.get("/fulfillment", async (req, res) => {
-  try {
-    if (!req.body.session) throw new Error("'session' key not provided");
-    if (!req.body.params) throw new Error("'params' key not provided");
-
-    const session = await Session.findById(req.body.session);
-    if (!session) throw new Error("Session not found");
-
-    const fulfillment = await AIManager.getInstance().getFullfilmentForInput(req.body.params, session);
-    return res.json({ fulfillment });
-  } catch (err) {
-    logger.error("/api/fulfillment error", err);
-    return res.status(400).json({
-      error: {
-        message: err.message,
-      },
-    });
-  }
-});
-
 // API to kick-in input
-// POST /api/input { "session": "ID", "params": { "text": "Hello" } }
+// POST /api/input { "io_channel": "ID", "person": "ID", "params": { "text": "Hello" } }
 routerApi.post("/input", async (req, res) => {
   try {
-    const obj = req.body;
-    if (!obj.session) throw new Error("'session' key not provided");
-    if (!obj.params) throw new Error("'params' key not provided");
+    if (!req.body.io_channel) throw new Error("req.body.io_channel is required");
+    if (!req.body.params) throw new Error("req.body.params is required");
+    if (!req.body.person) throw new Error("req.body.person is required");
 
-    const session = await Session.findById(obj.session);
-    if (!session) throw new Error("Session not found");
+    const ioChannel = await IOChannel.findByIdOrThrow(req.body.io_channel);
+    const person = await Person.findByIdOrThrow(req.body.person);
 
-    const result = await IOManager.getInstance().processInput(obj.params, session);
+    const result = await IOManager.getInstance().processInput(req.body.params, ioChannel, person, null);
     return res.json({ result });
   } catch (err) {
     logger.error("/api/input error", err);
@@ -93,22 +71,20 @@ routerApi.post("/input", async (req, res) => {
 });
 
 // Inform the Queue to process new elements immediately
-routerApi.post("/signal/queue", (_, res) => {
-  IOManager.getInstance().processQueue((item) => {
-    res.json({ item });
-  });
+routerApi.post("/signal/queue", async (_, res) => {
+  const item = await IOManager.getInstance().processQueue();
+  res.json({ item });
 });
 
-// Retrieve the DNS status for a session
-// GET /api/dnd?session=ID
+// Retrieve the DNS status for a ioChannel
+// GET /api/dnd?io_channel=ID
 routerApi.get("/dnd", async (req, res) => {
   try {
-    if (!req.query.session) throw new Error("'session' key not provided");
+    if (!req.body.io_channel) throw new Error("req.body.io_channel is required");
 
-    const session = await Session.findById(req.query.session.toString());
-    if (!session) throw new Error("Session not found");
+    const ioChannel = await IOChannel.findByIdOrThrow(req.query.io_channel.toString());
 
-    return res.json({ status: Boolean(session.doNotDisturb) });
+    return res.json({ status: Boolean(ioChannel.doNotDisturb) });
   } catch (err) {
     logger.error("/api/dnd error", err);
     return res.status(400).json({
@@ -119,20 +95,18 @@ routerApi.get("/dnd", async (req, res) => {
   }
 });
 
-// Set the DNS status for a session
-// POST /api/dnd { "session": "ID", "status": true }
+// Set the DNS status for a ioChannel
+// POST /api/dnd { "io_channel": "ID", "status": true }
 routerApi.post("/dnd", async (req, res) => {
   try {
-    if (!req.body.session) throw new Error("'session' key not provided");
-    if (!("status" in req.body)) throw new Error("'status' key not provided");
+    if (!req.body.io_channel) throw new Error("req.body.io_channel is required");
+    if (!("status" in req.body)) throw new Error("req.body.status is required");
 
-    const session = await Session.findById(req.body.session);
-    if (!session) throw new Error("Session not found");
+    const ioChannel = await IOChannel.findByIdOrThrow(req.body.io_channel);
+    ioChannel.doNotDisturb = Boolean(req.body.status);
+    await ioChannel.save();
 
-    session.doNotDisturb = Boolean(req.body.status);
-    await session.save();
-
-    return res.json({ status: Boolean(session.doNotDisturb) });
+    return res.json({ status: Boolean(ioChannel.doNotDisturb) });
   } catch (err) {
     logger.error("/api/dnd error", err);
     return res.status(400).json({
@@ -180,7 +154,7 @@ export function start(): Promise<void> {
         server: "0.0.0.0",
       },
       () => {
-        logger.info(`Started on ${conf.protocol}://${conf.domain}`);
+        logger.info(`Server started (on ${conf.protocol}://${conf.domain})`);
         resolve();
       },
     );

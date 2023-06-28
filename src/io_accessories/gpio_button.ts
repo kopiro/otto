@@ -1,5 +1,5 @@
 import { gpioButtonStart } from "../lib/raspi/gpio";
-import { IOAccessoryModule, IODriverRuntime } from "../stdlib/iomanager";
+import { IOAccessoryModule, IODriverRuntime } from "../stdlib/io-manager";
 
 export const id = "gpio_button";
 

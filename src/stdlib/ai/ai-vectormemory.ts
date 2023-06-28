@@ -71,11 +71,11 @@ export class AIVectorMemory {
     }).sort({ createdAt: +1 });
 
     const groupedInteractionsByDayThenSession = unreducedInteractions.reduce((acc, interaction) => {
-      if (isDocument(interaction.session)) {
+      if (isDocument(interaction.ioChannel)) {
         const day = Math.floor(interaction.createdAt.getTime() / (1000 * 60 * 60 * 24));
         acc[day] = acc[day] || {};
-        acc[day][interaction.session.id] = acc[day][interaction.session.id] || [];
-        acc[day][interaction.session.id].push(interaction);
+        acc[day][interaction.ioChannel.id] = acc[day][interaction.ioChannel.id] || [];
+        acc[day][interaction.ioChannel.id].push(interaction);
       }
       return acc;
     }, {} as GroupedInteractionsByDayThenSession);
@@ -151,23 +151,19 @@ export class AIVectorMemory {
 
   private async reduceInteractionsOfTheDay(
     forDate: Date,
-    groupedInteractionsBySession: GroupedInteractionsBySession,
+    groupedInteractions: GroupedInteractionsBySession,
   ): Promise<string> {
     const { aiName } = config();
     const interactionsText = [];
 
-    for (const [_, interactions] of Object.entries(groupedInteractionsBySession)) {
-      const session = interactions[0].session;
-      if (!isDocument(session)) {
-        logger.warn("Session is not a document while processing interaction", interactions[0]);
+    for (const [_, interactions] of Object.entries(groupedInteractions)) {
+      const ioChannel = interactions[0].ioChannel;
+      if (!isDocument(ioChannel)) {
+        logger.error("Unable to continue without a ioChannel");
         continue;
       }
 
-      const sessionName = session.getName();
-      const sessionSimpleName = sessionName.split(" ")[0];
-      const sessionDriverName = session.getDriverName();
-
-      interactionsText.push(`Conversation between ${aiName} and ${sessionName}   - ${sessionDriverName}`);
+      interactionsText.push(`Conversation ${ioChannel.getDriverName()}`);
 
       for (const interaction of interactions) {
         const time = interaction.createdAt.toLocaleTimeString();
@@ -176,7 +172,7 @@ export class AIVectorMemory {
           interactionsText.push(`${aiName} (${time}): ${interaction.fulfillment.text}`);
         }
         if (interaction.input?.text) {
-          interactionsText.push(`${sessionSimpleName} (${time}): ${interaction.input.text}`);
+          interactionsText.push(`${interaction.getPersonName()} (${time}): ${interaction.input.text}`);
         }
       }
 

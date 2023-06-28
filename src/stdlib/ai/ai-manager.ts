@@ -5,8 +5,9 @@ import { Translator } from "../translator";
 import { Signale } from "signale";
 import { AICommander } from "./ai-commander";
 import { AIOpenAI } from "./ai-openai";
-import { TSession } from "../../data/session";
+import { TIOChannel } from "../../data/io-channel";
 import { Interaction } from "../../data/interaction";
+import { TPerson } from "../../data/person";
 
 const TAG = "AI";
 const logger = new Signale({
@@ -25,15 +26,14 @@ export class AIManager {
   emitter: Events.EventEmitter = new Events.EventEmitter();
 
   /**
-   * Transform a Fulfillment by making some edits based on the current session settings
+   * Transform a Fulfillment by making some edits based on the current ioChannel settings
    */
   async fulfillmentFinalizer(
-    fulfillment: Fulfillment | null,
-    session: TSession,
+    fulfillment: Fulfillment,
+    ioChannel: TIOChannel,
+    person: TPerson,
     source: InputSource,
-  ): Promise<Fulfillment | null> {
-    if (!fulfillment) return null;
-
+  ): Promise<Fulfillment> {
     fulfillment.runtime = fulfillment.runtime || {};
     fulfillment.options = fulfillment.options || {};
 
@@ -46,7 +46,7 @@ export class AIManager {
 
     // Always translate fulfillment speech in the user language
     if (fulfillment.text && translatePolicy !== "never") {
-      const { translateTo = session.getLanguage() } = fulfillment.options || {};
+      const { translateTo = person.language } = fulfillment.options || {};
       if (translatePolicy === "always" || (translatePolicy === "when_necessary" && config().language !== translateTo)) {
         try {
           fulfillment.text = await Translator.getInstance().translate(fulfillment.text, translateTo);
@@ -61,29 +61,41 @@ export class AIManager {
     fulfillment.runtime.finalizedAt = Date.now();
 
     // Create interaction before adding final options
-    Interaction.createNew(session, {
-      fulfillment,
-      source,
-    });
+    Interaction.createNew(
+      {
+        fulfillment,
+        source,
+      },
+      ioChannel,
+      person,
+    );
 
     return fulfillment;
   }
 
-  async getFullfilmentForInput(params: InputParams, session: TSession): Promise<Fulfillment | null> {
+  async getFullfilmentForInput(
+    params: InputParams,
+    ioChannel: TIOChannel,
+    person: TPerson | null,
+  ): Promise<Fulfillment> {
     let fulfillment: Fulfillment | null = null;
     let source: InputSource = "unknown";
 
-    Interaction.createNew(session, {
-      input: params,
-    });
+    Interaction.createNew(
+      {
+        input: params,
+      },
+      ioChannel,
+      person,
+    );
 
     try {
       if (params.text) {
         source = "text";
-        fulfillment = await AIOpenAI.getInstance().getFulfillmentForInput(params, session);
+        fulfillment = await AIOpenAI.getInstance().getFulfillmentForInput(params, ioChannel, person);
       } else if (params.command) {
         source = "command";
-        fulfillment = await AICommander.getInstance().getFulfillmentForInput(params, session);
+        fulfillment = await AICommander.getInstance().getFulfillmentForInput(params, ioChannel, person);
       } else {
         throw new Error("No valid input provided");
       }
@@ -95,7 +107,11 @@ export class AIManager {
       };
     }
 
-    const finalFulfillment = await this.fulfillmentFinalizer(fulfillment, session, source);
+    if (!fulfillment) {
+      throw new Error("Fulfillment is null");
+    }
+
+    const finalFulfillment = await this.fulfillmentFinalizer(fulfillment, ioChannel, person, source);
     return finalFulfillment;
   }
 }

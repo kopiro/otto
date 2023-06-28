@@ -1,11 +1,12 @@
 import autopopulate from "mongoose-autopopulate";
-import { IOBag, IODriverId } from "../stdlib/iomanager";
+import { IOBag, IODriverId } from "../stdlib/io-manager";
 import { Fulfillment } from "../types";
-import { ISession, TSession } from "./session";
+import { IIOChannel, TIOChannel } from "./io-channel";
 import { DocumentType, Ref, ReturnModelType, getModelForClass, modelOptions, plugin, prop } from "@typegoose/typegoose";
 import config from "../config";
+import { IPerson, TPerson } from "./person";
 
-@modelOptions({ schemaOptions: { collection: "io_queues" } })
+@modelOptions({ schemaOptions: { collection: "io_queue" } })
 @plugin(autopopulate)
 class IIOQueue {
   @prop({ required: true })
@@ -14,8 +15,11 @@ class IIOQueue {
   @prop({ required: true })
   public ioDriver!: IODriverId;
 
-  @prop({ autopopulate: { maxDepth: 1 }, ref: () => ISession })
-  session!: Ref<ISession>;
+  @prop({ autopopulate: { maxDepth: 1 }, ref: () => IIOChannel })
+  ioChannel!: Ref<IIOChannel>;
+
+  @prop({ autopopulate: { maxDepth: 1 }, ref: () => IPerson })
+  person?: Ref<IPerson>;
 
   @prop({ required: true })
   public createdAt!: Date;
@@ -24,18 +28,20 @@ class IIOQueue {
   public fulfillment!: Fulfillment;
 
   @prop()
-  public bag?: IOBag;
+  public bag!: IOBag;
 
   static async createNew(
     this: ReturnModelType<typeof IIOQueue>,
-    session: TSession,
     fulfillment: Fulfillment,
-    bag?: IOBag,
+    ioChannel: TIOChannel,
+    person: TPerson | null,
+    bag: IOBag | null,
   ) {
     return IOQueue.create({
-      managerUid: session.managerUid,
-      ioDriver: session.ioDriver,
-      session: session.id,
+      managerUid: ioChannel.managerUid,
+      ioDriver: ioChannel.ioDriver,
+      ioChannel: ioChannel.id,
+      person: person.id,
       fulfillment,
       bag,
       createdAt: new Date(),

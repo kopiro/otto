@@ -1,5 +1,5 @@
 import * as RaspiLeds from "../lib/raspi/leds";
-import { IODriverRuntime, IOAccessoryModule } from "../stdlib/iomanager";
+import { IODriverRuntime, IOAccessoryModule } from "../stdlib/io-manager";
 
 export const id = "leds";
 
@@ -23,10 +23,6 @@ class Leds implements IOAccessoryModule {
 
     this.driver.emitter.on("output", () => {
       RaspiLeds.setColor(colorForOutput);
-    });
-
-    this.driver.emitter.on("thinking", () => {
-      RaspiLeds.setColor(colorForThinking);
     });
 
     this.driver.emitter.on("recognizing", () => {

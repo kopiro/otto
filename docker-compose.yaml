@@ -1,0 +1,53 @@
+version: '3.8'
+
+volumes:
+  db-data:
+  qdrant-data:
+
+networks:
+  app-network:
+    driver: bridge
+
+services:
+  app:
+    build: .
+    image: ghcr.io/kopiro/otto:latest
+    env_file: .env
+    ports:
+      - 9000:9000
+    depends_on:
+      - mongodb
+      - qdrant
+    entrypoint: ["pnpm", "run", "start:dev"]
+    volumes:
+      - ./src:/app/src
+      - ./src-client:/app/src-client
+      - ./etc:/app/etc
+      - ./public:/app/public
+      - ./storage:/app/storage
+      - ./cache:/app/cache
+      - ./logs:/app/logs
+      - ./tmp:/app/tmp
+      - ./keys:/app/keys
+    networks:
+      - app-network
+
+  mongodb:
+    image: mongo:latest
+    env_file: .env
+    ports:
+      - 27017:27017
+    volumes:
+      - db-data:/data/db
+    networks:
+      - app-network
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    env_file: .env
+    volumes:
+      - qdrant-data:/qdrant/storage
+    ports:
+      - 6333:6333
+    networks:
+      - app-network

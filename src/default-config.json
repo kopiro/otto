@@ -11,11 +11,11 @@
   "language": "en-GB",
   "ioDrivers": [],
   "ioAccessoriesMap": {},
+  "voiceSoxArgs": [],
   "scheduler": {
     "enabled": true
   },
   "speechRecognizer": {
-    "voiceActivityTimeout": 1500
   },
   "ioQueue": {
     "enabled": true,
@@ -27,9 +27,6 @@
   "tts": {
     "gender": "Female",
     "encoding": "MP3"
-  },
-  "voice": {
-    "addArgs": []
   },
   "server": {
     "enabled": false,
@@ -64,7 +61,7 @@
     }
   },
   "web": {},
-  "human": {
+  "voice": {
     "enableHotword": false,
     "enableMic": false
   },

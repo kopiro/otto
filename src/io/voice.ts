@@ -1,6 +1,6 @@
-import Events from "events";
+import { EventEmitter } from "events";
 import config from "../config";
-import { IODriverRuntime, IODriverOutput } from "../stdlib/iomanager";
+import { IODriverRuntime, IODriverOutput, IODriverEventMap, IODriverId } from "../stdlib/io-manager";
 import { chunkArray, timeout } from "../helpers";
 import { Fulfillment } from "../types";
 import { etcDir } from "../paths";
@@ -12,16 +12,18 @@ import { Porcupine } from "@picovoice/porcupine-node";
 import { Platform, getPlatform } from "../stdlib/platform";
 // @ts-ignore
 import recorder from "node-record-lpcm16";
-import { getVoiceFileFromFulfillment, getVoiceFileFromMixedContent } from "../stdlib/voice";
-import { Session, TSession } from "../data/session";
+import { getVoiceFileFromFulfillment, getVoiceFileFromMixedContent } from "../stdlib/voice-helpers";
+import { IOChannel, TIOChannel } from "../data/io-channel";
 import Pumpify from "pumpify";
+import TypedEmitter from "typed-emitter";
 
-const TAG = "IO.Human";
+const TAG = "IO.Voice";
 const logger = new Signale({
   scope: TAG,
 });
 
-const DRIVER_ID = "human";
+export type IODataVoice = null;
+export type IOBagVoice = null;
 
 const MIC_PLATFORM_TO_BINARY: Record<Platform, string> = {
   pi: "arecord",
@@ -34,16 +36,19 @@ const HOTWORD_SILENCE_MAX_SEC = 3;
 
 const MIC_CHANNELS = 1;
 
-type HumanConfig = {
+type VoiceConfig = {
   enableHotword: boolean;
   enableMic: boolean;
 };
 
-export class Human implements IODriverRuntime {
-  conf: HumanConfig;
-  emitter: Events.EventEmitter = new Events.EventEmitter();
+export class Voice implements IODriverRuntime {
+  driverId: IODriverId = "voice";
 
-  currentSpokenFulfillment: Fulfillment | null | undefined;
+  emitter = new EventEmitter() as TypedEmitter<IODriverEventMap>;
+
+  conf: VoiceConfig;
+
+  currentSpokenFulfillment: Fulfillment | undefined;
 
   recognizeStream: Pumpify | null | undefined;
 
@@ -56,7 +61,7 @@ export class Human implements IODriverRuntime {
    * Constructor
    * @param config
    */
-  constructor(config: HumanConfig) {
+  constructor(config: VoiceConfig) {
     this.conf = config;
   }
 
@@ -72,13 +77,13 @@ export class Human implements IODriverRuntime {
    * Create and assign the SR stream by attaching
    * the microphone input to GCP-SR stream
    */
-  startRecognition(session: TSession) {
+  startRecognition(ioChannel: TIOChannel) {
     logger.debug("Recognizing microphone stream");
 
     // Close any previous stream
     this.destroyRecognizer();
 
-    const recognizeStream = SpeechRecognizer.getInstance().createRecognizeStream(session.getLanguage(), (err, text) => {
+    const recognizeStream = SpeechRecognizer.getInstance().createRecognizeStream(config().language, (err, text) => {
       this.recognizeStream = null;
 
       // If erred, emit an error and exit
@@ -87,22 +92,12 @@ export class Human implements IODriverRuntime {
           return;
         }
 
-        this.emitter.emit("input", {
-          session,
-          error: {
-            message: err.message,
-          },
-        });
+        this.emitter.emit("error", err.message, ioChannel, null);
         return;
       }
 
       // Otherwise, emit an INPUT message with the recognized text
-      this.emitter.emit("input", {
-        session,
-        params: {
-          text,
-        },
-      });
+      this.emitter.emit("input", { text }, ioChannel, null, null);
     });
 
     // Every time user speaks, reset the HWS timer to the max
@@ -120,12 +115,8 @@ export class Human implements IODriverRuntime {
     this.emitter.emit("recognizing");
   }
 
-  /**
-   * Register the global session used by this driver
-   */
-  async registerInternalSession() {
-    const session = await Session.findByIOIdentifierOrCreate(DRIVER_ID, "any");
-    return session;
+  async registerInternalIOChannel() {
+    return IOChannel.findByIOIdentifierOrCreate(this.driverId, "any", null, null);
   }
 
   destroyRecognizer() {
@@ -157,7 +148,7 @@ export class Human implements IODriverRuntime {
    * Wake the bot and listen for intents
    */
   async wake() {
-    const session = await this.registerInternalSession();
+    const ioChannel = await this.registerInternalIOChannel();
 
     logger.info("Wake");
     this.emitter.emit("woken");
@@ -171,7 +162,7 @@ export class Human implements IODriverRuntime {
     this.hotwordSilenceSec = HOTWORD_SILENCE_MAX_SEC;
 
     // Recreate the SRR-stream
-    this.startRecognition(session);
+    this.startRecognition(ioChannel);
   }
 
   /**
@@ -225,16 +216,10 @@ export class Human implements IODriverRuntime {
     });
   }
 
-  async actualOutput(fulfillment: Fulfillment, session: TSession): Promise<IODriverOutput> {
+  async actualOutput(fulfillment: Fulfillment): Promise<IODriverOutput> {
     const results: IODriverOutput = [];
 
     this.hotwordSilenceSec = -1; // Temporary disable timer variables
-
-    // Inform observers
-    this.emitter.emit("output", {
-      session,
-      fulfillment,
-    });
 
     if (this.recorder) {
       this.recorder.pause();
@@ -243,7 +228,7 @@ export class Human implements IODriverRuntime {
     // Process a text if we do not find a audio
     try {
       if (fulfillment.text) {
-        const file = await getVoiceFileFromFulfillment(fulfillment, session);
+        const file = await getVoiceFileFromFulfillment(fulfillment, config().language);
         await Speaker.getInstance().play(file);
       }
     } catch (err) {
@@ -273,7 +258,7 @@ export class Human implements IODriverRuntime {
   /**
    * Process the item in the output queue
    */
-  async output(fulfillment: Fulfillment, session: TSession): Promise<IODriverOutput> {
+  async output(fulfillment: Fulfillment): Promise<IODriverOutput> {
     let results: IODriverOutput = [];
 
     // If we have a current processed item, let's wait until it's null
@@ -287,7 +272,7 @@ export class Human implements IODriverRuntime {
     this.currentSpokenFulfillment = fulfillment;
 
     try {
-      const result = await this.actualOutput(fulfillment, session);
+      const result = await this.actualOutput(fulfillment);
       results = results.concat(result);
     } finally {
       this.currentSpokenFulfillment = null;
@@ -297,11 +282,11 @@ export class Human implements IODriverRuntime {
   }
 
   /**
-   * Start the session
+   * Start the ioChannel
    */
   async start() {
-    const session = await this.registerInternalSession();
-    logger.debug(`Started with Session`, session);
+    const ioChannel = await this.registerInternalIOChannel();
+    logger.debug(`Internal Voice session`, ioChannel);
 
     this.emitter.on("wake", this.wake.bind(this));
     this.emitter.on("stop", this.stop.bind(this));
@@ -326,8 +311,8 @@ export class Human implements IODriverRuntime {
   }
 }
 
-let _instance: Human;
-export default (): Human => {
-  _instance = _instance || new Human(config().human);
+let _instance: Voice;
+export default (): Voice => {
+  _instance = _instance || new Voice(config().voice);
   return _instance;
 };

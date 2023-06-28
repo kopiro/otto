@@ -27,7 +27,7 @@ RUN apk add --no-cache imagemagick graphicsmagick
 RUN npm install -g pnpm
 
 # Install node modules
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json .eslintrc jest.config.js .prettierrc ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json .eslintrc .prettierrc ./
 RUN pnpm install
 
 # Install cron

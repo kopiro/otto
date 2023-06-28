@@ -8,7 +8,8 @@ import { OpenAIApiSDK } from "../../lib/openai";
 import { AIVectorMemory } from "./ai-vectormemory";
 import { AIFunction } from "./ai-function";
 import { Interaction } from "../../data/interaction";
-import { TSession } from "../../data/session";
+import { TIOChannel } from "../../data/io-channel";
+import { TPerson } from "../../data/person";
 
 type Config = {
   apiKey: string;
@@ -38,28 +39,26 @@ export class AIOpenAI {
     return this.prompt;
   }
 
-  private getCleanSessionName(session: TSession): string {
-    return session
-      .getName()
-      .replace(/[^a-zA-Z0-9_-]/g, "")
-      .substring(0, 64);
+  private cleanName(name: string): string {
+    return name.replace(/[^a-zA-Z0-9_-]/g, "").substring(0, 64);
   }
 
-  private async retrieveInteractions(session: TSession, inputText: string): Promise<ChatCompletionRequestMessage[]> {
-    const sessionName = this.getCleanSessionName(session);
-
+  private async retrieveRecentInteractions(
+    ioChannel: TIOChannel,
+    inputText: string,
+  ): Promise<ChatCompletionRequestMessage[]> {
     // Get all Interaction where we have a input.text or fulfillment.text in the last 20m
     const interactions = await Interaction.find({
       $or: [
         {
           "fulfillment.text": { $ne: null },
-          session: session.id,
+          ioChannel: ioChannel.id,
           reducedAt: { $exists: false },
           createdAt: { $gte: new Date(Date.now() - 20 * 60_000) },
         },
         {
           "input.text": { $ne: null },
-          session: session.id,
+          ioChannel: ioChannel.id,
           reducedAt: { $exists: false },
           createdAt: { $gte: new Date(Date.now() - 20 * 60_000) },
         },
@@ -87,7 +86,7 @@ export class AIOpenAI {
         if (interaction.input?.text) {
           return {
             role: ChatCompletionRequestMessageRoleEnum.User,
-            name: sessionName,
+            name: this.cleanName(interaction.getPersonName()),
             content: interaction.input.text,
           };
         }
@@ -95,26 +94,26 @@ export class AIOpenAI {
       .filter(Boolean) as ChatCompletionRequestMessage[];
   }
 
-  private async getSessionContext(session: TSession | null, context?: InputContext): Promise<string> {
+  private async getContext(ioChannel: TIOChannel, person: TPerson | null, context: InputContext): Promise<string> {
     const contextPrompt = [];
 
     contextPrompt.push("## User");
 
-    // Append session related info
-    if (session) {
-      contextPrompt.push(`You are chatting with ${session.getName()} - ${session.getDriverName()}.`);
-    }
-
-    if (session) {
-      const languageName = new Intl.DisplayNames(["en"], { type: "language" }).of(session.getLanguage());
-      contextPrompt.push(`You MUST reply in ${languageName}.`);
-    }
-
     contextPrompt.push(`Current time is: ${new Date().toLocaleTimeString()}`);
 
+    // Append ioChannel related info
+    if (person) {
+      contextPrompt.push(`You are chatting with ${person.name} - ${ioChannel.getDriverName()}.`);
+
+      const languageName = new Intl.DisplayNames(["en"], { type: "language" }).of(person.language);
+      contextPrompt.push(`You must reply in ${languageName}.`);
+    }
+
     // Append context
-    for (const [key, value] of Object.entries(context)) {
-      contextPrompt.push(`${key}: ${value}`);
+    if (context) {
+      for (const [key, value] of Object.entries(context)) {
+        contextPrompt.push(`${key}: ${value}`);
+      }
     }
 
     return contextPrompt.join("\n");
@@ -138,7 +137,8 @@ export class AIOpenAI {
   async sendMessageToOpenAI(
     openAIMessages: ChatCompletionRequestMessage[],
     inputParams: InputParams,
-    session: TSession | null,
+    ioChannel: TIOChannel,
+    person: TPerson | null,
     text: string,
   ): Promise<Fulfillment> {
     const systemPrompt: string[] = [];
@@ -147,11 +147,11 @@ export class AIOpenAI {
     systemPrompt.push(await this.getPrompt());
 
     systemPrompt.push("# Context");
-    systemPrompt.push(await this.getSessionContext(session, inputParams.context));
+    systemPrompt.push(await this.getContext(ioChannel, person, inputParams.context));
     systemPrompt.push(await this.getMemoryContext(text));
 
     // Add interactions
-    const interactions = session ? await this.retrieveInteractions(session, text) : [];
+    const interactions = await this.retrieveRecentInteractions(ioChannel, text);
 
     // Build messages
     const messages: ChatCompletionRequestMessage[] = [
@@ -165,7 +165,7 @@ export class AIOpenAI {
 
     const request = {
       model: "gpt-3.5-turbo",
-      user: session?.id,
+      user: ioChannel?.id,
       n: 1,
       messages,
       // functions: AIFunction.getInstance().getFunctionDefinitions(),
@@ -188,7 +188,7 @@ export class AIOpenAI {
 
       const functionParams = tryJsonParse<any>(answer.function_call.arguments, {});
 
-      const result = await AIFunction.getInstance().call(functionName, functionParams, inputParams, session);
+      const result = await AIFunction.getInstance().call(functionName, functionParams, inputParams, ioChannel, person);
 
       if (result.functionResult) {
         return this.sendMessageToOpenAI(
@@ -201,7 +201,8 @@ export class AIOpenAI {
             },
           ],
           inputParams,
-          session,
+          ioChannel,
+          person,
           text,
         );
       }
@@ -216,21 +217,24 @@ export class AIOpenAI {
     throw new Error("Invalid response: " + JSON.stringify(answer));
   }
 
-  async getFulfillmentForInput(params: InputParams, session: TSession | null): Promise<Fulfillment> {
+  async getFulfillmentForInput(
+    params: InputParams,
+    ioChannel: TIOChannel,
+    person: TPerson | null,
+  ): Promise<Fulfillment> {
     try {
-      const sessionName = session ? this.getCleanSessionName(session) : undefined;
-
       if (params.text) {
         const result = await this.sendMessageToOpenAI(
           [
             {
-              role: params.role || "user",
+              role: ChatCompletionRequestMessageRoleEnum.User,
               content: params.text,
-              name: sessionName,
+              name: person ? this.cleanName(person.name) : undefined,
             },
           ],
           params,
-          session,
+          ioChannel,
+          person,
           params.text,
         );
         return result;

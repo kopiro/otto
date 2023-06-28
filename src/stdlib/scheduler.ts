@@ -3,7 +3,7 @@ import { Fulfillment } from "../types";
 import { Moment } from "../lib/moment";
 import { Signale } from "signale";
 import { IScheduler, Scheduler, TScheduler } from "../data/scheduler";
-import { TSession } from "../data/session";
+import { TIOChannel } from "../data/io-channel";
 
 const TAG = "Scheduler";
 const logger = new Signale({
@@ -26,17 +26,15 @@ function flatDate(date: moment.Moment) {
   return date.seconds(0).milliseconds(0);
 }
 
-export async function scheduleFulfillment(fulfillment: Fulfillment, session: TSession, date: Date) {
-  const job = new Scheduler({
+export async function scheduleFulfillment(fulfillment: Fulfillment, ioChannel: TIOChannel, date: Date) {
+  return Scheduler.create({
     managerUid: config().uid,
-    session: session.id,
+    ioChannel: ioChannel.id,
     onDateISOString: flatDate(Moment()(date)).toISOString(),
     programName: "output",
     programArgs: { date, fulfillment },
     deleteAfterRun: true,
   });
-  logger.debug("scheduled fulfillment", job);
-  return job.save();
 }
 
 async function getJobs(conditions: Partial<IScheduler>[] = []): Promise<TScheduler[]> {
@@ -78,7 +76,7 @@ async function runJob(job: TScheduler) {
   logger.debug(Date.now(), "running job", {
     programName: job.programName,
     programArgs: job.programArgs,
-    session: job.session,
+    ioChannel: job.ioChannel,
   });
 
   try {
@@ -115,7 +113,7 @@ export async function start() {
 
   started = true;
 
-  logger.info(`Started polling scheduler every ${EVERY_MS}ms`);
+  logger.info(`Scheduler started (every ${EVERY_MS}ms)`);
 
   tick([{ onBoot: true }]);
   setInterval(tick.bind(this), EVERY_MS);

@@ -1,5 +1,5 @@
-import { TSession } from "./data/session";
-import type { IOBag } from "./stdlib/iomanager";
+import { TIOChannel } from "./data/io-channel";
+import type { IOBag } from "./stdlib/io-manager";
 
 export type Language = string;
 export type Gender = "Male" | "Female";
@@ -10,12 +10,11 @@ export type InputSource = "text" | "event" | "command" | "unknown";
 
 export type Fulfillment = {
   text?: string;
-  audio?: string;
   voice?: string;
+  audio?: string;
   video?: string;
   image?: string;
   document?: string;
-  caption?: string;
   functionResult?: string;
   error?: CustomError;
   data?: string;
@@ -33,7 +32,7 @@ export type Fulfillment = {
 
 export type AIRuntimeFunctionArguments<TParams> = {
   inputParams: InputParams;
-  session: TSession;
+  ioChannel: TIOChannel;
   parameters: TParams;
 };
 
@@ -47,8 +46,8 @@ export type InputContext = Record<string, string>;
 
 export type InputParams = {
   text?: string;
+  image?: string;
   command?: string;
   context?: InputContext;
-  role?: "user" | "system";
   bag?: IOBag;
 };
