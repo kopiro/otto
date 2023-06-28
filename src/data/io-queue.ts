@@ -41,7 +41,7 @@ class IIOQueue {
       managerUid: ioChannel.managerUid,
       ioDriver: ioChannel.ioDriver,
       ioChannel: ioChannel.id,
-      person: person.id,
+      person: person?.id,
       fulfillment,
       bag,
       createdAt: new Date(),

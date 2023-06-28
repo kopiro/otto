@@ -114,7 +114,9 @@ export class Web implements IODriverRuntime {
       throw new Error("IO.Web requires a bag with req,res (you can't output directly from another driver)");
     }
 
-    clearTimeout(timeoutTick);
+    if (timeoutTick) {
+      clearTimeout(timeoutTick);
+    }
 
     try {
       if (fulfillment.text) {
@@ -124,13 +126,15 @@ export class Web implements IODriverRuntime {
           fulfillment.voice = voiceFile.getRelativePath();
           if (textToSpeechOp === "redirect") {
             res.redirect(fulfillment.voice);
+            return [["ok_with_redirect", fulfillment.voice]];
             return;
           }
         }
       }
 
-      res.json({ fulfillment });
-      return [["ok", null]];
+      const response = { fulfillment };
+      res.json(response);
+      return [["ok", response]];
     } catch (err) {
       res.json(400).json({ error: { message: err.message } });
       return [["error", err]];
