@@ -288,8 +288,6 @@ export class IOManager {
           await this.startAccessoriesForDriver(driverId, driverRuntime);
 
           this.loadedDrivers[driverId] = driverRuntime;
-
-          logger.debug(`IO.${driverId} started`);
         } catch (err) {
           logger.error(`IO.${driverId} error on startup:`, err.message);
         }

@@ -154,7 +154,7 @@ export function start(): Promise<void> {
         server: "0.0.0.0",
       },
       () => {
-        logger.info(`Server started (on ${conf.protocol}://${conf.domain})`);
+        logger.info(`Started (on ${conf.protocol}://${conf.domain})`);
         resolve();
       },
     );
