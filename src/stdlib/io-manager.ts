@@ -351,11 +351,11 @@ export class IOManager {
     person: TPerson | null,
     bag: IOBag | null,
   ): Promise<OutputResult> {
-    logger.info("input", { params, ioChannel: ioChannel.id, person: person?.id });
+    logger.info("input", params, ioChannel, person);
     const fulfillment = await AIManager.getInstance().getFullfilmentForInput(params, ioChannel, person);
-    logger.info("fulfillment", { fulfillment, ioChannel: ioChannel.id });
+    logger.info("fulfillment", fulfillment);
     const result = await IOManager.getInstance().output(fulfillment, ioChannel, person, bag);
-    logger.info("output result", { result, ioChannel: ioChannel.id });
+    logger.info("result", result, ioChannel);
     return result;
   }
 

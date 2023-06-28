@@ -74,10 +74,12 @@ export class Web implements IODriverRuntime {
     if (!req.body.io_channel) throw new Error("req.body.io_channel is required");
     if (!req.body.person) throw new Error("req.body.person is required");
 
+    // TODO: Use username maybe
     const person = await Person.findByIdOrThrow(req.body.person);
 
     const ioChannel = await IOChannel.findByIOIdentifierOrCreate(
       this.driverId,
+      // TODO: rename this to io_channel_identifier
       req.body.io_channel,
       {
         userAgent: req.headers["user-agent"],
