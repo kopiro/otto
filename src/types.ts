@@ -39,7 +39,12 @@ export type CustomError = {
   message: string;
 };
 
-export type InputContext = Record<string, string>;
+export type InputContext = {
+  current_datetime_utc?: string;
+  user_calendar?: string;
+  user_timezone?: string;
+  user_location?: string;
+};
 
 export type InputParams = {
   text?: string;

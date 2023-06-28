@@ -45,8 +45,6 @@ export class GoogleTextToSpeech implements ITextToSpeech {
       return this.getCachedVoice(config().language);
     }
 
-    logger.debug("Voice", availableVoices[0]);
-
     return availableVoices[0];
   }
 
@@ -56,7 +54,10 @@ export class GoogleTextToSpeech implements ITextToSpeech {
       const voice = await this.getVoice(language);
       this.voices.set(key, voice);
     }
-    return this.voices.get(key);
+
+    const cachedVoice = this.voices.get(key);
+    logger.debug("Voice to be used", cachedVoice);
+    return cachedVoice;
   }
 
   /**

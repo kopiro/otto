@@ -94,32 +94,41 @@ export class AIOpenAI {
       .filter(Boolean) as ChatCompletionRequestMessage[];
   }
 
-  private async getContext(ioChannel: TIOChannel, person: TPerson | null, context: InputContext): Promise<string> {
-    const contextPrompt = [];
-
-    contextPrompt.push("## User");
-
-    contextPrompt.push(`Current time is: ${new Date().toLocaleTimeString()}`);
+  private async getPersonContext(ioChannel: TIOChannel, person: TPerson | null): Promise<string> {
+    const prompt = [];
 
     // Append ioChannel related info
     if (person) {
-      contextPrompt.push(`You are chatting with ${person.name} - ${ioChannel.getDriverName()}.`);
+      prompt.push("## User");
+
+      prompt.push(`You are chatting with ${person.name} - ${ioChannel.getDriverName()}.`);
 
       const languageName = new Intl.DisplayNames(["en"], { type: "language" }).of(person.language);
-      contextPrompt.push(`You must reply in ${languageName}.`);
+      prompt.push(`You must reply in ${languageName}.`);
     }
+
+    return prompt.join("\n");
+  }
+
+  private async getGenericContext(context: InputContext = {}): Promise<string> {
+    const prompt = [];
+
+    prompt.push(`## Context`);
+
+    context.current_datetime_utc = context.current_datetime_utc || new Date().toISOString();
 
     // Append context
-    if (context) {
-      for (const [key, value] of Object.entries(context)) {
-        contextPrompt.push(`${key}: ${value}`);
-      }
+    for (const [key, value] of Object.entries(context)) {
+      const humanKey = key.replace(/_/g, " ");
+      prompt.push(`${humanKey}: ${value}`);
     }
 
-    return contextPrompt.join("\n");
+    return prompt.join("\n");
   }
 
   private async getMemoryContext(text: string): Promise<string> {
+    const prompt = [];
+
     const memory = AIVectorMemory.getInstance();
     const vector = await memory.createEmbedding(text);
 
@@ -128,10 +137,10 @@ export class AIOpenAI {
       memory.searchByVector(vector, "episodic"),
     ]);
 
-    return `
-## Memories:\n${declarativeMemories.join("\n")}
-## Episodes:\n${episodicMemories.join("\n")}
-`;
+    prompt.push(`## Memories: \n${declarativeMemories.join("\n")}`);
+    prompt.push(`## Episodes: \n${episodicMemories.join("\n")}`);
+
+    return prompt.join("\n");
   }
 
   async sendMessageToOpenAI(
@@ -145,9 +154,8 @@ export class AIOpenAI {
 
     // Add brain
     systemPrompt.push(await this.getPrompt());
-
-    systemPrompt.push("# Context");
-    systemPrompt.push(await this.getContext(ioChannel, person, inputParams.context));
+    systemPrompt.push(await this.getGenericContext(inputParams.context));
+    systemPrompt.push(await this.getPersonContext(ioChannel, person));
     systemPrompt.push(await this.getMemoryContext(text));
 
     // Add interactions
