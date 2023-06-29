@@ -45,7 +45,25 @@ class IInteraction {
     if (isDocument(this.person)) {
       return this.person.name;
     }
-    return "Unknown";
+    if (this.input?.role === "system") {
+      return "SYSTEM";
+    }
+    if (this.fulfillment) {
+      return config().aiName.toUpperCase();
+    }
+    return "UNKNOWN";
+  }
+
+  getSourceName(this: TInteraction): string {
+    if (this.fulfillment) {
+      return config().aiName.toUpperCase();
+    } else if (this.input) {
+      if (isDocument(this.person)) {
+        return this.person.name;
+      }
+      return "UNKNOWN";
+    }
+    return "-";
   }
 
   static async createNew(

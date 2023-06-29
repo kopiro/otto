@@ -2,6 +2,12 @@ import path from "path";
 import defaultConfig from "./default-config.json";
 import { readFileSync } from "fs";
 import { keysDir } from "./paths";
+import { Signale } from "signale";
+
+const TAG = "Config";
+const logger = new Signale({
+  scope: TAG,
+});
 
 let instance: object = null;
 
@@ -32,6 +38,7 @@ export default (): TConfig => {
     instance = extendConfig(defaultConfig, baseConfig);
 
     if (process.env.CONFIG_FILE) {
+      logger.info(`Loading runtime config from ${process.env.CONFIG_FILE}`);
       const runtimeConfig = JSON.parse(readFileSync(process.env.CONFIG_FILE, "utf8"));
       instance = extendConfig(instance, runtimeConfig);
     }

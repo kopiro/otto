@@ -85,8 +85,8 @@ export class AIOpenAI {
         }
         if (interaction.input?.text) {
           return {
-            role: ChatCompletionRequestMessageRoleEnum.User,
-            name: this.cleanName(interaction.getPersonName()),
+            role: interaction.input.role || ChatCompletionRequestMessageRoleEnum.User,
+            name: this.cleanName(interaction.getSourceName()),
             content: interaction.input.text,
           };
         }

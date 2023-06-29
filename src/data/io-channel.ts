@@ -76,14 +76,15 @@ export class IIOChannel {
             chatName = `in the channel "${ioData.title}"`;
             break;
           case "private":
-            chatName = "in a private conversation";
+            chatName = `in a private conversation with "${ioData.first_name} ${ioData.last_name}"`;
             break;
         }
         return `via Telegram (${chatName})`;
       }
       case "voice":
-        return "Face to face";
+        return "via face to face";
       case "web":
+        return "via Internet";
       default:
         return "-";
     }

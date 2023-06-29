@@ -6,16 +6,19 @@ import { ChatCompletionRequestMessageRoleEnum } from "openai";
 import fetch from "node-fetch";
 import { Interaction, TInteraction } from "../../data/interaction";
 import { isDocument } from "@typegoose/typegoose";
+import { TIOChannel } from "../../data/io-channel";
 
 const TAG = "VectorMemory";
 const logger = new Signale({
   scope: TAG,
 });
 
+const REDUCED_MAX_CHARS = 300;
+
 type MemoryType = "episodic" | "declarative";
 
-type GroupedInteractionsBySession = Record<string, TInteraction[]>;
-type GroupedInteractionsByDayThenSession = Record<number, GroupedInteractionsBySession>;
+type GroupedInteractionsByIOChannel = Record<string, TInteraction[]>;
+type GroupedInteractionsByDayThenIOChannel = Record<number, GroupedInteractionsByIOChannel>;
 
 type QdrantPayload = {
   text: string;
@@ -59,18 +62,14 @@ export class AIVectorMemory {
     return QDrantSDK().deleteCollection(collection);
   }
 
-  private async getInteractionsGroupedByDayThenSession(): Promise<GroupedInteractionsByDayThenSession> {
+  private async getInteractionsGroupedByDayThenIOChannel(): Promise<GroupedInteractionsByDayThenIOChannel> {
     const unreducedInteractions = await Interaction.find({
       managerUid: config().uid,
       reducedAt: { $exists: false },
-      $or: [
-        { "fulfillment.text": { $exists: true }, source: "text" },
-        { "fulfillment.text": { $exists: true }, source: "audio" },
-        { "input.text": { $exists: true } },
-      ],
+      $or: [{ "fulfillment.text": { $exists: true } }, { "input.text": { $exists: true } }],
     }).sort({ createdAt: +1 });
 
-    const groupedInteractionsByDayThenSession = unreducedInteractions.reduce((acc, interaction) => {
+    return unreducedInteractions.reduce((acc, interaction) => {
       if (isDocument(interaction.ioChannel)) {
         const day = Math.floor(interaction.createdAt.getTime() / (1000 * 60 * 60 * 24));
         acc[day] = acc[day] || {};
@@ -78,9 +77,7 @@ export class AIVectorMemory {
         acc[day][interaction.ioChannel.id].push(interaction);
       }
       return acc;
-    }, {} as GroupedInteractionsByDayThenSession);
-
-    return groupedInteractionsByDayThenSession;
+    }, {} as GroupedInteractionsByDayThenIOChannel);
   }
 
   async createEmbedding(text: string) {
@@ -149,54 +146,70 @@ export class AIVectorMemory {
     );
   }
 
-  private async reduceInteractionsOfTheDay(
-    forDate: Date,
-    groupedInteractions: GroupedInteractionsBySession,
-  ): Promise<string> {
-    const { aiName } = config();
-    const interactionsText = [];
+  private async reduceText(forDate: Date, ioChannel: TIOChannel, text: string) {
+    const promptToReduce =
+      `The following is a conversation where ${config().aiName} is involved.\n` +
+      `They have happened on date ${forDate.toDateString()} - ${ioChannel.getDriverName()}.\n` +
+      `Please reduce them to a single sentence in third person.\n` +
+      `Strictly keep the output short of maximum ${REDUCED_MAX_CHARS} characters.\n` +
+      `If the informations don't fit in the limit, discard some informations.\n` +
+      `Include the date of the conversations in the output.` +
+      `Example: ${config().aiName} went to the park with their friends."\n\n` +
+      "## CONVERSATION:\n" +
+      text;
 
-    for (const [_, interactions] of Object.entries(groupedInteractions)) {
-      const ioChannel = interactions[0].ioChannel;
-      if (!isDocument(ioChannel)) {
-        logger.error("Unable to continue without a ioChannel");
-        continue;
-      }
-
-      interactionsText.push(`Conversation ${ioChannel.getDriverName()}`);
-
-      for (const interaction of interactions) {
-        const time = interaction.createdAt.toLocaleTimeString();
-
-        if (interaction.fulfillment?.text) {
-          interactionsText.push(`${aiName} (${time}): ${interaction.fulfillment.text}`);
-        }
-        if (interaction.input?.text) {
-          interactionsText.push(`${interaction.getPersonName()} (${time}): ${interaction.input.text}`);
-        }
-      }
-
-      interactionsText.push("\n");
-    }
-
-    const reducedPrompt =
-      `I have the following interactions, happening on ${forDate.toDateString()}, please reduce them to a single sentence` +
-      `Keep it short and compact, only keep necessary informations.` +
-      `Include the date of the conversations in the output.\n\n` +
-      interactionsText.join("\n");
-
-    logger.debug("Reduced prompt:\n", reducedPrompt);
+    logger.debug("Reducer prompt:\n", promptToReduce);
 
     const reducedMemory = await OpenAIApiSDK().createChatCompletion({
       model: "gpt-3.5-turbo",
       messages: [
         {
           role: ChatCompletionRequestMessageRoleEnum.System,
-          content: reducedPrompt,
+          content: promptToReduce,
         },
       ],
     });
     return reducedMemory.data.choices[0].message.content;
+  }
+
+  private async reduceInteractions(forDate: Date, gInteractions: GroupedInteractionsByIOChannel) {
+    for (const interactions of Object.values(gInteractions)) {
+      try {
+        const ioChannel = interactions[0].ioChannel;
+        if (!isDocument(ioChannel)) {
+          logger.error("Unable to continue without a ioChannel");
+          continue;
+        }
+
+        const interactionsText = [];
+        const interactionIds = [];
+
+        for (const interaction of interactions) {
+          interactionIds.push(interaction.id);
+
+          const time = interaction.createdAt.toLocaleTimeString();
+          const sourceName = interaction.getSourceName();
+
+          if (interaction.fulfillment?.text) {
+            interactionsText.push(`${sourceName} (${time}): ${interaction.fulfillment.text}`);
+          }
+          if (interaction.input?.text) {
+            interactionsText.push(`${sourceName} (${time}): ${interaction.input.text}`);
+          }
+        }
+
+        const reducedText = await this.reduceText(forDate, ioChannel, interactionsText.join("\n"));
+        logger.info("Reduced text:\n", reducedText);
+
+        await this.save(reducedText, forDate, "episodic");
+        logger.info("Saved into memory");
+
+        await this.markInteractionsAsReduced(interactionIds);
+        logger.info(`Marked ${interactionIds.length} interactions as reduced (${interactionIds.join(",")}))`);
+      } catch (err) {
+        logger.error("Error reducing interactions", err.message);
+      }
+    }
   }
 
   /**
@@ -208,33 +221,13 @@ export class AIVectorMemory {
   async createEpisodicMemory() {
     await this.createQdrantCollection("episodic");
 
-    const interactions = await this.getInteractionsGroupedByDayThenSession();
-    logger.info("Found " + Object.keys(interactions).length + " total days to reduce");
+    const interactions = await this.getInteractionsGroupedByDayThenIOChannel();
+    logger.info("Found " + Object.keys(interactions).length + " total days to reduce: ", Object.keys(interactions));
 
     for (const day in interactions) {
-      try {
-        const forDate = new Date(Number(day) * 1000 * 60 * 60 * 24);
-        logger.info(`Reducing interactions for Date: ${forDate.toDateString()}`);
-
-        // Extract all interactions IDs
-        const allInteractionIds = Object.values(interactions[day]).reduce<string[]>((acc, interactions) => {
-          interactions.forEach((interaction) => acc.push(interaction.id));
-          return acc;
-        }, []);
-
-        logger.info(`Found ${allInteractionIds.length} interactions to reduce`);
-        const reducedInteractionText = await this.reduceInteractionsOfTheDay(forDate, interactions[day]);
-
-        logger.debug("Reduced text:\n", reducedInteractionText);
-
-        await this.save(reducedInteractionText, forDate, "episodic");
-        logger.info("Saved into memory");
-
-        await this.markInteractionsAsReduced(allInteractionIds);
-        logger.info(`Marked ${allInteractionIds.length} interactions as reduced`);
-      } catch (err) {
-        logger.error(`Error reducing interactions`, err);
-      }
+      const forDate = new Date(Number(day) * 1000 * 60 * 60 * 24);
+      logger.info(`Reducing interactions for Date: ${forDate.toDateString()}`);
+      await this.reduceInteractions(forDate, interactions[day]);
     }
   }
 
