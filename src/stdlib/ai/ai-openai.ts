@@ -235,7 +235,7 @@ export class AIOpenAI {
         const result = await this.sendMessageToOpenAI(
           [
             {
-              role: ChatCompletionRequestMessageRoleEnum.User,
+              role: params.role || ChatCompletionRequestMessageRoleEnum.User,
               content: params.text,
               name: person ? this.cleanName(person.name) : undefined,
             },

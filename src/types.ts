@@ -48,6 +48,7 @@ export type InputContext = {
 
 export type InputParams = {
   text?: string;
+  role?: "system" | "user" | "assistant";
   image?: string;
   command?: string;
   context?: InputContext;
