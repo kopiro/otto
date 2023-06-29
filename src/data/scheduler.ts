@@ -22,19 +22,19 @@ export class IScheduler {
   public programArgs!: Record<string, any>;
 
   @prop()
-  public yearly?: string; // set "dayofyear hour:minute"
+  public yearly?: string; // set "dayofyear hour:minute:second"
 
   @prop()
-  public monthly?: string; // set "dayofmonth hour:minute"
+  public monthly?: string; // set "dayofmonth hour:minute:second"
 
   @prop()
-  public weekly?: string; // set "dayofweek hour:minute"
+  public weekly?: string; // set "dayofweek hour:minute:second"
 
   @prop()
-  public daily?: string; // set "hour:minute"
+  public daily?: string; // set "hour:minute:second"
 
   @prop()
-  public hourly?: string; // set minute
+  public hourly?: string; // set minute:second
 
   @prop()
   public minutely?: string; // set second

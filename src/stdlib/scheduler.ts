@@ -40,7 +40,7 @@ export async function scheduleFulfillment(fulfillment: Fulfillment, ioChannel: T
 async function getJobs(conditions: Partial<IScheduler>[] = []): Promise<TScheduler[]> {
   const time = flatDate(Moment()());
 
-  const debugFormat = `DDD D d HH mm ss m`;
+  const debugFormat = `DDD/D/d HH:mm:ss`;
   logger.debug(`Get Jobs: ${debugFormat}`, time.format(debugFormat));
 
   const query = [
@@ -50,9 +50,9 @@ async function getJobs(conditions: Partial<IScheduler>[] = []): Promise<TSchedul
     { daily: time.format("HH:mm:ss") },
     { hourly: time.format("mm:ss") },
     { minutely: time.format("ss") },
-    { everyHalfHour: +time.format("m") % 30 === 0 },
-    { everyQuartelyHour: +time.format("m") % 15 === 0 },
-    { everyFiveMinutes: +time.format("m") % 5 === 0 },
+    { everyHalfHour: +time.format("mm") % 30 === 0 },
+    { everyQuartelyHour: +time.format("mm") % 15 === 0 },
+    { everyFiveMinutes: +time.format("mm") % 5 === 0 },
     { onDate: time.format(FORMAT) },
     { onDateISOString: time.toISOString() },
     { onTick: true },
