@@ -39,6 +39,10 @@ export async function scheduleFulfillment(fulfillment: Fulfillment, ioChannel: T
 
 async function getJobs(conditions: Partial<IScheduler>[] = []): Promise<TScheduler[]> {
   const time = flatDate(Moment()());
+
+  const debugFormat = `DDD D d HH mm ss m`;
+  logger.debug(`Get Jobs: ${debugFormat}`, time.format(debugFormat));
+
   const query = [
     { yearly: time.format("DDD HH:mm:ss") },
     { monthly: time.format("D HH:mm:ss") },
