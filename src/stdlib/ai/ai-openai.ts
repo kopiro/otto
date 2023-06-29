@@ -105,6 +105,8 @@ export class AIOpenAI {
 
       const languageName = new Intl.DisplayNames(["en"], { type: "language" }).of(person.language);
       prompt.push(`You must reply in ${languageName}.`);
+    } else {
+      prompt.push(`You are chatting ${ioChannel.getDriverName()}.`);
     }
 
     return prompt.join("\n");
