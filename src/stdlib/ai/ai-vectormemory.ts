@@ -180,7 +180,9 @@ export class AIVectorMemory {
     }
 
     const reducedPrompt =
-      `I have the following interactions, happening on ${forDate.toDateString()}, please reduce them to a single sentence. Only keep necessary informations. Include the date of the conversations in the output.\n\n` +
+      `I have the following interactions, happening on ${forDate.toDateString()}, please reduce them to a single sentence` +
+      `Keep it short and compact, only keep necessary informations.` +
+      `Include the date of the conversations in the output.\n\n` +
       interactionsText.join("\n");
 
     logger.debug("Reduced prompt:\n", reducedPrompt);

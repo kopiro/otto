@@ -154,14 +154,22 @@ export class AIOpenAI {
   ): Promise<Fulfillment> {
     const systemPrompt: string[] = [];
 
-    // Add brain
-    systemPrompt.push(await this.getPrompt());
-    systemPrompt.push(await this.getGenericContext(inputParams.context));
-    systemPrompt.push(await this.getPersonContext(ioChannel, person));
-    systemPrompt.push(await this.getMemoryContext(text));
+    const [prompt, genericContext, personContext, memoryContext, interactions] = await Promise.all([
+      this.getPrompt(),
+      this.getGenericContext(inputParams.context),
+      this.getPersonContext(ioChannel, person),
+      this.getMemoryContext(text),
+      this.retrieveRecentInteractions(ioChannel, text),
+    ]);
 
-    // Add interactions
-    const interactions = await this.retrieveRecentInteractions(ioChannel, text);
+    logger.info("Generic Context", genericContext);
+    logger.info("Person Context", personContext);
+    logger.info("Memory Context", memoryContext);
+
+    systemPrompt.push(prompt);
+    systemPrompt.push(genericContext);
+    systemPrompt.push(personContext);
+    systemPrompt.push(memoryContext);
 
     // Build messages
     const messages: ChatCompletionRequestMessage[] = [
