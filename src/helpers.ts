@@ -4,7 +4,7 @@ import config from "./config";
 import { Translator } from "./stdlib/translator";
 import { cacheDir, logsDir } from "./paths";
 import { Authorizations, Language } from "./types";
-import crypto from "crypto";
+import crypto, { createHash } from "crypto";
 import { File } from "./stdlib/file";
 
 import { Signale } from "signale";
@@ -110,6 +110,10 @@ export function tryJsonParse<T>(value: string | undefined, defaultValue: T): T {
     logger.debug(`Unable to parse JSON <${value}>, returning default value <${defaultValue}>`);
     return defaultValue;
   }
+}
+
+export function md5(value: string): string {
+  return createHash("md5").update(value).digest("hex");
 }
 
 export function isJsonString(str: string): boolean {

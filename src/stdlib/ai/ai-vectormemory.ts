@@ -6,8 +6,10 @@ import { ChatCompletionRequestMessageRoleEnum } from "openai";
 import fetch from "node-fetch";
 import { Interaction, TInteraction } from "../../data/interaction";
 import { isDocument } from "@typegoose/typegoose";
-import { IIOChannel, TIOChannel } from "../../data/io-channel";
-import { MemoryEpisode, TMemoryEpisode } from "../../data/memory-episode";
+import { TIOChannel } from "../../data/io-channel";
+import { getFacebookFeed } from "../../lib/facebook";
+import { md5 } from "../../helpers";
+import uuidByString from "uuid-by-string";
 
 const TAG = "VectorMemory";
 const logger = new Signale({
@@ -15,6 +17,7 @@ const logger = new Signale({
 });
 
 const REDUCED_MAX_CHARS = 300;
+const SEARCH_LIMIT = 10;
 
 export enum MemoryType {
   "episodic" = "episodic",
@@ -25,6 +28,7 @@ type GroupedInteractionsByIOChannel = Record<string, TInteraction[]>;
 type GroupedInteractionsByDayThenIOChannel = Record<number, GroupedInteractionsByIOChannel>;
 
 type QdrantPayload = {
+  id: string;
   text: string;
   date: string;
 };
@@ -46,19 +50,14 @@ export class AIVectorMemory {
       return;
     }
 
-    return QDrantSDK().createCollection(collection, {
+    await QDrantSDK().createCollection(collection, {
       vectors: {
         size: 1536, // this is text-embedding-ada-002 vector size
         distance: "Cosine",
       },
-      quantization_config: {
-        scalar: {
-          type: "int8",
-          quantile: 0.99,
-          always_ram: false,
-        },
-      },
     });
+
+    return true;
   }
 
   async deleteQdrantCollection(collection: MemoryType) {
@@ -93,60 +92,59 @@ export class AIVectorMemory {
     return data.data[0].embedding;
   }
 
-  async searchByText(text: string, memoryType: MemoryType): Promise<string[]> {
+  async searchByText(text: string, memoryType: MemoryType, limit: number = SEARCH_LIMIT): Promise<string[]> {
     const vector = await this.createEmbedding(text);
-    return this.searchByVector(vector, memoryType);
+    return this.searchByVector(vector, memoryType, limit);
   }
 
-  async searchByVector(vector: number[], memoryType: MemoryType): Promise<string[]> {
+  async searchByVector(vector: number[], memoryType: MemoryType, limit: number = SEARCH_LIMIT): Promise<string[]> {
     const data = await QDrantSDK().search(memoryType, {
       vector: vector,
       with_payload: true,
       with_vector: false,
-      limit: 5,
-      params: {
-        quantization: {
-          ignore: false,
-          rescore: true,
-        },
-      },
+      limit,
     });
+
+    logger.debug(`Search by vector in ${memoryType} memory`, data);
 
     return data.map((e) => (e.payload as QdrantPayload).text as string);
   }
 
-  private async saveMemoryInQdrant(text: string, date: Date, memoryType: MemoryType): Promise<boolean> {
-    // Split the text into sentences by splitting lines
-    const sentences = text
+  private chunkText(text: string): string[] {
+    return text
       .split("\n")
       .map((e) => e.trim())
       .filter((e) => e.length > 0)
       .filter((e) => !e.startsWith("//"));
+  }
 
-    const vectors = await Promise.all(sentences.map((sentence) => this.createEmbedding(sentence)));
+  private async saveMemoriesInQdrant(payloads: QdrantPayload[], memoryType: MemoryType): Promise<boolean> {
+    const vectors = await Promise.all(payloads.map(({ text }) => this.createEmbedding(text)));
+
+    logger.info("Saving payloads in Qdrant", payloads);
 
     const operation = await QDrantSDK().upsert(memoryType, {
       wait: true,
       batch: {
-        ids: sentences.map((_, i) => i),
-        vectors: vectors.map((e) => e),
-        payloads: sentences.map(
-          (e) =>
-            ({
-              text: e,
-              date: date.toISOString(),
-            } as QdrantPayload),
-        ),
+        ids: payloads.map(({ id }) => id),
+        vectors: vectors,
+        // Remove ids
+        payloads: payloads.map((e) => {
+          const { id, ...payload } = e;
+          return payload;
+        }),
       },
     });
+
+    logger.info("Operation:", operation);
 
     return operation.status === "completed";
   }
 
-  private async markInteractionsAsReduced(interactionsIds: string[], memoryEpisode: TMemoryEpisode): Promise<void> {
+  private async markInteractionsAsReduced(interactionsIds: string[], identifier: string): Promise<void> {
     await Interaction.updateMany(
       { _id: { $in: interactionsIds } },
-      { $set: { reducedTo: memoryEpisode.id } },
+      { $set: { reducedTo: identifier } },
       { multi: true },
     );
   }
@@ -193,6 +191,7 @@ export class AIVectorMemory {
           continue;
         }
 
+        const interactionIdentifier = `${ioChannel.id}_${date.toISOString()}`;
         const interactionsText = [];
         const interactionIds = [];
 
@@ -213,20 +212,17 @@ export class AIVectorMemory {
         const reducedText = await this.reduceText(date, ioChannel, interactionsText.join("\n"));
         logger.debug("Reduced text: ", reducedText);
 
-        await this.saveMemoryInQdrant(reducedText, date, MemoryType.episodic);
+        const payloads: QdrantPayload[] = this.chunkText(reducedText).map((text) => ({
+          id: uuidByString(text),
+          text,
+          date: date.toISOString(),
+        }));
+
+        await this.saveMemoriesInQdrant(payloads, MemoryType.episodic);
         logger.info("Saved into memory");
 
-        // Save it in the database (as whole text)
-        const memoryEpisode = await MemoryEpisode.create({
-          managerUid: config().uid,
-          text: reducedText,
-          date,
-          ioChannel,
-          createdAt: new Date(),
-        });
-
-        await this.markInteractionsAsReduced(interactionIds, memoryEpisode);
-        logger.info(`Marked ${interactionIds.length} interactions as reduced to <${memoryEpisode.id}>`);
+        await this.markInteractionsAsReduced(interactionIds, interactionIdentifier);
+        logger.info(`Marked ${interactionIds.length} interactions as reduced to <${interactionIdentifier}>`);
       } catch (err) {
         logger.error("Error reducing interactions", err.message);
       }
@@ -257,10 +253,62 @@ export class AIVectorMemory {
   async createDeclarativeMemory(): Promise<void> {
     await this.createQdrantCollection(MemoryType.declarative);
 
-    const declarativeMemory = await (await fetch(config().openai.declarativeMemoryUrl)).text();
-    logger.info("Declarative memory", declarativeMemory);
+    try {
+      logger.info("Fetching Memory by URL");
 
-    await this.saveMemoryInQdrant(declarativeMemory, new Date(), MemoryType.declarative);
-    logger.info("Saved declarative memory");
+      const declarativeMemory = await (await fetch(config().openai.declarativeMemoryUrl)).text();
+      logger.info("Declarative memory", declarativeMemory);
+
+      const payloads: QdrantPayload[] = this.chunkText(declarativeMemory).map((text) => ({
+        id: uuidByString(`declarative_${text}`),
+        text,
+        date: "",
+      }));
+
+      await this.saveMemoriesInQdrant(payloads, MemoryType.declarative);
+      logger.info("Saved declarative memory");
+    } catch (err) {
+      logger.error(err);
+    }
+
+    try {
+      logger.info("Fetching Memory by Facebook Page");
+      const facebookFeed = await getFacebookFeed();
+
+      const payloads: QdrantPayload[] = facebookFeed.data
+        .map((item) => {
+          const date = new Date(item.created_time);
+          const text = [];
+          if (!item.message) {
+            return;
+          }
+
+          text.push(
+            `On ${date.toISOString()}, ${config().aiName} posted a picture on Facebook/Instagram: "${item.message}"`,
+          );
+          if (item.permalink_url) {
+            text.push(`(Link: ${item.permalink_url})`);
+          }
+          if (item.place) {
+            text.push(`(Location: ${item.place.name} (${item.place.location.city}, ${item.place.location.country})})`);
+          }
+
+          // Remove any hashtags
+          let fText = text.join(" ");
+          fText = fText.replace(/#[a-zA-Z0-9]+/g, ""); // Remove #hashtags
+          fText = fText.replace(/\n/g, "");
+
+          return {
+            id: uuidByString(`facebook_${item.id}`),
+            text: fText,
+            date: new Date(item.created_time).toISOString(),
+          };
+        })
+        .filter(Boolean);
+
+      await this.saveMemoriesInQdrant(payloads, MemoryType.declarative);
+    } catch (err) {
+      logger.error(err);
+    }
   }
 }

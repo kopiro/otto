@@ -20,7 +20,7 @@ const logger = new Signale({
 });
 
 export type IODriverId = "telegram" | "voice" | "web";
-export type IOAccessoryId = "gpio_button" | "leds";
+export type IOAccessoryId = "gpio-button" | "leds";
 export type IOBag = IOBagTelegram | IOBagWeb | IOBagVoice;
 export type IOData = IODataTelegram | IODataWeb | IODataVoice;
 
@@ -120,8 +120,8 @@ export class IOManager {
     driver: IODriverRuntime,
   ): Promise<IOAccessoryModule> {
     switch (accessoryName) {
-      case "gpio_button":
-        return new (await import("../io_accessories/gpio_button")).default(driver);
+      case "gpio-button":
+        return new (await import("../io_accessories/gpio-button")).default(driver);
       case "leds":
         return new (await import("../io_accessories/leds")).default(driver);
       default:
@@ -354,7 +354,7 @@ export class IOManager {
   ): Promise<OutputResult> {
     const inputId = randomUUID();
 
-    logger.info(`(${inputId}) Input:`, params, { ioChannelId: ioChannel?.id, personId: person?.id, bag });
+    logger.debug(`(${inputId}) Input:`, params, { ioChannelId: ioChannel?.id, personId: person?.id, bag });
 
     Interaction.createNew(
       {
@@ -367,7 +367,7 @@ export class IOManager {
 
     const fulfillment = await AIManager.getInstance().getFullfilmentForInput(params, ioChannel, person);
 
-    logger.info(`(${inputId}) Fulfillment: `, fulfillment);
+    logger.debug(`(${inputId}) Fulfillment: `, fulfillment);
 
     Interaction.createNew(
       {
@@ -380,7 +380,7 @@ export class IOManager {
 
     const result = await IOManager.getInstance().output(fulfillment, ioChannel, person, bag);
 
-    logger.info(`(${inputId}) Result`, result);
+    logger.debug(`(${inputId}) Result`, result);
 
     return result;
   }

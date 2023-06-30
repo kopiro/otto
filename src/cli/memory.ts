@@ -1,7 +1,6 @@
 import { warmup } from "../boot";
 import config from "../config";
 import { Interaction } from "../data/interaction";
-import { MemoryEpisode } from "../data/memory-episode";
 
 import { AIVectorMemory, MemoryType } from "../stdlib/ai/ai-vectormemory";
 import { Signale } from "signale";
@@ -31,8 +30,6 @@ warmup()
 
     if (process.env.MEMORY_TYPE.includes(MemoryType.episodic)) {
       if (process.env.ERASE) {
-        logger.info("Erasing Memory Episodes");
-        await MemoryEpisode.deleteMany({});
         logger.info("Erasing Interactions.reducedTo field");
         await Interaction.updateMany({ managerUid: config().uid }, { $unset: { reducedTo: null } }, { multi: true });
         await memory.deleteQdrantCollection(MemoryType.episodic);

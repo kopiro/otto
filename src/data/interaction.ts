@@ -13,7 +13,6 @@ import { IIOChannel, TIOChannel } from "./io-channel";
 import autopopulate from "mongoose-autopopulate";
 import config from "../config";
 import { IPerson, TPerson } from "./person";
-import { IMemoryEpisode } from "./memory-episode";
 
 @modelOptions({ schemaOptions: { collection: "interactions" } })
 @plugin(autopopulate)
@@ -27,8 +26,8 @@ export class IInteraction {
   @prop({ autopopulate: { maxDepth: 1 }, ref: () => IPerson })
   public person?: Ref<IPerson>;
 
-  @prop({ ref: () => IMemoryEpisode })
-  public reducedTo?: Ref<IMemoryEpisode>;
+  @prop({ required: false })
+  public reducedTo?: string;
 
   @prop({ required: true })
   public createdAt!: Date;

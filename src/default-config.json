@@ -2,6 +2,7 @@
   "uid": "",
   "aiName": "",
   "env": "development",
+  "cleanEnvironment": false,
   "centralNode": false,
   "speechRecognizerDriver": "google",
   "textToSpeechDriver": "google",
@@ -54,6 +55,11 @@
   "qdrant": {
     "url": ""
   },
+  "facebook": {
+    "appId": "",
+    "accessToken": "",
+    "pageId": ""
+  },
   "telegram": {
     "token": "",
     "options": {
@@ -72,7 +78,7 @@
       "bucket": null
     }
   },
-  "gpio_button": {
+  "gpioButton": {
     "pin": 16
   },
   "porcupine": {

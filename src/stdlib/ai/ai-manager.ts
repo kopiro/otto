@@ -1,5 +1,5 @@
 import config from "../../config";
-import { Fulfillment, InputParams } from "../../types";
+import { Fulfillment, InputParams, Language } from "../../types";
 import Events from "events";
 import { Translator } from "../translator";
 import { Signale } from "signale";
@@ -27,11 +27,7 @@ export class AIManager {
   /**
    * Transform a Fulfillment by making some edits based on the current ioChannel settings
    */
-  async fulfillmentFinalizer(
-    fulfillment: Fulfillment,
-    ioChannel: TIOChannel,
-    person: TPerson | null,
-  ): Promise<Fulfillment> {
+  async fulfillmentFinalizer(fulfillment: Fulfillment, language: Language): Promise<Fulfillment> {
     fulfillment.runtime = fulfillment.runtime || {};
     fulfillment.options = fulfillment.options || {};
 
@@ -44,7 +40,7 @@ export class AIManager {
 
     // Always translate fulfillment speech in the user language
     if (fulfillment.text && translatePolicy !== "never") {
-      const { translateTo = person.language } = fulfillment.options || {};
+      const { translateTo = language } = fulfillment.options || {};
       if (translatePolicy === "always" || (translatePolicy === "when_necessary" && config().language !== translateTo)) {
         try {
           fulfillment.text = await Translator.getInstance().translate(fulfillment.text, translateTo);
@@ -88,7 +84,7 @@ export class AIManager {
       throw new Error("Fulfillment is null");
     }
 
-    const finalFulfillment = await this.fulfillmentFinalizer(fulfillment, ioChannel, person);
+    const finalFulfillment = await this.fulfillmentFinalizer(fulfillment, person?.language);
     return finalFulfillment;
   }
 }
