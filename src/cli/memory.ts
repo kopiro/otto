@@ -25,7 +25,14 @@ warmup()
       if (process.env.ERASE) {
         await memory.deleteQdrantCollection(MemoryType.declarative);
       }
-      await memory.createDeclarativeMemory();
+      await memory.buildDeclarativeMemory();
+    }
+
+    if (process.env.MEMORY_TYPE.includes(MemoryType.social)) {
+      if (process.env.ERASE) {
+        await memory.deleteQdrantCollection(MemoryType.social);
+      }
+      await memory.buildSocialMemory();
     }
 
     if (process.env.MEMORY_TYPE.includes(MemoryType.episodic)) {
@@ -34,7 +41,7 @@ warmup()
         await Interaction.updateMany({ managerUid: config().uid }, { $unset: { reducedTo: null } }, { multi: true });
         await memory.deleteQdrantCollection(MemoryType.episodic);
       }
-      await memory.createEpisodicMemory();
+      await memory.buildEpisodicMemory();
     }
 
     logger.info("Done");

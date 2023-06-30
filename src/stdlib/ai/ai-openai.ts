@@ -21,6 +21,8 @@ const logger = new Signale({
   scope: TAG,
 });
 
+const INTERACTION_LIMIT = 20;
+
 export class AIOpenAI {
   private prompt!: string;
 
@@ -63,9 +65,12 @@ export class AIOpenAI {
           createdAt: { $gte: new Date(Date.now() - 20 * 60_000) },
         },
       ],
-    }).sort({ createdAt: +1 });
+    })
+      .sort({ createdAt: -1 })
+      .limit(INTERACTION_LIMIT);
 
     return interactions
+      .reverse()
       .map((interaction, i) => {
         if (i === interactions.length - 1) {
           if (
@@ -99,10 +104,8 @@ export class AIOpenAI {
 
     // Append ioChannel related info
     if (person) {
-      prompt.push("## User Context");
-
+      prompt.push("## User Context\n");
       prompt.push(`You are chatting with ${person.name} - ${ioChannel.getDriverName()}.`);
-
       const languageName = new Intl.DisplayNames(["en"], { type: "language" }).of(person.language);
       prompt.push(`You must reply in ${languageName}.`);
     } else {
@@ -115,7 +118,7 @@ export class AIOpenAI {
   private async getGenericContext(context: InputContext = {}): Promise<string> {
     const prompt = [];
 
-    prompt.push(`## Generic Context`);
+    prompt.push(`## Generic Context\n`);
 
     context.current_datetime_utc = context.current_datetime_utc || new Date().toISOString();
 
@@ -128,22 +131,23 @@ export class AIOpenAI {
     return prompt.join("\n");
   }
 
-  private async getMemoryContext(text: string): Promise<string> {
+  private async getVectorialMemory(text: string): Promise<string> {
     const prompt = [];
 
     const memory = AIVectorMemory.getInstance();
     const vector = await memory.createEmbedding(text);
 
-    const [declarativeMemories, episodicMemories] = await Promise.all([
-      memory.searchByVector(vector, MemoryType.declarative),
-      memory.searchByVector(vector, MemoryType.episodic),
+    const [declarativeMemories, episodicMemories, socialMemories] = await Promise.all([
+      memory.searchByVector(vector, MemoryType.declarative, 20),
+      memory.searchByVector(vector, MemoryType.episodic, 10),
+      memory.searchByVector(vector, MemoryType.social, 5),
     ]);
 
-    prompt.push(`## Memory Context: \n${declarativeMemories.join("\n")}`);
+    prompt.push(`## Memory Context\n\n` + declarativeMemories.join("\n"));
+    prompt.push(`## Social Context\n\n` + socialMemories.join("\n"));
+    prompt.push(`## Episodes Context\n\n` + episodicMemories.join("\n"));
 
-    prompt.push(`## Episode Context: \n${episodicMemories.join("\n")}`);
-
-    return prompt.join("\n");
+    return prompt.join("\n\n");
   }
 
   async sendMessageToOpenAI(
@@ -159,7 +163,7 @@ export class AIOpenAI {
       this.getPrompt(),
       this.getGenericContext(inputParams.context),
       this.getPersonContext(ioChannel, person),
-      this.getMemoryContext(text),
+      this.getVectorialMemory(text),
       this.retrieveRecentInteractions(ioChannel, text),
     ]);
 
@@ -172,7 +176,7 @@ export class AIOpenAI {
     const messages: ChatCompletionRequestMessage[] = [
       {
         role: ChatCompletionRequestMessageRoleEnum.System,
-        content: systemPrompt.join("\n"),
+        content: systemPrompt.join("\n\n"),
       },
       ...interactions,
       ...openAIMessages,

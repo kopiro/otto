@@ -1,5 +1,5 @@
 {
-  "name": "otto-ai",
+  "name": "otto",
   "version": "3.0.0",
   "description": "Simple AI for Otto",
   "engine": ">=13",
@@ -21,7 +21,8 @@
     "docker:run": "docker run -it kopiro/otto",
     "docker:deploy": "pnpm run build:docker && docker push kopiro/otto",
     "ai:memory": "ts-node ./src/cli/memory.ts",
-    "ai:sleep": "MEMORY_TYPE=episodic pnpm run ai:memory"
+    "ai:sleep": "MEMORY_TYPE=episodic pnpm run ai:memory",
+    "ai:social": "MEMORY_TYPE=social pnpm run ai:memory"
   },
   "os": [
     "darwin",
@@ -29,13 +30,13 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/kopiro/otto-ai.git"
+    "url": "git+https://github.com/kopiro/otto.git"
   },
   "author": "Flavio De Stefano <destefano.flavio@gmail.com>",
   "license": "MIT",
-  "homepage": "https://github.com/kopiro/otto-ai#readme",
+  "homepage": "https://github.com/kopiro/otto#readme",
   "bugs": {
-    "url": "https://github.com/kopiro/otto-ai/issues"
+    "url": "https://github.com/kopiro/otto/issues"
   },
   "dependencies": {
     "@google-cloud/dialogflow": "^4.7.0",
