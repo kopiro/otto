@@ -1,40 +1,59 @@
 <!DOCTYPE html>
 <html>
+  <head>
+    <meta charset="utf8" />
+    <title>Otto - Web Client</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
 
-<head>
-  <meta charset="utf8" />
-  <title>Otto Web Client</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="/style.css" />
-</head>
+  <body>
+    <img id="logo" src="/image.png" alt="Otto" />
 
-<body>
-  <form id="conversation">
-    <h3>Conversation</h3>
-    <input name="text" type="text" />
-    <button type="submit">Send</button>
-    <button id="record-start">Record</button>
-    <button id="record-stop" disabled>Stop</button>
-  </form>
+    <div id="messages"></div>
 
-  <form id="repeat">
-    <h3>Repeat</h3>
-    <input name="text" type="text" />
-    <button type="submit">Send</button>
-  </form>
+    <form id="conversation">
+      <input name="text" type="text" />
+      <button type="submit">Send</button>
+      <button id="record-start">Record</button>
+      <button id="record-stop" disabled>Stop</button>
+    </form>
 
-  <textarea readonly id="response"></textarea>
-  <audio controls></audio>
+    <div class="options">
+      <div class="option">
+        <label for="person">Person ID</label>
+        <input type="text" id="person" />
+      </div>
+      <div class="option">
+        <label for="text-to-speech">AI TTS</label>
+        <input type="checkbox" id="text-to-speech" />
+      </div>
+      <div class="option">
+        <label for="user-text-to-speech">User TTS</label>
+        <input type="checkbox" id="user-text-to-speech" />
+      </div>
+      <div class="option">
+        <label for="user-gender">User Gender</label>
+        <select id="user-gender">
+          <option selected value="male">Male</option>
+          <option value="female">Female</option>
+        </select>
+      </div>
+    </div>
 
-  <hr />
+    <hr />
 
-  <label>IOChannel</label>
-  <input type="text" id="io_channel" value="" />
+    <form id="repeat">
+      <label>Repeat</label>
+      <input name="text" type="text" />
+      <button type="submit">Send</button>
+    </form>
 
-  <label>Person</label>
-  <input type="text" id="person" value="" />
+    <hr />
 
-  <script async defer src="./build/bundle.js"></script>
-</body>
+    <audio id="ai-audio" controls></audio>
+    <audio id="user-audio" controls></audio>
 
+    <script async defer src="./build/bundle.js"></script>
+  </body>
 </html>

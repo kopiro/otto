@@ -2,7 +2,7 @@ import { TIOChannel } from "./data/io-channel";
 import type { IOBag } from "./stdlib/io-manager";
 
 export type Language = string;
-export type Gender = "Male" | "Female";
+export type Gender = "male" | "female";
 
 export type Authorizations = "admin" | "camera" | "command";
 

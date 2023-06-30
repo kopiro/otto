@@ -5,58 +5,85 @@ declare let webkitAudioContext: any; // ADDED
 const formConversation = document.querySelector("#conversation") as HTMLFormElement;
 const formRepeat = document.querySelector("#repeat") as HTMLFormElement;
 
-const inputIOChannel = document.querySelector("#io_channel") as HTMLInputElement;
 const inputPerson = document.querySelector("#person") as HTMLInputElement;
+const inputTextToSpeechOutput = document.querySelector("#text-to-speech") as HTMLInputElement;
 
-const audio = document.querySelector("audio") as HTMLAudioElement;
-const responseTextarea = document.getElementById("response") as HTMLTextAreaElement;
+const inputUserTextToSpeech = document.querySelector("#user-text-to-speech") as HTMLInputElement;
+const inputGender = document.querySelector("#user-gender") as HTMLInputElement;
+
+const aiAudio = document.querySelector("#ai-audio") as HTMLAudioElement;
+const userAudio = document.querySelector("#user-audio") as HTMLAudioElement;
+
+const messages = document.getElementById("messages") as HTMLDivElement;
 const recordStartBtn = document.getElementById("record-start");
 const recordStopBtn = document.getElementById("record-stop");
 
-async function textToSpeech(text: string) {
-  audio.src = "";
-  audio.volume = 0;
-  audio.play();
+async function userTextToSpeech(text: string, gender: string) {
+  userAudio.src = "";
+  userAudio.volume = 0;
+  userAudio.play();
+
+  const url = new URL("/api/user-speech", location.href);
+  url.search = new URLSearchParams({ text, gender, person: inputPerson.value }).toString();
+
+  userAudio.src = url.toString();
+
+  userAudio.volume = 1;
+  userAudio.play();
+}
+
+async function aiTextToSpeech(text: string) {
+  aiAudio.src = "";
+  aiAudio.volume = 0;
+  aiAudio.play();
 
   const url = new URL("/api/speech", location.href);
-  url.search = new URLSearchParams({ text, language: navigator.language }).toString();
+  url.search = new URLSearchParams({ text, person: inputPerson.value }).toString();
 
-  responseTextarea.value = text;
+  aiAudio.src = url.toString();
 
-  audio.src = url.toString();
+  aiAudio.volume = 1;
+  aiAudio.play();
+}
 
-  audio.volume = 1;
-  audio.play();
+function addMessage(text: string, className: string) {
+  const div = document.createElement("div");
+  div.className = `message ${className}`;
+  div.textContent = text;
+  messages.appendChild(div);
+
+  // Scroll down the chat
+  messages.scrollTop = messages.scrollHeight;
 }
 
 async function sendData(body) {
-  audio.src = "";
-  audio.volume = 0;
-  audio.play();
+  try {
+    const response = await fetch("/io/web", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: body,
+    });
 
-  const response = await fetch("/io/web", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-    },
-    body: body,
-  });
+    const json = await response.json();
 
-  const json = await response.json();
+    const { fulfillment, error, voice } = json;
 
-  if (json.error) {
-    responseTextarea.style.color = "red";
-    responseTextarea.value = json.error?.message ?? JSON.stringify(json);
-  } else {
-    responseTextarea.style.color = "white";
-    if (json.text) {
-      responseTextarea.value = json.text;
+    if (error) {
+      addMessage(error.message, "fulfillment error");
+      return;
     }
-    if (json.audio) {
-      audio.src = json.audio;
-      audio.volume = 1;
-      audio.play();
+
+    addMessage(fulfillment.text, "fulfillment");
+
+    if (voice) {
+      aiAudio.src = voice;
+      aiAudio.volume = 1;
+      aiAudio.play();
     }
+  } catch (err) {
+    console.error(err);
   }
 }
 
@@ -66,7 +93,7 @@ formRepeat.addEventListener("submit", (e) => {
   const textInputEl = formRepeat.querySelector("input[type=text]") as HTMLInputElement;
   if (!textInputEl.value) return;
 
-  textToSpeech(textInputEl.value);
+  aiTextToSpeech(textInputEl.value);
 
   textInputEl.value = "";
 });
@@ -74,14 +101,24 @@ formRepeat.addEventListener("submit", (e) => {
 formConversation.addEventListener("submit", (e) => {
   e.preventDefault();
 
+  aiAudio.src = "";
+  aiAudio.volume = 0;
+  aiAudio.play();
+
   const textInputEl = formConversation.querySelector("input[type=text]") as HTMLInputElement;
   if (!textInputEl.value) return;
+
+  addMessage(textInputEl.value, "input");
+
+  if (inputUserTextToSpeech.checked) {
+    userTextToSpeech(textInputEl.value, inputGender.value);
+  }
 
   sendData(
     JSON.stringify({
       params: { text: textInputEl.value },
-      io_channel: inputIOChannel.value,
       person: inputPerson.value,
+      text_to_speech: inputTextToSpeechOutput.checked,
     }),
   );
 
@@ -110,4 +147,9 @@ recordStopBtn.addEventListener("click", async () => {
   fd.append("audio", blob);
 
   sendData(fd);
+});
+
+inputPerson.value = localStorage.getItem("person") || "";
+inputPerson.addEventListener("change", () => {
+  localStorage.setItem("person", inputPerson.value);
 });

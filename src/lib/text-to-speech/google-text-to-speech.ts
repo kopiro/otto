@@ -1,5 +1,5 @@
 import config from "../../config";
-import { Language } from "../../types";
+import { Gender, Language } from "../../types";
 import { google } from "@google-cloud/text-to-speech/build/protos/protos";
 import { v1beta1 } from "@google-cloud/text-to-speech";
 import { TextToSpeechClient } from "@google-cloud/text-to-speech/build/src/v1beta1";
@@ -36,22 +36,22 @@ export class GoogleTextToSpeech implements ITextToSpeech {
     );
   }
 
-  private async getVoice(language: Language) {
+  private async getVoice(language: Language, gender: Gender) {
     const [response] = await this.client.listVoices({ languageCode: language });
-    const availableVoices = response.voices?.filter((voice) => voice.ssmlGender === this.conf.gender.toUpperCase());
+    const availableVoices = response.voices?.filter((voice) => voice.ssmlGender === gender.toUpperCase());
 
     if (!availableVoices?.[0]) {
-      logger.warn(`The language <${language}> is not available, using ${config().language} instead`);
-      return this.getCachedVoice(config().language);
+      logger.warn(`The language <${language}> is not available, using default voice`);
+      return this.getCachedVoice("en-US", "female");
     }
 
     return availableVoices[0];
   }
 
-  private async getCachedVoice(language: Language) {
-    const key = language;
+  private async getCachedVoice(language: Language, gender: Gender) {
+    const key = JSON.stringify({ language, gender });
     if (!this.voices.has(key)) {
-      const voice = await this.getVoice(language);
+      const voice = await this.getVoice(language, gender);
       this.voices.set(key, voice);
     }
 
@@ -63,11 +63,11 @@ export class GoogleTextToSpeech implements ITextToSpeech {
   /**
    * Download the audio file for that sentence and options
    */
-  async getAudio(text: string, language: Language) {
+  async getAudio(text: string, language: Language, gender: Gender) {
     const cleanText = this.cleanText(text);
 
     // Find the voice title by options
-    const voice = await this.getCachedVoice(language);
+    const voice = await this.getCachedVoice(language, gender);
 
     // Call the API
     const [{ audioContent }] = await this.client.synthesizeSpeech({
@@ -89,8 +89,8 @@ export class GoogleTextToSpeech implements ITextToSpeech {
     return audioContent;
   }
 
-  async getAudioFile(text: string, language: Language): Promise<File> {
-    const data = await this.getAudio(text, language);
+  async getAudioFile(text: string, language: Language, gender: Gender): Promise<File> {
+    const data = await this.getAudio(text, language, gender);
     if (!data) {
       throw new Error("Failed to get audio file");
     }

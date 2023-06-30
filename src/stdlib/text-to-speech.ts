@@ -1,10 +1,10 @@
 import config from "../config";
 import { GoogleTextToSpeech } from "../lib/text-to-speech/google-text-to-speech";
-import { Language } from "../types";
+import { Gender, Language } from "../types";
 import { File } from "./file";
 
 export interface ITextToSpeech {
-  getAudioFile(text: string, language: Language): Promise<File>;
+  getAudioFile(text: string, language: Language, gender: Gender): Promise<File>;
 }
 
 export class TextToSpeech {

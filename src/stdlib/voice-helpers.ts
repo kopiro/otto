@@ -5,7 +5,7 @@ import * as Proc from "./proc";
 import { File } from "./file";
 
 import { Signale } from "signale";
-import { Fulfillment, Language } from "../types";
+import { Gender, Language } from "../types";
 import { TextToSpeech } from "./text-to-speech";
 import { Translator } from "./translator";
 
@@ -39,6 +39,7 @@ export async function getVoiceFileFromText(text: string, fallbackLanguage?: Lang
   const audioFile = await TextToSpeech.getInstance().getAudioFile(
     text,
     textLanguage || fallbackLanguage || config().language,
+    config().tts.gender as Gender,
   );
 
   return getVoiceFileFromMixedContent(audioFile);

@@ -3,15 +3,17 @@
 }
 
 body {
-  padding: 16px;
   margin: 0;
-  color: #fff;
-  background: #000;
   width: 100%;
-  height: 100%;
-  display: block;
-  overflow-x: hidden;
+  padding: 1em;
+  font-size: 14px;
   font-family: -apple-system, system-ui, BlinkMacSystemFont, sans-serif;
+}
+
+#logo {
+  width: 200px;
+  margin: 0 auto;
+  display: block;
 }
 
 h1,
@@ -21,54 +23,408 @@ h3 {
 }
 
 hr {
-  margin: 2em 0;
+  margin: 1em 0;
+  height: 1px;
+  display: block;
+  border: none;
+  background-color: #ddd;
+}
+
+.options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1em;
+  margin-bottom: 1em;
+}
+
+.option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2em 1em;
+  gap: 0.5em;
+  border: 1px solid #ddd;
+  border-radius: 0.5em;
+}
+a* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  width: 100%;
+  padding: 1em;
+  font-size: 14px;
+  font-family: -apple-system, system-ui, BlinkMacSystemFont, sans-serif;
+}
+
+#logo {
+  width: 200px;
+  margin: 0 auto;
+  display: block;
+}
+
+h1,
+h2,
+h3 {
+  margin-bottom: 0.5em;
+}
+
+hr {
+  margin: 1em 0;
+  height: 1px;
+  display: block;
+  border: none;
+  background-color: #ddd;
+}
+
+.options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1em;
+  margin-bottom: 1em;
+}
+
+.option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1em;
+  gap: 0.5em;
+  border: 1px solid #ddd;
+  border-radius: 0.5em;
+}
+
+#messages {
+  display: flex;
+  border: 1px solid #c4c4c4;
+  height: 30em;
+  margin-bottom: 10px;
+  overflow-y: scroll;
+  flex-direction: column;
+  padding: 1em;
+  gap: 1em 0;
+}
+
+#messages ::-webkit-scrollbar {
+  width: 3px;
+  height: 1px;
+  transition: all 0.5s;
+  z-index: 10;
+}
+#messages ::-webkit-scrollbar-track {
+  background-color: white;
+}
+#messages ::-webkit-scrollbar-thumb {
+  background-color: #bec4c8;
+  border-radius: 3px;
+}
+
+/* animate the bubble with a smooth transition from top 2px */
+@keyframes slidein {
+  from {
+    margin-top: 8px;
+    opacity: 0;
+  }
+  to {
+    margin-top: 0px;
+    opacity: 1;
+  }
+}
+
+.message {
+  padding: 0.3em;
+  width: auto;
+  position: relative;
+  padding: 10px 20px;
+  border-radius: 25px;
+  clear: both;
+  max-width: 50%;
+  word-wrap: break-word;
+  animation-duration: 0.4s;
+  animation-name: slidein;
+}
+
+.message.error {
+  color: red !important;
+  font-weight: bold;
+}
+
+.message.fulfillment {
+  background-color: #e5e5ea;
+  color: black;
+  align-self: flex-start;
+  border-bottom-left-radius: 30px 0px;
+}
+
+.message.fulfillment:before {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  bottom: -2px;
+  left: -7px;
+  height: 19px;
+  border-left: 20px solid #e5e5ea;
+  border-bottom-right-radius: 16px 14px;
+  -webkit-transform: translate(0, -2px);
+  transform: translate(0, -2px);
+  border-bottom-right-radius: 15px 0px;
+  transform: translate(-1px, -2px);
+}
+
+.message.fulfillment:after {
+  content: "";
+  position: absolute;
+  z-index: 3;
+  bottom: -2px;
+  left: 4px;
+  width: 26px;
+  height: 20px;
+  background: white;
+  border-bottom-right-radius: 10px;
+  -webkit-transform: translate(-30px, -2px);
+  transform: translate(-30px, -2px);
+}
+
+.message.input {
+  background-color: #00e34d;
+  color: white;
+  border-bottom-right-radius: 20px 0px;
+  align-self: flex-end;
+}
+
+.message.input:before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  bottom: -2px;
+  right: -8px;
+  height: 19px;
+  border-right: 20px solid #00e34d;
+  border-bottom-left-radius: 16px 14px;
+  -webkit-transform: translate(0, -2px);
+  transform: translate(0, -2px);
+  border-bottom-left-radius: 15px 0px;
+  transform: translate(-1px, -2px);
+}
+
+.message.input:after {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  bottom: -2px;
+  right: -42px;
+  width: 12px;
+  height: 20px;
+  background: white;
+  border-bottom-left-radius: 10px;
+  -webkit-transform: translate(-30px, -2px);
+  transform: translate(-30px, -2px);
 }
 
 input[type="text"] {
-  font-size: 16px;
-  width: 100%;
   height: 2em;
-  display: block;
-  margin-bottom: 1em;
-  background-color: rgba(255, 255, 255, 0.1);
-  border: 1px solid #444;
-  color: #fff;
   padding: 0.2em;
 }
 
-label {
-  display: block;
-  margin-bottom: 4px;
-}
-
-#response {
-  display: block;
-  width: 100%;
-  max-width: 100%;
-  min-width: 100%;
-  margin-top: 2em;
-  height: 80px;
-  background-color: rgba(255, 255, 255, 0.1);
-  color: #fff;
-  border: none;
-  height: 3em;
-  min-height: 3em;
-  max-height: 3em;
-  font-family: -apple-system, system-ui, BlinkMacSystemFont, sans-serif;
-  font-size: 16px;
-}
-
 button {
-  background-color: #333;
-  border-radius: 3px;
-  border: 1px solid #ddd;
-  color: #fff;
-  font-size: 0.8em;
-  padding: 0.2em 1em;
+  padding: 0.2em;
+  height: 2em;
+}
+
+#conversation,
+#repeat {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  vertical-align: middle;
+  margin-bottom: 1em;
+}
+
+#conversation input[type="text"],
+#repeat input[type="text"] {
+  flex-grow: 1;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+label {
+  font-weight: bold;
+}
+
+table td {
+  padding: 0.5em;
 }
 
 audio {
-  margin-top: 1em;
+  width: 100%;
+  height: 30px;
+}
+
+#messages {
+  display: flex;
+  border: 1px solid #444;
+  height: 30em;
+  margin-bottom: 10px;
+  overflow-y: scroll;
+  flex-direction: column;
+  padding: 1em;
+  gap: 1em 0;
+}
+
+#messages ::-webkit-scrollbar {
+  width: 3px;
+  height: 1px;
+  transition: all 0.5s;
+  z-index: 10;
+}
+#messages ::-webkit-scrollbar-track {
+  background-color: white;
+}
+#messages ::-webkit-scrollbar-thumb {
+  background-color: #bec4c8;
+  border-radius: 3px;
+}
+
+/* animate the bubble with a smooth transition from top 2px */
+@keyframes slidein {
+  from {
+    margin-top: 8px;
+    opacity: 0;
+  }
+  to {
+    margin-top: 0px;
+    opacity: 1;
+  }
+}
+
+.message {
+  padding: 0.3em;
+  width: auto;
+  position: relative;
+  padding: 10px 20px;
+  border-radius: 25px;
+  clear: both;
+  max-width: 50%;
+  word-wrap: break-word;
+  animation-duration: 0.4s;
+  animation-name: slidein;
+}
+
+.message.error {
+  color: red !important;
+  font-weight: bold;
+}
+
+.message.fulfillment {
+  background-color: #e5e5ea;
+  color: black;
+  align-self: flex-start;
+  border-bottom-left-radius: 30px 0px;
+}
+
+.message.fulfillment:before {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  bottom: -2px;
+  left: -7px;
+  height: 19px;
+  border-left: 20px solid #e5e5ea;
+  border-bottom-right-radius: 16px 14px;
+  -webkit-transform: translate(0, -2px);
+  transform: translate(0, -2px);
+  border-bottom-right-radius: 15px 0px;
+  transform: translate(-1px, -2px);
+}
+
+.message.fulfillment:after {
+  content: "";
+  position: absolute;
+  z-index: 3;
+  bottom: -2px;
+  left: 4px;
+  width: 26px;
+  height: 20px;
+  background: white;
+  border-bottom-right-radius: 10px;
+  -webkit-transform: translate(-30px, -2px);
+  transform: translate(-30px, -2px);
+}
+
+.message.input {
+  background-color: #00e34d;
+  color: white;
+  border-bottom-right-radius: 20px 0px;
+  align-self: flex-end;
+}
+
+.message.input:before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  bottom: -2px;
+  right: -8px;
+  height: 19px;
+  border-right: 20px solid #00e34d;
+  border-bottom-left-radius: 16px 14px;
+  -webkit-transform: translate(0, -2px);
+  transform: translate(0, -2px);
+  border-bottom-left-radius: 15px 0px;
+  transform: translate(-1px, -2px);
+}
+
+.message.input:after {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  bottom: -2px;
+  right: -42px;
+  width: 12px;
+  height: 20px;
+  background: white;
+  border-bottom-left-radius: 10px;
+  -webkit-transform: translate(-30px, -2px);
+  transform: translate(-30px, -2px);
+}
+
+input[type="text"] {
+  height: 2em;
+  padding: 0.2em;
+}
+
+button {
+  padding: 0.2em;
+  height: 2em;
+}
+
+#conversation,
+#repeat {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  vertical-align: middle;
+  margin-bottom: 1em;
+}
+
+#conversation input[type="text"],
+#repeat input[type="text"] {
+  flex-grow: 1;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+label {
+  font-weight: bold;
+}
+
+table td {
+  padding: 0.5em;
+}
+
+audio {
   width: 100%;
   height: 30px;
 }

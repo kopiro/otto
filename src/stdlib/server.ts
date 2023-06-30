@@ -2,7 +2,7 @@ import http from "http";
 import express from "express";
 import config from "../config";
 import { publicDir, tmpDir } from "../paths";
-import { getVoiceFileFromMixedContent } from "./voice-helpers";
+import { getVoiceFileFromText } from "./voice-helpers";
 import { TextToSpeech } from "./text-to-speech";
 import { IOManager } from "./io-manager";
 // @ts-ignore
@@ -10,6 +10,8 @@ import rateLimit from "express-rate-limit";
 import { Signale } from "signale";
 import { IOChannel } from "../data/io-channel";
 import { Person } from "../data/person";
+import { Translator } from "./translator";
+import { Gender } from "../types";
 
 const TAG = "Server";
 const logger = new Signale({
@@ -27,22 +29,43 @@ routerApi.use(express.json());
 routerApi.use(express.urlencoded({ extended: true }));
 
 // API to get an audio
-// GET /api/speech?text=Hello&language=en
+// GET /api/speech?text=Hello
 routerApi.get("/speech", async (req: express.Request, res: express.Response) => {
   try {
     if (!req.query.text) throw new Error("No text provided");
 
-    const audioFile = await TextToSpeech.getInstance().getAudioFile(
-      req.query.text.toString(),
-      req.query.language?.toString() || config().language,
-    );
-    const audioFileMixed = await getVoiceFileFromMixedContent(audioFile);
-    const audioFilePath = audioFileMixed.getRelativePath();
+    if (!req.query.person) throw new Error("PersonID is required");
+    await Person.findByIdOrThrow(req.query.person.toString());
 
-    res.redirect(audioFilePath);
+    const text = req.query.text.toString();
+    const audioFileMixed = await getVoiceFileFromText(text);
+    res.redirect(audioFileMixed.getServerURL());
   } catch (err) {
     return res.status(400).json({
-      error: err,
+      error: err.message,
+    });
+  }
+});
+
+// API to get an audio
+// GET /api/user-speech?text=Hello&gender=female
+routerApi.get("/user-speech", async (req: express.Request, res: express.Response) => {
+  try {
+    if (!req.query.text) throw new Error("No text provided");
+    if (!req.query.gender) throw new Error("No gender provided");
+
+    if (!req.query.person) throw new Error("PersonID is required");
+    await Person.findByIdOrThrow(req.query.person.toString());
+
+    const text = req.query.text.toString();
+    const gender = req.query.gender.toString();
+
+    const language = await Translator.getInstance().detectLanguage(text);
+    const audioFileMixed = await TextToSpeech.getInstance().getAudioFile(text, language, gender as Gender);
+    res.redirect(audioFileMixed.getServerURL());
+  } catch (err) {
+    return res.status(400).json({
+      error: err.message,
     });
   }
 });
