@@ -13,8 +13,9 @@ import { IIOChannel, TIOChannel } from "./io-channel";
 import autopopulate from "mongoose-autopopulate";
 import config from "../config";
 import { IPerson, TPerson } from "./person";
+import mongoose from "mongoose";
 
-@modelOptions({ schemaOptions: { collection: "interactions" } })
+@modelOptions({ schemaOptions: { collection: "interactions" }, options: { allowMixed: 0 } })
 @plugin(autopopulate)
 export class IInteraction {
   @prop({ required: true })
@@ -35,10 +36,10 @@ export class IInteraction {
   @prop({ required: true })
   public inputId?: string;
 
-  @prop()
+  @prop({ required: false, type: mongoose.Schema.Types.Mixed })
   public input?: InputParams;
 
-  @prop()
+  @prop({ required: false, type: mongoose.Schema.Types.Mixed })
   public fulfillment?: Fulfillment;
 
   getPersonName(this: TInteraction): string {

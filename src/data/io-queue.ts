@@ -6,7 +6,7 @@ import { DocumentType, Ref, ReturnModelType, getModelForClass, modelOptions, plu
 import config from "../config";
 import { IPerson, TPerson } from "./person";
 
-@modelOptions({ schemaOptions: { collection: "io_queue" } })
+@modelOptions({ schemaOptions: { collection: "io_queue" }, options: { allowMixed: 0 } })
 @plugin(autopopulate)
 class IIOQueue {
   @prop({ required: true })

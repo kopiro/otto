@@ -5,13 +5,14 @@ import { getModelForClass, Ref, ReturnModelType, DocumentType, prop, modelOption
 import autopopulate from "mongoose-autopopulate";
 import { Signale } from "signale";
 import { IPerson, TPerson } from "./person";
+import mongoose from "mongoose";
 
 const TAG = "IOChannel";
 const logger = new Signale({
   scope: TAG,
 });
 
-@modelOptions({ schemaOptions: { collection: "io_channels" } })
+@modelOptions({ schemaOptions: { collection: "io_channels" }, options: { allowMixed: 0 } })
 @plugin(autopopulate)
 export class IIOChannel {
   @prop({ required: true })
@@ -23,10 +24,10 @@ export class IIOChannel {
   @prop({ required: true })
   public ioIdentifier!: string;
 
-  @prop({ required: false })
+  @prop({ required: false, type: mongoose.Schema.Types.Mixed })
   public ioData!: IOData;
 
-  @prop({ required: false })
+  @prop({ required: false, type: mongoose.Schema.Types.Mixed })
   public options?: any;
 
   /**
@@ -34,14 +35,14 @@ export class IIOChannel {
    * you can use this field directly to refer to the person,
    * but this is not garantueed (example, group chats)
    */
-  @prop({ autopopulate: { maxDepth: 1 }, ref: () => IPerson })
+  @prop({ required: false, autopopulate: { maxDepth: 1 }, ref: () => IPerson })
   public person?: Ref<IPerson>;
 
   /**
    * This property is used to redirect the output of this ioChannel to another ioChannel.
    * This is useful for example if you want to also speak when you're replying to a user.
    */
-  @prop({ ref: () => IIOChannel })
+  @prop({ required: false, ref: () => IIOChannel })
   public redirectFulfillmentTo?: Ref<IIOChannel>[];
 
   /**
@@ -50,13 +51,13 @@ export class IIOChannel {
    * This way, you can simply built a bot that repeats the last input of the user.
    * For example, you can input on Telegram to output to Human.
    */
-  @prop({ ref: () => IIOChannel })
+  @prop({ required: false, ref: () => IIOChannel })
   public mirrorInputToFulfillmentTo?: Ref<IIOChannel>[];
 
   /**
    * If this is true, any input/output operation will be ignored and discarded
    */
-  @prop()
+  @prop({ required: false })
   public doNotDisturb?: boolean;
 
   /**

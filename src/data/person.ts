@@ -4,24 +4,25 @@ import { getModelForClass, Ref, ReturnModelType, DocumentType, prop, modelOption
 import { Signale } from "signale";
 import { IODriverId } from "../stdlib/io-manager";
 import config from "../config";
+import mongoose from "mongoose";
 
 const TAG = "Person";
 const logger = new Signale({
   scope: TAG,
 });
 
-@modelOptions({ schemaOptions: { collection: "persons" } })
+@modelOptions({ schemaOptions: { collection: "persons" }, options: { allowMixed: 0 } })
 export class IPerson {
-  @prop()
+  @prop({ required: true })
   public name!: string;
 
-  @prop()
+  @prop({ required: true })
   public language!: Language;
 
-  @prop({ type: () => [String] })
+  @prop({ required: true, type: [String] })
   public authorizations?: Authorizations[];
 
-  @prop()
+  @prop({ required: true, type: mongoose.Schema.Types.Mixed })
   public ioIdentifiers: Record<IODriverId, string>;
 
   static async findByIdOrThrow(this: ReturnModelType<typeof IPerson>, id: string): Promise<TPerson> {

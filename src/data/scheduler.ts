@@ -3,7 +3,7 @@ import { IIOChannel } from "./io-channel";
 import autopopulate from "mongoose-autopopulate";
 import { IPerson } from "./person";
 
-@modelOptions({ schemaOptions: { collection: "scheduler" } })
+@modelOptions({ schemaOptions: { collection: "scheduler" }, options: { allowMixed: 0 } })
 @plugin(autopopulate)
 export class IScheduler {
   @prop({ autopopulate: { maxDepth: 1 }, ref: () => IIOChannel })
