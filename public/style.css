@@ -99,7 +99,7 @@ hr {
 
 #messages {
   display: flex;
-  border: 1px solid #c4c4c4;
+  border: 1px solid #ddd !important;
   height: 30em;
   margin-bottom: 10px;
   overflow-y: scroll;

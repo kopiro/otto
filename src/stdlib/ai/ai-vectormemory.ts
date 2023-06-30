@@ -105,7 +105,7 @@ export class AIVectorMemory {
       limit,
     });
 
-    logger.debug(`Search by vector in ${memoryType} memory`, data);
+    // logger.debug(`Search by vector in ${memoryType} memory`, data);
 
     return data.map((e) => (e.payload as QdrantPayload).text as string);
   }

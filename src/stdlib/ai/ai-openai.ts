@@ -99,7 +99,7 @@ export class AIOpenAI {
 
     // Append ioChannel related info
     if (person) {
-      prompt.push("## User");
+      prompt.push("## User Context");
 
       prompt.push(`You are chatting with ${person.name} - ${ioChannel.getDriverName()}.`);
 
@@ -115,7 +115,7 @@ export class AIOpenAI {
   private async getGenericContext(context: InputContext = {}): Promise<string> {
     const prompt = [];
 
-    prompt.push(`## Context`);
+    prompt.push(`## Generic Context`);
 
     context.current_datetime_utc = context.current_datetime_utc || new Date().toISOString();
 
@@ -139,8 +139,9 @@ export class AIOpenAI {
       memory.searchByVector(vector, MemoryType.episodic),
     ]);
 
-    prompt.push(`## Memories: \n${declarativeMemories.join("\n")}`);
-    prompt.push(`## Episodes: \n${episodicMemories.join("\n")}`);
+    prompt.push(`## Memory Context: \n${declarativeMemories.join("\n")}`);
+
+    prompt.push(`## Episode Context: \n${episodicMemories.join("\n")}`);
 
     return prompt.join("\n");
   }
@@ -161,10 +162,6 @@ export class AIOpenAI {
       this.getMemoryContext(text),
       this.retrieveRecentInteractions(ioChannel, text),
     ]);
-
-    logger.info("Generic Context", genericContext);
-    logger.info("Person Context", personContext);
-    logger.info("Memory Context", memoryContext);
 
     systemPrompt.push(prompt);
     systemPrompt.push(genericContext);

@@ -354,7 +354,7 @@ export class IOManager {
   ): Promise<OutputResult> {
     const inputId = randomUUID();
 
-    logger.debug(`(${inputId}) Input:`, params, { ioChannelId: ioChannel?.id, personId: person?.id, bag });
+    logger.debug(`(${inputId}) Input:`, params, { ioChannelId: ioChannel?.id, personId: person?.id });
 
     Interaction.createNew(
       {
