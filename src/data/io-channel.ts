@@ -124,7 +124,7 @@ export class IIOChannel {
       ioIdentifier,
     });
 
-    logger.info("New IO Channel registered", ioChannelNew);
+    logger.success("New IO Channel registered", ioChannelNew);
 
     return ioChannelNew;
   }

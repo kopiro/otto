@@ -177,7 +177,7 @@ export function start(): Promise<void> {
         server: "0.0.0.0",
       },
       () => {
-        logger.info(`Started (on ${conf.protocol}://${conf.domain})`);
+        logger.success(`Started (on ${conf.protocol}://${conf.domain})`);
         resolve();
       },
     );

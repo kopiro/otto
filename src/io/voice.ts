@@ -139,7 +139,7 @@ export class Voice implements IODriverRuntime {
    */
   private processHotwordSilence() {
     if (this.hotwordSilenceSec === 0) {
-      logger.info("Timeout exceeded, user should pronunce hotword again");
+      logger.warn("Timeout exceeded, user should pronunce hotword again");
       this.hotwordSilenceSec = -1;
       this.destroyRecognizer();
       return;
@@ -155,7 +155,6 @@ export class Voice implements IODriverRuntime {
    * Wake the bot and listen for intents
    */
   private async wake() {
-    logger.info("Wake");
     this.emitter.emit("woken");
 
     this.stopOutput(); // Stop any previous output
@@ -174,8 +173,6 @@ export class Voice implements IODriverRuntime {
    * Stop the recognizer
    */
   stop() {
-    logger.info("Stop");
-
     this.stopOutput();
     this.hotwordSilenceSec = -1;
 

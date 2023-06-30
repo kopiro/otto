@@ -274,7 +274,7 @@ export class IOManager {
 
   startDrivers() {
     const drivers = this.getDriversToLoad();
-    logger.info("Starting drivers", drivers);
+    logger.pending("Starting drivers", drivers);
 
     return Promise.allSettled(
       drivers.map(async (driverId) => {
@@ -396,7 +396,7 @@ export class IOManager {
       if (!ioQueue?.timeout) {
         throw new Error("ioQueue.timeout is not set");
       }
-      logger.info(`IOQueue processing started (every ${ioQueue.timeout}ms)`);
+      logger.success(`IOQueue processing started (every ${ioQueue.timeout}ms)`);
       setInterval(this.processQueue.bind(this), ioQueue.timeout);
     }
   }

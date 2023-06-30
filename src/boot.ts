@@ -26,7 +26,7 @@ export async function warmup() {
     await Database.connect();
 
     if (config().env === "development" && config().cleanEnvironment) {
-      logger.info("Cleaning database");
+      logger.warn("Cleaning database");
       await Interaction.deleteMany({ managerUid: config().uid });
       await IOChannel.deleteMany({ managerUid: config().uid });
     }

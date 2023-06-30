@@ -8,7 +8,6 @@ import { Interaction, TInteraction } from "../../data/interaction";
 import { isDocument } from "@typegoose/typegoose";
 import { TIOChannel } from "../../data/io-channel";
 import { getFacebookFeed } from "../../lib/facebook";
-import { md5 } from "../../helpers";
 import uuidByString from "uuid-by-string";
 
 const TAG = "VectorMemory";
@@ -47,6 +46,7 @@ export class AIVectorMemory {
 
     const allCollections = await QDrantSDK().getCollections();
     if (allCollections.collections.find((e) => e.name === collection)) {
+      logger.debug("Qdrant collection already exists", collection);
       return;
     }
 
@@ -187,7 +187,7 @@ export class AIVectorMemory {
         }
 
         if (ioChannel.ioDriver === "voice" || ioChannel.ioDriver === "web") {
-          logger.info("Skipping <voice> and <web> interactions");
+          logger.warn("Skipping interaction because it's not supported yet");
           continue;
         }
 
@@ -219,10 +219,10 @@ export class AIVectorMemory {
         }));
 
         await this.saveMemoriesInQdrant(payloads, MemoryType.episodic);
-        logger.info("Saved into memory");
+        logger.success("Saved into memory");
 
         await this.markInteractionsAsReduced(interactionIds, interactionIdentifier);
-        logger.info(`Marked ${interactionIds.length} interactions as reduced to <${interactionIdentifier}>`);
+        logger.success(`Marked ${interactionIds.length} interactions as reduced to <${interactionIdentifier}>`);
       } catch (err) {
         logger.error("Error reducing interactions", err.message);
       }
@@ -254,10 +254,9 @@ export class AIVectorMemory {
     await this.createQdrantCollection(MemoryType.declarative);
 
     try {
-      logger.info("Fetching Memory by URL");
+      logger.pending("Fetching Memory by URL...");
 
       const declarativeMemory = await (await fetch(config().openai.declarativeMemoryUrl)).text();
-      logger.info("Declarative memory", declarativeMemory);
 
       const payloads: QdrantPayload[] = this.chunkText(declarativeMemory).map((text) => ({
         id: uuidByString(`declarative_${text}`),
@@ -266,13 +265,13 @@ export class AIVectorMemory {
       }));
 
       await this.saveMemoriesInQdrant(payloads, MemoryType.declarative);
-      logger.info("Saved declarative memory");
+      logger.success("Saved declarative memory");
     } catch (err) {
       logger.error(err);
     }
 
     try {
-      logger.info("Fetching Memory by Facebook Page");
+      logger.pending("Fetching Memory by Facebook Page...");
       const facebookFeed = await getFacebookFeed();
 
       const payloads: QdrantPayload[] = facebookFeed.data

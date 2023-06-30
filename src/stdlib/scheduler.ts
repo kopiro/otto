@@ -117,7 +117,7 @@ export async function start() {
 
   started = true;
 
-  logger.info(`Started (every ${EVERY_MS}ms)`);
+  logger.success(`Started (every ${EVERY_MS}ms)`);
 
   tick([{ onBoot: true }]);
   setInterval(tick.bind(this), EVERY_MS);

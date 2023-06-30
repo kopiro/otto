@@ -297,7 +297,7 @@ export class Telegram implements IODriverRuntime {
       });
     }
 
-    logger.info(
+    logger.success(
       `Started, botID: ${this.botMe.id}, botUsername: ${this.botMe.username}, polling: ${this.conf.options.polling}`,
     );
   }
