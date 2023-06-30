@@ -1,7 +1,9 @@
 import { warmup } from "../boot";
 import config from "../config";
+import { Interaction } from "../data/interaction";
+import { MemoryEpisode } from "../data/memory-episode";
 
-import { AIVectorMemory } from "../stdlib/ai/ai-vectormemory";
+import { AIVectorMemory, MemoryType } from "../stdlib/ai/ai-vectormemory";
 import { Signale } from "signale";
 
 const TAG = "Memory";
@@ -20,16 +22,20 @@ warmup()
 
     const memory = AIVectorMemory.getInstance();
 
-    if (process.env.MEMORY_TYPE.includes("declarative")) {
+    if (process.env.MEMORY_TYPE.includes(MemoryType.declarative)) {
       if (process.env.ERASE) {
-        await memory.deleteQdrantCollection("declarative");
+        await memory.deleteQdrantCollection(MemoryType.declarative);
       }
       await memory.createDeclarativeMemory();
     }
 
-    if (process.env.MEMORY_TYPE.includes("episodic")) {
+    if (process.env.MEMORY_TYPE.includes(MemoryType.episodic)) {
       if (process.env.ERASE) {
-        await memory.deleteQdrantCollection("episodic");
+        logger.info("Erasing Memory Episodes");
+        await MemoryEpisode.deleteMany({});
+        logger.info("Erasing Interactions.reducedTo field");
+        await Interaction.updateMany({ managerUid: config().uid }, { $unset: { reducedTo: null } }, { multi: true });
+        await memory.deleteQdrantCollection(MemoryType.episodic);
       }
       await memory.createEpisodicMemory();
     }

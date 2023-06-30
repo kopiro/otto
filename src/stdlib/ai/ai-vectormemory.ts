@@ -6,7 +6,8 @@ import { ChatCompletionRequestMessageRoleEnum } from "openai";
 import fetch from "node-fetch";
 import { Interaction, TInteraction } from "../../data/interaction";
 import { isDocument } from "@typegoose/typegoose";
-import { TIOChannel } from "../../data/io-channel";
+import { IIOChannel, TIOChannel } from "../../data/io-channel";
+import { MemoryEpisode, TMemoryEpisode } from "../../data/memory-episode";
 
 const TAG = "VectorMemory";
 const logger = new Signale({
@@ -15,7 +16,10 @@ const logger = new Signale({
 
 const REDUCED_MAX_CHARS = 300;
 
-type MemoryType = "episodic" | "declarative";
+export enum MemoryType {
+  "episodic" = "episodic",
+  "declarative" = "declarative",
+}
 
 type GroupedInteractionsByIOChannel = Record<string, TInteraction[]>;
 type GroupedInteractionsByDayThenIOChannel = Record<number, GroupedInteractionsByIOChannel>;
@@ -63,9 +67,10 @@ export class AIVectorMemory {
   }
 
   private async getInteractionsGroupedByDayThenIOChannel(): Promise<GroupedInteractionsByDayThenIOChannel> {
+    // Get all intereactions which "reducedTo" is not set
     const unreducedInteractions = await Interaction.find({
       managerUid: config().uid,
-      reducedAt: { $exists: false },
+      reducedTo: { $exists: false },
       $or: [{ "fulfillment.text": { $exists: true } }, { "input.text": { $exists: true } }],
     }).sort({ createdAt: +1 });
 
@@ -110,7 +115,7 @@ export class AIVectorMemory {
     return data.map((e) => (e.payload as QdrantPayload).text as string);
   }
 
-  private async save(text: string, date: Date, memoryType: MemoryType): Promise<boolean> {
+  private async saveMemoryInQdrant(text: string, date: Date, memoryType: MemoryType): Promise<boolean> {
     // Split the text into sentences by splitting lines
     const sentences = text
       .split("\n")
@@ -138,27 +143,27 @@ export class AIVectorMemory {
     return operation.status === "completed";
   }
 
-  private async markInteractionsAsReduced(interactionsIds: string[]): Promise<void> {
+  private async markInteractionsAsReduced(interactionsIds: string[], memoryEpisode: TMemoryEpisode): Promise<void> {
     await Interaction.updateMany(
       { _id: { $in: interactionsIds } },
-      { $set: { reducedAt: new Date() } },
+      { $set: { reducedTo: memoryEpisode.id } },
       { multi: true },
     );
   }
 
-  private async reduceText(forDate: Date, ioChannel: TIOChannel, text: string) {
+  private async reduceText(date: Date, ioChannel: TIOChannel, text: string) {
     const promptToReduce =
       `The following is a conversation where ${config().aiName} is involved.\n` +
-      `They have happened on date ${forDate.toDateString()} - ${ioChannel.getDriverName()}.\n` +
+      `They have happened on date ${date.toDateString()} - ${ioChannel.getDriverName()}.\n` +
       `Please reduce them to a single sentence in third person.\n` +
       `Strictly keep the output short of maximum ${REDUCED_MAX_CHARS} characters.\n` +
       `If the informations don't fit in the limit, discard some informations.\n` +
-      `Include the date of the conversations in the output.` +
-      `Example: ${config().aiName} went to the park with their friends."\n\n` +
+      `Include the names, the date and the title of conversations in the output.` +
+      `Example: On 27/02/2023, ${config().aiName} had a chat with USER about holidays in Japan."\n\n` +
       "## CONVERSATION:\n" +
       text;
 
-    logger.debug("Reducer prompt:\n", promptToReduce);
+    // logger.debug("Reducer prompt:\n", promptToReduce);
 
     const reducedMemory = await OpenAIApiSDK().createChatCompletion({
       model: "gpt-3.5-turbo",
@@ -172,12 +177,19 @@ export class AIVectorMemory {
     return reducedMemory.data.choices[0].message.content;
   }
 
-  private async reduceInteractions(forDate: Date, gInteractions: GroupedInteractionsByIOChannel) {
+  private async reduceInteractionsForDate(date: Date, gInteractions: GroupedInteractionsByIOChannel) {
+    logger.info(`Reducing interactions for Date: ${date.toDateString()}`);
+
     for (const interactions of Object.values(gInteractions)) {
       try {
         const ioChannel = interactions[0].ioChannel;
         if (!isDocument(ioChannel)) {
           logger.error("Unable to continue without a ioChannel");
+          continue;
+        }
+
+        if (ioChannel.ioDriver === "voice" || ioChannel.ioDriver === "web") {
+          logger.info("Skipping <voice> and <web> interactions");
           continue;
         }
 
@@ -198,14 +210,23 @@ export class AIVectorMemory {
           }
         }
 
-        const reducedText = await this.reduceText(forDate, ioChannel, interactionsText.join("\n"));
-        logger.info("Reduced text:\n", reducedText);
+        const reducedText = await this.reduceText(date, ioChannel, interactionsText.join("\n"));
+        logger.debug("Reduced text: ", reducedText);
 
-        await this.save(reducedText, forDate, "episodic");
+        await this.saveMemoryInQdrant(reducedText, date, MemoryType.episodic);
         logger.info("Saved into memory");
 
-        await this.markInteractionsAsReduced(interactionIds);
-        logger.info(`Marked ${interactionIds.length} interactions as reduced (${interactionIds.join(",")}))`);
+        // Save it in the database (as whole text)
+        const memoryEpisode = await MemoryEpisode.create({
+          managerUid: config().uid,
+          text: reducedText,
+          date,
+          ioChannel,
+          createdAt: new Date(),
+        });
+
+        await this.markInteractionsAsReduced(interactionIds, memoryEpisode);
+        logger.info(`Marked ${interactionIds.length} interactions as reduced to <${memoryEpisode.id}>`);
       } catch (err) {
         logger.error("Error reducing interactions", err.message);
       }
@@ -219,15 +240,14 @@ export class AIVectorMemory {
    * The interactions are then marked as reduced.
    */
   async createEpisodicMemory() {
-    await this.createQdrantCollection("episodic");
+    await this.createQdrantCollection(MemoryType.episodic);
 
     const interactions = await this.getInteractionsGroupedByDayThenIOChannel();
     logger.info("Found " + Object.keys(interactions).length + " total days to reduce: ", Object.keys(interactions));
 
     for (const day in interactions) {
-      const forDate = new Date(Number(day) * 1000 * 60 * 60 * 24);
-      logger.info(`Reducing interactions for Date: ${forDate.toDateString()}`);
-      await this.reduceInteractions(forDate, interactions[day]);
+      const date = new Date(Number(day) * 1000 * 60 * 60 * 24);
+      await this.reduceInteractionsForDate(date, interactions[day]);
     }
   }
 
@@ -235,12 +255,12 @@ export class AIVectorMemory {
    * The declarative memory is created by getting all informations (documents) from several links and saving them to Qdrant.
    */
   async createDeclarativeMemory(): Promise<void> {
-    await this.createQdrantCollection("declarative");
+    await this.createQdrantCollection(MemoryType.declarative);
 
     const declarativeMemory = await (await fetch(config().openai.declarativeMemoryUrl)).text();
     logger.info("Declarative memory", declarativeMemory);
 
-    await this.save(declarativeMemory, new Date(), "declarative");
+    await this.saveMemoryInQdrant(declarativeMemory, new Date(), MemoryType.declarative);
     logger.info("Saved declarative memory");
   }
 }

@@ -5,7 +5,7 @@ import { Signale } from "signale";
 import { logStacktrace, tryJsonParse } from "../../helpers";
 import fetch from "node-fetch";
 import { OpenAIApiSDK } from "../../lib/openai";
-import { AIVectorMemory } from "./ai-vectormemory";
+import { AIVectorMemory, MemoryType } from "./ai-vectormemory";
 import { AIFunction } from "./ai-function";
 import { Interaction } from "../../data/interaction";
 import { TIOChannel } from "../../data/io-channel";
@@ -53,13 +53,13 @@ export class AIOpenAI {
         {
           "fulfillment.text": { $ne: null },
           ioChannel: ioChannel.id,
-          reducedAt: { $exists: false },
+          reducedTo: { $exists: false },
           createdAt: { $gte: new Date(Date.now() - 20 * 60_000) },
         },
         {
           "input.text": { $ne: null },
           ioChannel: ioChannel.id,
-          reducedAt: { $exists: false },
+          reducedTo: { $exists: false },
           createdAt: { $gte: new Date(Date.now() - 20 * 60_000) },
         },
       ],
@@ -135,8 +135,8 @@ export class AIOpenAI {
     const vector = await memory.createEmbedding(text);
 
     const [declarativeMemories, episodicMemories] = await Promise.all([
-      memory.searchByVector(vector, "declarative"),
-      memory.searchByVector(vector, "episodic"),
+      memory.searchByVector(vector, MemoryType.declarative),
+      memory.searchByVector(vector, MemoryType.episodic),
     ]);
 
     prompt.push(`## Memories: \n${declarativeMemories.join("\n")}`);
