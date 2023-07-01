@@ -10,7 +10,6 @@
     "no-await-in-loop": "off",
     "no-continue": "off",
     "@typescript-eslint/explicit-function-return-type": "off",
-    "unused-imports/no-unused-imports": "error",
     "@typescript-eslint/ban-ts-comment": "off"
   }
 }
