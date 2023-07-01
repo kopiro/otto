@@ -1,4 +1,4 @@
-import { Authorizations, Language } from "../types";
+import { Authorization, Language } from "../types";
 import { getModelForClass, Ref, ReturnModelType, DocumentType, prop, modelOptions } from "@typegoose/typegoose";
 
 import { Signale } from "signale";
@@ -20,7 +20,7 @@ export class IPerson {
   public language!: Language;
 
   @prop({ required: true, type: [String] })
-  public authorizations?: Authorizations[];
+  public authorizations?: Authorization[];
 
   @prop({ required: true, type: mongoose.Schema.Types.Mixed })
   public ioIdentifiers: Record<IODriverId, string>;

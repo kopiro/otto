@@ -25,7 +25,7 @@ export class IInteraction {
   public ioChannel!: Ref<IIOChannel>;
 
   @prop({ autopopulate: { maxDepth: 1 }, ref: () => IPerson })
-  public person?: Ref<IPerson>;
+  public person!: Ref<IPerson>;
 
   @prop({ required: false })
   public reducedTo?: string;
@@ -71,14 +71,14 @@ export class IInteraction {
     this: ReturnModelType<typeof IInteraction>,
     rest: { input: InputParams } | { fulfillment: Fulfillment },
     ioChannel: TIOChannel,
-    person: TPerson | null,
+    person: TPerson,
     inputId: string,
   ) {
     return Interaction.create({
       ...rest,
       managerUid: config().uid,
       ioChannel: ioChannel.id,
-      person: person?.id,
+      person: person.id,
       createdAt: new Date(),
       inputId,
     });

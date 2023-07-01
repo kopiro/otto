@@ -5,7 +5,7 @@ import * as Server from "../stdlib/server";
 import { IODriverRuntime, IODriverMultiOutput, IODriverEventMap, IODriverId } from "../stdlib/io-manager";
 import { getVoiceFileFromText } from "../stdlib/voice-helpers";
 import * as Proc from "../stdlib/proc";
-import { Fulfillment, Language } from "../types";
+import { Authorization, Fulfillment, Language } from "../types";
 import bodyParser from "body-parser";
 import { SpeechRecognizer } from "../stdlib/speech-recognizer";
 import { Signale } from "signale";
@@ -80,13 +80,17 @@ export class Telegram implements IODriverRuntime {
     return text;
   }
 
+  private cleanOutputText(text: string) {
+    return text;
+  }
+
   /**
    * Send a message to the user
    */
   private async sendMessage(chatId: number, text: string, botOpt: TelegramBot.SendMessageOptions = {}) {
-    return this.bot.sendMessage(chatId, text, {
-      ...botOpt,
-      parse_mode: "MarkdownV2",
+    return this.bot.sendMessage(chatId, this.cleanOutputText(text), {
+      ...(botOpt || {}),
+      parse_mode: "HTML",
     });
   }
 
@@ -147,10 +151,11 @@ export class Telegram implements IODriverRuntime {
 
   async onBotInput(e: TelegramBot.Message) {
     const personIdentifier = this.getPersonIdentifier(e);
+    const personName = this.getPersonName(e);
     const person = await Person.findByIOIdentifierOrCreate(
       this.driverId,
       personIdentifier,
-      this.getPersonName(e),
+      personName,
       e.from.language_code,
     );
 
@@ -279,8 +284,10 @@ export class Telegram implements IODriverRuntime {
     });
 
     // Add list of commands
-    await this.bot.setMyCommands(
-      AICommander.getInstance().commandMapping.map((c) => ({ command: c.name, description: c.description })),
+    this.bot.setMyCommands(
+      AICommander.getInstance()
+        .commandMapping.filter((c) => !c.authorizations.includes(Authorization.ADMIN))
+        .map((c) => ({ command: c.name, description: c.description })),
     );
 
     // We could attach the webhook to the Router API or via polling
@@ -304,7 +311,7 @@ export class Telegram implements IODriverRuntime {
   async output(
     f: Fulfillment,
     ioChannel: TIOChannel,
-    person: TPerson | null,
+    person: TPerson,
     bag: IOBagTelegram,
   ): Promise<IODriverMultiOutput> {
     const results: IODriverMultiOutput = [];
@@ -400,7 +407,11 @@ export class Telegram implements IODriverRuntime {
     try {
       if (f.error) {
         this.bot.sendChatAction(chatId, "typing");
-        const r = await this.sendMessage(chatId, f.error.message || "Unknown error", botOpt);
+        const r = await this.sendMessage(
+          chatId,
+          (f.error.message || "Unknown error") + (f.error.data ? `\n\n<pre>${f.error.data}</pre>` : ""),
+          botOpt,
+        );
         results.push(["message", r]);
       }
     } catch (err) {
@@ -411,7 +422,7 @@ export class Telegram implements IODriverRuntime {
     try {
       if (f.data) {
         this.bot.sendChatAction(chatId, "typing");
-        const r = await this.sendMessage(chatId, "```\n" + f.data + "\n```", botOpt);
+        const r = await this.sendMessage(chatId, `<pre>${f.data}</pre>`, botOpt);
         results.push(["data", r]);
       }
     } catch (err) {

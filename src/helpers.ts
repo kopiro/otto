@@ -3,13 +3,18 @@ import path from "path";
 import config from "./config";
 import { Translator } from "./stdlib/translator";
 import { cacheDir, logsDir } from "./paths";
-import { Authorizations, Language } from "./types";
+import { Authorization, IErrorWithData, Language } from "./types";
 import crypto, { createHash } from "crypto";
 import { File } from "./stdlib/file";
 
 import { Signale } from "signale";
 import { writeFile } from "fs/promises";
 import fetch from "node-fetch";
+import { AuthorizationError } from "./errors/authorization-error";
+import { IOManager } from "./stdlib/io-manager";
+import { IOChannel } from "./data/io-channel";
+import { Person } from "./data/person";
+import { ErrorWithData } from "./errors/data-error";
 
 const TAG = "Helpers";
 const logger = new Signale({
@@ -140,21 +145,31 @@ export function ensureError(value: unknown): Error {
 }
 
 export function throwIfMissingAuthorizations(
-  authorizations: Authorizations[] = [],
-  requiredAuthorizations: Authorizations[],
+  authorizations: Authorization[] = [],
+  requiredAuthorizations: Authorization[],
 ): void {
   authorizations = authorizations || [];
   requiredAuthorizations = requiredAuthorizations || [];
 
-  if (authorizations.includes("admin")) {
+  if (authorizations.includes(Authorization.ADMIN)) {
     return;
   }
 
   for (const requiredAuth of requiredAuthorizations) {
     if (!authorizations.includes(requiredAuth)) {
-      throw new Error(`Required authorization "${requiredAuth}" is missing for your account.`);
+      throw new AuthorizationError(requiredAuth);
     }
   }
+}
+
+export async function report(error: ErrorWithData) {
+  logger.fatal(`Reporting`, error);
+
+  const { personId, ioChannelId } = config().reports;
+  const ioChannel = await IOChannel.findByIdOrThrow(ioChannelId);
+  const person = await Person.findByIdOrThrow(personId);
+
+  await IOManager.getInstance().output({ error }, ioChannel, person, null, true);
 }
 
 export async function logStacktrace(fileName: string, response: object) {

@@ -99,12 +99,7 @@ export class Web implements IODriverRuntime {
     }
   }
 
-  async output(
-    f: Fulfillment,
-    ioChannel: TIOChannel,
-    person: TPerson | null,
-    bag: IOBagWeb,
-  ): Promise<IODriverMultiOutput> {
+  async output(f: Fulfillment, ioChannel: TIOChannel, person: TPerson, bag: IOBagWeb): Promise<IODriverMultiOutput> {
     const { req, res, timeoutTick } = bag;
 
     if (!req || !res) {

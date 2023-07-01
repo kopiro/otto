@@ -57,11 +57,7 @@ export class AIManager {
     return fulfillment;
   }
 
-  async getFullfilmentForInput(
-    params: InputParams,
-    ioChannel: TIOChannel,
-    person: TPerson | null,
-  ): Promise<Fulfillment> {
+  async getFullfilmentForInput(params: InputParams, ioChannel: TIOChannel, person: TPerson): Promise<Fulfillment> {
     let fulfillment: Fulfillment | null = null;
 
     try {
@@ -84,7 +80,7 @@ export class AIManager {
       throw new Error("Fulfillment is null");
     }
 
-    const finalFulfillment = await this.fulfillmentFinalizer(fulfillment, person?.language);
+    const finalFulfillment = await this.fulfillmentFinalizer(fulfillment, person.language);
     return finalFulfillment;
   }
 }

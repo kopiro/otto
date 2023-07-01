@@ -1,12 +1,12 @@
 import { AIManager } from "./ai-manager";
-import { Authorizations, Fulfillment, InputParams } from "../../types";
+import { Authorization, Fulfillment, InputParams } from "../../types";
 import { IOManager } from "../io-manager";
 import { throwIfMissingAuthorizations } from "../../helpers";
 import { IOChannel, TIOChannel } from "../../data/io-channel";
 import { Person, TPerson } from "../../data/person";
 import { Database } from "../database";
 
-type CommandFunction = (args: RegExpMatchArray, ioChannel: TIOChannel, person: TPerson | null) => Promise<Fulfillment>;
+type CommandFunction = (args: RegExpMatchArray, ioChannel: TIOChannel, person: TPerson) => Promise<Fulfillment>;
 
 export class AICommander {
   private static instance: AICommander;
@@ -22,49 +22,71 @@ export class AICommander {
     name: string;
     executor: CommandFunction;
     description: string;
-    authorizations: Authorizations[];
+    authorizations: Authorization[];
   }> = [
     {
       matcher: /^\/start/,
       name: "start",
       executor: this.commandStart,
-      description: "Start the bot",
+      description: "/start - Start the bot",
       authorizations: [],
     },
     {
       matcher: /^\/whoami/,
       name: "whoami",
       executor: this.commandWhoami,
-      description: "Get your ioChannel",
+      description: "/whoami - Get informations about you",
       authorizations: [],
     },
     {
-      matcher: /^\/outputtext ([^\s]+) (.+)/,
-      name: "outputtext",
+      matcher: /^\/output_text ([^\s]+) (.+)/,
+      name: "output_text",
       executor: this.commandOutputText,
-      description: "[ioChannel] [text] - Send a text message to a specific ioChannel",
-      authorizations: ["command"],
+      description: "/output_text [io_channel_id] [text] - Send a text message to a specific io_channel_id",
+      authorizations: [Authorization.ADMIN],
     },
     {
       matcher: /^\/input ([^\s]+) ([^\s]+) (.+)/,
       name: "input",
       executor: this.commandInput,
-      description: "[ioChannel] [person] [params_json] - Process an input param for a specific ioChannel and person",
-      authorizations: ["command"],
+      description:
+        "/input [io_channel_id] [person] [params_json] - Process an input param for a specific io_channel_id and person",
+      authorizations: [Authorization.ADMIN],
     },
     {
-      matcher: /^\/query ([^\s]+) (.+)/,
+      matcher: /^\/admin_help/,
       name: "input",
-      executor: this.commandQuery,
-      description: "[table] [query_json] - Query a table with a specific query",
-      authorizations: ["admin"],
+      executor: this.commandAdminHelp,
+      description: "/admin_help - Get list of all commands",
+      authorizations: [Authorization.ADMIN],
     },
     {
-      matcher: /^\/appstop/,
-      name: "appstop",
+      matcher: /^\/query_get ([^\s]+) (.+)/,
+      name: "query_get",
+      executor: this.commandQueryGet,
+      description: "/query_get [table] [query_json] - Query a table with a specific query",
+      authorizations: [Authorization.ADMIN],
+    },
+    {
+      matcher: /^\/query_update ([^\s]+) (.+)/,
+      name: "query_update",
+      executor: this.commandQueryUpdate,
+      description: "/query_update [table] [query_get_and_set_json] - Update a table with a specific query",
+      authorizations: [Authorization.ADMIN],
+    },
+    {
+      matcher: /^\/approve_person ([^\s]+)/,
+      name: "approve",
+      executor: this.commandApprovePerson,
+      description: "/approve_person [person_id] - Set the minimum authorization for a person to message the bot",
+      authorizations: [Authorization.ADMIN],
+    },
+    {
+      matcher: /^\/app_stop/,
+      name: "app_stop",
       executor: this.commandAppStop,
-      description: "/appstop - Cause the application to crash",
-      authorizations: ["admin"],
+      description: "/app_stop - Cause the application to crash",
+      authorizations: [Authorization.ADMIN],
     },
   ];
 
@@ -78,17 +100,17 @@ export class AICommander {
     return { text: `Scheduled shutdown in ${timeout}ms` };
   }
 
-  private async commandStart(_: RegExpMatchArray, ioChannel: TIOChannel, person: TPerson | null): Promise<Fulfillment> {
+  private async commandStart(_: RegExpMatchArray, ioChannel: TIOChannel, person: TPerson): Promise<Fulfillment> {
     const fulfillment = await AIManager.getInstance().getFullfilmentForInput({ text: "Hello!" }, ioChannel, person);
     return fulfillment;
   }
 
-  private async commandWhoami(
-    _: RegExpMatchArray,
-    ioChannel: TIOChannel,
-    person: TPerson | null,
-  ): Promise<Fulfillment> {
+  private async commandWhoami(_: RegExpMatchArray, ioChannel: TIOChannel, person: TPerson): Promise<Fulfillment> {
     return { data: JSON.stringify({ ioChannel, person }, null, 2) };
+  }
+
+  private async commandAdminHelp(_: RegExpMatchArray, ioChannel: TIOChannel, person: TPerson): Promise<Fulfillment> {
+    return { text: this.commandMapping.map((c) => c.description).join("\n") };
   }
 
   private async commandInput([, ioChannelId, personId, paramsStr]: RegExpMatchArray): Promise<Fulfillment> {
@@ -103,9 +125,27 @@ export class AICommander {
     return { data: JSON.stringify(result, null, 2) };
   }
 
-  private async commandQuery([, table, queryJson]: RegExpMatchArray): Promise<Fulfillment> {
+  private async commandQueryGet([, table, queryJson]: RegExpMatchArray): Promise<Fulfillment> {
     const query = JSON.parse(queryJson);
     const result = await Database.getInstance().getMongoose().connection.db.collection(table).find(query).toArray();
+    return { data: JSON.stringify(result, null, 2) };
+  }
+
+  private async commandQueryUpdate([, table, queryJson]: RegExpMatchArray): Promise<Fulfillment> {
+    const query = JSON.parse(queryJson);
+    const { filter, update } = query;
+    if (!filter || !update) throw new Error("Invalid query, must provide filter and update");
+    const result = await Database.getInstance()
+      .getMongoose()
+      .connection.db.collection(table)
+      .updateMany(filter, { $set: update });
+    return { data: JSON.stringify(result, null, 2) };
+  }
+
+  private async commandApprovePerson([, personId]: RegExpMatchArray): Promise<Fulfillment> {
+    const person = await Person.findByIdOrThrow(personId);
+    person.authorizations = [...person.authorizations, Authorization.MESSAGE];
+    const result = await person.save();
     return { data: JSON.stringify(result, null, 2) };
   }
 
@@ -120,12 +160,12 @@ export class AICommander {
     return { data: JSON.stringify(result, null, 2) };
   }
 
-  private getCommandExecutor(text: string): (ioChannel: TIOChannel, person: TPerson | null) => Promise<Fulfillment> {
+  private getCommandExecutor(text: string): (ioChannel: TIOChannel, person: TPerson) => Promise<Fulfillment> {
     for (const cmd of this.commandMapping) {
       const matches = text.match(cmd.matcher);
       if (matches) {
-        return async (ioChannel: TIOChannel, person: TPerson | null) => {
-          throwIfMissingAuthorizations(person?.authorizations, cmd.authorizations);
+        return async (ioChannel: TIOChannel, person: TPerson) => {
+          throwIfMissingAuthorizations(person.authorizations, cmd.authorizations);
           const result = await cmd.executor.call(this, matches, ioChannel, person);
           return result;
         };
@@ -138,7 +178,7 @@ export class AICommander {
   public async getFulfillmentForInput(
     params: InputParams,
     ioChannel: TIOChannel,
-    person: TPerson | null,
+    person: TPerson,
   ): Promise<Fulfillment> {
     if (params.command) {
       const executor = this.getCommandExecutor(params.command);

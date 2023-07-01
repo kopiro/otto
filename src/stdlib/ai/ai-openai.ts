@@ -99,7 +99,7 @@ export class AIOpenAI {
       .filter(Boolean) as ChatCompletionRequestMessage[];
   }
 
-  private async getPersonContext(ioChannel: TIOChannel, person: TPerson | null): Promise<string> {
+  private async getPersonContext(ioChannel: TIOChannel, person: TPerson): Promise<string> {
     const prompt = [];
 
     // Append ioChannel related info
@@ -154,7 +154,7 @@ export class AIOpenAI {
     openAIMessages: ChatCompletionRequestMessage[],
     inputParams: InputParams,
     ioChannel: TIOChannel,
-    person: TPerson | null,
+    person: TPerson,
     text: string,
   ): Promise<Fulfillment> {
     const systemPrompt: string[] = [];
@@ -236,11 +236,7 @@ export class AIOpenAI {
     throw new Error("Invalid response: " + JSON.stringify(answer));
   }
 
-  async getFulfillmentForInput(
-    params: InputParams,
-    ioChannel: TIOChannel,
-    person: TPerson | null,
-  ): Promise<Fulfillment> {
+  async getFulfillmentForInput(params: InputParams, ioChannel: TIOChannel, person: TPerson): Promise<Fulfillment> {
     try {
       if (params.text) {
         const result = await this.sendMessageToOpenAI(

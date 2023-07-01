@@ -4,7 +4,12 @@ import type { IOBag } from "./stdlib/io-manager";
 export type Language = string;
 export type Gender = "male" | "female";
 
-export type Authorizations = "admin" | "camera" | "command";
+export enum Authorization {
+  ADMIN = "admin",
+  CAMERA = "camera",
+  COMMAND = "command",
+  MESSAGE = "message",
+}
 
 export type Fulfillment = {
   text?: string;
@@ -13,7 +18,7 @@ export type Fulfillment = {
   video?: string;
   image?: string;
   document?: string;
-  error?: CustomError;
+  error?: IErrorWithData;
   data?: string;
   functionResult?: string;
   options?: {
@@ -35,8 +40,9 @@ export type AIRuntimeFunctionArguments<TParams> = {
 
 export type AIRuntimeFunction<T> = (args: AIRuntimeFunctionArguments<T>) => Promise<Fulfillment> | Fulfillment;
 
-export type CustomError = {
+export type IErrorWithData = {
   message: string;
+  data?: string;
 };
 
 export type InputContext = {

@@ -34,14 +34,14 @@ class IIOQueue {
     this: ReturnModelType<typeof IIOQueue>,
     fulfillment: Fulfillment,
     ioChannel: TIOChannel,
-    person: TPerson | null,
+    person: TPerson,
     bag: IOBag | null,
   ) {
     return IOQueue.create({
       managerUid: ioChannel.managerUid,
       ioDriver: ioChannel.ioDriver,
       ioChannel: ioChannel.id,
-      person: person?.id,
+      person: person.id,
       fulfillment,
       bag,
       createdAt: new Date(),

@@ -1,4 +1,4 @@
-import { Fulfillment, AIRuntimeFunction, InputParams, Authorizations } from "../../types";
+import { Fulfillment, AIRuntimeFunction, InputParams, Authorization } from "../../types";
 import { functionsDir } from "../../paths";
 import { readFileSync, readdirSync } from "fs";
 import path from "path";
@@ -24,7 +24,7 @@ type FunctionDefinition = {
 
 type FunctionRuntime = {
   default: AIRuntimeFunction<any>;
-  authorizations?: Authorizations[];
+  authorizations?: Authorization[];
 };
 
 export class AIFunction {
@@ -63,7 +63,7 @@ export class AIFunction {
     functionParameters: object,
     inputParams: InputParams,
     ioChannel: TIOChannel,
-    person: TPerson | null,
+    person: TPerson,
   ): Promise<Fulfillment> {
     logger.info(`Calling AI function <${functionName}> with arguments <${JSON.stringify(functionParameters)}>`);
 
@@ -76,7 +76,7 @@ export class AIFunction {
       throw new Error(`Invalid function name <${functionName}>`);
     }
 
-    throwIfMissingAuthorizations(person?.authorizations, pkgRuntime.authorizations);
+    throwIfMissingAuthorizations(person.authorizations, pkgRuntime.authorizations);
 
     const result = await pkgRuntime.default({
       inputParams,

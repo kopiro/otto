@@ -1,5 +1,5 @@
 import config from "../config";
-import { Fulfillment, InputParams } from "../types";
+import { Authorization, Fulfillment, InputParams } from "../types";
 import { EventEmitter } from "events";
 import { Signale } from "signale";
 import { TIOChannel } from "../data/io-channel";
@@ -13,6 +13,9 @@ import { IOBagWeb, IODataWeb } from "../io/web";
 import { IOBagVoice, IODataVoice } from "../io/voice";
 import { randomUUID } from "crypto";
 import { Interaction } from "../data/interaction";
+import { report, throwIfMissingAuthorizations } from "../helpers";
+import { AuthorizationError } from "../errors/authorization-error";
+import { ErrorWithData } from "../errors/data-error";
 
 const TAG = "IOManager";
 const logger = new Signale({
@@ -28,9 +31,9 @@ export type IODriverSingleOutput = [string, any];
 export type IODriverMultiOutput = IODriverSingleOutput[];
 
 export type IODriverEventMap = {
-  input: (params: InputParams, ioChannel: TIOChannel, person: TPerson | null, bag: IOBag) => void;
-  error: (message: string, ioChannel: TIOChannel, person: TPerson | null) => void;
-  output: (fulfillment: Fulfillment, ioChannel: TIOChannel, person: TPerson | null, bag: IOBag) => void;
+  input: (params: InputParams, ioChannel: TIOChannel, person: TPerson, bag: IOBag) => void;
+  error: (message: string, ioChannel: TIOChannel, person: TPerson) => void;
+  output: (fulfillment: Fulfillment, ioChannel: TIOChannel, person: TPerson, bag: IOBag) => void;
   recognizing: () => void;
   woken: () => void;
   wake: () => void;
@@ -45,7 +48,7 @@ export interface IODriverRuntime {
   output: (
     fulfillment: Fulfillment,
     ioChannel: TIOChannel,
-    person: TPerson | null,
+    person: TPerson,
     bag: IOBag,
   ) => Promise<IODriverMultiOutput>;
 }
@@ -136,7 +139,7 @@ export class IOManager {
   async outputInQueue(
     fulfillment: Fulfillment,
     ioChannel: TIOChannel,
-    person: TPerson | null,
+    person: TPerson,
     bag: IOBag,
   ): Promise<OutputResult> {
     const loadedDriverIds = Object.keys(this.loadedDrivers);
@@ -157,7 +160,7 @@ export class IOManager {
   async maybeRedirectFulfillment(
     fulfillment: Fulfillment,
     ioChannel: TIOChannel,
-    person: TPerson | null,
+    person: TPerson,
     bag: IOBag | null,
     loadDriverIfNotEnabled = false,
   ) {
@@ -189,7 +192,7 @@ export class IOManager {
   async output(
     fulfillment: Fulfillment,
     ioChannel: TIOChannel,
-    person: TPerson | null,
+    person: TPerson,
     bag: IOBag | null,
     loadDriverIfNotEnabled = false,
   ): Promise<OutputResult> {
@@ -212,22 +215,24 @@ export class IOManager {
       logger.debug("This node can't output, putting in IO queue", {
         fulfillment,
         ioChannel: ioChannel.id,
-        person: person?.id,
+        person: person.id,
       });
       return this.outputInQueue(fulfillment, ioChannel, person, bag);
     }
 
     if (!driverRuntime) {
+      logger.warn("Driver not enabled", ioChannel);
       return { rejectReason: { message: "DRIVER_NOT_ENABLED" } };
     }
 
-    // Actually output to the driver
     try {
+      // Actually output to the driver
       driverRuntime.emitter.emit("output", fulfillment, ioChannel, person, bag);
       const driverOutput = await driverRuntime.output(fulfillment, ioChannel, person, bag);
       return { driverOutput };
-    } catch (driverError) {
-      return { driverError };
+    } catch (err) {
+      logger.error("Driver Output error:", err);
+      return { driverError: err };
     }
   }
 
@@ -246,7 +251,7 @@ export class IOManager {
   private async onDriverInput(
     params: InputParams,
     ioChannel: TIOChannel,
-    person: TPerson | null,
+    person: TPerson,
     bag: IOBag,
   ): Promise<OutputResult | OutputResult[]> {
     await ioChannel.populate("mirrorInputToFulfillmentTo");
@@ -269,7 +274,7 @@ export class IOManager {
   }
 
   private onDriverError(message: string, ioChannel: TIOChannel, person: TPerson) {
-    logger.error("Driver emitted error", message, ioChannel.id, person?.id);
+    logger.error("Driver emitted error", message, ioChannel.id, person.id);
   }
 
   startDrivers() {
@@ -331,7 +336,7 @@ export class IOManager {
     logger.info("Processing IOQueue item", {
       fulfillment: qitem.fulfillment,
       ioChannel: qitem.ioChannel.id,
-      person: qitem.person?.id,
+      person: qitem.person.id,
       bag: qitem.bag,
     });
 
@@ -349,12 +354,12 @@ export class IOManager {
   async processInput(
     params: InputParams,
     ioChannel: TIOChannel,
-    person: TPerson | null,
+    person: TPerson,
     bag: IOBag | null,
   ): Promise<OutputResult> {
     const inputId = randomUUID();
 
-    logger.debug(`(${inputId}) Input:`, params, { ioChannelId: ioChannel?.id, personId: person?.id });
+    logger.debug(`(${inputId}) Input:`, params, { ioChannelId: ioChannel?.id, personId: person.id });
 
     Interaction.createNew(
       {
@@ -365,7 +370,21 @@ export class IOManager {
       inputId,
     );
 
-    const fulfillment = await AIManager.getInstance().getFullfilmentForInput(params, ioChannel, person);
+    let fulfillment: Fulfillment | null = null;
+    try {
+      throwIfMissingAuthorizations(person.authorizations, [Authorization.MESSAGE]);
+      fulfillment = await AIManager.getInstance().getFullfilmentForInput(params, ioChannel, person);
+    } catch (err) {
+      if (err instanceof AuthorizationError) {
+        report(
+          new ErrorWithData(
+            `Person <b>${person.name}</b> (<code>${person.id}</code>) on channel <code>${ioChannel.id}</code> is trying to perform an action without the following authorization: <code>${err.requiredAuth}</code>`,
+            { params },
+          ),
+        );
+      }
+      fulfillment = { error: err };
+    }
 
     logger.debug(`(${inputId}) Fulfillment: `, fulfillment);
 
@@ -379,7 +398,6 @@ export class IOManager {
     );
 
     const result = await IOManager.getInstance().output(fulfillment, ioChannel, person, bag);
-
     logger.debug(`(${inputId}) Result`, result);
 
     return result;
