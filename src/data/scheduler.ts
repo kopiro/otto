@@ -11,7 +11,7 @@ export class IScheduler {
   public ioChannel!: Ref<IIOChannel>;
 
   @prop({ autopopulate: { maxDepth: 1 }, ref: () => IPerson })
-  public person?: Ref<IPerson>;
+  public person!: Ref<IPerson>;
 
   @prop({ required: true })
   public managerUid!: string;

@@ -1,3 +1,4 @@
+// @ts-ignore
 import Apa102spi from "apa102-spi";
 
 import { Signale } from "signale";

@@ -78,7 +78,7 @@
     "cseId": "",
     "apiKey": "",
     "storage": {
-      "bucket": null
+      "bucket": ""
     }
   },
   "gpioButton": {

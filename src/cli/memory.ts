@@ -21,21 +21,21 @@ warmup()
 
     const memory = AIVectorMemory.getInstance();
 
-    if (process.env.MEMORY_TYPE.includes(MemoryType.declarative)) {
+    if (process.env.MEMORY_TYPE?.includes(MemoryType.declarative)) {
       if (process.env.ERASE) {
         await memory.deleteQdrantCollection(MemoryType.declarative);
       }
       await memory.buildDeclarativeMemory();
     }
 
-    if (process.env.MEMORY_TYPE.includes(MemoryType.social)) {
+    if (process.env.MEMORY_TYPE?.includes(MemoryType.social)) {
       if (process.env.ERASE) {
         await memory.deleteQdrantCollection(MemoryType.social);
       }
       await memory.buildSocialMemory();
     }
 
-    if (process.env.MEMORY_TYPE.includes(MemoryType.episodic)) {
+    if (process.env.MEMORY_TYPE?.includes(MemoryType.episodic)) {
       if (process.env.ERASE) {
         await memory.deleteQdrantCollection(MemoryType.episodic);
       }

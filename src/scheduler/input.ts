@@ -8,7 +8,11 @@ export default class InputScheduler extends SchedulerRuntimeFunction {
       throw new Error("Invalid ioChannel");
     }
 
+    if (!isDocument(this.job.person)) {
+      throw new Error("Invalid Person");
+    }
+
     const { programArgs, ioChannel, person } = this.job;
-    return IOManager.getInstance().processInput(programArgs, ioChannel, isDocument(person) ? person : null, null);
+    return IOManager.getInstance().processInput(programArgs, ioChannel, person, null);
   }
 }

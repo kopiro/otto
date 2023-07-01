@@ -7,12 +7,10 @@ export default class OutputScheduler extends SchedulerRuntimeFunction {
     if (!isDocument(this.job.ioChannel)) {
       throw new Error("Invalid ioChannel");
     }
+    if (!isDocument(this.job.person)) {
+      throw new Error("Invalid Person");
+    }
     const { programArgs, ioChannel, person } = this.job;
-    return IOManager.getInstance().output(
-      programArgs?.fulfillment,
-      ioChannel,
-      isDocument(person) ? person : null,
-      null,
-    );
+    return IOManager.getInstance().output(programArgs?.fulfillment, ioChannel, person, null);
   }
 }

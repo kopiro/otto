@@ -1,3 +1,4 @@
+// @ts-ignore
 import isPi from "detect-rpi";
 
 export type Platform = "pi" | "macos" | "unknown";
