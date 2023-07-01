@@ -42,6 +42,7 @@ export class IPerson {
     if (person) {
       // Update IO Identifier
       person.ioIdentifiers[ioDriver] = ioIdentifier;
+      await person.save();
       return person;
     }
 
