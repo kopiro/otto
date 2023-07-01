@@ -1,9 +1,8 @@
 import { existsSync } from "fs";
 import path from "path";
 import config from "./config";
-import { Translator } from "./stdlib/translator";
 import { cacheDir, logsDir } from "./paths";
-import { Authorization, IErrorWithData, Language } from "./types";
+import { Authorization } from "./types";
 import crypto, { createHash } from "crypto";
 import { File } from "./stdlib/file";
 

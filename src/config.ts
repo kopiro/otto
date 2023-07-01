@@ -9,7 +9,7 @@ const logger = new Signale({
   scope: TAG,
 });
 
-let instance: object = null;
+let instance: object | null = null;
 
 type TConfig = typeof defaultConfig;
 
@@ -26,6 +26,7 @@ function extendConfig(config: object, localConfig: object, path = ""): object {
         throw new Error(`Invalid key ${path}.${key} in config`);
       }
     } else {
+      // @ts-ignore
       config[key] = value;
     }
   }

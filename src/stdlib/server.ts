@@ -11,7 +11,7 @@ import { Signale } from "signale";
 import { IOChannel } from "../data/io-channel";
 import { Person } from "../data/person";
 import { Translator } from "./translator";
-import { Gender } from "../types";
+import { Gender, Language } from "../types";
 
 const TAG = "Server";
 const logger = new Signale({
@@ -42,7 +42,7 @@ routerApi.get("/speech", async (req: express.Request, res: express.Response) => 
     res.redirect(audioFileMixed.getServerURL());
   } catch (err) {
     return res.status(400).json({
-      error: err.message,
+      error: (err as Error).message,
     });
   }
 });
@@ -61,11 +61,11 @@ routerApi.get("/user-speech", async (req: express.Request, res: express.Response
     const gender = req.query.gender.toString();
 
     const language = await Translator.getInstance().detectLanguage(text);
-    const audioFileMixed = await TextToSpeech.getInstance().getAudioFile(text, language, gender as Gender);
+    const audioFileMixed = await TextToSpeech.getInstance().getAudioFile(text, language as Language, gender as Gender);
     res.redirect(audioFileMixed.getServerURL());
   } catch (err) {
     return res.status(400).json({
-      error: err.message,
+      error: (err as Error).message,
     });
   }
 });

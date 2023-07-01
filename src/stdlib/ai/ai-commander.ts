@@ -39,7 +39,7 @@ export class AICommander {
       authorizations: [],
     },
     {
-      matcher: /^\/output_text ([^\s]+) (.+)/,
+      matcher: /^\/output_text ([^\s]+) ([^\s]+) (.+)/,
       name: "output_text",
       executor: this.commandOutputText,
       description: "/output_text [io_channel_id] [text] - Send a text message to a specific io_channel_id",
@@ -109,7 +109,7 @@ export class AICommander {
     return { data: JSON.stringify({ ioChannel, person }, null, 2) };
   }
 
-  private async commandAdminHelp(_: RegExpMatchArray, ioChannel: TIOChannel, person: TPerson): Promise<Fulfillment> {
+  private async commandAdminHelp(): Promise<Fulfillment> {
     return { text: this.commandMapping.map((c) => c.description).join("\n") };
   }
 
@@ -144,7 +144,7 @@ export class AICommander {
 
   private async commandApprovePerson([, personId]: RegExpMatchArray): Promise<Fulfillment> {
     const person = await Person.findByIdOrThrow(personId);
-    person.authorizations = [...person.authorizations, Authorization.MESSAGE];
+    person.authorizations = [...(person.authorizations || []), Authorization.MESSAGE];
     const result = await person.save();
     return { data: JSON.stringify(result, null, 2) };
   }

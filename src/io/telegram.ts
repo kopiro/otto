@@ -2,7 +2,7 @@ import TelegramBot from "node-telegram-bot-api";
 import { EventEmitter } from "events";
 import config from "../config";
 import * as Server from "../stdlib/server";
-import { IODriverRuntime, IODriverMultiOutput, IODriverEventMap, IODriverId } from "../stdlib/io-manager";
+import { IODriverRuntime, IODriverMultiOutput, IODriverEventMap, IODriverId, IOBag } from "../stdlib/io-manager";
 import { getVoiceFileFromText } from "../stdlib/voice-helpers";
 import * as Proc from "../stdlib/proc";
 import { Authorization, Fulfillment, Language } from "../types";
@@ -53,8 +53,8 @@ export class Telegram implements IODriverRuntime {
   /**
    * Handle a voice input by recognizing the text
    */
-  private async handleVoiceInput(e: TelegramBot.Message, language: Language): Promise<string> {
-    const fileLink = await this.bot.getFileLink(e.voice.file_id);
+  private async handleVoiceInput(fileId: string, language: Language): Promise<string> {
+    const fileLink = await this.bot.getFileLink(fileId);
     const oggFile = File.getTmpFile("ogg");
     const wavFile = File.getTmpFile("wav");
 
@@ -76,7 +76,7 @@ export class Telegram implements IODriverRuntime {
 
   private cleanInputText(e: TelegramBot.Message) {
     let text = e.text || "";
-    text = text.replace(`@${this.botMe.username}`, "");
+    text = text.replace(`@${this.botMe!.username}`, "");
     return text;
   }
 
@@ -131,12 +131,12 @@ export class Telegram implements IODriverRuntime {
     return String(msg.chat.id);
   }
 
-  private getPersonIdentifier(msg: TelegramBot.Message) {
-    return String(msg.from.id);
+  private getPersonIdentifier(from: TelegramBot.User) {
+    return String(from.id);
   }
 
-  private getPersonName(msg: TelegramBot.Message): string {
-    const { first_name, last_name, username, id } = msg.from;
+  private getPersonName(from: TelegramBot.User): string {
+    const { first_name, last_name, username, id } = from;
     if (first_name && last_name) {
       return `${first_name} ${last_name}`;
     }
@@ -150,13 +150,18 @@ export class Telegram implements IODriverRuntime {
   }
 
   async onBotInput(e: TelegramBot.Message) {
-    const personIdentifier = this.getPersonIdentifier(e);
-    const personName = this.getPersonName(e);
+    if (!e.from) {
+      logger.error("Invalid {from}", e);
+      return;
+    }
+
+    const personIdentifier = this.getPersonIdentifier(e.from);
+    const personName = this.getPersonName(e.from);
     const person = await Person.findByIOIdentifierOrCreate(
       this.driverId,
       personIdentifier,
       personName,
-      e.from.language_code,
+      e.from.language_code as Language,
     );
 
     const ioChannelIdentifier = this.getIOChannelIdentifier(e);
@@ -219,7 +224,7 @@ export class Telegram implements IODriverRuntime {
 
     // Process a Voice object
     if (e.voice) {
-      const text = await this.handleVoiceInput(e, person.language);
+      const text = await this.handleVoiceInput(e.voice.file_id, person.language);
       const isMentionInVoice = this.getIsMention(text);
 
       // If we are in a group, only listen for activators
@@ -308,14 +313,10 @@ export class Telegram implements IODriverRuntime {
   /**
    * Output an object to the user
    */
-  async output(
-    f: Fulfillment,
-    ioChannel: TIOChannel,
-    person: TPerson,
-    bag: IOBagTelegram,
-  ): Promise<IODriverMultiOutput> {
+  async output(f: Fulfillment, ioChannel: TIOChannel, person: TPerson, _bag: IOBag): Promise<IODriverMultiOutput> {
     const results: IODriverMultiOutput = [];
 
+    const bag = _bag as IOBagTelegram;
     const ioData = ioChannel.ioData as IODataTelegram;
     const chatId = ioData.id;
     const botOpt: TelegramBot.SendMessageOptions = {};

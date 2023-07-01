@@ -105,7 +105,7 @@ export class IIOChannel {
     ioDriver: string,
     ioIdentifier: string,
     ioData: IOData,
-    person: TPerson,
+    person: TPerson | null,
   ): Promise<TIOChannel> {
     const ioChannel = await IOChannel.findByIOIdentifier(ioDriver, ioIdentifier);
 
@@ -137,7 +137,7 @@ export class IIOChannel {
     this: ReturnModelType<typeof IIOChannel>,
     ioDriver: string,
     ioIdentifier: string,
-  ): Promise<TIOChannel> {
+  ): Promise<TIOChannel | null> {
     return IOChannel.findOne({
       managerUid: config().uid,
       ioDriver,

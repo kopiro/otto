@@ -6,6 +6,7 @@ import {
   IODriverEventMap,
   IODriverId,
   IODriverSingleOutput,
+  IOBag,
 } from "../stdlib/io-manager";
 import { chunkArray, timeout } from "../helpers";
 import { Fulfillment, Language } from "../types";
@@ -53,15 +54,10 @@ export class Voice implements IODriverRuntime {
   emitter = new EventEmitter() as TypedEmitter<IODriverEventMap>;
   conf: VoiceConfig;
   started = false;
-  ioChannel: TIOChannel | undefined;
-
+  ioChannel!: TIOChannel;
   currentSpokenFulfillment: Fulfillment | undefined;
-
   recognizeStream: Pumpify | null | undefined;
-
   hotwordSilenceSec = -1;
-
-  porcupine?: Porcupine | undefined;
   recorder: any | undefined;
 
   /**
@@ -188,7 +184,7 @@ export class Voice implements IODriverRuntime {
     const pvFile = path.join(etcDir, `porcupine`, `language.pv`);
     const ppnFile = path.join(etcDir, `porcupine`, `wakeword_${getPlatform()}.ppn`);
 
-    this.porcupine = new Porcupine(config().porcupine.apiKey, [ppnFile], [0.5], pvFile);
+    const porcupine = new Porcupine(config().porcupine.apiKey, [ppnFile], [0.5], pvFile);
 
     this.recorder.stream().on("data", (data: Buffer) => {
       // Two bytes per Int16 from the data buffer
@@ -200,17 +196,18 @@ export class Voice implements IODriverRuntime {
       // Split the incoming PCM integer data into arrays of size Porcupine.frameLength. If there's insufficient frames, or a remainder,
       // store it in 'frameAccumulator' for the next iteration, so that we don't miss any audio data
       frameAccumulator = frameAccumulator.concat(newFrames16);
-      const frames = chunkArray(frameAccumulator, this.porcupine.frameLength);
+      const frames = chunkArray(frameAccumulator, porcupine.frameLength);
 
-      if (frames[frames.length - 1].length !== this.porcupine.frameLength) {
+      if (frames[frames.length - 1].length !== porcupine.frameLength) {
         // store remainder from divisions of frameLength
+        // @ts-ignore
         frameAccumulator = frames.pop();
       } else {
         frameAccumulator = [];
       }
 
       for (const frame of frames) {
-        const index = this.porcupine.process(frame as unknown as Int16Array);
+        const index = porcupine.process(frame as unknown as Int16Array);
         if (index !== -1) {
           this.wake();
         }
@@ -239,12 +236,7 @@ export class Voice implements IODriverRuntime {
     }
   }
 
-  async actualOutput(
-    f: Fulfillment,
-    ioChannel: TIOChannel,
-    person: TPerson,
-    bag: IOBagVoice,
-  ): Promise<IODriverMultiOutput> {
+  async actualOutput(f: Fulfillment, ioChannel: TIOChannel, person: TPerson): Promise<IODriverMultiOutput> {
     const results: IODriverMultiOutput = [];
 
     // Temporary disable timer variables
@@ -277,7 +269,7 @@ export class Voice implements IODriverRuntime {
   /**
    * Process the item in the output queue
    */
-  async output(f: Fulfillment, ioChannel: TIOChannel, person: TPerson, bag: IOBagVoice): Promise<IODriverMultiOutput> {
+  async output(f: Fulfillment, ioChannel: TIOChannel, person: TPerson, bag: IOBag): Promise<IODriverMultiOutput> {
     let results: IODriverMultiOutput = [];
 
     // If we have a current processed item, let's wait until it's null
@@ -294,7 +286,7 @@ export class Voice implements IODriverRuntime {
       const result = await this.actualOutput(f, ioChannel, person, bag);
       results = results.concat(result);
     } finally {
-      this.currentSpokenFulfillment = null;
+      this.currentSpokenFulfillment = undefined;
     }
 
     return results;
