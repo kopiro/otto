@@ -42,7 +42,7 @@ export class AICommander {
       matcher: /^\/output_text ([^\s]+) ([^\s]+) (.+)/,
       name: "output_text",
       executor: this.commandOutputText,
-      description: "/output_text [io_channel_id] [text] - Send a text message to a specific io_channel_id",
+      description: "/output_text [io_channel_id] [person_id] [text] - Send a text message to a specific io_channel_id",
       authorizations: [Authorization.ADMIN],
     },
     {
@@ -50,7 +50,7 @@ export class AICommander {
       name: "input",
       executor: this.commandInput,
       description:
-        "/input [io_channel_id] [person] [params_json] - Process an input param for a specific io_channel_id and person",
+        "/input [io_channel_id] [person_id] [params_json] - Process an input param for a specific io_channel_id and person",
       authorizations: [Authorization.ADMIN],
     },
     {

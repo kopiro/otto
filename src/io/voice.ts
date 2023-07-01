@@ -269,7 +269,7 @@ export class Voice implements IODriverRuntime {
   /**
    * Process the item in the output queue
    */
-  async output(f: Fulfillment, ioChannel: TIOChannel, person: TPerson, bag: IOBag): Promise<IODriverMultiOutput> {
+  async output(f: Fulfillment, ioChannel: TIOChannel, person: TPerson): Promise<IODriverMultiOutput> {
     let results: IODriverMultiOutput = [];
 
     // If we have a current processed item, let's wait until it's null
@@ -283,7 +283,7 @@ export class Voice implements IODriverRuntime {
     this.currentSpokenFulfillment = f;
 
     try {
-      const result = await this.actualOutput(f, ioChannel, person, bag);
+      const result = await this.actualOutput(f, ioChannel, person);
       results = results.concat(result);
     } finally {
       this.currentSpokenFulfillment = undefined;
