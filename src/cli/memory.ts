@@ -37,8 +37,6 @@ warmup()
 
     if (process.env.MEMORY_TYPE.includes(MemoryType.episodic)) {
       if (process.env.ERASE) {
-        logger.warn("Erasing Interactions.reducedTo field");
-        await Interaction.updateMany({ managerUid: config().uid }, { $unset: { reducedTo: null } }, { multi: true });
         await memory.deleteQdrantCollection(MemoryType.episodic);
       }
       await memory.buildEpisodicMemory();

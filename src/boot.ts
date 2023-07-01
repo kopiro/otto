@@ -3,8 +3,6 @@ import config from "./config";
 import * as Sentry from "@sentry/node";
 import * as Database from "./stdlib/database";
 import { Signale } from "signale";
-import { Interaction } from "./data/interaction";
-import { IOChannel } from "./data/io-channel";
 
 const TAG = "Boot";
 const logger = new Signale({
@@ -24,12 +22,6 @@ export async function warmup() {
     }
 
     await Database.connect();
-
-    if (config().env === "development" && config().cleanEnvironment) {
-      logger.warn("Cleaning database");
-      await Interaction.deleteMany({ managerUid: config().uid });
-      await IOChannel.deleteMany({ managerUid: config().uid });
-    }
   } catch (err) {
     logger.error(err);
     process.exit(1);

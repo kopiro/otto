@@ -6,7 +6,6 @@ import { ChatCompletionRequestMessageRoleEnum } from "openai";
 import fetch from "node-fetch";
 import { Interaction, TInteraction } from "../../data/interaction";
 import { isDocument } from "@typegoose/typegoose";
-import { TIOChannel } from "../../data/io-channel";
 import { getFacebookFeed } from "../../lib/facebook";
 import uuidByString from "uuid-by-string";
 
@@ -15,7 +14,8 @@ const logger = new Signale({
   scope: TAG,
 });
 
-const REDUCED_MAX_CHARS = 300;
+const PER_IOCHANNEL_REDUCED_MAX_CHARS = 100;
+const PER_DAY_REDUCED_MAX_CHARS = 300;
 
 export enum MemoryType {
   "episodic" = "episodic",
@@ -71,14 +71,16 @@ export class AIVectorMemory {
       managerUid: config().uid,
       reducedTo: { $exists: false },
       $or: [{ "fulfillment.text": { $exists: true } }, { "input.text": { $exists: true } }],
+      // Get createdAt until yesterday
+      createdAt: { $lte: new Date(new Date().setHours(0, 0, 0, 0)) },
     }).sort({ createdAt: +1 });
 
     return unreducedInteractions.reduce((acc, interaction) => {
       if (isDocument(interaction.ioChannel)) {
-        const day = Math.floor(interaction.createdAt.getTime() / (1000 * 60 * 60 * 24));
-        acc[day] = acc[day] || {};
-        acc[day][interaction.ioChannel.id] = acc[day][interaction.ioChannel.id] || [];
-        acc[day][interaction.ioChannel.id].push(interaction);
+        const date = `${interaction.createdAt.getFullYear()}-${interaction.createdAt.getMonth()}-${interaction.createdAt.getDate()}`;
+        acc[date] = acc[date] || {};
+        acc[date][interaction.ioChannel.id] = acc[date][interaction.ioChannel.id] || [];
+        acc[date][interaction.ioChannel.id].push(interaction);
       }
       return acc;
     }, {} as GInteractionsByDayThenIOChannel);
@@ -149,34 +151,24 @@ export class AIVectorMemory {
     );
   }
 
-  private async reduceText(date: Date, ioChannel: TIOChannel, text: string) {
-    const promptToReduce =
-      `The following is a conversation where ${config().aiName} is involved.\n` +
-      `They have happened on date ${date.toDateString()} - ${ioChannel.getDriverName()}.\n` +
-      `Please reduce them to a single sentence in third person.\n` +
-      `Strictly keep the output short of maximum ${REDUCED_MAX_CHARS} characters.\n` +
-      `If the informations don't fit in the limit, discard some informations.\n` +
-      `Include the names, the date and the title of conversations in the output.` +
-      `Example: On 27/02/2023, ${config().aiName} had a chat with USER about holidays in Japan."\n\n` +
-      "## CONVERSATION:\n" +
-      text;
-
-    // logger.debug("Reducer prompt:\n", promptToReduce);
-
+  private async openAIPrompt(text: string) {
     const reducedMemory = await OpenAIApiSDK().createChatCompletion({
       model: "gpt-3.5-turbo",
       messages: [
         {
           role: ChatCompletionRequestMessageRoleEnum.System,
-          content: promptToReduce,
+          content: text,
         },
       ],
     });
     return reducedMemory.data.choices[0].message.content;
   }
 
-  private async reduceInteractionsForDate(date: Date, gInteractions: GInteractionsByIOChannel) {
-    logger.info(`Reducing interactions for Date: ${date.toDateString()}`);
+  private async reduceInteractionsForDate(date: string, gInteractions: GInteractionsByIOChannel) {
+    logger.info(`Reducing interactions for Date: ${date}`);
+
+    const reducedInteractionsPerIOChannelText = [];
+    const interactionIds = [];
 
     for (const interactions of Object.values(gInteractions)) {
       try {
@@ -187,13 +179,11 @@ export class AIVectorMemory {
         }
 
         if (ioChannel.ioDriver === "voice" || ioChannel.ioDriver === "web") {
-          logger.warn("Skipping interaction because it's not supported yet");
+          logger.warn(`Skipping interaction <${ioChannel.ioDriver}> because it's not supported yet`);
           continue;
         }
 
-        const interactionIdentifier = `${ioChannel.id}_${date.toISOString()}`;
-        const interactionsText = [];
-        const interactionIds = [];
+        const interactionsPerDayPerIOChannelText = [];
 
         for (const interaction of interactions) {
           interactionIds.push(interaction.id);
@@ -202,29 +192,51 @@ export class AIVectorMemory {
           const sourceName = interaction.getSourceName();
 
           if (interaction.fulfillment?.text) {
-            interactionsText.push(`${sourceName} (${time}): ${interaction.fulfillment.text}`);
+            interactionsPerDayPerIOChannelText.push(`- ${sourceName} (${time}): ${interaction.fulfillment.text}`);
           }
           if (interaction.input?.text) {
-            interactionsText.push(`${sourceName} (${time}): ${interaction.input.text}`);
+            interactionsPerDayPerIOChannelText.push(`- ${sourceName} (${time}): ${interaction.input.text}`);
           }
         }
 
-        const reducedText = await this.reduceText(date, ioChannel, interactionsText.join("\n"));
-        logger.debug("Reduced text: ", reducedText);
+        const reducerPromptForIOChannel =
+          `The following is a conversation where ${config().aiName} is involved.\n` +
+          `They have happened on date ${date} - ${ioChannel.getDriverName()}.\n` +
+          `Please reduce them to a single sentence in third person.\n` +
+          `Strictly keep the output short, maximum ${PER_IOCHANNEL_REDUCED_MAX_CHARS} characters.\n` +
+          `Include the names, the date and the title of chat in the output.` +
+          `Example: On 27/02/2023, ${config().aiName} had a chat with USER about holidays in Japan."\n\n` +
+          "## Conversation:\n" +
+          interactionsPerDayPerIOChannelText.join("\n");
 
-        const payloads: QdrantPayload[] = this.chunkText(reducedText).map((text) => ({
-          id: uuidByString(text),
-          text,
-          date: date.toISOString(),
-        }));
+        const reducedText = await this.openAIPrompt(reducerPromptForIOChannel);
+        logger.debug("Reduced conversation: ", reducedText);
 
-        await this.saveMemoriesInQdrant(payloads, MemoryType.episodic);
-        await this.markInteractionsAsReduced(interactionIds, interactionIdentifier);
-        logger.success(`Marked ${interactionIds.length} interactions as reduced to <${interactionIdentifier}>`);
+        reducedInteractionsPerIOChannelText.push(`- ${reducedText}`);
       } catch (err) {
         logger.error("Error reducing interactions", err.message);
       }
     }
+
+    const reducerPromptForDay =
+      `Compress the following sentences to a single sentence in third person.\n` +
+      `Strictly keep the output short, maximum ${PER_DAY_REDUCED_MAX_CHARS} characters.\n\n` +
+      `If the informations don't fit in the limit, discard some informations.\n` +
+      `## Sentences:\n` +
+      reducedInteractionsPerIOChannelText.join("\n");
+
+    const reducedTextForDay = await this.openAIPrompt(reducerPromptForDay);
+    logger.debug("Reduced sentences: ", reducedTextForDay);
+
+    const payloads: QdrantPayload[] = this.chunkText(reducedTextForDay).map((text) => ({
+      id: uuidByString(text),
+      text,
+      date: date,
+    }));
+
+    await this.saveMemoriesInQdrant(payloads, MemoryType.episodic);
+    await this.markInteractionsAsReduced(interactionIds, date);
+    logger.success(`Marked ${interactionIds.length} interactions as reduced`);
   }
 
   /**
@@ -240,8 +252,7 @@ export class AIVectorMemory {
     logger.info("Found " + Object.keys(interactions).length + " total days to reduce: ", Object.keys(interactions));
 
     for (const day in interactions) {
-      const date = new Date(Number(day) * 1000 * 60 * 60 * 24);
-      await this.reduceInteractionsForDate(date, interactions[day]);
+      await this.reduceInteractionsForDate(day, interactions[day]);
     }
   }
 

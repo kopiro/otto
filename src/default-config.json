@@ -2,7 +2,6 @@
   "uid": "",
   "aiName": "",
   "env": "development",
-  "cleanEnvironment": false,
   "centralNode": false,
   "speechRecognizerDriver": "google",
   "textToSpeechDriver": "google",
