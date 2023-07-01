@@ -4,6 +4,7 @@ import { IOManager } from "../io-manager";
 import { throwIfMissingAuthorizations } from "../../helpers";
 import { IOChannel, TIOChannel } from "../../data/io-channel";
 import { Person, TPerson } from "../../data/person";
+import { Database } from "../database";
 
 type CommandFunction = (args: RegExpMatchArray, ioChannel: TIOChannel, person: TPerson | null) => Promise<Fulfillment>;
 
@@ -26,14 +27,14 @@ export class AICommander {
     {
       matcher: /^\/start/,
       name: "start",
-      executor: this.start,
+      executor: this.commandStart,
       description: "Start the bot",
       authorizations: [],
     },
     {
       matcher: /^\/whoami/,
       name: "whoami",
-      executor: this.whoami,
+      executor: this.commandWhoami,
       description: "Get your ioChannel",
       authorizations: [],
     },
@@ -47,16 +48,23 @@ export class AICommander {
     {
       matcher: /^\/input ([^\s]+) ([^\s]+) (.+)/,
       name: "input",
-      executor: this.input,
+      executor: this.commandInput,
       description: "[ioChannel] [person] [params_json] - Process an input param for a specific ioChannel and person",
       authorizations: ["command"],
     },
     {
+      matcher: /^\/query ([^\s]+) (.+)/,
+      name: "input",
+      executor: this.commandQuery,
+      description: "[table] [query_json] - Query a table with a specific query",
+      authorizations: ["admin"],
+    },
+    {
       matcher: /^\/appstop/,
       name: "appstop",
-      executor: this.appStop,
+      executor: this.commandAppStop,
       description: "/appstop - Cause the application to crash",
-      authorizations: ["command"],
+      authorizations: ["admin"],
     },
   ];
 
@@ -64,21 +72,26 @@ export class AICommander {
     return { text: "Command not found" };
   }
 
-  private async appStop(): Promise<Fulfillment> {
-    setTimeout(() => process.exit(0), 5000);
-    return { text: "Scheduled shutdown in 5 seconds" };
+  private async commandAppStop(): Promise<Fulfillment> {
+    const timeout = 5000;
+    setTimeout(() => process.exit(0), timeout);
+    return { text: `Scheduled shutdown in ${timeout}ms` };
   }
 
-  private async start(_: RegExpMatchArray, ioChannel: TIOChannel, person: TPerson | null): Promise<Fulfillment> {
+  private async commandStart(_: RegExpMatchArray, ioChannel: TIOChannel, person: TPerson | null): Promise<Fulfillment> {
     const fulfillment = await AIManager.getInstance().getFullfilmentForInput({ text: "Hello!" }, ioChannel, person);
     return fulfillment;
   }
 
-  private async whoami(_: RegExpMatchArray, ioChannel: TIOChannel, person: TPerson | null): Promise<Fulfillment> {
+  private async commandWhoami(
+    _: RegExpMatchArray,
+    ioChannel: TIOChannel,
+    person: TPerson | null,
+  ): Promise<Fulfillment> {
     return { data: JSON.stringify({ ioChannel, person }, null, 2) };
   }
 
-  private async input([, ioChannelId, personId, paramsStr]: RegExpMatchArray): Promise<Fulfillment> {
+  private async commandInput([, ioChannelId, personId, paramsStr]: RegExpMatchArray): Promise<Fulfillment> {
     const ioChannel = await IOChannel.findById(ioChannelId);
     if (!ioChannel) throw new Error(`Session ${ioChannelId} not found`);
 
@@ -87,6 +100,12 @@ export class AICommander {
 
     const params = JSON.parse(paramsStr);
     const result = await IOManager.getInstance().processInput(params, ioChannel, person, null);
+    return { data: JSON.stringify(result, null, 2) };
+  }
+
+  private async commandQuery([, table, queryJson]: RegExpMatchArray): Promise<Fulfillment> {
+    const query = JSON.parse(queryJson);
+    const result = await Database.getInstance().getMongoose().connection.db.collection(table).find(query).toArray();
     return { data: JSON.stringify(result, null, 2) };
   }
 

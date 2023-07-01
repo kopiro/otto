@@ -74,13 +74,6 @@ export class Telegram implements IODriverRuntime {
     return text;
   }
 
-  /**
-   * Remove any XML tag
-   */
-  private cleanOutputText(text: string) {
-    return text.replace(/<[^>]+>/g, "");
-  }
-
   private cleanInputText(e: TelegramBot.Message) {
     let text = e.text || "";
     text = text.replace(`@${this.botMe.username}`, "");
@@ -91,7 +84,10 @@ export class Telegram implements IODriverRuntime {
    * Send a message to the user
    */
   private async sendMessage(chatId: number, text: string, botOpt: TelegramBot.SendMessageOptions = {}) {
-    return this.bot.sendMessage(chatId, this.cleanOutputText(text), { ...{ parse_mode: "HTML" }, ...botOpt });
+    return this.bot.sendMessage(chatId, text, {
+      ...botOpt,
+      parse_mode: "MarkdownV2",
+    });
   }
 
   /**
@@ -283,7 +279,7 @@ export class Telegram implements IODriverRuntime {
     });
 
     // Add list of commands
-    this.bot.setMyCommands(
+    await this.bot.setMyCommands(
       AICommander.getInstance().commandMapping.map((c) => ({ command: c.name, description: c.description })),
     );
 
@@ -415,7 +411,7 @@ export class Telegram implements IODriverRuntime {
     try {
       if (f.data) {
         this.bot.sendChatAction(chatId, "typing");
-        const r = await this.sendMessage(chatId, `<pre>${f.data}</pre>`, botOpt);
+        const r = await this.sendMessage(chatId, "```\n" + f.data + "\n```", botOpt);
         results.push(["data", r]);
       }
     } catch (err) {

@@ -1,7 +1,7 @@
 import { config as dotEnvConfig } from "dotenv";
 import config from "./config";
 import * as Sentry from "@sentry/node";
-import * as Database from "./stdlib/database";
+import { Database } from "./stdlib/database";
 import { Signale } from "signale";
 
 const TAG = "Boot";
@@ -21,7 +21,7 @@ export async function warmup() {
       Sentry.init(config().sentry);
     }
 
-    await Database.connect();
+    await Database.getInstance().connect();
   } catch (err) {
     logger.error(err);
     process.exit(1);
