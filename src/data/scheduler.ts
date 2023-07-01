@@ -2,6 +2,7 @@ import { DocumentType, Ref, getModelForClass, modelOptions, plugin, prop } from 
 import { IIOChannel } from "./io-channel";
 import autopopulate from "mongoose-autopopulate";
 import { IPerson } from "./person";
+import mongoose from "mongoose";
 
 @modelOptions({ schemaOptions: { collection: "scheduler" }, options: { allowMixed: 0 } })
 @plugin(autopopulate)
@@ -18,7 +19,7 @@ export class IScheduler {
   @prop({ required: true })
   public programName!: string;
 
-  @prop({ required: true })
+  @prop({ required: true, type: mongoose.Schema.Types.Mixed })
   public programArgs!: Record<string, any>;
 
   @prop()

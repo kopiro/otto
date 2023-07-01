@@ -30,6 +30,9 @@ export class IIOChannel {
   @prop({ required: false, type: mongoose.Schema.Types.Mixed })
   public options?: any;
 
+  @prop({ required: true })
+  public createdAt?: Date;
+
   /**
    * In case there is a direct correlation between the channel and a person (DM),
    * you can use this field directly to refer to the person,
@@ -110,9 +113,8 @@ export class IIOChannel {
       // Only update ioData if it's different
       if (JSON.stringify(ioChannel.ioData) !== JSON.stringify(ioData)) {
         logger.debug("Updating ioData for existing ioChannel, ioData = ", ioData, "old ioData = ", ioChannel.ioData);
-        await ioChannel.updateOne({
-          ioData,
-        });
+        ioChannel.ioData = ioData;
+        await ioChannel.save();
       }
       return ioChannel;
     }
@@ -123,6 +125,7 @@ export class IIOChannel {
       ioDriver,
       ioData,
       ioIdentifier,
+      createdAt: new Date(),
     });
 
     logger.success("New IO Channel registered", ioChannelNew);
