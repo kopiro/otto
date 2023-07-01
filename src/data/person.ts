@@ -23,7 +23,7 @@ export class IPerson {
   public authorizations?: Authorization[];
 
   @prop({ required: true, type: mongoose.Schema.Types.Mixed })
-  public ioIdentifiers: Record<IODriverId, string>;
+  public ioIdentifiers!: Record<IODriverId, string>;
 
   static async findByIdOrThrow(this: ReturnModelType<typeof IPerson>, id: string): Promise<TPerson> {
     const person = await Person.findById(id);
@@ -63,7 +63,7 @@ export class IPerson {
     this: ReturnModelType<typeof IPerson>,
     ioDriver: IODriverId,
     ioIdentifier: string,
-  ): Promise<TPerson> {
+  ): Promise<TPerson | null> {
     return Person.findOne({
       [`ioIdentifiers.${ioDriver}`]: ioIdentifier,
     });

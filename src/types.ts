@@ -21,15 +21,6 @@ export type Fulfillment = {
   error?: IErrorWithData;
   data?: string;
   functionResult?: string;
-  options?: {
-    language?: Language;
-    translateTo?: Language;
-    translatePolicy?: "always" | "when_necessary" | "never";
-  };
-  runtime?: {
-    finalizerUid?: string;
-    finalizedAt?: number;
-  };
 };
 
 export type AIRuntimeFunctionArguments<TParams> = {

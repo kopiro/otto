@@ -24,6 +24,7 @@ import { IOChannel, TIOChannel } from "../data/io-channel";
 import Pumpify from "pumpify";
 import TypedEmitter from "typed-emitter";
 import { TPerson } from "../data/person";
+import { isDocument } from "@typegoose/typegoose";
 
 const TAG = "IO.Voice";
 const logger = new Signale({
@@ -54,7 +55,10 @@ export class Voice implements IODriverRuntime {
   emitter = new EventEmitter() as TypedEmitter<IODriverEventMap>;
   conf: VoiceConfig;
   started = false;
+
   ioChannel!: TIOChannel;
+  person!: TPerson;
+
   currentSpokenFulfillment: Fulfillment | undefined;
   recognizeStream: Pumpify | null | undefined;
   hotwordSilenceSec = -1;
@@ -95,12 +99,12 @@ export class Voice implements IODriverRuntime {
           return;
         }
 
-        this.emitter.emit("error", err.message, this.ioChannel, null);
+        this.emitter.emit("error", err.message, this.ioChannel, this.person);
         return;
       }
 
       // Otherwise, emit an INPUT message with the recognized text
-      this.emitter.emit("input", { text }, this.ioChannel, null, null);
+      this.emitter.emit("input", { text }, this.ioChannel, this.person, null);
     });
 
     // Every time user speaks, reset the HWS timer to the max
@@ -118,8 +122,13 @@ export class Voice implements IODriverRuntime {
     this.emitter.emit("recognizing");
   }
 
-  private async registerInternalIOChannel() {
-    return IOChannel.findByIOIdentifierOrCreate(this.driverId, "any", null, null);
+  private async registerInternalModels() {
+    this.ioChannel = await IOChannel.findByIOIdentifierOrCreate(this.driverId, "any", null, null);
+    if (!isDocument(this.ioChannel.person)) {
+      throw new Error("Invalid person");
+    }
+
+    this.person = this.ioChannel.person;
   }
 
   private destroyRecognizer() {
@@ -299,7 +308,7 @@ export class Voice implements IODriverRuntime {
     if (this.started) return;
     this.started = true;
 
-    this.ioChannel = await this.registerInternalIOChannel();
+    await this.registerInternalModels();
 
     this.emitter.on("wake", this.wake.bind(this));
     this.emitter.on("stop", this.stop.bind(this));

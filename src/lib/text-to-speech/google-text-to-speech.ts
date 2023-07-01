@@ -36,7 +36,7 @@ export class GoogleTextToSpeech implements ITextToSpeech {
     );
   }
 
-  private async getVoice(language: Language, gender: Gender) {
+  private async getVoice(language: Language, gender: Gender): Promise<google.cloud.texttospeech.v1beta1.IVoice> {
     const [response] = await this.client.listVoices({ languageCode: language });
     const availableVoices = response.voices?.filter((voice) => voice.ssmlGender === gender.toUpperCase());
 
@@ -45,18 +45,27 @@ export class GoogleTextToSpeech implements ITextToSpeech {
       return this.getCachedVoice("en-US", "female");
     }
 
-    return availableVoices[0];
+    const voice = availableVoices[0];
+    if (!voice) {
+      throw new Error(`Unable to get a voice with language = ${language} and gender = ${gender}`);
+    }
+
+    return voice;
   }
 
-  private async getCachedVoice(language: Language, gender: Gender) {
+  private async getCachedVoice(language: Language, gender: Gender): Promise<google.cloud.texttospeech.v1.IVoice> {
     const key = JSON.stringify({ language, gender });
     if (!this.voices.has(key)) {
       const voice = await this.getVoice(language, gender);
       this.voices.set(key, voice);
+      return voice;
     }
 
     const cachedVoice = this.voices.get(key);
-    logger.debug("Voice to be used", cachedVoice);
+    if (!cachedVoice) {
+      throw new Error("Failed to get cached voice");
+    }
+
     return cachedVoice;
   }
 
@@ -76,7 +85,7 @@ export class GoogleTextToSpeech implements ITextToSpeech {
       },
       voice: {
         ...voice,
-        languageCode: voice.languageCodes[0],
+        languageCode: voice.languageCodes?.[0] || language,
       },
       audioConfig: {
         audioEncoding: this.conf.encoding as unknown as google.cloud.texttospeech.v1.AudioEncoding,

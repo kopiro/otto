@@ -24,7 +24,7 @@ export enum MemoryType {
 }
 
 type GInteractionsByIOChannel = Record<string, TInteraction[]>;
-type GInteractionsByDayThenIOChannel = Record<number, GInteractionsByIOChannel>;
+type GInteractionsByDayThenIOChannel = Record<string, GInteractionsByIOChannel>;
 
 type QdrantPayload = {
   id: string;
@@ -65,7 +65,7 @@ export class AIVectorMemory {
     return QDrantSDK().deleteCollection(collection);
   }
 
-  private async getInteractionsGroupedByDayThenIOChannel(): Promise<GInteractionsByDayThenIOChannel> {
+  private async getInteractionsGroupedByDateChunkThenIOChannel(): Promise<GInteractionsByDayThenIOChannel> {
     // Get all intereactions which "reducedTo" is not set
     const unreducedInteractions = await Interaction.find({
       managerUid: config().uid,
@@ -75,12 +75,12 @@ export class AIVectorMemory {
       createdAt: { $lte: new Date(new Date().setHours(0, 0, 0, 0)) },
     }).sort({ createdAt: +1 });
 
-    return unreducedInteractions.reduce((acc, interaction) => {
+    return unreducedInteractions.reduce<GInteractionsByDayThenIOChannel>((acc, interaction) => {
       if (isDocument(interaction.ioChannel)) {
-        const date = `${interaction.createdAt.getFullYear()}-${interaction.createdAt.getMonth()}-${interaction.createdAt.getDate()}`;
-        acc[date] = acc[date] || {};
-        acc[date][interaction.ioChannel.id] = acc[date][interaction.ioChannel.id] || [];
-        acc[date][interaction.ioChannel.id].push(interaction);
+        const dateChunk = `${interaction.createdAt.getFullYear()}-${interaction.createdAt.getMonth()}-${interaction.createdAt.getDate()}`;
+        acc[dateChunk] = acc[dateChunk] || {};
+        acc[dateChunk][interaction.ioChannel.id] = acc[dateChunk][interaction.ioChannel.id] || [];
+        acc[dateChunk][interaction.ioChannel.id].push(interaction);
       }
       return acc;
     }, {} as GInteractionsByDayThenIOChannel);
@@ -151,7 +151,7 @@ export class AIVectorMemory {
     );
   }
 
-  private async openAIPrompt(text: string) {
+  private async reduceText(text: string) {
     const reducedMemory = await OpenAIApiSDK().createChatCompletion({
       model: "gpt-3.5-turbo",
       messages: [
@@ -161,11 +161,15 @@ export class AIVectorMemory {
         },
       ],
     });
-    return reducedMemory.data.choices[0].message.content;
+    const content = reducedMemory?.data?.choices?.[0]?.message?.content;
+    if (!content) {
+      throw new Error("Unable to reduce text");
+    }
+    return content;
   }
 
-  private async reduceInteractionsForDate(date: string, gInteractions: GInteractionsByIOChannel) {
-    logger.info(`Reducing interactions for Date: ${date}`);
+  private async reduceInteractionsForDate(dateChunk: string, gInteractions: GInteractionsByIOChannel) {
+    logger.info(`Reducing interactions for DateChunk: ${dateChunk}`);
 
     const reducedInteractionsPerIOChannelText = [];
     const interactionIds = [];
@@ -201,7 +205,7 @@ export class AIVectorMemory {
 
         const reducerPromptForIOChannel =
           `The following is a conversation where ${config().aiName} is involved.\n` +
-          `They have happened on date ${date} - ${ioChannel.getDriverName()}.\n` +
+          `They have happened on date ${dateChunk} - ${ioChannel.getDriverName()}.\n` +
           `Please reduce them to a single sentence in third person.\n` +
           `Strictly keep the output short, maximum ${PER_IOCHANNEL_REDUCED_MAX_CHARS} characters.\n` +
           `Include the names, the date and the title of chat in the output.` +
@@ -209,12 +213,12 @@ export class AIVectorMemory {
           "## Conversation:\n" +
           interactionsPerDayPerIOChannelText.join("\n");
 
-        const reducedText = await this.openAIPrompt(reducerPromptForIOChannel);
+        const reducedText = await this.reduceText(reducerPromptForIOChannel);
         logger.debug("Reduced conversation: ", reducedText);
 
         reducedInteractionsPerIOChannelText.push(`- ${reducedText}`);
       } catch (err) {
-        logger.error("Error reducing interactions", err.message);
+        logger.error("Error reducing interactions", (err as Error)?.message);
       }
     }
 
@@ -225,17 +229,17 @@ export class AIVectorMemory {
       `## Sentences:\n` +
       reducedInteractionsPerIOChannelText.join("\n");
 
-    const reducedTextForDay = await this.openAIPrompt(reducerPromptForDay);
+    const reducedTextForDay = await this.reduceText(reducerPromptForDay);
     logger.debug("Reduced sentences: ", reducedTextForDay);
 
     const payloads: QdrantPayload[] = this.chunkText(reducedTextForDay).map((text) => ({
       id: uuidByString(text),
       text,
-      date: date,
+      date: dateChunk,
     }));
 
     await this.saveMemoriesInQdrant(payloads, MemoryType.episodic);
-    await this.markInteractionsAsReduced(interactionIds, date);
+    await this.markInteractionsAsReduced(interactionIds, dateChunk);
     logger.success(`Marked ${interactionIds.length} interactions as reduced`);
   }
 
@@ -248,7 +252,7 @@ export class AIVectorMemory {
   async buildEpisodicMemory() {
     await this.createQdrantCollection(MemoryType.episodic);
 
-    const interactions = await this.getInteractionsGroupedByDayThenIOChannel();
+    const interactions = await this.getInteractionsGroupedByDateChunkThenIOChannel();
     logger.info("Found " + Object.keys(interactions).length + " total days to reduce: ", Object.keys(interactions));
 
     for (const day in interactions) {
@@ -282,12 +286,10 @@ export class AIVectorMemory {
     const facebookFeed = await getFacebookFeed();
 
     const payloads: QdrantPayload[] = facebookFeed.data
+      .filter((item) => item.message)
       .map((item) => {
         const date = new Date(item.created_time);
         const text = [];
-        if (!item.message) {
-          return;
-        }
 
         text.push(
           `On ${date.toISOString()}, ${config().aiName} posted a picture on Facebook/Instagram: "${item.message}"`,
@@ -309,8 +311,7 @@ export class AIVectorMemory {
           text: fText,
           date: new Date(item.created_time).toISOString(),
         };
-      })
-      .filter(Boolean);
+      });
 
     await this.saveMemoriesInQdrant(payloads, MemoryType.social);
   }

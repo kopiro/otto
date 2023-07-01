@@ -1,5 +1,5 @@
 import config from "../config";
-import { Authorization, Fulfillment, InputParams } from "../types";
+import { Authorization, Fulfillment, IErrorWithData, InputParams } from "../types";
 import { EventEmitter } from "events";
 import { Signale } from "signale";
 import { TIOChannel } from "../data/io-channel";
@@ -206,7 +206,7 @@ export class IOManager {
       return { rejectReason: { message: "DO_NOT_DISTURB_ON" } };
     }
 
-    let driverRuntime: IODriverRuntime = this.loadedDrivers[ioChannel.ioDriver];
+    let driverRuntime = this.loadedDrivers[ioChannel.ioDriver];
     if (!driverRuntime && loadDriverIfNotEnabled) {
       driverRuntime = await this.loadDriver(ioChannel.ioDriver);
     }
@@ -295,7 +295,7 @@ export class IOManager {
 
           this.loadedDrivers[driverId] = driverRuntime;
         } catch (err) {
-          logger.error(`IO.${driverId} error on startup:`, err.message);
+          logger.error(`IO.${driverId} error on startup:`, (err as Error)?.message);
         }
       }),
     );
@@ -343,7 +343,13 @@ export class IOManager {
     callback?.(qitem);
 
     await qitem.deleteOne();
-    await this.output(qitem.fulfillment, qitem.ioChannel, isDocument(qitem.person) ? qitem.person : null, qitem.bag);
+
+    if (!isDocument(qitem.person)) {
+      logger.error("IOQueue item has no person, removing it", qitem);
+      return null;
+    }
+
+    await this.output(qitem.fulfillment, qitem.ioChannel, qitem.person, qitem.bag);
 
     return qitem;
   }
@@ -383,7 +389,7 @@ export class IOManager {
           ),
         );
       }
-      fulfillment = { error: err };
+      fulfillment = { error: err as IErrorWithData };
     }
 
     logger.debug(`(${inputId}) Fulfillment: `, fulfillment);

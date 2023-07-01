@@ -19,7 +19,7 @@ class IIOQueue {
   ioChannel!: Ref<IIOChannel>;
 
   @prop({ autopopulate: { maxDepth: 1 }, ref: () => IPerson })
-  person?: Ref<IPerson>;
+  person!: Ref<IPerson>;
 
   @prop({ required: true })
   public createdAt!: Date;

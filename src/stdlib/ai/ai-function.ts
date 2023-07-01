@@ -76,7 +76,7 @@ export class AIFunction {
       throw new Error(`Invalid function name <${functionName}>`);
     }
 
-    throwIfMissingAuthorizations(person.authorizations, pkgRuntime.authorizations);
+    throwIfMissingAuthorizations(person.authorizations, pkgRuntime.authorizations || []);
 
     const result = await pkgRuntime.default({
       inputParams,

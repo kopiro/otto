@@ -171,6 +171,6 @@ export async function report(error: ErrorWithData) {
   await IOManager.getInstance().output({ error }, ioChannel, person, null, true);
 }
 
-export async function logStacktrace(fileName: string, response: object) {
+export async function logStacktrace(fileName: string, response: any) {
   return writeFile(path.join(logsDir, fileName), JSON.stringify(response, null, 2));
 }

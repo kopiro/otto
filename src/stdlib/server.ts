@@ -103,10 +103,9 @@ routerApi.post("/signal/queue", async (_, res) => {
 // GET /api/dnd?io_channel=ID
 routerApi.get("/dnd", async (req, res) => {
   try {
-    if (!req.body.io_channel) throw new Error("req.body.io_channel is required");
+    if (!req.query.io_channel) throw new Error("req.body.io_channel is required");
 
     const ioChannel = await IOChannel.findByIdOrThrow(req.query.io_channel.toString());
-
     return res.json({ status: Boolean(ioChannel.doNotDisturb) });
   } catch (err) {
     logger.error("/api/dnd error", err);
@@ -144,7 +143,7 @@ export function getDomain(): string {
   return `${config().server.protocol}://${config().server.domain}`;
 }
 
-export function initializeRoutes(): { app: any; server: any } {
+export function initializeRoutes(): { app: any; server: http.Server } {
   const app = express();
   const server = http.createServer(app);
 

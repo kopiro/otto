@@ -257,7 +257,7 @@ export class AIOpenAI {
     } catch (error) {
       logStacktrace("openai-error.json", error);
 
-      const errorMessage = error?.response?.data?.error?.message || error?.message;
+      const errorMessage = (error as any)?.response?.data?.error?.message || (error as Error)?.message;
       throw new Error(errorMessage);
     }
 
