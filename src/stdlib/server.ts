@@ -182,6 +182,12 @@ export function initializeRoutes(): { app: any; server: http.Server } {
   app.use(express.static(publicDir));
   app.use("/tmp", express.static(tmpDir));
 
+  // Log all requests
+  app.use((req, res, next) => {
+    logger.request(`${req.method} ${req.url}`);
+    next();
+  });
+
   // Handle all routers
   app.use("/io", routerIO);
   app.use(
@@ -192,12 +198,6 @@ export function initializeRoutes(): { app: any; server: http.Server } {
     }),
     routerApi,
   );
-
-  // Log all requests
-  app.use((req, res, next) => {
-    logger.request(`${req.method} ${req.url}`);
-    next();
-  });
 
   return { app, server };
 }
