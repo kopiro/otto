@@ -7,7 +7,7 @@ import fetch from "node-fetch";
 import { OpenAIApiSDK } from "../../lib/openai";
 import { AIVectorMemory, MemoryType } from "./ai-vectormemory";
 import { AIFunction } from "./ai-function";
-import { Interaction } from "../../data/interaction";
+import { Interaction, TInteraction } from "../../data/interaction";
 import { TIOChannel } from "../../data/io-channel";
 import { TPerson } from "../../data/person";
 
@@ -22,6 +22,9 @@ const logger = new Signale({
 });
 
 const INTERACTION_LIMIT = 20;
+const DECLARATIVE_MEMORY_LIMIT = 20;
+const EPISODIC_MEMORY_LIMIT = 10;
+const SOCIAL_MEMORY_LIMIT = 3;
 
 export class AIOpenAI {
   private prompt!: string;
@@ -45,7 +48,7 @@ export class AIOpenAI {
     return name.replace(/[^a-zA-Z0-9_-]/g, "").substring(0, 64);
   }
 
-  private async retrieveRecentInteractions(
+  private async retrieveRecentInteractionsAsOpenAIMessages(
     text: string,
     ioChannel: TIOChannel,
   ): Promise<ChatCompletionRequestMessage[]> {
@@ -69,7 +72,8 @@ export class AIOpenAI {
 
     return interactions
       .reverse()
-      .map((interaction, i) => {
+      .map<ChatCompletionRequestMessage | null>((interaction, i) => {
+        // Remove last interaction because it's exactly like the input (text)
         if (i === interactions.length - 1) {
           if (
             text === interaction.input?.text &&
@@ -86,6 +90,7 @@ export class AIOpenAI {
             content: interaction.fulfillment.text,
           };
         }
+
         if (interaction.input?.text) {
           return {
             role: interaction.input.role || ChatCompletionRequestMessageRoleEnum.User,
@@ -93,30 +98,37 @@ export class AIOpenAI {
             content: interaction.input.text,
           };
         }
+
+        return null;
       })
-      .filter(Boolean) as ChatCompletionRequestMessage[];
+      .filter<ChatCompletionRequestMessage>((e): e is ChatCompletionRequestMessage => e !== null);
   }
 
-  private async getPersonContext(ioChannel: TIOChannel, person: TPerson): Promise<string> {
+  private async getPersonOrSystemContext(
+    ioChannel: TIOChannel,
+    person: TPerson,
+    role: ChatCompletionRequestMessageRoleEnum,
+  ): Promise<string> {
     const prompt = [];
 
     // Append ioChannel related info
-    if (person) {
+    if (role === ChatCompletionRequestMessageRoleEnum.User) {
       prompt.push("## User Context\n");
       prompt.push(`You are chatting with ${person.name} - ${ioChannel.getDriverName()}.`);
       const languageName = new Intl.DisplayNames(["en"], { type: "language" }).of(person.language);
-      prompt.push(`You must reply in ${languageName}.`);
+      prompt.push(`You should reply in ${languageName}.`);
     } else {
+      prompt.push("## System Context\n");
       prompt.push(`You are chatting ${ioChannel.getDriverName()}.`);
     }
 
     return prompt.join("\n");
   }
 
-  private async getGenericContext(context: InputContext = {}): Promise<string> {
+  private async getInputContext(context: InputContext = {}): Promise<string> {
     const prompt = [];
 
-    prompt.push(`## Generic Context\n`);
+    prompt.push(`## Input Context\n`);
 
     context.current_datetime_utc = context.current_datetime_utc || new Date().toISOString();
 
@@ -133,13 +145,17 @@ export class AIOpenAI {
     const prompt = [];
 
     const memory = AIVectorMemory.getInstance();
-    const vector = await memory.createVector(`${person.name}: ${text}`);
+    const vectorOfText = await memory.createVector(`${person.name}: ${text}`);
 
     const [declarativeMemories, episodicMemories, socialMemories] = await Promise.all([
-      memory.searchByVector(vector, MemoryType.declarative, 20),
-      memory.searchByVector(vector, MemoryType.episodic, 10),
-      memory.searchByVector(vector, MemoryType.social, 5),
+      memory.searchByVector(vectorOfText, MemoryType.declarative, DECLARATIVE_MEMORY_LIMIT),
+      memory.searchByVector(vectorOfText, MemoryType.episodic, EPISODIC_MEMORY_LIMIT),
+      memory.searchByVector(vectorOfText, MemoryType.social, SOCIAL_MEMORY_LIMIT),
     ]);
+
+    logger.debug("declarativeMemories", declarativeMemories);
+    logger.debug("episodicMemories", episodicMemories);
+    logger.debug("socialMemories", socialMemories);
 
     prompt.push(`## Memory Context\n\n` + declarativeMemories.join("\n"));
     prompt.push(`## Social Context\n\n` + socialMemories.join("\n"));
@@ -148,21 +164,36 @@ export class AIOpenAI {
     return prompt.join("\n\n");
   }
 
-  async sendMessageToOpenAI(
+  private interactionsAsString(interactions: TInteraction[]): string {
+    return interactions
+      .map((interaction) => {
+        if (interaction.input?.text) {
+          return `${interaction.getSourceName()}: ${interaction.input.text}`;
+        }
+        if (interaction.fulfillment?.text) {
+          return `${config().aiName}: ${interaction.fulfillment.text}`;
+        }
+      })
+      .filter((e) => e !== undefined)
+      .join("\n");
+  }
+
+  async requestToOpenAI(
     openAIMessages: ChatCompletionRequestMessage[],
     inputParams: InputParams,
     ioChannel: TIOChannel,
     person: TPerson,
     text: string,
+    role: ChatCompletionRequestMessageRoleEnum,
   ): Promise<Fulfillment> {
     const systemPrompt: string[] = [];
 
-    const [prompt, genericContext, personContext, memoryContext, interactions] = await Promise.all([
+    const [interactions, prompt, genericContext, personContext, memoryContext] = await Promise.all([
+      this.retrieveRecentInteractionsAsOpenAIMessages(text, ioChannel),
       this.getPrompt(),
-      this.getGenericContext(inputParams.context),
-      this.getPersonContext(ioChannel, person),
+      this.getInputContext(inputParams.context),
+      this.getPersonOrSystemContext(ioChannel, person, role),
       this.getVectorialMemory(text, ioChannel, person),
-      this.retrieveRecentInteractions(text, ioChannel),
     ]);
 
     systemPrompt.push(prompt);
@@ -208,7 +239,7 @@ export class AIOpenAI {
       const result = await AIFunction.getInstance().call(functionName, functionParams, inputParams, ioChannel, person);
 
       if (result.functionResult) {
-        return this.sendMessageToOpenAI(
+        return this.requestToOpenAI(
           [
             ...openAIMessages,
             {
@@ -221,6 +252,7 @@ export class AIOpenAI {
           ioChannel,
           person,
           text,
+          role,
         );
       }
 
@@ -237,18 +269,25 @@ export class AIOpenAI {
   async getFulfillmentForInput(params: InputParams, ioChannel: TIOChannel, person: TPerson): Promise<Fulfillment> {
     try {
       if (params.text) {
-        const result = await this.sendMessageToOpenAI(
+        const role = params.role || ChatCompletionRequestMessageRoleEnum.User;
+        const result = await this.requestToOpenAI(
           [
-            {
-              role: params.role || ChatCompletionRequestMessageRoleEnum.User,
-              content: params.text,
-              name: person ? this.cleanName(person.name) : undefined,
-            },
+            role === ChatCompletionRequestMessageRoleEnum.User
+              ? {
+                  content: params.text,
+                  name: this.cleanName(person.name),
+                  role: role,
+                }
+              : {
+                  content: params.text,
+                  role: role,
+                },
           ],
           params,
           ioChannel,
           person,
           params.text,
+          role,
         );
         return result;
       }
