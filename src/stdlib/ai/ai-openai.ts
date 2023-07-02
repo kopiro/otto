@@ -46,8 +46,8 @@ export class AIOpenAI {
   }
 
   private async retrieveRecentInteractions(
+    text: string,
     ioChannel: TIOChannel,
-    inputText: string,
   ): Promise<ChatCompletionRequestMessage[]> {
     // Get all Interaction where we have a input.text or fulfillment.text in the last 20m
     const interactions = await Interaction.find({
@@ -74,7 +74,7 @@ export class AIOpenAI {
       .map((interaction, i) => {
         if (i === interactions.length - 1) {
           if (
-            inputText === interaction.input?.text &&
+            text === interaction.input?.text &&
             // last minute
             interaction.createdAt > new Date(Date.now() - 1000 * 60)
           ) {
@@ -131,11 +131,11 @@ export class AIOpenAI {
     return prompt.join("\n");
   }
 
-  private async getVectorialMemory(text: string): Promise<string> {
+  private async getVectorialMemory(text: string, ioChannel: TIOChannel, person: TPerson): Promise<string> {
     const prompt = [];
 
     const memory = AIVectorMemory.getInstance();
-    const vector = await memory.createVector(text);
+    const vector = await memory.createVector(`${person.name}: ${text}`);
 
     const [declarativeMemories, episodicMemories, socialMemories] = await Promise.all([
       memory.searchByVector(vector, MemoryType.declarative, 20),
@@ -163,8 +163,8 @@ export class AIOpenAI {
       this.getPrompt(),
       this.getGenericContext(inputParams.context),
       this.getPersonContext(ioChannel, person),
-      this.getVectorialMemory(text),
-      this.retrieveRecentInteractions(ioChannel, text),
+      this.getVectorialMemory(text, ioChannel, person),
+      this.retrieveRecentInteractions(text, ioChannel),
     ]);
 
     systemPrompt.push(prompt);
@@ -184,7 +184,7 @@ export class AIOpenAI {
 
     const request = {
       model: "gpt-3.5-turbo",
-      user: ioChannel?.id,
+      user: person.id,
       n: 1,
       messages,
       // functions: AIFunction.getInstance().getFunctionDefinitions(),
