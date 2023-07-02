@@ -11,11 +11,21 @@ import { Signale } from "signale";
 import { IOChannel } from "../data/io-channel";
 import { Person } from "../data/person";
 import { Translator } from "./translator";
-import { Gender, Language } from "../types";
+import { Authorization, Gender, Language } from "../types";
+import { AIVectorMemory, MemoryType } from "./ai/ai-vectormemory";
+import { throwIfMissingAuthorizations } from "../helpers";
 
 const TAG = "Server";
 const logger = new Signale({
   scope: TAG,
+  types: {
+    request: {
+      badge: "",
+      color: "blue",
+      label: "request",
+      logLevel: "debug",
+    },
+  },
 });
 
 export const routerIO = express.Router();
@@ -42,7 +52,7 @@ routerApi.get("/speech", async (req: express.Request, res: express.Response) => 
     res.redirect(audioFileMixed.getServerURL());
   } catch (err) {
     return res.status(400).json({
-      error: (err as Error).message,
+      error: (err as Error)?.message,
     });
   }
 });
@@ -65,7 +75,7 @@ routerApi.get("/user-speech", async (req: express.Request, res: express.Response
     res.redirect(audioFileMixed.getServerURL());
   } catch (err) {
     return res.status(400).json({
-      error: (err as Error).message,
+      error: (err as Error)?.message,
     });
   }
 });
@@ -87,7 +97,7 @@ routerApi.post("/input", async (req, res) => {
     logger.error("/api/input error", err);
     return res.status(400).json({
       error: {
-        message: String(err),
+        message: (err as Error)?.message,
       },
     });
   }
@@ -111,7 +121,7 @@ routerApi.get("/dnd", async (req, res) => {
     logger.error("/api/dnd error", err);
     return res.status(400).json({
       error: {
-        message: String(err),
+        message: (err as Error)?.message,
       },
     });
   }
@@ -133,7 +143,27 @@ routerApi.post("/dnd", async (req, res) => {
     logger.error("/api/dnd error", err);
     return res.status(400).json({
       error: {
-        message: String(err),
+        message: (err as Error)?.message,
+      },
+    });
+  }
+});
+
+routerApi.get(`/memory/:memoryType`, async (req, res) => {
+  try {
+    if (!req.query.person) throw new Error("PersonID is required");
+    const person = await Person.findByIdOrThrow(req.query.person.toString());
+
+    throwIfMissingAuthorizations(person.authorizations, [Authorization.ADMIN]);
+
+    const memoryType = req.params.memoryType.toString();
+    const vectors = await AIVectorMemory.getInstance().listVectors(memoryType as MemoryType);
+
+    res.json({ data: vectors });
+  } catch (err) {
+    return res.status(400).json({
+      error: {
+        message: (err as Error)?.message,
       },
     });
   }
@@ -162,6 +192,12 @@ export function initializeRoutes(): { app: any; server: http.Server } {
     }),
     routerApi,
   );
+
+  // Log all requests
+  app.use((req, res, next) => {
+    logger.request(`${req.method} ${req.url}`);
+    next();
+  });
 
   return { app, server };
 }

@@ -29,7 +29,7 @@ type MapDateChunkToMapIOChannelToInteractions = Record<string, MapIOChannelToInt
 type QdrantPayload = {
   id: string;
   text: string;
-  dateChunk: string;
+  dateChunk?: string;
 };
 
 export class AIVectorMemory {
@@ -116,6 +116,15 @@ export class AIVectorMemory {
     return data.map((e) => (e.payload as QdrantPayload).text as string);
   }
 
+  async listVectors(memoryType: MemoryType) {
+    const data = await QDrantSDK().scroll(memoryType, {
+      with_payload: true,
+      with_vector: false,
+      limit: 10_000,
+    });
+    return data.points.map((e) => ({ id: e.id, ...e.payload }));
+  }
+
   private chunkText(text: string): string[] {
     return text
       .split("\n")
@@ -125,6 +134,10 @@ export class AIVectorMemory {
   }
 
   private async savePayloadInCollection(payloads: QdrantPayload[], memoryType: MemoryType): Promise<boolean> {
+    if (payloads.length === 0) {
+      return true;
+    }
+
     const vectors = await Promise.all(payloads.map(({ text }) => this.createVector(text)));
 
     const operation = await QDrantSDK().upsert(memoryType, {
@@ -207,7 +220,7 @@ export class AIVectorMemory {
 
       const reducerPromptForIOChannel =
         `The following is a conversation where ${config().aiName} is involved.\n` +
-        `They have happened on date ${dateChunk} - ${ioChannel.getDriverName()}.\n` +
+        `They have happened on ${dateChunk} - ${ioChannel.getDriverName()}.\n` +
         `Please reduce them to a single sentence in third person.\n` +
         `Strictly keep the output short, maximum ${PER_IOCHANNEL_REDUCED_MAX_CHARS} characters.\n` +
         `Include the names, the date and the title of chat in the output.` +
@@ -237,7 +250,7 @@ export class AIVectorMemory {
       filter: {
         must: [
           {
-            key: "dateChunk",
+            key: "dateChunk" as keyof QdrantPayload,
             match: {
               value: dateChunk,
             },
@@ -290,7 +303,6 @@ export class AIVectorMemory {
     const payloads = this.chunkText(declarativeMemory).map<QdrantPayload>((text) => ({
       id: uuidByString(`declarative_${text}`),
       text,
-      dateChunk: "",
     }));
 
     await this.savePayloadInCollection(payloads, MemoryType.declarative);
@@ -305,33 +317,35 @@ export class AIVectorMemory {
     logger.pending("Fetching Memory by Facebook Page...");
     const facebookFeed = await getFacebookFeed();
 
-    const payloads = facebookFeed.data
+    const facebookData = facebookFeed.data
       .filter((item) => item.message)
-      .map<QdrantPayload>((item) => {
-        const date = new Date(item.created_time);
-        const text = [];
+      .map((item) => ({ ...item, uuid: uuidByString(`facebook_${item.id}`) }));
 
-        text.push(
-          `On ${date.toISOString()}, ${config().aiName} posted a picture on Facebook/Instagram: "${item.message}"`,
-        );
-        if (item.permalink_url) {
-          text.push(`(Link: ${item.permalink_url})`);
-        }
-        if (item.place) {
-          text.push(`(Location: ${item.place.name} (${item.place.location.city}, ${item.place.location.country})})`);
-        }
+    const payloads = facebookData.map<QdrantPayload>((item) => {
+      const text = [];
 
-        // Remove any hashtags
-        let fText = text.join(" ");
-        fText = fText.replace(/#[a-zA-Z0-9]+/g, ""); // Remove #hashtags
-        fText = fText.replace(/\n/g, "");
+      text.push(
+        `On ${new Date(item.created_time).toISOString()}, ${config().aiName} posted a picture on Facebook/Instagram: "${
+          item.message
+        }"`,
+      );
+      if (item.permalink_url) {
+        text.push(`(Link: ${item.permalink_url})`);
+      }
+      if (item.place) {
+        text.push(`(Location: ${item.place.name} (${item.place.location.city}, ${item.place.location.country})})`);
+      }
 
-        return {
-          id: uuidByString(`facebook_${item.id}`),
-          text: fText,
-          dateChunk: new Date(item.created_time).toISOString(),
-        };
-      });
+      // Remove any hashtags
+      let fText = text.join(" ");
+      fText = fText.replace(/#[a-zA-Z0-9]+/g, ""); // Remove #hashtags
+      fText = fText.replace(/\n/g, "");
+
+      return {
+        id: item.uuid,
+        text: fText,
+      };
+    });
 
     await this.savePayloadInCollection(payloads, MemoryType.social);
   }
