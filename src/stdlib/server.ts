@@ -179,14 +179,14 @@ export function initializeRoutes(): { app: any; server: http.Server } {
 
   app.set("trust proxy", 1);
 
-  app.use(express.static(publicDir));
-  app.use("/tmp", express.static(tmpDir));
-
   // Log all requests
   app.use((req, res, next) => {
     logger.request(`${req.method} ${req.url}`);
     next();
   });
+
+  app.use(express.static(publicDir));
+  app.use("/tmp", express.static(tmpDir));
 
   // Handle all routers
   app.use("/io", routerIO);
