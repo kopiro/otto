@@ -22,7 +22,8 @@
     "docker:deploy": "pnpm run build:docker && docker push kopiro/otto",
     "ai:memory": "ts-node ./src/cli/memory.ts",
     "ai:sleep": "MEMORY_TYPE=episodic pnpm run ai:memory",
-    "ai:social": "MEMORY_TYPE=social pnpm run ai:memory"
+    "ai:social": "MEMORY_TYPE=social pnpm run ai:memory",
+    "erase:dev": "ts-node ./src/cli/erase-dev.ts"
   },
   "os": [
     "darwin",

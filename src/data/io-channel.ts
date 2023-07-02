@@ -80,7 +80,7 @@ export class IIOChannel {
             chatName = `in the channel "${ioData.title}"`;
             break;
           case "private":
-            chatName = `in a private conversation with "${ioData.first_name} ${ioData.last_name}"`;
+            chatName = `in a private conversation with "${ioData.first_name} ${ioData.last_name?.[0]}."`;
             break;
         }
         return `via Telegram (${chatName})`;

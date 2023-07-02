@@ -138,7 +138,7 @@ export class Telegram implements IODriverRuntime {
   private getPersonName(from: TelegramBot.User): string {
     const { first_name, last_name, username, id } = from;
     if (first_name && last_name) {
-      return `${first_name} ${last_name}`;
+      return `${first_name} ${last_name[0]}.`;
     }
     if (first_name) {
       return first_name;
