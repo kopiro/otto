@@ -56,13 +56,11 @@ export class AIOpenAI {
           "fulfillment.text": { $ne: null },
           ioChannel: ioChannel.id,
           reducedTo: { $exists: false },
-          createdAt: { $gte: new Date(Date.now() - 20 * 60_000) },
         },
         {
           "input.text": { $ne: null },
           ioChannel: ioChannel.id,
           reducedTo: { $exists: false },
-          createdAt: { $gte: new Date(Date.now() - 20 * 60_000) },
         },
       ],
     })
