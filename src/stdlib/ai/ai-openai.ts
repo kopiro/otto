@@ -135,7 +135,7 @@ export class AIOpenAI {
     const prompt = [];
 
     const memory = AIVectorMemory.getInstance();
-    const vector = await memory.createEmbedding(text);
+    const vector = await memory.createVector(text);
 
     const [declarativeMemories, episodicMemories, socialMemories] = await Promise.all([
       memory.searchByVector(vector, MemoryType.declarative, 20),

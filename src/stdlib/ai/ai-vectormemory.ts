@@ -15,7 +15,7 @@ const logger = new Signale({
 });
 
 const PER_IOCHANNEL_REDUCED_MAX_CHARS = 100;
-const PER_DAY_REDUCED_MAX_CHARS = 300;
+const PER_DATECHUNK_REDUCED_MAX_CHARS = 300;
 
 export enum MemoryType {
   "episodic" = "episodic",
@@ -23,13 +23,13 @@ export enum MemoryType {
   "social" = "social",
 }
 
-type GInteractionsByIOChannel = Record<string, TInteraction[]>;
-type GInteractionsByDayThenIOChannel = Record<string, GInteractionsByIOChannel>;
+type MapIOChannelToInteractions = Record<string, TInteraction[]>;
+type MapDateChunkToMapIOChannelToInteractions = Record<string, MapIOChannelToInteractions>;
 
 type QdrantPayload = {
   id: string;
   text: string;
-  date: string;
+  dateChunk: string;
 };
 
 export class AIVectorMemory {
@@ -41,7 +41,7 @@ export class AIVectorMemory {
     return AIVectorMemory.instance;
   }
 
-  async createQdrantCollection(collection: MemoryType) {
+  async createCollection(collection: MemoryType) {
     logger.debug("Creating Qdrant collection", collection);
 
     const allCollections = await QDrantSDK().getCollections();
@@ -60,33 +60,39 @@ export class AIVectorMemory {
     return true;
   }
 
-  async deleteQdrantCollection(collection: MemoryType) {
-    logger.debug("Deleting Qdrant collection", collection);
-    return QDrantSDK().deleteCollection(collection);
+  async deleteCollection(collection: MemoryType) {
+    const op = await QDrantSDK().deleteCollection(collection);
+    logger.success(`Deleted Qdrant collection (${collection})`, op);
   }
 
-  private async getInteractionsGroupedByDateChunkThenIOChannel(): Promise<GInteractionsByDayThenIOChannel> {
+  private getDateChunk(date: Date): string {
+    return [
+      date.getFullYear(),
+      (1 + date.getMonth()).toString().padStart(2, "0"),
+      date.getDate().toString().padStart(2, "0"),
+    ].join("/");
+  }
+
+  private async getInteractionsGroupedByDateChunkThenIOChannel(): Promise<MapDateChunkToMapIOChannelToInteractions> {
     // Get all intereactions which "reducedTo" is not set
     const unreducedInteractions = await Interaction.find({
       managerUid: config().uid,
       reducedTo: { $exists: false },
       $or: [{ "fulfillment.text": { $exists: true } }, { "input.text": { $exists: true } }],
-      // Get createdAt until yesterday
-      createdAt: { $lte: new Date(new Date().setHours(0, 0, 0, 0)) },
     }).sort({ createdAt: +1 });
 
-    return unreducedInteractions.reduce<GInteractionsByDayThenIOChannel>((acc, interaction) => {
+    return unreducedInteractions.reduce<MapDateChunkToMapIOChannelToInteractions>((acc, interaction) => {
       if (isDocument(interaction.ioChannel)) {
-        const dateChunk = `${interaction.createdAt.getFullYear()}-${interaction.createdAt.getMonth()}-${interaction.createdAt.getDate()}`;
+        const dateChunk = this.getDateChunk(interaction.createdAt);
         acc[dateChunk] = acc[dateChunk] || {};
         acc[dateChunk][interaction.ioChannel.id] = acc[dateChunk][interaction.ioChannel.id] || [];
         acc[dateChunk][interaction.ioChannel.id].push(interaction);
       }
       return acc;
-    }, {} as GInteractionsByDayThenIOChannel);
+    }, {});
   }
 
-  async createEmbedding(text: string) {
+  async createVector(text: string) {
     const { data } = await OpenAIApiSDK().createEmbedding({
       input: text,
       model: "text-embedding-ada-002",
@@ -95,7 +101,7 @@ export class AIVectorMemory {
   }
 
   async searchByText(text: string, memoryType: MemoryType, limit: number): Promise<string[]> {
-    const vector = await this.createEmbedding(text);
+    const vector = await this.createVector(text);
     return this.searchByVector(vector, memoryType, limit);
   }
 
@@ -106,8 +112,6 @@ export class AIVectorMemory {
       with_vector: false,
       limit,
     });
-
-    // logger.debug(`Search by vector in ${memoryType} memory`, data);
 
     return data.map((e) => (e.payload as QdrantPayload).text as string);
   }
@@ -120,10 +124,8 @@ export class AIVectorMemory {
       .filter((e) => !e.startsWith("//"));
   }
 
-  private async saveMemoriesInQdrant(payloads: QdrantPayload[], memoryType: MemoryType): Promise<boolean> {
-    const vectors = await Promise.all(payloads.map(({ text }) => this.createEmbedding(text)));
-
-    logger.info(`Saving payloads in Qdrant <${memoryType}>`, payloads);
+  private async savePayloadInCollection(payloads: QdrantPayload[], memoryType: MemoryType): Promise<boolean> {
+    const vectors = await Promise.all(payloads.map(({ text }) => this.createVector(text)));
 
     const operation = await QDrantSDK().upsert(memoryType, {
       wait: true,
@@ -138,21 +140,22 @@ export class AIVectorMemory {
       },
     });
 
-    logger.success(`Saved payloads in Qdrant <${memoryType}>`, operation);
+    logger.success(`Saved payloads in collection <${memoryType}>`, operation);
 
     return operation.status === "completed";
   }
 
-  private async markInteractionsAsReduced(interactionsIds: string[], identifier: string): Promise<void> {
+  private async markInteractionsAsReduced(interactionsIds: string[], reducedTo: string) {
     await Interaction.updateMany(
       { _id: { $in: interactionsIds } },
-      { $set: { reducedTo: identifier } },
+      { $set: { reducedTo: reducedTo } },
       { multi: true },
     );
+    logger.success(`Marked ${interactionsIds.length} interactions as reduced to ${reducedTo}`);
   }
 
   private async reduceText(text: string) {
-    const reducedMemory = await OpenAIApiSDK().createChatCompletion({
+    const response = await OpenAIApiSDK().createChatCompletion({
       model: "gpt-3.5-turbo",
       messages: [
         {
@@ -161,86 +164,97 @@ export class AIVectorMemory {
         },
       ],
     });
-    const content = reducedMemory?.data?.choices?.[0]?.message?.content;
+    const content = response?.data?.choices?.[0]?.message?.content;
     if (!content) {
       throw new Error("Unable to reduce text");
     }
     return content;
   }
 
-  private async reduceInteractionsForDate(dateChunk: string, gInteractions: GInteractionsByIOChannel) {
+  private async reduceInteractionsForDateChunk(dateChunk: string, gInteractions: MapIOChannelToInteractions) {
     logger.info(`Reducing interactions for DateChunk: ${dateChunk}`);
 
     const reducedInteractionsPerIOChannelText = [];
     const interactionIds = [];
 
     for (const interactions of Object.values(gInteractions)) {
-      try {
-        const ioChannel = interactions[0].ioChannel;
-        if (!isDocument(ioChannel)) {
-          logger.error("Unable to continue without a ioChannel");
-          continue;
-        }
-
-        if (ioChannel.ioDriver === "voice" || ioChannel.ioDriver === "web") {
-          logger.warn(`Skipping interaction <${ioChannel.ioDriver}> because it's not supported yet`);
-          continue;
-        }
-
-        const interactionsPerDayPerIOChannelText = [];
-
-        for (const interaction of interactions) {
-          interactionIds.push(interaction.id);
-
-          const time = interaction.createdAt.toLocaleTimeString();
-          const sourceName = interaction.getSourceName();
-
-          if (interaction.fulfillment?.text) {
-            interactionsPerDayPerIOChannelText.push(`- ${sourceName} (${time}): ${interaction.fulfillment.text}`);
-          }
-          if (interaction.input?.text) {
-            interactionsPerDayPerIOChannelText.push(`- ${sourceName} (${time}): ${interaction.input.text}`);
-          }
-        }
-
-        const reducerPromptForIOChannel =
-          `The following is a conversation where ${config().aiName} is involved.\n` +
-          `They have happened on date ${dateChunk} - ${ioChannel.getDriverName()}.\n` +
-          `Please reduce them to a single sentence in third person.\n` +
-          `Strictly keep the output short, maximum ${PER_IOCHANNEL_REDUCED_MAX_CHARS} characters.\n` +
-          `Include the names, the date and the title of chat in the output.` +
-          `Example: On 27/02/2023, ${config().aiName} had a chat with USER about holidays in Japan."\n\n` +
-          "## Conversation:\n" +
-          interactionsPerDayPerIOChannelText.join("\n");
-
-        const reducedText = await this.reduceText(reducerPromptForIOChannel);
-        logger.debug("Reduced conversation: ", reducedText);
-
-        reducedInteractionsPerIOChannelText.push(`- ${reducedText}`);
-      } catch (err) {
-        logger.error("Error reducing interactions", (err as Error)?.message);
+      const ioChannel = interactions[0].ioChannel;
+      if (!isDocument(ioChannel)) {
+        logger.error("Unable to continue without a ioChannel");
+        continue;
       }
+
+      if (ioChannel.ioDriver === "voice" || ioChannel.ioDriver === "web") {
+        logger.warn(`Skipping interaction of type <${ioChannel.ioDriver}> because it's not supported yet`);
+        continue;
+      }
+
+      const conversation = [];
+
+      for (const interaction of interactions) {
+        interactionIds.push(interaction.id);
+
+        const time = interaction.createdAt.toLocaleTimeString();
+        const sourceName = interaction.getSourceName();
+
+        if (interaction.fulfillment?.text) {
+          conversation.push(`- ${sourceName} (${time}): ${interaction.fulfillment.text}`);
+        }
+        if (interaction.input?.text) {
+          conversation.push(`- ${sourceName} (${time}): ${interaction.input.text}`);
+        }
+      }
+
+      const reducerPromptForIOChannel =
+        `The following is a conversation where ${config().aiName} is involved.\n` +
+        `They have happened on date ${dateChunk} - ${ioChannel.getDriverName()}.\n` +
+        `Please reduce them to a single sentence in third person.\n` +
+        `Strictly keep the output short, maximum ${PER_IOCHANNEL_REDUCED_MAX_CHARS} characters.\n` +
+        `Include the names, the date and the title of chat in the output.` +
+        `Example: On 27/02/2023, ${config().aiName} had a chat with USER about holidays in Japan."\n\n` +
+        "## Conversation:\n" +
+        conversation.join("\n");
+
+      const reducedText = await this.reduceText(reducerPromptForIOChannel);
+      logger.debug("Reduced conversation: ", reducedText);
+
+      reducedInteractionsPerIOChannelText.push(`- ${reducedText}`);
     }
 
     const reducerPromptForDay =
       `Compress the following sentences to a single sentence in third person.\n` +
-      `Strictly keep the output short, maximum ${PER_DAY_REDUCED_MAX_CHARS} characters.\n\n` +
+      `Strictly keep the output short, maximum ${PER_DATECHUNK_REDUCED_MAX_CHARS} characters.\n\n` +
       `If the informations don't fit in the limit, discard some informations.\n` +
       `## Sentences:\n` +
       reducedInteractionsPerIOChannelText.join("\n");
 
     const reducedTextForDay = await this.reduceText(reducerPromptForDay);
-    logger.debug("Reduced sentences: ", reducedTextForDay);
+    logger.info("Reduced sentences: ", reducedTextForDay);
 
-    const payloads: QdrantPayload[] = this.chunkText(reducedTextForDay).map((text) => ({
-      id: uuidByString(text),
+    // Delete all text belonging to this dateChunk
+    const deleteOp = await QDrantSDK().delete(MemoryType.episodic, {
+      wait: true,
+      filter: {
+        must: [
+          {
+            key: "dateChunk",
+            match: {
+              value: dateChunk,
+            },
+          },
+        ],
+      },
+    });
+    logger.success(`Deleted payloads for dateChunk: ${dateChunk}`, deleteOp);
+
+    const payloads = this.chunkText(reducedTextForDay).map<QdrantPayload>((text) => ({
+      id: uuidByString(dateChunk + "-" + text),
       text,
-      date: dateChunk,
+      dateChunk,
     }));
 
-    await this.saveMemoriesInQdrant(payloads, MemoryType.episodic);
+    await this.savePayloadInCollection(payloads, MemoryType.episodic);
     await this.markInteractionsAsReduced(interactionIds, dateChunk);
-    logger.success(`Marked ${interactionIds.length} interactions as reduced`);
   }
 
   /**
@@ -250,44 +264,50 @@ export class AIVectorMemory {
    * The interactions are then marked as reduced.
    */
   async buildEpisodicMemory() {
-    await this.createQdrantCollection(MemoryType.episodic);
+    await this.createCollection(MemoryType.episodic);
 
-    const interactions = await this.getInteractionsGroupedByDateChunkThenIOChannel();
-    logger.info("Found " + Object.keys(interactions).length + " total days to reduce: ", Object.keys(interactions));
+    const unreducedInteractions = await this.getInteractionsGroupedByDateChunkThenIOChannel();
+    logger.info(
+      "Found " + Object.keys(unreducedInteractions).length + " total days to reduce: ",
+      Object.keys(unreducedInteractions),
+    );
 
-    for (const day in interactions) {
-      await this.reduceInteractionsForDate(day, interactions[day]);
+    for (const [dateChunk, gInteractions] of Object.entries(unreducedInteractions)) {
+      await this.reduceInteractionsForDateChunk(dateChunk, gInteractions);
     }
   }
 
   /**
    * The declarative memory is created by getting all informations (documents) from several links and saving them to Qdrant.
    */
-  async buildDeclarativeMemory(): Promise<void> {
-    await this.createQdrantCollection(MemoryType.declarative);
+  async buildDeclarativeMemory() {
+    await this.createCollection(MemoryType.declarative);
 
     logger.pending("Fetching Memory by URL...");
 
     const declarativeMemory = await (await fetch(config().openai.declarativeMemoryUrl)).text();
 
-    const payloads: QdrantPayload[] = this.chunkText(declarativeMemory).map((text) => ({
+    const payloads = this.chunkText(declarativeMemory).map<QdrantPayload>((text) => ({
       id: uuidByString(`declarative_${text}`),
       text,
-      date: "",
+      dateChunk: "",
     }));
 
-    await this.saveMemoriesInQdrant(payloads, MemoryType.declarative);
+    await this.savePayloadInCollection(payloads, MemoryType.declarative);
   }
 
-  async buildSocialMemory(): Promise<void> {
-    await this.createQdrantCollection(MemoryType.social);
+  /**
+   * The social memory is created by getting all posts from Facebook and Instagram and saving them to Qdrant.
+   */
+  async buildSocialMemory() {
+    await this.createCollection(MemoryType.social);
 
     logger.pending("Fetching Memory by Facebook Page...");
     const facebookFeed = await getFacebookFeed();
 
-    const payloads: QdrantPayload[] = facebookFeed.data
+    const payloads = facebookFeed.data
       .filter((item) => item.message)
-      .map((item) => {
+      .map<QdrantPayload>((item) => {
         const date = new Date(item.created_time);
         const text = [];
 
@@ -309,10 +329,10 @@ export class AIVectorMemory {
         return {
           id: uuidByString(`facebook_${item.id}`),
           text: fText,
-          date: new Date(item.created_time).toISOString(),
+          dateChunk: new Date(item.created_time).toISOString(),
         };
       });
 
-    await this.saveMemoriesInQdrant(payloads, MemoryType.social);
+    await this.savePayloadInCollection(payloads, MemoryType.social);
   }
 }

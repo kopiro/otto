@@ -23,21 +23,26 @@ warmup()
 
     if (process.env.MEMORY_TYPE?.includes(MemoryType.declarative)) {
       if (process.env.ERASE) {
-        await memory.deleteQdrantCollection(MemoryType.declarative);
+        await memory.deleteCollection(MemoryType.declarative);
       }
       await memory.buildDeclarativeMemory();
     }
 
     if (process.env.MEMORY_TYPE?.includes(MemoryType.social)) {
       if (process.env.ERASE) {
-        await memory.deleteQdrantCollection(MemoryType.social);
+        await memory.deleteCollection(MemoryType.social);
       }
       await memory.buildSocialMemory();
     }
 
     if (process.env.MEMORY_TYPE?.includes(MemoryType.episodic)) {
       if (process.env.ERASE) {
-        await memory.deleteQdrantCollection(MemoryType.episodic);
+        await memory.deleteCollection(MemoryType.episodic);
+      }
+      if (process.env.UPSERT) {
+        // Set all reducedTo to false in interactions
+        const op = await Interaction.updateMany({ managerUid: config().uid }, { $unset: { reducedTo: true } });
+        logger.success(`Erased reducedTo in interactions`, op);
       }
       await memory.buildEpisodicMemory();
     }

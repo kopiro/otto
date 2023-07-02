@@ -6,7 +6,6 @@ import {
   IODriverEventMap,
   IODriverId,
   IODriverSingleOutput,
-  IOBag,
 } from "../stdlib/io-manager";
 import { chunkArray, timeout } from "../helpers";
 import { Fulfillment, Language } from "../types";
