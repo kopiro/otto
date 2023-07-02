@@ -15,7 +15,6 @@ import { randomUUID } from "crypto";
 import { Interaction } from "../data/interaction";
 import { report, throwIfMissingAuthorizations } from "../helpers";
 import { AuthorizationError } from "../errors/authorization-error";
-import { ErrorWithData } from "../errors/data-error";
 
 const TAG = "IOManager";
 const logger = new Signale({
@@ -382,12 +381,10 @@ export class IOManager {
       fulfillment = await AIManager.getInstance().getFullfilmentForInput(params, ioChannel, person);
     } catch (err) {
       if (err instanceof AuthorizationError) {
-        report(
-          new ErrorWithData(
-            `Person <b>${person.name}</b> (<code>${person.id}</code>) on channel <code>${ioChannel.id}</code> is trying to perform an action without the following authorization: <code>${err.requiredAuth}</code>`,
-            { params },
-          ),
-        );
+        report({
+          message: `Person <b>${person.name}</b> (<code>${person.id}</code>) on channel <code>${ioChannel.id}</code> is trying to perform an action without the following authorization: <code>${err.requiredAuth}</code>`,
+          data: JSON.stringify({ params }),
+        });
       }
       fulfillment = { error: err as IErrorWithData };
     }

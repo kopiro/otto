@@ -2,7 +2,7 @@ import { existsSync } from "fs";
 import path from "path";
 import config from "./config";
 import { cacheDir, logsDir } from "./paths";
-import { Authorization } from "./types";
+import { Authorization, IErrorWithData } from "./types";
 import crypto, { createHash } from "crypto";
 import { File } from "./stdlib/file";
 
@@ -13,7 +13,6 @@ import { AuthorizationError } from "./errors/authorization-error";
 import { IOManager } from "./stdlib/io-manager";
 import { IOChannel } from "./data/io-channel";
 import { Person } from "./data/person";
-import { ErrorWithData } from "./errors/data-error";
 
 const TAG = "Helpers";
 const logger = new Signale({
@@ -161,7 +160,7 @@ export function throwIfMissingAuthorizations(
   }
 }
 
-export async function report(error: ErrorWithData) {
+export async function report(error: IErrorWithData) {
   logger.fatal(`Reporting`, error);
 
   const { personId, ioChannelId } = config().reports;
