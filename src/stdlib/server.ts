@@ -193,7 +193,7 @@ export function initializeRoutes(): { app: any; server: http.Server } {
   app.use(
     "/api",
     rateLimit({
-      windowMs: 5 * 60 * 1000,
+      windowMs: 1 * 60_1000,
       max: 100,
     }),
     routerApi,
