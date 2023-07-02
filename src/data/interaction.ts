@@ -42,28 +42,21 @@ export class IInteraction {
   @prop({ required: false, type: mongoose.Schema.Types.Mixed })
   public fulfillment?: Fulfillment;
 
-  getPersonName(this: TInteraction): string {
-    if (isDocument(this.person)) {
-      return this.person.name;
-    }
-    if (this.input?.role === "system") {
-      return "SYSTEM";
-    }
-    if (this.fulfillment) {
-      return config().aiName.toUpperCase();
-    }
-    return "UNKNOWN";
-  }
-
   getSourceName(this: TInteraction): string {
     if (this.fulfillment) {
       return config().aiName.toUpperCase();
-    } else if (this.input) {
+    }
+
+    if (this.input) {
+      if (this.input?.role === "system") {
+        return "SYSTEM";
+      }
       if (isDocument(this.person)) {
         return this.person.name;
       }
       return "UNKNOWN";
     }
+
     return "-";
   }
 

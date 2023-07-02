@@ -191,47 +191,54 @@ export class AIVectorMemory {
     const interactionIds = [];
 
     for (const interactions of Object.values(gInteractions)) {
-      const ioChannel = interactions[0].ioChannel;
-      if (!isDocument(ioChannel)) {
-        logger.error("Unable to continue without a ioChannel");
-        continue;
-      }
-
-      if (ioChannel.ioDriver === "voice" || ioChannel.ioDriver === "web") {
-        logger.warn(`Skipping interaction of type <${ioChannel.ioDriver}> because it's not supported yet`);
-        continue;
-      }
-
-      const conversation = [];
-
-      for (const interaction of interactions) {
-        interactionIds.push(interaction.id);
-
-        const time = interaction.createdAt.toLocaleTimeString();
-        const sourceName = interaction.getSourceName();
-
-        if (interaction.fulfillment?.text) {
-          conversation.push(`- ${sourceName} (${time}): ${interaction.fulfillment.text}`);
+      try {
+        const ioChannel = interactions[0].ioChannel;
+        if (!isDocument(ioChannel)) {
+          logger.error("Unable to continue without a ioChannel");
+          continue;
         }
-        if (interaction.input?.text) {
-          conversation.push(`- ${sourceName} (${time}): ${interaction.input.text}`);
+
+        if (ioChannel.ioDriver === "voice" || ioChannel.ioDriver === "web") {
+          logger.warn(`Skipping interaction of type <${ioChannel.ioDriver}> because it's not supported yet`);
+          continue;
         }
+
+        const conversation = [];
+
+        for (const interaction of interactions) {
+          interactionIds.push(interaction.id);
+
+          const time = interaction.createdAt.toLocaleTimeString();
+          const sourceName = interaction.getSourceName();
+
+          if (interaction.fulfillment?.text) {
+            conversation.push(`- ${sourceName} (${time}): ${interaction.fulfillment.text}`);
+          }
+          if (interaction.input?.text) {
+            conversation.push(`- ${sourceName} (${time}): ${interaction.input.text}`);
+          }
+        }
+
+        const reducerPromptForIOChannel =
+          `The following is a conversation happened on ${dateChunk} - ${ioChannel.getDriverName()}.\n` +
+          `Please reduce them to a single sentence in third person.\n` +
+          `Strictly keep the output short, maximum ${PER_IOCHANNEL_REDUCED_MAX_CHARS} characters.\n` +
+          `Include the names, the date and the title of the conversation.` +
+          `Example: On 27/02/2023, ${
+            config().aiName
+          } had a chat with USER about holidays in Japan in that chat "Holidays"."\n\n` +
+          "## Conversation:\n" +
+          conversation.join("\n");
+
+        // logger.debug("Reducing conversation: ", reducerPromptForIOChannel);
+
+        const reducedText = await this.reduceText(reducerPromptForIOChannel);
+        logger.debug("Reduced conversation: ", reducedText);
+
+        reducedInteractionsPerIOChannelText.push(`- ${reducedText}`);
+      } catch (err) {
+        logger.error(`Error when reducing conversation, proceeding anyway`, (err as Error).message);
       }
-
-      const reducerPromptForIOChannel =
-        `The following is a conversation where ${config().aiName} is involved.\n` +
-        `They have happened on ${dateChunk} - ${ioChannel.getDriverName()}.\n` +
-        `Please reduce them to a single sentence in third person.\n` +
-        `Strictly keep the output short, maximum ${PER_IOCHANNEL_REDUCED_MAX_CHARS} characters.\n` +
-        `Include the names, the date and the title of chat in the output.` +
-        `Example: On 27/02/2023, ${config().aiName} had a chat with USER about holidays in Japan."\n\n` +
-        "## Conversation:\n" +
-        conversation.join("\n");
-
-      const reducedText = await this.reduceText(reducerPromptForIOChannel);
-      logger.debug("Reduced conversation: ", reducedText);
-
-      reducedInteractionsPerIOChannelText.push(`- ${reducedText}`);
     }
 
     const reducerPromptForDay =
@@ -240,6 +247,8 @@ export class AIVectorMemory {
       `If the informations don't fit in the limit, discard some informations.\n` +
       `## Sentences:\n` +
       reducedInteractionsPerIOChannelText.join("\n");
+
+    // logger.debug("Reducing sentences: ", reducerPromptForDay);
 
     const reducedTextForDay = await this.reduceText(reducerPromptForDay);
     logger.info("Reduced sentences: ", reducedTextForDay);
