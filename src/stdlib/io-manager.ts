@@ -211,10 +211,10 @@ export class IOManager {
     }
 
     if (!this.canHandleOutput(fulfillment, ioChannel)) {
-      logger.debug("This node can't output, putting in IO queue", {
+      logger.debug("This node can't outpu, putting in IO queue", {
         fulfillment,
-        ioChannel: ioChannel.id,
-        person: person.id,
+        ioChannel: ioChannel,
+        person: person,
       });
       return this.outputInQueue(fulfillment, ioChannel, person, bag);
     }
