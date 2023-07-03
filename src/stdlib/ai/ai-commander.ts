@@ -5,6 +5,8 @@ import { throwIfMissingAuthorizations } from "../../helpers";
 import { IOChannel, TIOChannel } from "../../data/io-channel";
 import { Person, TPerson } from "../../data/person";
 import { Database } from "../database";
+import { AIOpenAI } from "./ai-openai";
+import { AIVectorMemory } from "./ai-vectormemory";
 
 type CommandFunction = (args: RegExpMatchArray, ioChannel: TIOChannel, person: TPerson) => Promise<Fulfillment>;
 
@@ -88,6 +90,13 @@ export class AICommander {
       description: "/app_stop - Cause the application to crash",
       authorizations: [Authorization.ADMIN],
     },
+    {
+      matcher: /^\/reload_brain/,
+      name: "reload_brain",
+      executor: this.commandReloadBrain,
+      description: "/reload_brain - Reload the brain",
+      authorizations: [Authorization.ADMIN],
+    },
   ];
 
   private async notFound(): Promise<Fulfillment> {
@@ -158,6 +167,13 @@ export class AICommander {
 
     const result = await IOManager.getInstance().output({ text: cmdText }, ioChannel, person, {});
     return { data: JSON.stringify(result, null, 2) };
+  }
+
+  private async commandReloadBrain(): Promise<Fulfillment> {
+    const prompt = Boolean(await AIOpenAI.getInstance().buildPrompt(true));
+    const declarative = await AIVectorMemory.getInstance().buildDeclarativeMemory();
+    const social = await AIVectorMemory.getInstance().buildSocialMemory();
+    return { data: JSON.stringify({ result: { prompt, declarative, social } }, null, 2) };
   }
 
   private getCommandExecutor(text: string): (ioChannel: TIOChannel, person: TPerson) => Promise<Fulfillment> {

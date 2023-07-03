@@ -302,6 +302,8 @@ export class AIVectorMemory {
    * The declarative memory is created by getting all informations (documents) from several links and saving them to Qdrant.
    */
   async buildDeclarativeMemory() {
+    // Always erase the declarative memory as it's easy to rebuilt
+    await this.deleteCollection(MemoryType.declarative);
     await this.createCollection(MemoryType.declarative);
 
     logger.pending("Fetching Memory by URL...");
@@ -314,12 +316,15 @@ export class AIVectorMemory {
     }));
 
     await this.savePayloadInCollection(payloads, MemoryType.declarative);
+
+    return true;
   }
 
   /**
    * The social memory is created by getting all posts from Facebook and Instagram and saving them to Qdrant.
    */
   async buildSocialMemory() {
+    await this.deleteCollection(MemoryType.social);
     await this.createCollection(MemoryType.social);
 
     logger.pending("Fetching Memory by Facebook Page...");
@@ -356,5 +361,7 @@ export class AIVectorMemory {
     });
 
     await this.savePayloadInCollection(payloads, MemoryType.social);
+
+    return true;
   }
 }

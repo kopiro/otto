@@ -22,16 +22,10 @@ warmup()
     const memory = AIVectorMemory.getInstance();
 
     if (process.env.MEMORY_TYPE?.includes(MemoryType.declarative)) {
-      if (process.env.ERASE) {
-        await memory.deleteCollection(MemoryType.declarative);
-      }
       await memory.buildDeclarativeMemory();
     }
 
     if (process.env.MEMORY_TYPE?.includes(MemoryType.social)) {
-      if (process.env.ERASE) {
-        await memory.deleteCollection(MemoryType.social);
-      }
       await memory.buildSocialMemory();
     }
 

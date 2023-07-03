@@ -39,8 +39,15 @@ export class AIOpenAI {
     return AIOpenAI.instance;
   }
 
-  private async getPrompt(): Promise<string> {
-    this.prompt = this.prompt || (await (await fetch(this.conf.promptUrl)).text());
+  public async buildPrompt(refresh = false): Promise<string> {
+    if (!this.prompt || refresh) {
+      const prompt = await (await fetch(this.conf.promptUrl)).text();
+      if (prompt) {
+        this.prompt = prompt;
+      } else {
+        logger.error("Failed to retrieve prompt");
+      }
+    }
     return this.prompt;
   }
 
@@ -190,7 +197,7 @@ export class AIOpenAI {
 
     const [interactions, prompt, genericContext, personContext, memoryContext] = await Promise.all([
       this.retrieveRecentInteractionsAsOpenAIMessages(text, ioChannel),
-      this.getPrompt(),
+      this.buildPrompt(),
       this.getInputContext(inputParams.context),
       this.getPersonOrSystemContext(ioChannel, person, role),
       this.getVectorialMemory(text, ioChannel, person),
