@@ -315,9 +315,7 @@ export class AIVectorMemory {
       text,
     }));
 
-    await this.savePayloadInCollection(payloads, MemoryType.declarative);
-
-    return true;
+    return this.savePayloadInCollection(payloads, MemoryType.declarative);
   }
 
   /**
@@ -360,8 +358,6 @@ export class AIVectorMemory {
       };
     });
 
-    await this.savePayloadInCollection(payloads, MemoryType.social);
-
-    return true;
+    return this.savePayloadInCollection(payloads, MemoryType.social);
   }
 }
