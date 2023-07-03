@@ -95,7 +95,7 @@ export class AICommander {
       name: "reload_brain",
       executor: this.commandReloadBrain,
       description: "/reload_brain - Reload the brain",
-      authorizations: [Authorization.ADMIN],
+      authorizations: [Authorization.COMMAND],
     },
   ];
 
