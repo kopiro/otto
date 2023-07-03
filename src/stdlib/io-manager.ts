@@ -366,14 +366,16 @@ export class IOManager {
 
     logger.debug(`(${inputId}) Input:`, params, { ioChannelId: ioChannel?.id, personId: person.id });
 
-    Interaction.createNew(
-      {
-        input: params,
-      },
-      ioChannel,
-      person,
-      inputId,
-    );
+    if (params.text) {
+      Interaction.createNew(
+        {
+          input: params,
+        },
+        ioChannel,
+        person,
+        inputId,
+      );
+    }
 
     let fulfillment: Fulfillment | null = null;
     try {
@@ -391,14 +393,16 @@ export class IOManager {
 
     logger.debug(`(${inputId}) Fulfillment: `, fulfillment);
 
-    Interaction.createNew(
-      {
-        fulfillment,
-      },
-      ioChannel,
-      person,
-      inputId,
-    );
+    if (fulfillment.text) {
+      Interaction.createNew(
+        {
+          fulfillment,
+        },
+        ioChannel,
+        person,
+        inputId,
+      );
+    }
 
     const result = await IOManager.getInstance().output(fulfillment, ioChannel, person, bag);
     logger.debug(`(${inputId}) Result`, result);
