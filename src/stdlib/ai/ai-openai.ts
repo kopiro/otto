@@ -10,6 +10,7 @@ import { AIFunction } from "./ai-function";
 import { Interaction, TInteraction } from "../../data/interaction";
 import { TIOChannel } from "../../data/io-channel";
 import { TPerson } from "../../data/person";
+import { isDocument, isDocumentArray } from "@typegoose/typegoose";
 
 type Config = {
   apiKey: string;
@@ -22,9 +23,10 @@ const logger = new Signale({
 });
 
 const INTERACTION_LIMIT = 20;
-const DECLARATIVE_MEMORY_LIMIT = 20;
-const EPISODIC_MEMORY_LIMIT = 10;
-const SOCIAL_MEMORY_LIMIT = 3;
+
+const DECLARATIVE_MEMORY_LIMIT = 10;
+const EPISODIC_MEMORY_LIMIT = 5;
+const SOCIAL_MEMORY_LIMIT = 2;
 
 export class AIOpenAI {
   private prompt!: string;
@@ -149,26 +151,34 @@ export class AIOpenAI {
   }
 
   private async getVectorialMemory(text: string, ioChannel: TIOChannel, person: TPerson): Promise<string> {
-    const prompt = [];
+    const AIVectorMemoryInstance = AIVectorMemory.getInstance();
 
-    const memory = AIVectorMemory.getInstance();
-    const vectorOfText = await memory.createVector(`${person.name}: ${text}`);
+    await ioChannel.populate("people");
+    const convDescription = isDocumentArray(ioChannel.people)
+      ? ioChannel.people.map((p) => p.name).join(", ")
+      : person.name;
 
-    const [declarativeMemories, episodicMemories, socialMemories] = await Promise.all([
-      memory.searchByVector(vectorOfText, MemoryType.declarative, DECLARATIVE_MEMORY_LIMIT),
-      memory.searchByVector(vectorOfText, MemoryType.episodic, EPISODIC_MEMORY_LIMIT),
-      memory.searchByVector(vectorOfText, MemoryType.social, SOCIAL_MEMORY_LIMIT),
+    const [vectorOfText, vectorOfConversation] = await Promise.all([
+      AIVectorMemoryInstance.createVector(text),
+      AIVectorMemoryInstance.createVector(ioChannel.getDriverName() + " " + convDescription),
     ]);
 
-    logger.debug("declarativeMemories", declarativeMemories);
-    logger.debug("episodicMemories", episodicMemories);
-    logger.debug("socialMemories", socialMemories);
+    // Move this to batch
+    const memories = await Promise.all([
+      AIVectorMemoryInstance.searchByVector(vectorOfText, MemoryType.declarative, DECLARATIVE_MEMORY_LIMIT),
+      AIVectorMemoryInstance.searchByVector(vectorOfText, MemoryType.episodic, EPISODIC_MEMORY_LIMIT),
+      AIVectorMemoryInstance.searchByVector(vectorOfText, MemoryType.social, SOCIAL_MEMORY_LIMIT),
+      AIVectorMemoryInstance.searchByVector(vectorOfConversation, MemoryType.declarative, DECLARATIVE_MEMORY_LIMIT),
+      AIVectorMemoryInstance.searchByVector(vectorOfConversation, MemoryType.episodic, EPISODIC_MEMORY_LIMIT),
+      AIVectorMemoryInstance.searchByVector(vectorOfConversation, MemoryType.social, SOCIAL_MEMORY_LIMIT),
+    ]);
 
-    prompt.push(`## Memory Context\n\n` + declarativeMemories.join("\n"));
-    prompt.push(`## Social Context\n\n` + socialMemories.join("\n"));
-    prompt.push(`## Episodes Context\n\n` + episodicMemories.join("\n"));
+    // Remove duplicates
+    const memoriesUnique = [...new Set(memories.flat())];
 
-    return prompt.join("\n\n");
+    logger.debug("Memory", memoriesUnique);
+
+    return `## Memory\n\n` + memoriesUnique.join("\n");
   }
 
   private interactionsAsString(interactions: TInteraction[]): string {

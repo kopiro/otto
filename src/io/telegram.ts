@@ -169,8 +169,8 @@ export class Telegram implements IODriverRuntime {
       this.driverId,
       ioChannelIdentifier,
       this.getIOData(e),
-      // Only in the case of direct message we can link this ioChannel directly to a person
-      e.chat.type === "private" ? person : null,
+      person,
+      e.chat.type === "private",
     );
 
     const bag: IOBagTelegram = {

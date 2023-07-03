@@ -1,7 +1,17 @@
 import config from "../config";
 import { IODataTelegram } from "../io/telegram";
 import { IOData, IODriverId } from "../stdlib/io-manager";
-import { getModelForClass, Ref, ReturnModelType, DocumentType, prop, modelOptions, plugin } from "@typegoose/typegoose";
+import {
+  getModelForClass,
+  Ref,
+  ReturnModelType,
+  DocumentType,
+  prop,
+  modelOptions,
+  plugin,
+  isDocument,
+  isDocumentArray,
+} from "@typegoose/typegoose";
 import autopopulate from "mongoose-autopopulate";
 import { Signale } from "signale";
 import { IPerson, TPerson } from "./person";
@@ -42,6 +52,12 @@ export class IIOChannel {
   public person?: Ref<IPerson>;
 
   /**
+   * In case of group chats, this field will be populated with the people in the group chat
+   */
+  @prop({ required: false, ref: () => IPerson })
+  public people!: Ref<IPerson>[];
+
+  /**
    * This property is used to redirect the output of this ioChannel to another ioChannel.
    * This is useful for example if you want to also speak when you're replying to a user.
    */
@@ -73,9 +89,10 @@ export class IIOChannel {
         let chatName = "";
         switch (ioData?.type) {
           case "supergroup":
-          case "group":
+          case "group": {
             chatName = `in the group chat "${ioData.title}"`;
             break;
+          }
           case "channel":
             chatName = `in the channel "${ioData.title}"`;
             break;
@@ -86,11 +103,9 @@ export class IIOChannel {
         return `via Telegram (${chatName})`;
       }
       case "voice":
-        return "via face to face";
       case "web":
-        return "via Internet";
       default:
-        return "-";
+        return "";
     }
   }
 
@@ -106,22 +121,28 @@ export class IIOChannel {
     ioIdentifier: string,
     ioData: IOData,
     person: TPerson | null,
+    personDirectlyRelate = false,
   ): Promise<TIOChannel> {
     const ioChannel = await IOChannel.findByIOIdentifier(ioDriver, ioIdentifier);
 
     if (ioChannel) {
+      const peopleIds = isDocumentArray(ioChannel.people) ? ioChannel.people.map((e) => e.id) : ioChannel.people || [];
+      if (person && !peopleIds.includes(person.id)) {
+        ioChannel.people!.push(person);
+      }
       // Only update ioData if it's different
       if (JSON.stringify(ioChannel.ioData) !== JSON.stringify(ioData)) {
         logger.debug("Updating ioData for existing ioChannel, ioData = ", ioData, "old ioData = ", ioChannel.ioData);
         ioChannel.ioData = ioData;
-        await ioChannel.save();
       }
+      await ioChannel.save();
       return ioChannel;
     }
 
     const ioChannelNew = await IOChannel.create({
       managerUid: config().uid,
-      person: person?.id,
+      person: personDirectlyRelate ? person : undefined,
+      people: [person],
       ioDriver,
       ioData,
       ioIdentifier,
