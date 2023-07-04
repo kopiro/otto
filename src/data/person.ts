@@ -25,6 +25,9 @@ export class IPerson {
   @prop({ required: true, type: mongoose.Schema.Types.Mixed })
   public ioIdentifiers!: Record<IODriverId, string>;
 
+  @prop({ required: false })
+  public useForReporting?: boolean;
+
   static async findByIdOrThrow(this: ReturnModelType<typeof IPerson>, id: string): Promise<TPerson> {
     const person = await Person.findById(id);
     if (!person) throw new Error(`Person <${id}> not found`);

@@ -150,7 +150,7 @@ export class AIOpenAI {
     return prompt.join("\n");
   }
 
-  private async getVectorialMemory(text: string, ioChannel: TIOChannel, person: TPerson): Promise<string> {
+  private async getMemoryContext(text: string, ioChannel: TIOChannel, person: TPerson): Promise<string> {
     const AIVectorMemoryInstance = AIVectorMemory.getInstance();
 
     await ioChannel.populate("people");
@@ -210,7 +210,7 @@ export class AIOpenAI {
       this.buildPrompt(),
       this.getInputContext(inputParams.context),
       this.getPersonOrSystemContext(ioChannel, person, role),
-      this.getVectorialMemory(text, ioChannel, person),
+      this.getMemoryContext(text, ioChannel, person),
     ]);
 
     systemPrompt.push(prompt);

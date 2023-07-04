@@ -17,10 +17,6 @@
   },
   "speechRecognizer": {
   },
-  "reports": {
-    "ioChannelId": "",
-    "personId": ""
-  },
   "ioQueue": {
     "enabled": true,
     "timeout": 1000

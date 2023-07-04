@@ -163,9 +163,12 @@ export function throwIfMissingAuthorizations(
 export async function report(error: IErrorWithData) {
   logger.fatal(`Reporting`, error);
 
-  const { personId, ioChannelId } = config().reports;
-  const ioChannel = await IOChannel.findByIdOrThrow(ioChannelId);
-  const person = await Person.findByIdOrThrow(personId);
+  const ioChannel = await IOChannel.findOne({ useForReporting: true });
+  const person = await Person.findOne({ useForReporting: true });
+  if (!person || !ioChannel) {
+    logger.fatal(`Unable to report error, no person or ioChannel found`);
+    return;
+  }
 
   await IOManager.getInstance().output({ error }, ioChannel, person, null, true);
 }
