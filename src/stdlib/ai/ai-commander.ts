@@ -91,7 +91,7 @@ export class AICommander {
       authorizations: [Authorization.ADMIN],
     },
     {
-      matcher: /^\/reload_brain/,
+      matcher: /^\/reload_brain ([^\s]+)/,
       name: "reload_brain",
       executor: this.commandReloadBrain,
       description: "/reload_brain - Reload the brain",
@@ -169,11 +169,18 @@ export class AICommander {
     return { data: JSON.stringify(result, null, 2) };
   }
 
-  private async commandReloadBrain(): Promise<Fulfillment> {
-    const prompt = Boolean(await AIOpenAI.getInstance().buildPrompt(true));
-    const declarative = await AIVectorMemory.getInstance().buildDeclarativeMemory();
-    const social = await AIVectorMemory.getInstance().buildSocialMemory();
-    return { data: JSON.stringify({ result: { prompt, declarative, social } }, null, 2) };
+  private async commandReloadBrain([, memoryTypes]: RegExpMatchArray): Promise<Fulfillment> {
+    const result: Record<string, any> = {};
+    if (memoryTypes.includes("prompt")) {
+      result.prompt = Boolean(await AIOpenAI.getInstance().buildPrompt(true));
+    }
+    if (memoryTypes.includes("declarative")) {
+      result.declarative = await AIVectorMemory.getInstance().buildDeclarativeMemory();
+    }
+    if (memoryTypes.includes("social")) {
+      result.social = await AIVectorMemory.getInstance().buildSocialMemory();
+    }
+    return { data: JSON.stringify(result, null, 2) };
   }
 
   private getCommandExecutor(text: string): (ioChannel: TIOChannel, person: TPerson) => Promise<Fulfillment> {
