@@ -47,8 +47,6 @@ export class Web implements IODriverRuntime {
   conf: WebConfig;
   started = false;
 
-  ioChannel!: TIOChannel;
-
   constructor(config: WebConfig) {
     this.conf = config;
   }
@@ -82,6 +80,8 @@ export class Web implements IODriverRuntime {
       const person = await Person.findByIdOrThrow(req.body.person);
       const params = (req.body.params || {}) as InputParams;
 
+      const ioChannel = await IOChannel.findByIOIdentifierOrCreate(this.driverId, person.id, null, person, true);
+
       // Populate text by voice if necessary
       if (!params.text) {
         const textFromVoice = await this.maybeHandleVoice(req, person.language);
@@ -96,13 +96,13 @@ export class Web implements IODriverRuntime {
         }
       }, REQUEST_TIMEOUT_MS);
 
-      this.emitter.emit("input", params, this.ioChannel, person, { req, res, timeoutTick });
+      this.emitter.emit("input", params, ioChannel, person, { req, res, timeoutTick });
     } catch (err) {
       res.status(500).json({ error: { message: (err as Error)?.message } });
     }
   }
 
-  async output(f: Fulfillment, _ioChannel: TIOChannel, person: TPerson, _bag: IOBag): Promise<IODriverMultiOutput> {
+  async output(f: Fulfillment, ioChannel: TIOChannel, person: TPerson, _bag: IOBag): Promise<IODriverMultiOutput> {
     const bag = _bag as IOBagWeb;
     if (!bag.req || !bag.res) {
       throw new Error("IO.Web requires a bag with {req,res} (you can't output directly from another driver)");
@@ -138,15 +138,9 @@ export class Web implements IODriverRuntime {
     }
   }
 
-  async registerInternalModels() {
-    this.ioChannel = await IOChannel.findByIOIdentifierOrCreate(this.driverId, "any", null, null);
-  }
-
   async start() {
     if (this.started) return;
     this.started = true;
-
-    await this.registerInternalModels();
     routerIO.post("/web", bodyParser.json(), this.onRequest.bind(this));
   }
 }

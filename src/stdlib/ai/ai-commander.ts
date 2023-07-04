@@ -94,7 +94,7 @@ export class AICommander {
       matcher: /^\/reload_brain ([^\s]+)/,
       name: "reload_brain",
       executor: this.commandReloadBrain,
-      description: "/reload_brain - Reload the brain",
+      description: "/reload_brain [memory_type] - Reload the brain",
       authorizations: [Authorization.COMMAND],
     },
   ];
@@ -119,7 +119,8 @@ export class AICommander {
   }
 
   private async commandAdminHelp(): Promise<Fulfillment> {
-    return { text: this.commandMapping.map((c) => c.description).join("\n") };
+    const commands = this.commandMapping.map((c) => c.description).join("\n");
+    return { text: commands };
   }
 
   private async commandInput([, ioChannelId, personId, paramsStr]: RegExpMatchArray): Promise<Fulfillment> {
@@ -161,10 +162,8 @@ export class AICommander {
   private async commandOutputText([, ioChannelId, personId, cmdText]: RegExpMatchArray): Promise<Fulfillment> {
     const ioChannel = await IOChannel.findById(ioChannelId);
     if (!ioChannel) throw new Error(`Session ${ioChannelId} not found`);
-
     const person = await Person.findById(personId);
     if (!person) throw new Error(`Person ${personId} not found`);
-
     const result = await IOManager.getInstance().output({ text: cmdText }, ioChannel, person, {});
     return { data: JSON.stringify(result, null, 2) };
   }
