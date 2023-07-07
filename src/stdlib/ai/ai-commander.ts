@@ -6,7 +6,7 @@ import { IOChannel, TIOChannel } from "../../data/io-channel";
 import { Person, TPerson } from "../../data/person";
 import { Database } from "../database";
 import { AIOpenAI } from "./ai-openai";
-import { AIVectorMemory } from "./ai-vectormemory";
+import { AIVectorMemory, MemoryType } from "./ai-vectormemory";
 
 type CommandFunction = (args: RegExpMatchArray, ioChannel: TIOChannel, person: TPerson) => Promise<Fulfillment>;
 
@@ -61,6 +61,13 @@ export class AICommander {
       executor: this.commandAdminHelp,
       description: "/admin_help - Get list of all commands",
       authorizations: [Authorization.ADMIN],
+    },
+    {
+      matcher: /^\/memories_get ([^\s]+) (.+)/,
+      name: "memories_get",
+      executor: this.commandMemoriesGet,
+      description: "/memories_get [memory_type] [text] - Query a vectorial memory with a specific query",
+      authorizations: [Authorization.COMMAND],
     },
     {
       matcher: /^\/query_get ([^\s]+) (.+)/,
@@ -138,6 +145,11 @@ export class AICommander {
   private async commandQueryGet([, table, queryJson]: RegExpMatchArray): Promise<Fulfillment> {
     const query = JSON.parse(queryJson);
     const result = await Database.getInstance().getMongoose().connection.db.collection(table).find(query).toArray();
+    return { data: JSON.stringify(result, null, 2) };
+  }
+
+  private async commandMemoriesGet([, memoryType, text]: RegExpMatchArray): Promise<Fulfillment> {
+    const result = await AIVectorMemory.getInstance().searchByText(text, memoryType as MemoryType, 10);
     return { data: JSON.stringify(result, null, 2) };
   }
 
