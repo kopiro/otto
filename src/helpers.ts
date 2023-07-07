@@ -166,7 +166,7 @@ export async function report(error: IErrorWithData) {
   const ioChannel = await IOChannel.findOne({ useForReporting: true });
   const person = await Person.findOne({ useForReporting: true });
   if (!person || !ioChannel) {
-    logger.fatal(`Unable to report error, no person or ioChannel found`);
+    logger.fatal(`Unable to report error, no person or ioChannel found`, { person, ioChannel });
     return;
   }
 
