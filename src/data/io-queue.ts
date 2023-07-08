@@ -24,6 +24,9 @@ class IIOQueue {
   @prop({ required: true })
   public createdAt!: Date;
 
+  @prop({ required: false })
+  public inputId!: string;
+
   @prop({ required: true })
   public fulfillment!: Fulfillment;
 
@@ -36,6 +39,7 @@ class IIOQueue {
     ioChannel: TIOChannel,
     person: TPerson,
     bag: IOBag | null,
+    inputId: string | null,
   ) {
     return IOQueue.create({
       managerUid: ioChannel.managerUid,
@@ -44,6 +48,7 @@ class IIOQueue {
       person: person.id,
       fulfillment,
       bag,
+      inputId,
       createdAt: new Date(),
     });
   }

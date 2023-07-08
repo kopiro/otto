@@ -138,7 +138,7 @@ export class AICommander {
     if (!person) throw new Error(`Person ${personId} not found`);
 
     const params = JSON.parse(paramsStr);
-    const result = await IOManager.getInstance().processInput(params, ioChannel, person, null);
+    const result = await IOManager.getInstance().input(params, ioChannel, person, null);
     return { data: JSON.stringify(result, null, 2) };
   }
 

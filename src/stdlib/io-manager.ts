@@ -140,10 +140,11 @@ export class IOManager {
     ioChannel: TIOChannel,
     person: TPerson,
     bag: IOBag,
+    inputId: string | null,
   ): Promise<OutputResult> {
     const loadedDriverIds = Object.keys(this.loadedDrivers);
 
-    const ioQueueElement = await IOQueue.createNew(fulfillment, ioChannel, person, bag);
+    const ioQueueElement = await IOQueue.createNew(fulfillment, ioChannel, person, bag, inputId);
 
     return {
       rejectReason: {
@@ -162,6 +163,7 @@ export class IOManager {
     person: TPerson,
     bag: IOBag | null,
     loadDriverIfNotEnabled = false,
+    inputId: string | null,
   ) {
     // Redirecting output to another ioChannel, asyncronously
     await ioChannel.populate("redirectFulfillmentTo");
@@ -179,7 +181,7 @@ export class IOManager {
             return;
           }
 
-          return this.output(fulfillment, e, person, bag, loadDriverIfNotEnabled);
+          return this.output(fulfillment, e, person, bag, loadDriverIfNotEnabled, inputId);
         }),
       );
     }
@@ -194,11 +196,23 @@ export class IOManager {
     person: TPerson,
     bag: IOBag | null,
     loadDriverIfNotEnabled = false,
+    inputId: string | null,
   ): Promise<OutputResult> {
+    if (fulfillment.text) {
+      Interaction.createNew(
+        {
+          fulfillment,
+        },
+        ioChannel,
+        person,
+        inputId,
+      );
+    }
+
     // Redirecting output to another ioChannel, asyncronously
     if (config().centralNode) {
       setImmediate(() => {
-        this.maybeRedirectFulfillment(fulfillment, ioChannel, person, bag, loadDriverIfNotEnabled);
+        this.maybeRedirectFulfillment(fulfillment, ioChannel, person, bag, loadDriverIfNotEnabled, inputId);
       });
     }
 
@@ -219,7 +233,7 @@ export class IOManager {
           fulfillment,
         },
       );
-      return this.outputInQueue(fulfillment, ioChannel, person, bag);
+      return this.outputInQueue(fulfillment, ioChannel, person, bag, inputId);
     }
 
     if (!driverRuntime) {
@@ -267,12 +281,12 @@ export class IOManager {
 
       return Promise.all(
         ioChannel.mirrorInputToFulfillmentTo.map((e) => {
-          return this.output(params, e, person, bag);
+          return this.output(params, e, person, bag, false, null);
         }),
       );
     }
 
-    return this.processInput(params, ioChannel, person, bag);
+    return this.input(params, ioChannel, person, bag);
   }
 
   private onDriverError(message: string, ioChannel: TIOChannel, person: TPerson) {
@@ -340,6 +354,7 @@ export class IOManager {
       ioChannel: qitem.ioChannel.id,
       person: qitem.person.id,
       bag: qitem.bag,
+      inputId: qitem.inputId,
     });
 
     callback?.(qitem);
@@ -351,7 +366,7 @@ export class IOManager {
       return null;
     }
 
-    await this.output(qitem.fulfillment, qitem.ioChannel, qitem.person, qitem.bag);
+    await this.output(qitem.fulfillment, qitem.ioChannel, qitem.person, qitem.bag, false, qitem.inputId);
 
     return qitem;
   }
@@ -359,12 +374,7 @@ export class IOManager {
   /**
    * Process a fulfillment to a ioChannel
    */
-  async processInput(
-    params: InputParams,
-    ioChannel: TIOChannel,
-    person: TPerson,
-    bag: IOBag | null,
-  ): Promise<OutputResult> {
+  async input(params: InputParams, ioChannel: TIOChannel, person: TPerson, bag: IOBag | null): Promise<OutputResult> {
     const inputId = randomUUID();
 
     logger.debug(`(${inputId}) Input:`, params, { ioChannelId: ioChannel?.id, personId: person.id });
@@ -396,18 +406,7 @@ export class IOManager {
 
     logger.debug(`(${inputId}) Fulfillment: `, fulfillment);
 
-    if (fulfillment.text) {
-      Interaction.createNew(
-        {
-          fulfillment,
-        },
-        ioChannel,
-        person,
-        inputId,
-      );
-    }
-
-    const result = await IOManager.getInstance().output(fulfillment, ioChannel, person, bag);
+    const result = await IOManager.getInstance().output(fulfillment, ioChannel, person, bag, false, inputId);
     logger.debug(`(${inputId}) Result`, result);
 
     return result;

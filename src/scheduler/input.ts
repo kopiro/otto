@@ -13,6 +13,6 @@ export default class InputScheduler extends SchedulerRuntimeFunction {
     }
 
     const { programArgs, ioChannel, person } = this.job;
-    return IOManager.getInstance().processInput(programArgs, ioChannel, person, null);
+    return IOManager.getInstance().input(programArgs, ioChannel, person, null);
   }
 }

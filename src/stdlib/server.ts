@@ -91,7 +91,7 @@ routerApi.post("/input", async (req, res) => {
     const ioChannel = await IOChannel.findByIdOrThrow(req.body.io_channel);
     const person = await Person.findByIdOrThrow(req.body.person);
 
-    const result = await IOManager.getInstance().processInput(req.body.params, ioChannel, person, null);
+    const result = await IOManager.getInstance().input(req.body.params, ioChannel, person, null);
     return res.json({ result });
   } catch (err) {
     logger.error("/api/input error", err);

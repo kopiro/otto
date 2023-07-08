@@ -65,7 +65,7 @@ export class IInteraction {
     rest: { input: InputParams } | { fulfillment: Fulfillment },
     ioChannel: TIOChannel,
     person: TPerson,
-    inputId: string,
+    inputId: string | null,
   ) {
     return Interaction.create({
       ...rest,
