@@ -176,7 +176,7 @@ export class AIOpenAI {
     // Remove duplicates
     const memoriesUnique = [...new Set(memories.flat())];
 
-    logger.debug("Memory", memoriesUnique);
+    // logger.debug("Memory", memoriesUnique);
 
     return `## Memory\n\n` + memoriesUnique.join("\n");
   }

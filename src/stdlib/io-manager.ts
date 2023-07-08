@@ -168,7 +168,7 @@ export class IOManager {
 
     if (isDocumentArray(ioChannel.redirectFulfillmentTo) && ioChannel.redirectFulfillmentTo.length > 0) {
       logger.info(
-        "using redirectFulfillmentTo",
+        `The channel ${ioChannel.id} is redirecting the fulfillment to other channels:`,
         ioChannel.redirectFulfillmentTo.map((s) => s.id),
       );
 
@@ -196,9 +196,11 @@ export class IOManager {
     loadDriverIfNotEnabled = false,
   ): Promise<OutputResult> {
     // Redirecting output to another ioChannel, asyncronously
-    setImmediate(() => {
-      this.maybeRedirectFulfillment(fulfillment, ioChannel, person, bag, loadDriverIfNotEnabled);
-    });
+    if (config().centralNode) {
+      setImmediate(() => {
+        this.maybeRedirectFulfillment(fulfillment, ioChannel, person, bag, loadDriverIfNotEnabled);
+      });
+    }
 
     if (ioChannel.doNotDisturb === true) {
       logger.info("rejecting because doNotDisturb is ON", ioChannel);
@@ -211,11 +213,12 @@ export class IOManager {
     }
 
     if (!this.canHandleOutput(fulfillment, ioChannel)) {
-      logger.debug("This node can't outpu, putting in IO queue", {
-        fulfillment,
-        ioChannel: ioChannel,
-        person: person,
-      });
+      logger.debug(
+        `This node can't output for this channel (${ioChannel.id} - driver: ${ioChannel.ioDriver} - manager: ${ioChannel.managerUid}), putting in IO queue for other node to pick up`,
+        {
+          fulfillment,
+        },
+      );
       return this.outputInQueue(fulfillment, ioChannel, person, bag);
     }
 
