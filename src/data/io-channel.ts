@@ -145,7 +145,7 @@ export class IIOChannel {
     const ioChannelNew = await IOChannel.create({
       managerUid: config().uid,
       person: personDirectlyRelate ? person : undefined,
-      people: [person],
+      people: person ? [person] : [],
       ioDriver,
       ioData,
       ioIdentifier,
