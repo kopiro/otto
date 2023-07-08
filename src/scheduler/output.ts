@@ -1,5 +1,5 @@
 import { isDocument } from "@typegoose/typegoose";
-import { IOManager } from "../stdlib/io-manager";
+import { IOManager, OutputSource } from "../stdlib/io-manager";
 import { SchedulerRuntimeFunction } from "../stdlib/scheduler";
 
 export default class OutputScheduler extends SchedulerRuntimeFunction {
@@ -11,6 +11,14 @@ export default class OutputScheduler extends SchedulerRuntimeFunction {
       throw new Error("Invalid Person");
     }
     const { programArgs, ioChannel, person } = this.job;
-    return IOManager.getInstance().output(programArgs?.fulfillment, ioChannel, person, null, false, null);
+    return IOManager.getInstance().output(
+      programArgs?.fulfillment,
+      ioChannel,
+      person,
+      null,
+      false,
+      null,
+      OutputSource.scheduler,
+    );
   }
 }

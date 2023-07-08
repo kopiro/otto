@@ -21,6 +21,15 @@ const logger = new Signale({
   scope: TAG,
 });
 
+export enum OutputSource {
+  queue = "queue",
+  input = "input",
+  report = "report",
+  scheduler = "scheduler",
+  command = "command",
+  mirror = "mirror",
+}
+
 export type IODriverId = "telegram" | "voice" | "web";
 export type IOAccessoryId = "gpio-button" | "leds";
 export type IOBag = IOBagTelegram | IOBagWeb | IOBagVoice;
@@ -164,6 +173,7 @@ export class IOManager {
     bag: IOBag | null,
     loadDriverIfNotEnabled = false,
     inputId: string | null,
+    source: OutputSource,
   ) {
     // Redirecting output to another ioChannel, asyncronously
     await ioChannel.populate("redirectFulfillmentTo");
@@ -181,7 +191,7 @@ export class IOManager {
             return;
           }
 
-          return this.output(fulfillment, e, person, bag, loadDriverIfNotEnabled, inputId);
+          return this.output(fulfillment, e, person, bag, loadDriverIfNotEnabled, inputId, source);
         }),
       );
     }
@@ -197,6 +207,7 @@ export class IOManager {
     bag: IOBag | null,
     loadDriverIfNotEnabled = false,
     inputId: string | null,
+    source: OutputSource,
   ): Promise<OutputResult> {
     if (fulfillment.text) {
       Interaction.createNew(
@@ -210,9 +221,10 @@ export class IOManager {
     }
 
     // Redirecting output to another ioChannel, asyncronously
-    if (config().centralNode) {
+    // Only do this when this output is not coming from the IOQueue, otherwise it will be redirected twice
+    if (source !== OutputSource.queue) {
       setImmediate(() => {
-        this.maybeRedirectFulfillment(fulfillment, ioChannel, person, bag, loadDriverIfNotEnabled, inputId);
+        this.maybeRedirectFulfillment(fulfillment, ioChannel, person, bag, loadDriverIfNotEnabled, inputId, source);
       });
     }
 
@@ -281,7 +293,7 @@ export class IOManager {
 
       return Promise.all(
         ioChannel.mirrorInputToFulfillmentTo.map((e) => {
-          return this.output(params, e, person, bag, false, null);
+          return this.output(params, e, person, bag, false, null, OutputSource.mirror);
         }),
       );
     }
@@ -366,7 +378,8 @@ export class IOManager {
       return null;
     }
 
-    await this.output(qitem.fulfillment, qitem.ioChannel, qitem.person, qitem.bag, false, qitem.inputId);
+    const { fulfillment, ioChannel, person, bag, inputId } = qitem;
+    await this.output(fulfillment, ioChannel, person, bag, false, inputId, OutputSource.queue);
 
     return qitem;
   }
@@ -406,7 +419,15 @@ export class IOManager {
 
     logger.debug(`(${inputId}) Fulfillment: `, fulfillment);
 
-    const result = await IOManager.getInstance().output(fulfillment, ioChannel, person, bag, false, inputId);
+    const result = await IOManager.getInstance().output(
+      fulfillment,
+      ioChannel,
+      person,
+      bag,
+      false,
+      inputId,
+      OutputSource.input,
+    );
     logger.debug(`(${inputId}) Result`, result);
 
     return result;

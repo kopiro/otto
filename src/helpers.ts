@@ -10,7 +10,7 @@ import { Signale } from "signale";
 import { writeFile } from "fs/promises";
 import fetch from "node-fetch";
 import { AuthorizationError } from "./errors/authorization-error";
-import { IOManager } from "./stdlib/io-manager";
+import { IOManager, OutputSource } from "./stdlib/io-manager";
 import { IOChannel } from "./data/io-channel";
 import { Person } from "./data/person";
 
@@ -170,7 +170,7 @@ export async function report(error: IErrorWithData) {
     return;
   }
 
-  await IOManager.getInstance().output({ error }, ioChannel, person, null, true, null);
+  await IOManager.getInstance().output({ error }, ioChannel, person, null, true, null, OutputSource.report);
 }
 
 export async function logStacktrace(fileName: string, response: any) {

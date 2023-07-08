@@ -1,6 +1,6 @@
 import { AIManager } from "./ai-manager";
 import { Authorization, Fulfillment, InputParams } from "../../types";
-import { IOManager } from "../io-manager";
+import { IOManager, OutputSource } from "../io-manager";
 import { throwIfMissingAuthorizations } from "../../helpers";
 import { IOChannel, TIOChannel } from "../../data/io-channel";
 import { Person, TPerson } from "../../data/person";
@@ -176,7 +176,15 @@ export class AICommander {
     if (!ioChannel) throw new Error(`Session ${ioChannelId} not found`);
     const person = await Person.findById(personId);
     if (!person) throw new Error(`Person ${personId} not found`);
-    const result = await IOManager.getInstance().output({ text: cmdText }, ioChannel, person, {}, false, null);
+    const result = await IOManager.getInstance().output(
+      { text: cmdText },
+      ioChannel,
+      person,
+      {},
+      false,
+      null,
+      OutputSource.command,
+    );
     return { data: JSON.stringify(result, null, 2) };
   }
 
