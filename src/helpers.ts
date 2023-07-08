@@ -170,7 +170,7 @@ export async function report(error: IErrorWithData) {
     return;
   }
 
-  await IOManager.getInstance().output({ error }, ioChannel, person, null, true);
+  await IOManager.getInstance().output({ error }, ioChannel, person, null, true, null);
 }
 
 export async function logStacktrace(fileName: string, response: any) {

@@ -176,7 +176,7 @@ export class AICommander {
     if (!ioChannel) throw new Error(`Session ${ioChannelId} not found`);
     const person = await Person.findById(personId);
     if (!person) throw new Error(`Person ${personId} not found`);
-    const result = await IOManager.getInstance().output({ text: cmdText }, ioChannel, person, {});
+    const result = await IOManager.getInstance().output({ text: cmdText }, ioChannel, person, {}, false, null);
     return { data: JSON.stringify(result, null, 2) };
   }
 
