@@ -89,7 +89,7 @@ export class Voice implements IODriverRuntime {
     // Close any previous stream
     this.destroyRecognizer();
 
-    const recognizeStream = SpeechRecognizer.getInstance().createRecognizeStream(config().language, (err, text) => {
+    const recognizeStream = SpeechRecognizer.getInstance().createRecognizeStream(this.person.language, (err, text) => {
       this.recognizeStream = null;
 
       // If erred, emit an error and exit
