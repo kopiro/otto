@@ -61,7 +61,7 @@
     "google-auth-library": "^8.8.0",
     "google-images": "^2.1.0",
     "moment": "^2.29.4",
-    "mongoose": "^7.3.0",
+    "mongoose": "^7.3.3",
     "mongoose-autopopulate": "^0.16.0",
     "node-fetch": "^2",
     "node-record-lpcm16": "^1.0.1",
