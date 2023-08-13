@@ -39,7 +39,7 @@ const MIC_PLATFORM_TO_BINARY: Record<Platform, string> = {
   unknown: "sox",
 };
 
-const TIMEOUT_POLL_AI_STILL_SPEAKING_SEC = 2;
+const TIMEOUT_POLL_AI_STILL_SPEAKING_SEC = 4;
 const HOTWORD_SILENCE_MAX_SEC = 3;
 
 const MIC_CHANNELS = 1;
@@ -283,8 +283,6 @@ export class Voice implements IODriverRuntime {
     // If we have a current processed item, let's wait until it's null
     while (this.currentSpokenFulfillment) {
       logger.debug("Waiting until agent is not speaking...");
-      // eslint-disable-next-line no-await-in-loop
-      results.push(["timeout", TIMEOUT_POLL_AI_STILL_SPEAKING_SEC]);
       await timeout(TIMEOUT_POLL_AI_STILL_SPEAKING_SEC * 1000);
     }
 
