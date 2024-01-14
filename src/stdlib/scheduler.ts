@@ -49,9 +49,6 @@ export class SchedulerManager {
   async getJobs(conditions: Partial<IScheduler>[] = []): Promise<TScheduler[]> {
     const time = this.flatDate(Moment()());
 
-    const debugFormat = `DDD/D/d HH:mm:ss`;
-    logger.debug(`Get Jobs: ${debugFormat}`, time.format(debugFormat));
-
     const query = [
       { yearly: time.format("DDD HH:mm:ss") },
       { monthly: time.format("D HH:mm:ss") },
