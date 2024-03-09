@@ -2,7 +2,6 @@ import { Signale } from "signale";
 import config from "../../config";
 import { QDrantSDK } from "../../lib/qdrant";
 import { OpenAIApiSDK } from "../../lib/openai";
-import { ChatCompletionRequestMessageRoleEnum } from "openai";
 import fetch from "node-fetch";
 import { Interaction, TInteraction } from "../../data/interaction";
 import { DocumentType, isDocument } from "@typegoose/typegoose";
@@ -96,11 +95,11 @@ export class AIVectorMemory {
   }
 
   async createVector(text: string) {
-    const { data } = await OpenAIApiSDK().createEmbedding({
+    const { data } = await OpenAIApiSDK().embeddings.create({
       input: text,
       model: "text-embedding-ada-002",
     });
-    return data.data[0].embedding;
+    return data[0].embedding;
   }
 
   async searchByText(text: string, memoryType: MemoryType, limit: number): Promise<string[]> {
@@ -171,16 +170,16 @@ export class AIVectorMemory {
   }
 
   private async reduceText(text: string) {
-    const response = await OpenAIApiSDK().createChatCompletion({
+    const response = await OpenAIApiSDK().chat.completions.create({
       model: "gpt-3.5-turbo",
       messages: [
         {
-          role: ChatCompletionRequestMessageRoleEnum.System,
+          role: "system",
           content: text,
         },
       ],
     });
-    const content = response?.data?.choices?.[0]?.message?.content;
+    const content = response?.choices?.[0]?.message?.content;
     if (!content) {
       throw new Error("Unable to reduce text");
     }

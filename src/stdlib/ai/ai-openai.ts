@@ -1,16 +1,17 @@
-import { ChatCompletionRequestMessage, ChatCompletionRequestMessageRoleEnum } from "openai";
 import { Fulfillment, InputContext, InputParams } from "../../types";
 import config from "../../config";
 import { Signale } from "signale";
 import { logStacktrace, tryJsonParse } from "../../helpers";
-import fetch from "node-fetch";
 import { OpenAIApiSDK } from "../../lib/openai";
 import { AIVectorMemory, MemoryType } from "./ai-vectormemory";
 import { AIFunction } from "./ai-function";
 import { Interaction, TInteraction } from "../../data/interaction";
 import { TIOChannel } from "../../data/io-channel";
 import { TPerson } from "../../data/person";
-import { isDocument, isDocumentArray } from "@typegoose/typegoose";
+import { isDocumentArray } from "@typegoose/typegoose";
+import { ChatCompletionMessageParam, ChatCompletionSystemMessageParam } from "openai/resources";
+import OpenAI from "openai";
+import fetch from "node-fetch";
 
 type Config = {
   apiKey: string;
@@ -60,7 +61,7 @@ export class AIOpenAI {
   private async retrieveRecentInteractionsAsOpenAIMessages(
     text: string,
     ioChannel: TIOChannel,
-  ): Promise<ChatCompletionRequestMessage[]> {
+  ): Promise<ChatCompletionMessageParam[]> {
     // Get all Interaction where we have a input.text or fulfillment.text in the last 20m
     const interactions = await Interaction.find({
       $or: [
@@ -81,7 +82,7 @@ export class AIOpenAI {
 
     return interactions
       .reverse()
-      .map<ChatCompletionRequestMessage | null>((interaction, i) => {
+      .map<ChatCompletionMessageParam | null>((interaction, i) => {
         // Remove last interaction because it's exactly like the input (text)
         if (i === interactions.length - 1) {
           if (
@@ -95,14 +96,14 @@ export class AIOpenAI {
 
         if (interaction.fulfillment?.text) {
           return {
-            role: ChatCompletionRequestMessageRoleEnum.Assistant,
+            role: "assistant",
             content: interaction.fulfillment.text,
           };
         }
 
         if (interaction.input?.text) {
           return {
-            role: interaction.input.role || ChatCompletionRequestMessageRoleEnum.User,
+            role: interaction.input.role || "user",
             name: this.cleanName(interaction.getSourceName()),
             content: interaction.input.text,
           };
@@ -110,18 +111,18 @@ export class AIOpenAI {
 
         return null;
       })
-      .filter<ChatCompletionRequestMessage>((e): e is ChatCompletionRequestMessage => e !== null);
+      .filter<ChatCompletionMessageParam>((e): e is ChatCompletionMessageParam => e !== null);
   }
 
   private async getPersonOrSystemContext(
     ioChannel: TIOChannel,
     person: TPerson,
-    role: ChatCompletionRequestMessageRoleEnum,
+    role: "user" | "assistant" | "system",
   ): Promise<string> {
     const prompt = [];
 
     // Append ioChannel related info
-    if (role === ChatCompletionRequestMessageRoleEnum.User) {
+    if (role === "user") {
       prompt.push("## User Context\n");
       prompt.push(`You are chatting with ${person.name} - ${ioChannel.getDriverName()}.`);
       const languageName = new Intl.DisplayNames(["en"], { type: "language" }).of(person.language);
@@ -196,12 +197,12 @@ export class AIOpenAI {
   }
 
   async requestToOpenAI(
-    openAIMessages: ChatCompletionRequestMessage[],
+    openAIMessages: ChatCompletionMessageParam[],
     inputParams: InputParams,
     ioChannel: TIOChannel,
     person: TPerson,
     text: string,
-    role: ChatCompletionRequestMessageRoleEnum,
+    role: "user" | "assistant" | "system",
   ): Promise<Fulfillment> {
     const systemPrompt: string[] = [];
 
@@ -218,32 +219,27 @@ export class AIOpenAI {
     systemPrompt.push(personContext);
     systemPrompt.push(memoryContext);
 
-    // Build messages
-    const messages: ChatCompletionRequestMessage[] = [
-      {
-        role: ChatCompletionRequestMessageRoleEnum.System,
-        content: systemPrompt.join("\n\n"),
-      },
-      ...interactions,
-      ...openAIMessages,
-    ].filter(Boolean);
+    const systemMessage: ChatCompletionSystemMessageParam = {
+      role: "system",
+      content: systemPrompt.join("\n\n"),
+    };
 
-    const request = {
+    // Build messages
+    const messages: ChatCompletionMessageParam[] = [systemMessage, ...interactions, ...openAIMessages].filter(Boolean);
+
+    const completion = await OpenAIApiSDK().chat.completions.create({
       model: "gpt-3.5-turbo",
+
       user: person.id,
       n: 1,
       messages,
       // functions: AIFunction.getInstance().getFunctionDefinitions(),
       // function_call: "auto",
-    };
+    });
 
-    logStacktrace("openai-request.json", request);
+    logStacktrace("openai-completions.json", completion);
 
-    const completion = await OpenAIApiSDK().createChatCompletion(request);
-
-    logStacktrace("openai-completions.json", completion.data);
-
-    const answer = completion.data.choices.map((e) => e.message)?.[0];
+    const answer = completion.choices.map((e) => e.message)?.[0];
 
     if (answer?.function_call) {
       const functionName = answer.function_call.name;
@@ -260,7 +256,7 @@ export class AIOpenAI {
           [
             ...openAIMessages,
             {
-              role: ChatCompletionRequestMessageRoleEnum.Function,
+              role: "function",
               name: functionName,
               content: result.functionResult,
             },
@@ -286,10 +282,10 @@ export class AIOpenAI {
   async getFulfillmentForInput(params: InputParams, ioChannel: TIOChannel, person: TPerson): Promise<Fulfillment> {
     try {
       if (params.text) {
-        const role = params.role || ChatCompletionRequestMessageRoleEnum.User;
+        const role = params.role || "user";
         const result = await this.requestToOpenAI(
           [
-            role === ChatCompletionRequestMessageRoleEnum.User
+            role === "user"
               ? {
                   content: params.text,
                   name: this.cleanName(person.name),
@@ -310,8 +306,7 @@ export class AIOpenAI {
       }
     } catch (error) {
       logStacktrace("openai-error.json", error);
-
-      const errorMessage = (error as any)?.response?.data?.error?.message || (error as Error)?.message;
+      const errorMessage = error instanceof OpenAI.APIError ? error?.name : String(error);
       throw new Error(errorMessage);
     }
 

@@ -39,9 +39,9 @@ export default (): TConfig => {
     instance = extendConfig(defaultConfig, baseConfig);
 
     if (process.env.CONFIG_FILE) {
-      logger.info(`Loading runtime config from ${process.env.CONFIG_FILE}`);
       const runtimeConfig = JSON.parse(readFileSync(process.env.CONFIG_FILE, "utf8"));
       instance = extendConfig(instance, runtimeConfig);
+      logger.info(`Loaded runtime config from ${process.env.CONFIG_FILE}`);
     }
   }
   return instance as TConfig;

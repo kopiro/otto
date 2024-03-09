@@ -5,8 +5,8 @@ import { throwIfMissingAuthorizations } from "../../helpers";
 import { IOChannel, TIOChannel } from "../../data/io-channel";
 import { Person, TPerson } from "../../data/person";
 import { Database } from "../database";
-import { AIOpenAI } from "./ai-openai";
 import { AIVectorMemory, MemoryType } from "./ai-vectormemory";
+import { AIOpenAI } from "./ai-openai";
 
 type CommandFunction = (args: RegExpMatchArray, ioChannel: TIOChannel, person: TPerson) => Promise<Fulfillment>;
 

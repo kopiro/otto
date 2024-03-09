@@ -1,12 +1,12 @@
-import { Configuration, OpenAIApi } from "openai";
+import { OpenAI } from "openai";
 import config from "../config";
 
-let instance: OpenAIApi | undefined;
+let instance: OpenAI | undefined;
 
-export function OpenAIApiSDK(): OpenAIApi {
+export function OpenAIApiSDK(): OpenAI {
   if (!instance) {
     const _config = config().openai;
-    instance = new OpenAIApi(new Configuration({ apiKey: _config.apiKey }));
+    instance = new OpenAI({ apiKey: _config.apiKey });
   }
   return instance;
 }
