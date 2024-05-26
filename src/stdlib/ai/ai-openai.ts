@@ -12,6 +12,7 @@ import { isDocumentArray } from "@typegoose/typegoose";
 import { ChatCompletionMessageParam, ChatCompletionSystemMessageParam } from "openai/resources";
 import OpenAI from "openai";
 import fetch from "node-fetch";
+import { log } from "console";
 
 type Config = {
   apiKey: string;
@@ -78,6 +79,12 @@ export class AIOpenAI {
       ],
     })
       .sort({ createdAt: -1 })
+      // In the last hour
+      .where({
+        createdAt: {
+          $gt: new Date(Date.now() - 1000 * 60 * 60),
+        },
+      })
       .limit(INTERACTION_LIMIT);
 
     return interactions
@@ -226,6 +233,8 @@ export class AIOpenAI {
 
     // Build messages
     const messages: ChatCompletionMessageParam[] = [systemMessage, ...interactions, ...openAIMessages].filter(Boolean);
+
+    logStacktrace("openai-messages.json", messages);
 
     const completion = await OpenAIApiSDK().chat.completions.create({
       model: "gpt-3.5-turbo",
