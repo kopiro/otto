@@ -86,7 +86,7 @@ export class Voice implements IODriverRuntime {
   private startRecognition() {
     logger.debug("Recognizing microphone stream");
 
-    const recognizeStream = SpeechRecognizer.getInstance().createRecognizeStream(this.person.language, (err, text) => {
+    this.recognizeStream = SpeechRecognizer.getInstance().createRecognizeStream(this.person.language, (err, text) => {
       // When ended, destroy stream
       this.destroyRecognizer();
 
@@ -105,17 +105,15 @@ export class Voice implements IODriverRuntime {
     });
 
     // Every time user speaks, reset the HWS timer to the max
-    recognizeStream.on("data", (data) => {
+    this.recognizeStream.on("data", (data) => {
       if (data.results.length > 0) {
         // every time user speaks, give it more time to speak
         this.hotwordSilenceSec = this.conf.hotwordSilenceMaxSec;
       }
     });
 
-    this.recognizeStream = recognizeStream;
-
     // Pipe current mic stream to SR stream
-    this.recorder.stream().pipe(recognizeStream);
+    this.recorder.stream().pipe(this.recognizeStream);
 
     this.emitter.emit("recognizing");
   }
@@ -144,7 +142,9 @@ export class Voice implements IODriverRuntime {
     if (this.hotwordSilenceSec === 0) {
       logger.warn("Timeout exceeded, user should pronunce hotword again");
       this.hotwordSilenceSec = -1;
+      // detach recorder from SR stream
       this.destroyRecognizer();
+      this.startMic();
       return;
     }
 
@@ -169,7 +169,6 @@ export class Voice implements IODriverRuntime {
     this.hotwordSilenceSec = this.conf.hotwordSilenceMaxSec;
 
     // Recreate the SRR-stream
-    this.destroyRecognizer();
     this.startRecognition();
   }
 
@@ -195,6 +194,8 @@ export class Voice implements IODriverRuntime {
     const porcupine = new Porcupine(config().porcupine.apiKey, [ppnFile], [0.5], pvFile);
 
     this.recorder.stream().on("data", (data: Buffer) => {
+      process.stdout.write(".");
+
       // Two bytes per Int16 from the data buffer
       const newFrames16 = new Array(data.length / 2);
       for (let i = 0; i < data.length; i += 2) {
@@ -298,19 +299,12 @@ export class Voice implements IODriverRuntime {
     return results;
   }
 
-  /**
-   * Start the ioChannel
-   */
-  async start() {
-    if (this.started) return;
-    this.started = true;
-
-    await this.registerInternalModels();
-
-    this.emitter.on("wake", this.wake.bind(this));
-    this.emitter.on("stop", this.stop.bind(this));
-
+  async startMic() {
     if (this.conf.enableMic) {
+      if (this.recorder) {
+        this.recorder.stop();
+      }
+
       this.recorder = recorder.record({
         sampleRate: SpeechRecognizer.getInstance().SAMPLE_RATE,
         channels: MIC_CHANNELS,
@@ -321,12 +315,27 @@ export class Voice implements IODriverRuntime {
       if (this.conf.enableHotword) {
         try {
           this.startHotwordDetection();
-          setInterval(this.processHotwordSilence.bind(this), 1000);
         } catch (err) {
           logger.warn(err);
         }
       }
     }
+  }
+
+  /**
+   * Start the ioChannel
+   */
+  async start() {
+    if (this.started) return;
+    this.started = true;
+
+    await this.registerInternalModels();
+    setInterval(this.processHotwordSilence.bind(this), 1000);
+
+    this.emitter.on("wake", this.wake.bind(this));
+    this.emitter.on("stop", this.stop.bind(this));
+
+    this.startMic();
   }
 }
 

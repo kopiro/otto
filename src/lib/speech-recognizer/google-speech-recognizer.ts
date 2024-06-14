@@ -31,7 +31,7 @@ export class GoogleSpeechRecognizer implements ISpeechRecognizer {
   ): Pumpify {
     let resolved = false;
 
-    const request = {
+    const stream = this.client.streamingRecognize({
       singleUtterance: true,
       interimResults: true,
       config: {
@@ -40,11 +40,7 @@ export class GoogleSpeechRecognizer implements ISpeechRecognizer {
         ...audioConfig,
         languageCode: language,
       },
-    };
-
-    logger.debug("Creating recognition stream with config", request);
-
-    const stream = this.client.streamingRecognize(request);
+    });
 
     stream.on("end", () => {
       stream.destroy();
