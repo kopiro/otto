@@ -69,7 +69,7 @@
   "voice": {
     "enableHotword": false,
     "enableMic": false,
-    "hotwordSilenceMaxSec": 0
+    "hotwordSilenceMaxSec": 3
   },
   "gcloud": {
     "cseId": "",
