@@ -40,13 +40,13 @@ const MIC_PLATFORM_TO_BINARY: Record<Platform, string> = {
 };
 
 const TIMEOUT_POLL_AI_STILL_SPEAKING_SEC = 4;
-const HOTWORD_SILENCE_MAX_SEC = 3;
 
 const MIC_CHANNELS = 1;
 
 type VoiceConfig = {
   enableHotword: boolean;
   enableMic: boolean;
+  hotwordSilenceMaxSec: number;
 };
 
 export class Voice implements IODriverRuntime {
@@ -109,7 +109,7 @@ export class Voice implements IODriverRuntime {
     // Every time user speaks, reset the HWS timer to the max
     recognizeStream.on("data", (data) => {
       if (data.results.length > 0) {
-        this.hotwordSilenceSec = HOTWORD_SILENCE_MAX_SEC;
+        this.hotwordSilenceSec = this.conf.hotwordSilenceMaxSec;
       }
     });
 
@@ -167,7 +167,7 @@ export class Voice implements IODriverRuntime {
     Speaker.getInstance().play(`${etcDir}/wake.wav`);
 
     // Reset any timer variable
-    this.hotwordSilenceSec = HOTWORD_SILENCE_MAX_SEC;
+    this.hotwordSilenceSec = this.conf.hotwordSilenceMaxSec;
 
     // Recreate the SRR-stream
     this.startRecognition();

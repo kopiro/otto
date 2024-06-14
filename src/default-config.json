@@ -68,7 +68,8 @@
   "web": {},
   "voice": {
     "enableHotword": false,
-    "enableMic": false
+    "enableMic": false,
+    "hotwordSilenceMaxSec": 0
   },
   "gcloud": {
     "cseId": "",
