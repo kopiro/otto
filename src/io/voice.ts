@@ -86,11 +86,9 @@ export class Voice implements IODriverRuntime {
   private startRecognition() {
     logger.debug("Recognizing microphone stream");
 
-    // Close any previous stream
-    this.destroyRecognizer();
-
     const recognizeStream = SpeechRecognizer.getInstance().createRecognizeStream(this.person.language, (err, text) => {
-      this.recognizeStream = null;
+      // When ended, destroy stream
+      this.destroyRecognizer();
 
       // If erred, emit an error and exit
       if (err) {
@@ -109,6 +107,7 @@ export class Voice implements IODriverRuntime {
     // Every time user speaks, reset the HWS timer to the max
     recognizeStream.on("data", (data) => {
       if (data.results.length > 0) {
+        // every time user speaks, give it more time to speak
         this.hotwordSilenceSec = this.conf.hotwordSilenceMaxSec;
       }
     });
@@ -170,6 +169,7 @@ export class Voice implements IODriverRuntime {
     this.hotwordSilenceSec = this.conf.hotwordSilenceMaxSec;
 
     // Recreate the SRR-stream
+    this.destroyRecognizer();
     this.startRecognition();
   }
 
