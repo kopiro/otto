@@ -23,9 +23,13 @@ export class AIManager {
   emitter: Events.EventEmitter = new Events.EventEmitter();
 
   async getFullfilmentForInput(params: InputParams, ioChannel: TIOChannel, person: TPerson): Promise<Fulfillment> {
-    if (params.text) {
+    if (!params) {
+      throw new Error("Empty params provided");
+    }
+
+    if ("text" in params) {
       return AIOpenAI.getInstance().getFulfillmentForInput(params, ioChannel, person);
-    } else if (params.command) {
+    } else if ("command" in params) {
       return AICommander.getInstance().getFulfillmentForInput(params, ioChannel, person);
     } else {
       throw new Error("No valid input provided");

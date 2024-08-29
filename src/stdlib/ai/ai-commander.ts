@@ -222,7 +222,7 @@ export class AICommander {
     ioChannel: TIOChannel,
     person: TPerson,
   ): Promise<Fulfillment> {
-    if (params.command) {
+    if ("command" in params) {
       const executor = this.getCommandExecutor(params.command);
       return executor(ioChannel, person);
     }

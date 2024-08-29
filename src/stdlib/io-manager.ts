@@ -293,7 +293,7 @@ export class IOManager {
 
       return Promise.all(
         ioChannel.mirrorInputToFulfillmentTo.map((e) => {
-          return this.output(params, e, person, bag, false, null, OutputSource.mirror);
+          return this.output(params as Fulfillment, e, person, bag, false, null, OutputSource.mirror);
         }),
       );
     }
@@ -392,7 +392,7 @@ export class IOManager {
 
     logger.debug(`(${inputId}) Input:`, params, { ioChannelId: ioChannel?.id, personId: person.id });
 
-    if (params.text) {
+    if ("text" in params) {
       Interaction.createNew(
         {
           input: params,

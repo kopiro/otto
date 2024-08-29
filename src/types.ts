@@ -44,10 +44,5 @@ type InputParamsOption = {
   bag?: IOBag;
 };
 
-export type InputParams = (
-  | {
-      text: string;
-    }
-  | { command: string }
-) &
-  InputParamsOption;
+// text: "Hello" OR command: "Hello" - and then merge with InputParamsOption
+export type InputParams = ({ text: string } & InputParamsOption) | ({ command: string } & InputParamsOption);

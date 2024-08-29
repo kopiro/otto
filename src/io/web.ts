@@ -78,17 +78,18 @@ export class Web implements IODriverRuntime {
       if (!req.body.person) throw new Error("req.body.person is required");
 
       const person = await Person.findByIdOrThrow(req.body.person);
-      const params = (req.body.params || {}) as InputParams;
 
       const ioChannel = await IOChannel.findByIOIdentifierOrCreate(this.driverId, person.id, null, person, true);
 
       // Populate text by voice if necessary
-      if (!params.text) {
-        const textFromVoice = await this.maybeHandleVoice(req, person.language);
-        if (textFromVoice) {
-          params.text = textFromVoice;
-        }
+      let textInput = null;
+      if (!("text" in req.body.params)) {
+        textInput = await this.maybeHandleVoice(req, person.language);
+      } else {
+        textInput = req.body.params.text;
       }
+
+      const params = { ...req.body.params, text: textInput } as InputParams;
 
       const timeoutTick = setTimeout(() => {
         if (!res.closed) {

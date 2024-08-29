@@ -100,6 +100,10 @@ export class Voice implements IODriverRuntime {
         return;
       }
 
+      if (!text) {
+        return;
+      }
+
       // Otherwise, emit an INPUT message with the recognized text
       this.emitter.emit("input", { text }, this.ioChannel, this.person, null);
     });

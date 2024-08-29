@@ -93,7 +93,9 @@ export class AIOpenAI {
         // Remove last interaction because it's exactly like the input (text)
         if (i === interactions.length - 1) {
           if (
-            text === interaction.input?.text &&
+            interaction.input &&
+            "text" in interaction.input &&
+            text === interaction.input.text &&
             // last minute
             interaction.createdAt > new Date(Date.now() - 1000 * 60)
           ) {
@@ -108,7 +110,7 @@ export class AIOpenAI {
           };
         }
 
-        if (interaction.input?.text) {
+        if (interaction.input && "text" in interaction.input) {
           return {
             role: interaction.input.role || "user",
             name: this.cleanName(interaction.getSourceName()),
@@ -192,7 +194,7 @@ export class AIOpenAI {
   private interactionsAsString(interactions: TInteraction[]): string {
     return interactions
       .map((interaction) => {
-        if (interaction.input?.text) {
+        if (interaction.input && "text" in interaction.input) {
           return `${interaction.getSourceName()}: ${interaction.input.text}`;
         }
         if (interaction.fulfillment?.text) {
@@ -290,7 +292,7 @@ export class AIOpenAI {
 
   async getFulfillmentForInput(params: InputParams, ioChannel: TIOChannel, person: TPerson): Promise<Fulfillment> {
     try {
-      if (params.text) {
+      if ("text" in params) {
         const role = params.role || "user";
         const result = await this.requestToOpenAI(
           [

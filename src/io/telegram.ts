@@ -183,7 +183,7 @@ export class Telegram implements IODriverRuntime {
     const isCommand = this.getIsCommand(e);
 
     // Process a command
-    if (isCommand) {
+    if (isCommand && e.text) {
       this.emitter.emit(
         "input",
         {
@@ -251,20 +251,21 @@ export class Telegram implements IODriverRuntime {
 
     // Process a Photo Object
     if (e.photo) {
-      const image = await this.bot.getFileLink(e.photo[e.photo.length - 1].file_id);
+      // const image = await this.bot.getFileLink(e.photo[e.photo.length - 1].file_id);
       if (isGroup) return false;
 
       this.bot.sendChatAction(e.chat.id, "typing");
 
-      this.emitter.emit(
-        "input",
-        {
-          image,
-        },
-        ioChannel,
-        person,
-        bag,
-      );
+      // TODO: implement Image input
+      // this.emitter.emit(
+      //   "input",
+      //   {
+      //     image,
+      //   },
+      //   ioChannel,
+      //   person,
+      //   bag,
+      // );
 
       return true;
     }

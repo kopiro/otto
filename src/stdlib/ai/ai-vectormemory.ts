@@ -207,7 +207,7 @@ export class AIVectorMemory {
           if (interaction.fulfillment?.text) {
             conversation.push(`- ${sourceName} (${time}): ${interaction.fulfillment.text}`);
           }
-          if (interaction.input?.text) {
+          if (interaction.input && "text" in interaction.input) {
             conversation.push(`- ${sourceName} (${time}): ${interaction.input.text}`);
           }
         }
