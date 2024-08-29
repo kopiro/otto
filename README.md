@@ -19,7 +19,7 @@ pnpm install
 pnpm run start:dev
 ```
 
-If you're gonna work on the client:
+If you're going to work on the client:
 
 ```sh
 cd src-client
@@ -88,3 +88,29 @@ You can temporary use a accessory without altering your configuration by setting
 ```sh
 export OTTO_IO_ACCESSORIES=telegram,test
 ```
+
+## REST API
+
+### `/api/input`
+
+Provide an input to the API and post the output in the io_channel specified.
+
+Parameters:
+
+- `io_channel`: IO Channel ID
+- `person`: Person ID
+- `params`:
+  - `text|command`: Input text or command
+  - `role?`: "system", "user" or "assistant"
+  - `context?`: object with context
+  - `bag?`: metadata
+
+```sh
+IO_CHANNEL_ID="" 
+PERSON_ID="" 
+TEXT="$1"
+curl https://otto.kopiro.me/api/input \
+-X POST \
+-H "Content-Type: application/json" \
+-d "{\"io_channel\":\"$IO_CHANNEL_ID\",\"person\":\"$PERSON_ID\",\"params\":{\"text\":\"$TEXT\"}}"
+  ```

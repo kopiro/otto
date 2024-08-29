@@ -36,18 +36,18 @@ export type IErrorWithData = {
   data?: string;
 };
 
-export type InputContext = {
-  current_datetime_utc?: string;
-  user_calendar?: string;
-  user_timezone?: string;
-  user_location?: string;
-};
+export type InputContext = Record<string, string>;
 
-export type InputParams = {
-  text?: string;
+type InputParamsOption = {
   role?: "system" | "user" | "assistant";
-  image?: string;
-  command?: string;
   context?: InputContext;
   bag?: IOBag;
 };
+
+export type InputParams = (
+  | {
+      text: string;
+    }
+  | { command: string }
+) &
+  InputParamsOption;
