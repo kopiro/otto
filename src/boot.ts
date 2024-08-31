@@ -21,7 +21,9 @@ export async function warmup() {
       Sentry.init(config().sentry);
     }
 
+    logger.debug("Connecting to database...");
     await Database.getInstance().connect();
+    logger.success("Database connected");
   } catch (err) {
     logger.error(err);
     process.exit(1);

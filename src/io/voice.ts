@@ -129,6 +129,7 @@ export class Voice implements IODriverRuntime {
     }
 
     this.person = this.ioChannel.person;
+    logger.debug(`Internal models registered, IOChannel: ${this.ioChannel.id}, Person: ${this.person.id}`);
   }
 
   private destroyRecognizer() {
@@ -190,6 +191,8 @@ export class Voice implements IODriverRuntime {
    * Create and assign the hotword stream to listen for wake word
    */
   private startHotwordDetection() {
+    logger.debug("Started hotword detection");
+
     let frameAccumulator: number[] = [];
 
     const pvFile = path.join(etcDir, `porcupine`, `language.pv`);
@@ -198,8 +201,6 @@ export class Voice implements IODriverRuntime {
     const porcupine = new Porcupine(config().porcupine.apiKey, [ppnFile], [0.5], pvFile);
 
     this.recorder.stream().on("data", (data: Buffer) => {
-      process.stdout.write(".");
-
       // Two bytes per Int16 from the data buffer
       const newFrames16 = new Array(data.length / 2);
       for (let i = 0; i < data.length; i += 2) {
