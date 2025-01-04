@@ -5,7 +5,6 @@ import { publicDir, tmpDir } from "../paths";
 import { getVoiceFileFromText } from "./voice-helpers";
 import { TextToSpeech } from "./text-to-speech";
 import { IOManager } from "./io-manager";
-// @ts-ignore
 import rateLimit from "express-rate-limit";
 import { Signale } from "signale";
 import { IOChannel } from "../data/io-channel";

@@ -57,8 +57,8 @@ importers:
         specifier: ^4.18.2
         version: 4.21.2
       express-rate-limit:
-        specifier: ^5.5.1
-        version: 5.5.1
+        specifier: ^7.5.0
+        version: 7.5.0(express@4.21.2)
       formidable:
         specifier: ^2.1.1
         version: 2.1.2
@@ -120,9 +120,6 @@ importers:
       '@types/express':
         specifier: ^4.17.17
         version: 4.17.21
-      '@types/express-rate-limit':
-        specifier: ^6.0.0
-        version: 6.0.2
       '@types/formidable':
         specifier: ^2.0.6
         version: 2.0.6
@@ -1065,10 +1062,6 @@ packages:
 
   '@types/estree@1.0.6':
     resolution: {integrity: sha512-AYnb1nQyY49te+VRAVgmzfcgjYS91mY5P0TKUDCLEM+gNnA+3T6rWITXRLYCpahpqSQbN5cE+gHpnPyXjHWxcw==}
-
-  '@types/express-rate-limit@6.0.2':
-    resolution: {integrity: sha512-e1xZLOOlxCDvplAGq7rDcXtbdBu2CWRsMjaIu1LVqGxWtKvwr884YE5mPs3IvHeG/OMDhf24oTaqG5T1bV3rBQ==}
-    deprecated: This is a stub types definition. express-rate-limit provides its own type definitions, so you do not need this installed.
 
   '@types/express-serve-static-core@4.19.6':
     resolution: {integrity: sha512-N4LZ2xG7DatVqhCZzOGb1Yi5lMbXSZcmdLDe9EzSndPV2HpWYWzRbaerl2n27irrm94EPpprqa8KpskPT085+A==}
@@ -2403,8 +2396,11 @@ packages:
     resolution: {integrity: sha512-9/hlOBkQl2l/PLHJx6JjoDF6xPKcJEsUlWKb23rKE7KzeDqUZKXKNMW27KIue5JMdBV9HgmoJPcc8HtO85t9IA==}
     engines: {node: '>= 10.14.2'}
 
-  express-rate-limit@5.5.1:
-    resolution: {integrity: sha512-MTjE2eIbHv5DyfuFz4zLYWxpqVhEhkTiwFGuB74Q9CSou2WHO52nlE5y3Zlg6SIsiYUIPj6ifFxnkPz6O3sIUg==}
+  express-rate-limit@7.5.0:
+    resolution: {integrity: sha512-eB5zbQh5h+VenMPM3fh+nw1YExi5nMr6HUCR62ELSP11huvxm/Uir1H1QEyTkk5QX6A58pX6NmaTMceKZ0Eodg==}
+    engines: {node: '>= 16'}
+    peerDependencies:
+      express: ^4.11 || 5 || ^5.0.0-beta.1
 
   express@4.21.2:
     resolution: {integrity: sha512-28HqgMZAmih1Czt9ny7qr6ek2qddF4FclbMzwhCREB6OFfH+rXAnuNCwo1/wFvrtbgsQDb4kSbX9de9lFbrXnA==}
@@ -6055,7 +6051,7 @@ snapshots:
       '@types/istanbul-lib-coverage': 2.0.6
       collect-v8-coverage: 1.0.2
 
-  '@jest/test-sequencer@26.6.3(ts-node@10.9.2(@types/node@18.19.69)(typescript@5.7.2))':
+  '@jest/test-sequencer@26.6.3':
     dependencies:
       '@jest/test-result': 26.6.2
       graceful-fs: 4.2.11
@@ -6063,11 +6059,7 @@ snapshots:
       jest-runner: 26.6.3(ts-node@10.9.2(@types/node@18.19.69)(typescript@5.7.2))
       jest-runtime: 26.6.3(ts-node@10.9.2(@types/node@18.19.69)(typescript@5.7.2))
     transitivePeerDependencies:
-      - bufferutil
-      - canvas
       - supports-color
-      - ts-node
-      - utf-8-validate
 
   '@jest/transform@26.6.2':
     dependencies:
@@ -6632,10 +6624,6 @@ snapshots:
       '@types/json-schema': 7.0.15
 
   '@types/estree@1.0.6': {}
-
-  '@types/express-rate-limit@6.0.2':
-    dependencies:
-      express-rate-limit: 5.5.1
 
   '@types/express-serve-static-core@4.19.6':
     dependencies:
@@ -8247,7 +8235,9 @@ snapshots:
       jest-message-util: 26.6.2
       jest-regex-util: 26.0.0
 
-  express-rate-limit@5.5.1: {}
+  express-rate-limit@7.5.0(express@4.21.2):
+    dependencies:
+      express: 4.21.2
 
   express@4.21.2:
     dependencies:
@@ -9166,7 +9156,7 @@ snapshots:
   jest-config@26.6.3(ts-node@10.9.2(@types/node@18.19.69)(typescript@5.7.2)):
     dependencies:
       '@babel/core': 7.26.0
-      '@jest/test-sequencer': 26.6.3(ts-node@10.9.2(@types/node@18.19.69)(typescript@5.7.2))
+      '@jest/test-sequencer': 26.6.3
       '@jest/types': 26.6.2
       babel-jest: 26.6.3(@babel/core@7.26.0)
       chalk: 4.1.2
