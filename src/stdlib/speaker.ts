@@ -1,5 +1,6 @@
 import config from "../config";
 import { DirectSpeaker } from "../lib/speaker/direct-speaker";
+import { HttpSpeaker } from "../lib/speaker/http-speaker";
 
 import { File } from "../stdlib/file";
 
@@ -16,6 +17,9 @@ export class Speaker {
       switch (driverName) {
         case "direct":
           Speaker.instance = new DirectSpeaker();
+          break;
+        case "http":
+          Speaker.instance = new HttpSpeaker();
           break;
         default:
           throw new Error(`Invalid speaker: <${driverName}>`);

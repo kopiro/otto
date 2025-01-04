@@ -15,7 +15,10 @@
   "scheduler": {
     "enabled": true
   },
-  "speechRecognizer": {
+  "speechRecognizer": {},
+  "httpSpeaker": {
+    "url": "",
+    "token": ""
   },
   "ioQueue": {
     "enabled": true,
