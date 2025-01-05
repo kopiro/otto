@@ -7,7 +7,7 @@
   "textToSpeechDriver": "google",
   "translatorDriver": "google",
   "storageDriver": "google",
-  "speakerDriver": "direct",
+  "speakerDriver": "",
   "language": "en",
   "ioDrivers": [],
   "ioAccessoriesMap": {},
@@ -28,7 +28,7 @@
     "dsn": ""
   },
   "tts": {
-    "gender": "female",
+    "gender": "male",
     "encoding": "MP3"
   },
   "server": {
@@ -52,7 +52,9 @@
   "openai": {
     "apiKey": "",
     "promptUrl": "",
-    "declarativeMemoryUrl": ""
+    "declarativeMemoryUrl": "",
+    "conversationModel": "chatgpt-4o-latest",
+    "textReducerModel": "gpt-3.5-turbo"
   },
   "qdrant": {
     "url": ""

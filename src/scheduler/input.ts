@@ -10,7 +10,7 @@ export default class InputScheduler extends SchedulerRuntimeFunction {
     }
 
     if (!isDocument(this.job.person)) {
-      throw new Error("Invalid Person");
+      throw new Error(`Invalid person for job: ${this.job._id}`);
     }
 
     const { programArgs, ioChannel, person } = this.job;

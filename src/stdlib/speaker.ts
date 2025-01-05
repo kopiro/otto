@@ -1,7 +1,6 @@
 import config from "../config";
 import { DirectSpeaker } from "../lib/speaker/direct-speaker";
 import { HttpSpeaker } from "../lib/speaker/http-speaker";
-
 import { File } from "../stdlib/file";
 
 export interface ISpeaker {

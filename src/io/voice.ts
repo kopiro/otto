@@ -125,7 +125,7 @@ export class Voice implements IODriverRuntime {
   private async registerInternalModels() {
     this.ioChannel = await IOChannel.findByIOIdentifierOrCreate(this.driverId, "any", null, null);
     if (!isDocument(this.ioChannel.person)) {
-      throw new Error("Invalid person");
+      throw new Error(`Invalid person for internal channel: ${this.ioChannel.id}`);
     }
 
     this.person = this.ioChannel.person;

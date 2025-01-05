@@ -12,11 +12,12 @@ import { isDocumentArray } from "@typegoose/typegoose";
 import { ChatCompletionMessageParam, ChatCompletionSystemMessageParam } from "openai/resources";
 import OpenAI from "openai";
 import fetch from "node-fetch";
-import { log } from "console";
 
 type Config = {
   apiKey: string;
   promptUrl: string;
+  conversationModel: string;
+  textReducerModel: string;
 };
 
 const TAG = "OpenAI";
@@ -239,7 +240,7 @@ export class AIOpenAI {
     logStacktrace("openai-messages.json", messages);
 
     const completion = await OpenAIApiSDK().chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: this.conf.conversationModel,
 
       user: person.id,
       n: 1,

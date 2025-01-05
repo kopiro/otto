@@ -32,11 +32,18 @@ type QdrantPayload = {
   dateChunk?: string;
 };
 
+type Config = {
+  textReducerModel: string;
+};
+
 export class AIVectorMemory {
   private static instance: AIVectorMemory;
+
+  constructor(private conf: Config) {}
+
   static getInstance(): AIVectorMemory {
     if (!AIVectorMemory.instance) {
-      AIVectorMemory.instance = new AIVectorMemory();
+      AIVectorMemory.instance = new AIVectorMemory(config().openai);
     }
     return AIVectorMemory.instance;
   }
@@ -171,7 +178,7 @@ export class AIVectorMemory {
 
   private async reduceText(text: string) {
     const response = await OpenAIApiSDK().chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: this.conf.textReducerModel,
       messages: [
         {
           role: "system",

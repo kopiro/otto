@@ -52,6 +52,8 @@ export class GoogleTextToSpeech implements ITextToSpeech {
       throw new Error(`Unable to get a voice with language = ${language} and gender = ${gender}`);
     }
 
+    logger.info(`Voice used`, voice);
+
     return voice;
   }
 
