@@ -3,7 +3,7 @@ import config from "../config";
 
 const MAX_LIMIT = 100;
 
-type FeedItem = {
+export type FacebookFeedItem = {
   permalink_url: string;
   message: string;
   created_time: string;
@@ -20,7 +20,7 @@ type FeedItem = {
   id: string;
 };
 
-export const getFacebookFeed = async (): Promise<{ data: FeedItem[]; paging: { next: string } }> => {
+export const getFacebookFeed = async (): Promise<{ data: FacebookFeedItem[]; paging: { next: string } }> => {
   const { facebook } = config();
   const { pageId, accessToken } = facebook;
   const response = await fetch(

@@ -21,15 +21,12 @@ export class HttpSpeaker implements ISpeaker {
     const body = JSON.stringify({
       url: file.getServerURL(),
     });
-    logger.debug("HTTP Speaker body", body);
     const res = await fetch(this._config.url, {
       method: "POST",
       headers,
       body,
     });
-    const json = await res.json();
-    logger.debug("HTTP Speaker response", json);
-    return;
+    logger.debug("HTTP Speaker request", body, "->", res.status);
   }
 
   kill() {

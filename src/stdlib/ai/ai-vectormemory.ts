@@ -5,7 +5,7 @@ import { OpenAIApiSDK } from "../../lib/openai";
 import fetch from "node-fetch";
 import { Interaction, TInteraction } from "../../data/interaction";
 import { DocumentType, isDocument } from "@typegoose/typegoose";
-import { getFacebookFeed } from "../../lib/facebook";
+import { FacebookFeedItem, getFacebookFeed } from "../../lib/facebook";
 import uuidByString from "uuid-by-string";
 import { IIOChannel } from "../../data/io-channel";
 
@@ -90,12 +90,10 @@ export class AIVectorMemory {
 
     return unreducedInteractions.reduce<MapDateChunkToMapIOChannelToInteractions>((acc, interaction) => {
       if (isDocument(interaction.ioChannel)) {
-        if (interaction.ioChannel.ioDriver === "telegram") {
-          const dateChunk = this.getDateChunk(interaction.createdAt);
-          acc[dateChunk] = acc[dateChunk] || {};
-          acc[dateChunk][interaction.ioChannel.id] = acc[dateChunk][interaction.ioChannel.id] || [];
-          acc[dateChunk][interaction.ioChannel.id].push(interaction);
-        }
+        const dateChunk = this.getDateChunk(interaction.createdAt);
+        acc[dateChunk] = acc[dateChunk] || {};
+        acc[dateChunk][interaction.ioChannel.id] = acc[dateChunk][interaction.ioChannel.id] || [];
+        acc[dateChunk][interaction.ioChannel.id].push(interaction);
       }
       return acc;
     }, {});
@@ -129,7 +127,6 @@ export class AIVectorMemory {
     const data = await QDrantSDK().scroll(memoryType, {
       with_payload: true,
       with_vector: false,
-      limit: 10_000,
     });
     return data.points.map((e) => ({ id: e.id, ...e.payload }));
   }
@@ -154,8 +151,8 @@ export class AIVectorMemory {
       batch: {
         ids: payloads.map(({ id }) => id),
         vectors: vectors,
-        // Remove ids
         payloads: payloads.map((e) => {
+          // Remove ids
           const { id, ...payload } = e;
           return payload;
         }),
@@ -334,15 +331,30 @@ export class AIVectorMemory {
     logger.pending("Fetching Memory by Facebook Page...");
     const facebookFeed = await getFacebookFeed();
 
-    const facebookData = facebookFeed.data
-      .filter((item) => item.message)
-      .map((item) => ({ ...item, uuid: uuidByString(`facebook_${item.id}`) }));
+    const items: (FacebookFeedItem & { uuid: string })[] = [];
+    const processFeed = (feed: FacebookFeedItem[]) => {
+      feed
+        .filter((item) => item.message)
+        .map((item) => ({ ...item, uuid: uuidByString(`facebook_${item.id}`) }))
+        .forEach((item) => items.push(item));
+    };
 
-    const payloads = facebookData.map<QdrantPayload>((item) => {
+    processFeed(facebookFeed.data);
+    let next = facebookFeed.paging?.next;
+    while (next) {
+      const nextFeed = await fetch(next).then((res) => res.json());
+      processFeed(nextFeed.data);
+      next = nextFeed.paging?.next;
+      logger.pending("Fetching next page of Facebook feed...");
+    }
+
+    logger.info("Found " + items.length + " Facebook posts");
+
+    const payloads = items.map<QdrantPayload>((item) => {
       const text = [];
 
       text.push(
-        `On ${new Date(item.created_time).toISOString()}, ${config().aiName} posted a picture on Facebook/Instagram: "${
+        `On ${new Date(item.created_time).toISOString()}, ${config().aiName} posted a picture on Facebook: "${
           item.message
         }"`,
       );

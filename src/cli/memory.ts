@@ -15,8 +15,8 @@ process.env.MEMORY_TYPE = process.env.MEMORY_TYPE || "";
 warmup()
   .then(async () => {
     if (!config().centralNode) {
-      logger.error("This script should only be run on the central node");
-      process.exit(1);
+      logger.warn("This script should only be run on the central node");
+      //process.exit(1);
     }
 
     const memory = AIVectorMemory.getInstance();
