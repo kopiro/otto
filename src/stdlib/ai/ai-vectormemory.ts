@@ -224,13 +224,13 @@ export class AIVectorMemory {
             `Please reduce them to a single sentence in third person.\n` +
             `Strictly keep the output short, maximum ${PER_IOCHANNEL_REDUCED_MAX_CHARS} characters.\n` +
             `Include the names, the date and the title of the conversation.` +
-            `Example: In 2019, February 25th, ${
+            `Example: On February 25th, 2019, ${
               config().aiName
             } had a chat with USER about holidays in Japan in that chat "Holidays"."\n\n` +
             "## Conversation:\n" +
             conversation.join("\n");
 
-          logger.debug("Reducing conversation: ", reducerPromptForIOChannel);
+          // logger.debug("Reducing conversation: ", reducerPromptForIOChannel);
 
           const reducedText = await this.reduceText(reducerPromptForIOChannel);
           logger.debug("Reduced conversation: ", reducedText);
