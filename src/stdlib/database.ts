@@ -17,7 +17,7 @@ export class Database {
 
   getUrl(): string {
     const { user, password, host, port, database } = config().mongo;
-    return `mongodb://${user}:${password}@${host}:${port}/${database}`;
+    return `mongodb://${user}:${password}@${host}:${port}/${database}?authSource=admin`;
   }
 
   connect(): Promise<void> {
