@@ -32,7 +32,7 @@ warmup()
       if (process.env.REBUILD_MEMORY) {
         await memory.deleteCollection(MemoryType.episodic);
         // Set all reducedTo to false in interactions
-        const op = await Interaction.updateMany({ managerUid: config().uid }, { $unset: { reducedTo: true } });
+        const op = await Interaction.updateMany({}, { $unset: { reducedTo: true } });
         logger.success(`Erased reducedTo in interactions`, op);
       }
       await memory.buildEpisodicMemory();

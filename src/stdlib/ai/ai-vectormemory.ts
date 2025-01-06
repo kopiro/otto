@@ -83,7 +83,6 @@ export class AIVectorMemory {
   private async getInteractionsGroupedByDateChunkThenIOChannel(): Promise<MapDateChunkToMapIOChannelToInteractions> {
     // Get all intereactions which "reducedTo" is not set
     const unreducedInteractions = await Interaction.find({
-      managerUid: config().uid,
       reducedTo: { $exists: false },
       $or: [{ "fulfillment.text": { $exists: true } }, { "input.text": { $exists: true } }],
     }).sort({ createdAt: +1 });
