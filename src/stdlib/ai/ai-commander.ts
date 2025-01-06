@@ -191,7 +191,7 @@ export class AICommander {
   private async commandReloadBrain([, memoryTypes]: RegExpMatchArray): Promise<Fulfillment> {
     const result: Record<string, any> = {};
     if (memoryTypes.includes("prompt")) {
-      result.prompt = Boolean(await AIOpenAI.getInstance().buildPrompt(true));
+      result.prompt = Boolean(await AIOpenAI.getInstance().getHeaderPromptAsText(true));
     }
     if (memoryTypes.includes("declarative")) {
       result.declarative = await AIVectorMemory.getInstance().buildDeclarativeMemory();

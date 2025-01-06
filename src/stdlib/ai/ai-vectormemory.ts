@@ -353,11 +353,14 @@ export class AIVectorMemory {
     const payloads = items.map<QdrantPayload>((item) => {
       const text = [];
 
-      text.push(
-        `On ${new Date(item.created_time).toISOString()}, ${config().aiName} posted a picture on Facebook: "${
-          item.message
-        }"`,
-      );
+      // Get date as "January 1, 2023"
+      const dateString = new Date(item.created_time).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+
+      text.push(`On ${dateString}, ${config().aiName} posted a picture on social media: "${item.message}"`);
       if (item.permalink_url) {
         text.push(`(Link: ${item.permalink_url})`);
       }

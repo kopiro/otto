@@ -44,7 +44,7 @@ export class AIOpenAI {
     return AIOpenAI.instance;
   }
 
-  public async buildPrompt(refresh = false): Promise<string> {
+  public async getHeaderPromptAsText(refresh = false): Promise<string> {
     if (!this.prompt || refresh) {
       const prompt = await (await fetch(this.conf.promptUrl)).text();
       if (prompt) {
@@ -124,7 +124,7 @@ export class AIOpenAI {
       .filter<ChatCompletionMessageParam>((e): e is ChatCompletionMessageParam => e !== null);
   }
 
-  private async getPersonOrSystemContext(
+  private async getPersonOrSystemContextAsText(
     ioChannel: TIOChannel,
     person: TPerson,
     role: "user" | "assistant" | "system",
@@ -145,12 +145,10 @@ export class AIOpenAI {
     return prompt.join("\n");
   }
 
-  private async getInputContext(context: InputContext = {}): Promise<string> {
+  private async getContextAsText(context: InputContext = {}): Promise<string> {
     const prompt = [];
 
     prompt.push(`## Input Context\n`);
-
-    context.current_datetime_utc = context.current_datetime_utc || new Date().toISOString();
 
     // Append context
     for (const [key, value] of Object.entries(context)) {
@@ -161,33 +159,46 @@ export class AIOpenAI {
     return prompt.join("\n");
   }
 
-  private async getMemoryContext(text: string, ioChannel: TIOChannel, person: TPerson): Promise<string> {
+  private async getMemoryContextAsText(
+    text: string,
+    ioChannel: TIOChannel,
+    person: TPerson,
+    context: InputContext,
+  ): Promise<string> {
     const AIVectorMemoryInstance = AIVectorMemory.getInstance();
 
     await ioChannel.populate("people");
+
     const convDescription = isDocumentArray(ioChannel.people)
       ? ioChannel.people.map((p) => p.name).join(", ")
       : person.name;
+    const contextAsString = Object.entries(context)
+      .map(([key, value]) => `${key}: ${value}`)
+      .join("\n");
 
-    const [vectorOfText, vectorOfConversation] = await Promise.all([
+    const [vectorForText, vectorForConversation, vectorForContext] = await Promise.all([
       AIVectorMemoryInstance.createVector(text),
       AIVectorMemoryInstance.createVector(ioChannel.getDriverName() + " " + convDescription),
+      AIVectorMemoryInstance.createVector(contextAsString),
     ]);
 
     // Move this to batch
     const memories = await Promise.all([
-      AIVectorMemoryInstance.searchByVector(vectorOfText, MemoryType.declarative, DECLARATIVE_MEMORY_LIMIT),
-      AIVectorMemoryInstance.searchByVector(vectorOfText, MemoryType.episodic, EPISODIC_MEMORY_LIMIT),
-      AIVectorMemoryInstance.searchByVector(vectorOfText, MemoryType.social, SOCIAL_MEMORY_LIMIT),
-      AIVectorMemoryInstance.searchByVector(vectorOfConversation, MemoryType.declarative, DECLARATIVE_MEMORY_LIMIT),
-      AIVectorMemoryInstance.searchByVector(vectorOfConversation, MemoryType.episodic, EPISODIC_MEMORY_LIMIT),
-      AIVectorMemoryInstance.searchByVector(vectorOfConversation, MemoryType.social, SOCIAL_MEMORY_LIMIT),
+      AIVectorMemoryInstance.searchByVector(vectorForText, MemoryType.declarative, DECLARATIVE_MEMORY_LIMIT),
+      AIVectorMemoryInstance.searchByVector(vectorForText, MemoryType.episodic, EPISODIC_MEMORY_LIMIT),
+      AIVectorMemoryInstance.searchByVector(vectorForText, MemoryType.social, SOCIAL_MEMORY_LIMIT),
+      AIVectorMemoryInstance.searchByVector(vectorForConversation, MemoryType.declarative, DECLARATIVE_MEMORY_LIMIT),
+      AIVectorMemoryInstance.searchByVector(vectorForConversation, MemoryType.episodic, EPISODIC_MEMORY_LIMIT),
+      AIVectorMemoryInstance.searchByVector(vectorForConversation, MemoryType.social, SOCIAL_MEMORY_LIMIT),
+      AIVectorMemoryInstance.searchByVector(vectorForContext, MemoryType.declarative, DECLARATIVE_MEMORY_LIMIT),
+      AIVectorMemoryInstance.searchByVector(vectorForContext, MemoryType.episodic, EPISODIC_MEMORY_LIMIT),
+      AIVectorMemoryInstance.searchByVector(vectorForContext, MemoryType.social, SOCIAL_MEMORY_LIMIT),
     ]);
 
     // Remove duplicates
     const memoriesUnique = [...new Set(memories.flat())];
 
-    // logger.debug("Memory", memoriesUnique);
+    logger.debug("Retrieved memories", memoriesUnique);
 
     return `## Memory\n\n` + memoriesUnique.join("\n");
   }
@@ -206,6 +217,24 @@ export class AIOpenAI {
       .join("\n");
   }
 
+  getDefaultContext(): Record<string, string> {
+    const current_day = new Date().toLocaleDateString("en-US", {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    });
+    const current_time = new Date().toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "numeric",
+      second: "numeric",
+      timeZoneName: "short",
+    });
+    return {
+      current_day,
+      current_time,
+    };
+  }
+
   async requestToOpenAI(
     openAIMessages: ChatCompletionMessageParam[],
     inputParams: InputParams,
@@ -214,24 +243,30 @@ export class AIOpenAI {
     text: string,
     role: "user" | "assistant" | "system",
   ): Promise<Fulfillment> {
-    const systemPrompt: string[] = [];
+    const prompt: string[] = [];
 
-    const [interactions, prompt, genericContext, personContext, memoryContext] = await Promise.all([
-      this.retrieveRecentInteractionsAsOpenAIMessages(text, ioChannel),
-      this.buildPrompt(),
-      this.getInputContext(inputParams.context),
-      this.getPersonOrSystemContext(ioChannel, person, role),
-      this.getMemoryContext(text, ioChannel, person),
-    ]);
+    const context = {
+      ...this.getDefaultContext(),
+      ...inputParams.context,
+    };
 
-    systemPrompt.push(prompt);
-    systemPrompt.push(genericContext);
-    systemPrompt.push(personContext);
-    systemPrompt.push(memoryContext);
+    const [interactions, headerPromptText, contextText, personOrSystemContextText, memoryContextText] =
+      await Promise.all([
+        this.retrieveRecentInteractionsAsOpenAIMessages(text, ioChannel),
+        this.getHeaderPromptAsText(),
+        this.getContextAsText(context),
+        this.getPersonOrSystemContextAsText(ioChannel, person, role),
+        this.getMemoryContextAsText(text, ioChannel, person, context),
+      ]);
+
+    prompt.push(headerPromptText);
+    prompt.push(contextText);
+    prompt.push(personOrSystemContextText);
+    prompt.push(memoryContextText);
 
     const systemMessage: ChatCompletionSystemMessageParam = {
       role: "system",
-      content: systemPrompt.join("\n\n"),
+      content: prompt.join("\n\n"),
     };
 
     // Build messages
@@ -241,7 +276,6 @@ export class AIOpenAI {
 
     const completion = await OpenAIApiSDK().chat.completions.create({
       model: this.conf.conversationModel,
-
       user: person.id,
       n: 1,
       messages,

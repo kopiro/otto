@@ -14,12 +14,12 @@ process.env.MEMORY_TYPE = process.env.MEMORY_TYPE || "";
 
 warmup()
   .then(async () => {
+    const memory = AIVectorMemory.getInstance();
+
     if (!config().centralNode) {
       logger.warn("This script should only be run on the central node");
-      //process.exit(1);
+      process.exit(1);
     }
-
-    const memory = AIVectorMemory.getInstance();
 
     if (process.env.MEMORY_TYPE?.includes(MemoryType.declarative)) {
       await memory.buildDeclarativeMemory();
