@@ -140,8 +140,20 @@ export class IOManager {
     }
   }
 
-  canHandleOutput(_: Fulfillment, ioChannel: TIOChannel): boolean {
-    return ioChannel.managerUid === config().uid && Object.keys(this.loadedDrivers).includes(ioChannel.ioDriver);
+  canHandleOutput(fulfillment: Fulfillment, ioChannel: TIOChannel): boolean {
+    const result =
+      ioChannel.managerUid === config().uid && Object.keys(this.loadedDrivers).includes(ioChannel.ioDriver);
+    if (!result) {
+      logger.debug(`This node can't output for this channel, putting in IO queue for other node to pick it up`, {
+        fulfillment,
+        ioChannel: ioChannel,
+        us: {
+          managerUid: config().uid,
+          loadedDrivers: Object.keys(this.loadedDrivers),
+        },
+      });
+    }
+    return result;
   }
 
   async outputInQueue(
@@ -239,12 +251,6 @@ export class IOManager {
     }
 
     if (!this.canHandleOutput(fulfillment, ioChannel)) {
-      logger.debug(
-        `This node can't output for this channel (${ioChannel.id} - driver: ${ioChannel.ioDriver} - manager: ${ioChannel.managerUid}), putting in IO queue for other node to pick up`,
-        {
-          fulfillment,
-        },
-      );
       return this.outputInQueue(fulfillment, ioChannel, person, bag, inputId);
     }
 
