@@ -191,7 +191,7 @@ export class AIVectorMemory {
   }
 
   private async reduceInteractionsForDateChunk(dateChunk: string, gInteractions: MapIOChannelToInteractions) {
-    logger.info(`Reducing interactions for DateChunk: ${dateChunk}`);
+    logger.info(`Reducing interactions for date: ${dateChunk}`);
 
     const reducedInteractionsPerIOChannelText = [];
     const interactionIds = [];
@@ -217,18 +217,20 @@ export class AIVectorMemory {
         }
 
         if (conversation.length) {
+          // Welcome back! If you change  the text, you may want to re-run the memory builder
+          // MEMORY_TYPE=episodic REBUILD_MEMORY=true npm run ai:memory
           const reducerPromptForIOChannel =
             `The following is a conversation happened on ${dateChunk} - ${ioChannel.getDriverName()}.\n` +
             `Please reduce them to a single sentence in third person.\n` +
             `Strictly keep the output short, maximum ${PER_IOCHANNEL_REDUCED_MAX_CHARS} characters.\n` +
             `Include the names, the date and the title of the conversation.` +
-            `Example: On 27/02/2023, ${
+            `Example: In 2019, February 25th, ${
               config().aiName
             } had a chat with USER about holidays in Japan in that chat "Holidays"."\n\n` +
             "## Conversation:\n" +
             conversation.join("\n");
 
-          // logger.debug("Reducing conversation: ", reducerPromptForIOChannel);
+          logger.debug("Reducing conversation: ", reducerPromptForIOChannel);
 
           const reducedText = await this.reduceText(reducerPromptForIOChannel);
           logger.debug("Reduced conversation: ", reducedText);

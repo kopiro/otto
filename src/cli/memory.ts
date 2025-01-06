@@ -10,30 +10,27 @@ const logger = new Signale({
   scope: TAG,
 });
 
-process.env.MEMORY_TYPE = process.env.MEMORY_TYPE || "";
-
 warmup()
   .then(async () => {
     const memory = AIVectorMemory.getInstance();
+    const MEMORY_TYPE = (process.env.MEMORY_TYPE ?? "").split(",");
 
     if (!config().centralNode) {
       logger.warn("This script should only be run on the central node");
       process.exit(1);
     }
 
-    if (process.env.MEMORY_TYPE?.includes(MemoryType.declarative)) {
+    if (MEMORY_TYPE.includes(MemoryType.declarative)) {
       await memory.buildDeclarativeMemory();
     }
 
-    if (process.env.MEMORY_TYPE?.includes(MemoryType.social)) {
+    if (MEMORY_TYPE.includes(MemoryType.social)) {
       await memory.buildSocialMemory();
     }
 
-    if (process.env.MEMORY_TYPE?.includes(MemoryType.episodic)) {
-      if (process.env.ERASE) {
+    if (MEMORY_TYPE.includes(MemoryType.episodic)) {
+      if (process.env.REBUILD_MEMORY) {
         await memory.deleteCollection(MemoryType.episodic);
-      }
-      if (process.env.UPSERT) {
         // Set all reducedTo to false in interactions
         const op = await Interaction.updateMany({ managerUid: config().uid }, { $unset: { reducedTo: true } });
         logger.success(`Erased reducedTo in interactions`, op);

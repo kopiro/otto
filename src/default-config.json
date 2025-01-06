@@ -7,7 +7,7 @@
   "textToSpeechDriver": "google",
   "translatorDriver": "google",
   "storageDriver": "google",
-  "speakerDriver": "",
+  "speakerDriver": "direct",
   "language": "en",
   "ioDrivers": [],
   "ioAccessoriesMap": {},
