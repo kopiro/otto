@@ -64,9 +64,10 @@ export class AIOpenAI {
       .substring(0, 64);
   }
 
-  private async retrieveRecentInteractionsAsChatCompletions(
+  private async getRecentInteractionsAsChatCompletions(
     text: string,
     ioChannel: TIOChannel,
+    person: TPerson,
   ): Promise<ChatCompletionMessageParam[]> {
     // Get all Interaction where we have a input.text or fulfillment.text in the last 20m
     const interactions = await Interaction.find({
@@ -79,6 +80,16 @@ export class AIOpenAI {
         {
           "input.text": { $ne: null },
           ioChannel: ioChannel.id,
+          reducedTo: { $exists: false },
+        },
+        {
+          "input.text": { $ne: null },
+          person: person.id,
+          reducedTo: { $exists: false },
+        },
+        {
+          "input.text": { $ne: null },
+          person: person.id,
           reducedTo: { $exists: false },
         },
       ],
@@ -108,16 +119,18 @@ export class AIOpenAI {
           }
         }
 
-        if (interaction.fulfillment?.text) {
+        // If the assistant spoke
+        if (interaction.fulfillment && "text" in interaction.fulfillment) {
           return {
             role: "assistant",
             content: interaction.fulfillment.text,
           };
         }
 
+        // If the user spoke
         if (interaction.input && "text" in interaction.input) {
           return {
-            role: interaction.input.role || "user",
+            role: interaction.input.role ?? "user",
             name: this.cleanName(interaction.getSourceName()),
             content: interaction.input.text,
           };
@@ -128,23 +141,14 @@ export class AIOpenAI {
       .filter<ChatCompletionMessageParam>((e): e is ChatCompletionMessageParam => e !== null);
   }
 
-  private async getPersonContextAsText(
-    ioChannel: TIOChannel,
-    person: TPerson,
-    role: "user" | "assistant" | "system",
-  ): Promise<string> {
+  private async getPersonContextAsText(ioChannel: TIOChannel, person: TPerson): Promise<string> {
     const prompt = [];
 
-    // Append ioChannel related info
-    if (role === "user") {
-      prompt.push("## User Context\n");
-      prompt.push(`You are chatting with ${person.name} - ${ioChannel.getDriverName()}.`);
-      const languageName = new Intl.DisplayNames(["en"], { type: "language" }).of(person.language);
-      prompt.push(`You should reply in ${languageName}.`);
-    } else {
-      prompt.push("## System Context\n");
-      prompt.push(`You are chatting ${ioChannel.getDriverName()}.`);
-    }
+    prompt.push("## Context\n");
+    prompt.push(`You are chatting with ${person.name} - ${ioChannel.getDriverName()}.`);
+
+    const languageName = new Intl.DisplayNames(["en"], { type: "language" }).of(person.language);
+    prompt.push(`You should reply in ${languageName}.`);
 
     return prompt.join("\n");
   }
@@ -224,7 +228,7 @@ export class AIOpenAI {
   }
 
   async requestToOpenAI(
-    chatCompletionsMessages: ChatCompletionMessageParam[],
+    messagesChatCompletions: ChatCompletionMessageParam[],
     inputParams: InputParams,
     ioChannel: TIOChannel,
     person: TPerson,
@@ -238,29 +242,36 @@ export class AIOpenAI {
       ...inputParams.context,
     };
 
-    const [interactions, headerPromptText, contextText, personOrSystemContextText, memoryContextText] =
-      await Promise.all([
-        this.retrieveRecentInteractionsAsChatCompletions(text, ioChannel),
-        this.getHeaderPromptAsText(),
-        this.getContextAsText(context),
-        this.getPersonContextAsText(ioChannel, person, role),
-        this.getMemoryContextAsText(text, ioChannel, person, context),
-      ]);
+    const [
+      recentInteractionsChatCompletions,
+      headerPromptText,
+      contextText,
+      personOrSystemContextText,
+      memoryContextText,
+    ] = await Promise.all([
+      this.getRecentInteractionsAsChatCompletions(text, ioChannel, person),
+      this.getHeaderPromptAsText(),
+      this.getContextAsText(context),
+      this.getPersonContextAsText(ioChannel, person),
+      this.getMemoryContextAsText(text, ioChannel, person, context),
+    ]);
 
     prompt.push(headerPromptText);
     prompt.push(contextText);
     prompt.push(personOrSystemContextText);
     prompt.push(memoryContextText);
 
-    const systemMessage: ChatCompletionSystemMessageParam = {
+    const promptChatCompletion: ChatCompletionSystemMessageParam = {
       role: "system",
       content: prompt.join("\n\n"),
     };
 
     // Build messages
-    const messages: ChatCompletionMessageParam[] = [systemMessage, ...interactions, ...chatCompletionsMessages].filter(
-      Boolean,
-    );
+    const messages: ChatCompletionMessageParam[] = [
+      promptChatCompletion,
+      ...recentInteractionsChatCompletions,
+      ...messagesChatCompletions,
+    ].filter(Boolean);
 
     logStacktrace("openai-messages.json", messages);
 
@@ -291,7 +302,7 @@ export class AIOpenAI {
       if (result.functionResult) {
         return this.requestToOpenAI(
           [
-            ...chatCompletionsMessages,
+            ...messagesChatCompletions,
             {
               role: "function",
               name: functionName,
