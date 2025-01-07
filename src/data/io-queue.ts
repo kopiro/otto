@@ -5,15 +5,13 @@ import { IIOChannel, TIOChannel } from "./io-channel";
 import { DocumentType, Ref, ReturnModelType, getModelForClass, modelOptions, plugin, prop } from "@typegoose/typegoose";
 import config from "../config";
 import { IPerson, TPerson } from "./person";
+import mongoose from "mongoose";
 
 @modelOptions({ schemaOptions: { collection: "io_queue" }, options: { allowMixed: 0 } })
 @plugin(autopopulate)
 class IIOQueue {
   @prop({ required: true })
   public managerUid!: string;
-
-  @prop({ required: true })
-  public ioDriver!: IODriverId;
 
   @prop({ autopopulate: { maxDepth: 1 }, ref: () => IIOChannel })
   ioChannel!: Ref<IIOChannel>;

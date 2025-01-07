@@ -144,7 +144,7 @@ export class IOManager {
     const result = ioChannel.managerUid === config().uid;
     if (!result) {
       logger.warn(
-        `This node can't handle this IO channel (${ioChannel.id}) (them: ${ioChannel.managerUid}), us: ${config().uid}`,
+        `This node can't handle this IO channel (${ioChannel.id}) (them: ${ioChannel.managerUid}, us: ${config().uid})`,
       );
     }
     return result;
