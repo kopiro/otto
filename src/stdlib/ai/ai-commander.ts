@@ -181,7 +181,6 @@ export class AICommander {
       ioChannel,
       person,
       {},
-      false,
       null,
       OutputSource.command,
     );
