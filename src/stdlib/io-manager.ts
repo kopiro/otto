@@ -157,6 +157,7 @@ export class IOManager {
     bag: IOBag,
   ): Promise<OutputResult> {
     const ioQueueElement = await IOQueue.createNew(data, ioChannel, person, bag);
+    logger.info("Scheduling in queue", ioQueueElement);
     return {
       rejectReason: {
         message: "IO_SCHEDULED",
