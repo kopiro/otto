@@ -167,8 +167,6 @@ export class AIOpenAI {
   ): Promise<string> {
     const AIVectorMemoryInstance = AIVectorMemory.getInstance();
 
-    await ioChannel.populate("people");
-
     const convDescription = isDocumentArray(ioChannel.people)
       ? ioChannel.people.map((p) => p.name).join(", ")
       : person.name;
@@ -198,7 +196,7 @@ export class AIOpenAI {
     // Remove duplicates
     const memoriesUnique = [...new Set(memories.flat())];
 
-    logger.debug("Retrieved memories", memoriesUnique);
+    // logger.debug("Retrieved memories", memoriesUnique);
 
     return `## Memory\n\n` + memoriesUnique.join("\n");
   }

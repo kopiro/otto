@@ -228,8 +228,8 @@ export class Telegram implements IODriverRuntime {
       const isMentionInVoice = this.getIsMention(text);
 
       // If we are in a group, only listen for activators
-      if (isGroup && !isMentionInVoice) {
-        logger.debug("Received vocal, but skipping it");
+      if (isGroup && !(isMentionInVoice || isReply)) {
+        logger.debug("Received vocal in a group, but skipping it because no mention of the AI name was found");
         return false;
       }
 

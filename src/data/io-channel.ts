@@ -57,7 +57,7 @@ export class IIOChannel {
   /**
    * In case of group chats, this field will be populated with the people in the group chat
    */
-  @prop({ required: false, ref: () => IPerson })
+  @prop({ required: false, autopopulate: { maxDepth: 1 }, ref: () => IPerson })
   public people!: Ref<IPerson>[];
 
   /**
