@@ -172,7 +172,6 @@ export class IOManager {
     ioChannel: TIOChannel,
     person: TPerson,
     bag: IOBag | null,
-    loadDriverIfNotEnabled = false,
     inputId: string | null,
     source: OutputSource,
   ) {
@@ -192,7 +191,7 @@ export class IOManager {
             return;
           }
 
-          return this.output(fulfillment, e, person, bag, loadDriverIfNotEnabled, inputId, source, true);
+          return this.output(fulfillment, e, person, bag, inputId, source, true);
         }),
       );
     }
@@ -206,11 +205,14 @@ export class IOManager {
     ioChannel: TIOChannel,
     person: TPerson,
     bag: IOBag | null,
-    loadDriverIfNotEnabled = false,
     inputId: string | null,
     source: OutputSource,
     wasRedirectedTo = false,
   ): Promise<OutputResult> {
+    if (!this.canHandleIOChannelInThisNode(ioChannel)) {
+      return this.scheduleInQueue({ fulfillment }, ioChannel, person, bag);
+    }
+
     // TODO: support multiple params
     if (fulfillment.text && !wasRedirectedTo) {
       Interaction.createNew(
@@ -228,7 +230,7 @@ export class IOManager {
     // Only do this when this output is not coming from the IOQueue, otherwise it will be redirected twice
     if (source !== OutputSource.queue) {
       setImmediate(() => {
-        this.maybeRedirectFulfillment(fulfillment, ioChannel, person, bag, loadDriverIfNotEnabled, inputId, source);
+        this.maybeRedirectFulfillment(fulfillment, ioChannel, person, bag, inputId, source);
       });
     }
 
@@ -237,11 +239,7 @@ export class IOManager {
       return { rejectReason: { message: "DO_NOT_DISTURB_ON" } };
     }
 
-    let driverRuntime = this.loadedDrivers[ioChannel.ioDriver];
-    if (!driverRuntime && loadDriverIfNotEnabled) {
-      driverRuntime = await this.loadDriver(ioChannel.ioDriver);
-    }
-
+    const driverRuntime = this.loadedDrivers[ioChannel.ioDriver];
     if (!driverRuntime) {
       logger.warn("Driver not enabled", ioChannel);
       return { rejectReason: { message: "DRIVER_NOT_ENABLED" } };
@@ -287,7 +285,7 @@ export class IOManager {
 
       return Promise.all(
         ioChannel.mirrorInputToFulfillmentTo.map((e) => {
-          return this.output(params as Fulfillment, e, person, bag, false, null, OutputSource.mirror);
+          return this.output(params as Fulfillment, e, person, bag, null, OutputSource.mirror);
         }),
       );
     }
@@ -368,7 +366,7 @@ export class IOManager {
     if (qitem.input) {
       await this.input(qitem.input, qitem.ioChannel, qitem.person, qitem.bag);
     } else if (qitem.fulfillment) {
-      await this.output(qitem.fulfillment, qitem.ioChannel, qitem.person, qitem.bag, false, null, OutputSource.queue);
+      await this.output(qitem.fulfillment, qitem.ioChannel, qitem.person, qitem.bag, null, OutputSource.queue);
     } else {
       logger.warn("IOQueue item has no input or fulfillment", qitem);
     }
@@ -427,10 +425,10 @@ export class IOManager {
       ioChannel,
       person,
       bag,
-      false,
       inputId,
       OutputSource.input,
     );
+
     logger.debug(`Result`, {
       inputId,
       result,

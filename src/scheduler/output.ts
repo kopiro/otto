@@ -16,7 +16,6 @@ export default class OutputScheduler extends SchedulerRuntimeFunction {
       ioChannel,
       person,
       null,
-      false,
       null,
       OutputSource.scheduler,
     );
