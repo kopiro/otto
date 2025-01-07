@@ -409,14 +409,7 @@ export class IOManager {
 
     logger.debug("Fulfillment: ", { inputId, fulfillment });
 
-    const result = await IOManager.getInstance().output(
-      fulfillment,
-      ioChannel,
-      person,
-      bag,
-      inputId,
-      OutputSource.input,
-    );
+    const result = await this.output(fulfillment, ioChannel, person, bag, inputId, OutputSource.input);
 
     logger.debug(`Result`, {
       inputId,
