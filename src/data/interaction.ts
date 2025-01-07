@@ -14,6 +14,13 @@ import autopopulate from "mongoose-autopopulate";
 import config from "../config";
 import { IPerson, TPerson } from "./person";
 import mongoose from "mongoose";
+import { Signale } from "signale";
+import { OutputSource } from "../stdlib/io-manager";
+
+const TAG = "Interaction";
+const logger = new Signale({
+  scope: TAG,
+});
 
 @modelOptions({ schemaOptions: { collection: "interactions" }, options: { allowMixed: 0 } })
 @plugin(autopopulate)
@@ -42,11 +49,16 @@ export class IInteraction {
   @prop({ required: false, type: mongoose.Schema.Types.Mixed })
   public fulfillment?: Fulfillment;
 
+  @prop({ required: false, type: mongoose.Schema.Types.String })
+  public source?: OutputSource;
+
   getSourceName(this: TInteraction): string {
+    // When the AI spoke
     if (this.fulfillment) {
       return config().aiName.toUpperCase();
     }
 
+    // When the user spoke, or the system
     if (this.input) {
       if (this.input?.role === "system") {
         return "SYSTEM";
@@ -54,26 +66,32 @@ export class IInteraction {
       if (isDocument(this.person)) {
         return this.person.name;
       }
-      return "UNKNOWN";
+      if (isDocument(this.ioChannel) && isDocument(this.ioChannel.person)) {
+        return this.ioChannel.person.name;
+      }
     }
+
+    logger.warn("Unable to determine source name for interaction", this);
 
     return "-";
   }
 
   static async createNew(
     this: ReturnModelType<typeof IInteraction>,
-    rest: { input: InputParams } | { fulfillment: Fulfillment },
+    data: { input: InputParams } | { fulfillment: Fulfillment },
     ioChannel: TIOChannel,
     person: TPerson,
     inputId: string | null,
+    source: OutputSource | null,
   ) {
     return Interaction.create({
-      ...rest,
+      ...data,
       managerUid: config().uid,
       ioChannel: ioChannel.id,
       person: person.id,
       createdAt: new Date(),
       inputId,
+      source,
     });
   }
 }

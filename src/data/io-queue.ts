@@ -1,6 +1,6 @@
 import autopopulate from "mongoose-autopopulate";
 import { IOBag, IODriverId } from "../stdlib/io-manager";
-import { Fulfillment } from "../types";
+import { Fulfillment, InputParams } from "../types";
 import { IIOChannel, TIOChannel } from "./io-channel";
 import { DocumentType, Ref, ReturnModelType, getModelForClass, modelOptions, plugin, prop } from "@typegoose/typegoose";
 import config from "../config";
@@ -25,9 +25,9 @@ class IIOQueue {
   public createdAt!: Date;
 
   @prop({ required: false })
-  public inputId!: string;
+  public input!: InputParams;
 
-  @prop({ required: true })
+  @prop({ required: false })
   public fulfillment!: Fulfillment;
 
   @prop()
@@ -35,28 +35,24 @@ class IIOQueue {
 
   static async createNew(
     this: ReturnModelType<typeof IIOQueue>,
-    fulfillment: Fulfillment,
+    data: { input: InputParams } | { fulfillment: Fulfillment },
     ioChannel: TIOChannel,
     person: TPerson,
     bag: IOBag | null,
-    inputId: string | null,
   ) {
     return IOQueue.create({
+      ...data,
+      createdAt: new Date(),
       managerUid: ioChannel.managerUid,
-      ioDriver: ioChannel.ioDriver,
       ioChannel: ioChannel.id,
       person: person.id,
-      fulfillment,
       bag,
-      inputId,
-      createdAt: new Date(),
     });
   }
 
-  static async getNextInQueue(this: ReturnModelType<typeof IIOQueue>, enabledDrivers: IODriverId[]) {
+  static async getNextInQueue(this: ReturnModelType<typeof IIOQueue>) {
     return IOQueue.findOne({
       managerUid: config().uid,
-      ioDriver: { $in: enabledDrivers },
     }).sort({ createdAt: 1 });
   }
 }

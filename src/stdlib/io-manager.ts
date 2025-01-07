@@ -140,38 +140,27 @@ export class IOManager {
     }
   }
 
-  canHandleOutput(fulfillment: Fulfillment, ioChannel: TIOChannel): boolean {
-    const result =
-      ioChannel.managerUid === config().uid && Object.keys(this.loadedDrivers).includes(ioChannel.ioDriver);
+  canHandleIOChannelInThisNode(ioChannel: TIOChannel): boolean {
+    const result = ioChannel.managerUid === config().uid;
     if (!result) {
-      logger.debug(`This node can't output for this channel, putting in IO queue for other node to pick it up`, {
-        fulfillment,
-        ioChannel: ioChannel,
-        us: {
-          managerUid: config().uid,
-          loadedDrivers: Object.keys(this.loadedDrivers),
-        },
-      });
+      logger.warn(
+        `This node can't handle this IO channel (${ioChannel.id}) (them: ${ioChannel.managerUid}), us: ${config().uid}`,
+      );
     }
     return result;
   }
 
-  async outputInQueue(
-    fulfillment: Fulfillment,
+  async scheduleInQueue(
+    data: { input: InputParams } | { fulfillment: Fulfillment },
     ioChannel: TIOChannel,
     person: TPerson,
     bag: IOBag,
-    inputId: string | null,
   ): Promise<OutputResult> {
-    const loadedDriverIds = Object.keys(this.loadedDrivers);
-
-    const ioQueueElement = await IOQueue.createNew(fulfillment, ioChannel, person, bag, inputId);
-
+    const ioQueueElement = await IOQueue.createNew(data, ioChannel, person, bag);
     return {
       rejectReason: {
-        message: "OUTPUT_QUEUED",
+        message: "IO_SCHEDULED",
         data: {
-          loadedDriverIds,
           ioQueueElementId: ioQueueElement.id,
         },
       },
@@ -203,7 +192,7 @@ export class IOManager {
             return;
           }
 
-          return this.output(fulfillment, e, person, bag, loadDriverIfNotEnabled, inputId, source);
+          return this.output(fulfillment, e, person, bag, loadDriverIfNotEnabled, inputId, source, true);
         }),
       );
     }
@@ -220,9 +209,10 @@ export class IOManager {
     loadDriverIfNotEnabled = false,
     inputId: string | null,
     source: OutputSource,
+    wasRedirectedTo = false,
   ): Promise<OutputResult> {
     // TODO: support multiple params
-    if (fulfillment.text) {
+    if (fulfillment.text && !wasRedirectedTo) {
       Interaction.createNew(
         {
           fulfillment,
@@ -230,6 +220,7 @@ export class IOManager {
         ioChannel,
         person,
         inputId,
+        source,
       );
     }
 
@@ -249,10 +240,6 @@ export class IOManager {
     let driverRuntime = this.loadedDrivers[ioChannel.ioDriver];
     if (!driverRuntime && loadDriverIfNotEnabled) {
       driverRuntime = await this.loadDriver(ioChannel.ioDriver);
-    }
-
-    if (!this.canHandleOutput(fulfillment, ioChannel)) {
-      return this.outputInQueue(fulfillment, ioChannel, person, bag, inputId);
     }
 
     if (!driverRuntime) {
@@ -352,8 +339,7 @@ export class IOManager {
    * Process items in the queue based on configured drivers
    */
   async processQueue(callback?: (item: TIOQueue | null) => void): Promise<TIOQueue | null> {
-    const enabledDriverIds = Object.keys(this.loadedDrivers) as IODriverId[];
-    const qitem = await IOQueue.getNextInQueue(enabledDriverIds);
+    const qitem = await IOQueue.getNextInQueue();
 
     if (!qitem || this.queueInProcess[qitem.id]) {
       callback?.(null);
@@ -368,13 +354,7 @@ export class IOManager {
 
     this.queueInProcess[qitem.id] = true;
 
-    logger.info("Processing IOQueue item", {
-      fulfillment: qitem.fulfillment,
-      ioChannel: qitem.ioChannel.id,
-      person: qitem.person.id,
-      bag: qitem.bag,
-      inputId: qitem.inputId,
-    });
+    logger.info("Processing IOQueue item", qitem);
 
     callback?.(qitem);
 
@@ -385,8 +365,13 @@ export class IOManager {
       return null;
     }
 
-    const { fulfillment, ioChannel, person, bag, inputId } = qitem;
-    await this.output(fulfillment, ioChannel, person, bag, false, inputId, OutputSource.queue);
+    if (qitem.input) {
+      await this.input(qitem.input, qitem.ioChannel, qitem.person, qitem.bag);
+    } else if (qitem.fulfillment) {
+      await this.output(qitem.fulfillment, qitem.ioChannel, qitem.person, qitem.bag, false, null, OutputSource.queue);
+    } else {
+      logger.warn("IOQueue item has no input or fulfillment", qitem);
+    }
 
     return qitem;
   }
@@ -394,32 +379,42 @@ export class IOManager {
   /**
    * Process a fulfillment to a ioChannel
    */
-  async input(params: InputParams, ioChannel: TIOChannel, person: TPerson, bag: IOBag | null): Promise<OutputResult> {
+  async input(
+    inputParams: InputParams,
+    ioChannel: TIOChannel,
+    person: TPerson,
+    bag: IOBag | null,
+  ): Promise<OutputResult> {
+    if (!this.canHandleIOChannelInThisNode(ioChannel)) {
+      return this.scheduleInQueue({ input: inputParams }, ioChannel, person, bag);
+    }
+
     const inputId = randomUUID();
 
-    logger.debug("Input:", { inputId, params, ioChannelId: ioChannel?.id, personId: person.id });
+    logger.debug("Input:", { inputId, inputParams, ioChannelId: ioChannel?.id, personId: person.id });
 
     // TODO: support multiple params
-    if ("text" in params) {
+    if ("text" in inputParams) {
       Interaction.createNew(
         {
-          input: params,
+          input: inputParams,
         },
         ioChannel,
         person,
         inputId,
+        null,
       );
     }
 
     let fulfillment: Fulfillment | null = null;
     try {
       throwIfMissingAuthorizations(person.authorizations, [Authorization.MESSAGE]);
-      fulfillment = await AIManager.getInstance().getFullfilmentForInput(params, ioChannel, person);
+      fulfillment = await AIManager.getInstance().getFullfilmentForInput(inputParams, ioChannel, person);
     } catch (err) {
       if (err instanceof AuthorizationError) {
         report({
           message: `Person <b>${person.name}</b> (<code>${person.id}</code>) on channel <code>${ioChannel.id}</code> is trying to perform an action without the following authorization: <code>${err.requiredAuth}</code>`,
-          data: JSON.stringify({ params }),
+          data: JSON.stringify({ inputParams }),
         });
       }
       fulfillment = { error: err as IErrorWithData };
