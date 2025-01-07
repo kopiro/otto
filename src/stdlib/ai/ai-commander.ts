@@ -174,8 +174,10 @@ export class AICommander {
   private async commandOutputText([, ioChannelId, personId, cmdText]: RegExpMatchArray): Promise<Fulfillment> {
     const ioChannel = await IOChannel.findById(ioChannelId);
     if (!ioChannel) throw new Error(`Session ${ioChannelId} not found`);
+
     const person = await Person.findById(personId);
     if (!person) throw new Error(`Person ${personId} not found`);
+
     const result = await IOManager.getInstance().output(
       { text: cmdText },
       ioChannel,
@@ -184,6 +186,7 @@ export class AICommander {
       null,
       OutputSource.command,
     );
+
     return { data: JSON.stringify(result, null, 2) };
   }
 

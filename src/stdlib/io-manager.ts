@@ -322,18 +322,6 @@ export class IOManager {
   }
 
   /**
-   * Get the next item into the queue to proces
-   */
-  async getNextInQueue() {
-    return IOQueue.findOne({
-      managerUid: config().uid,
-      ioDriver: {
-        $in: Object.keys(this.loadedDrivers),
-      },
-    }).sort({ createdAt: +1 });
-  }
-
-  /**
    * Process items in the queue based on configured drivers
    */
   async processQueue(callback?: (item: TIOQueue | null) => void): Promise<TIOQueue | null> {
