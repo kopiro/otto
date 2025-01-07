@@ -1,5 +1,11 @@
 import mongoose from "mongoose";
 import config from "../config";
+import { Signale } from "signale";
+
+const TAG = "Database";
+const logger = new Signale({
+  scope: TAG,
+});
 
 export class Database {
   private static instance: Database;
@@ -22,9 +28,19 @@ export class Database {
 
   connect(): Promise<void> {
     return new Promise((resolve, reject) => {
-      mongoose.connect(this.getUrl());
-      mongoose.connection.on("error", reject);
-      mongoose.connection.once("open", resolve);
+      logger.pending("Connecting to database");
+
+      mongoose.connect(this.getUrl(), {
+        connectTimeoutMS: 2000,
+      });
+      mongoose.connection.on("error", (err) => {
+        logger.error("Failed to connect to database", err);
+        reject(err);
+      });
+      mongoose.connection.once("open", () => {
+        logger.success("Connected to database");
+        resolve();
+      });
     });
   }
 }

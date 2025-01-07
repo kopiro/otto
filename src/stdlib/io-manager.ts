@@ -221,6 +221,7 @@ export class IOManager {
     inputId: string | null,
     source: OutputSource,
   ): Promise<OutputResult> {
+    // TODO: support multiple params
     if (fulfillment.text) {
       Interaction.createNew(
         {
@@ -396,8 +397,9 @@ export class IOManager {
   async input(params: InputParams, ioChannel: TIOChannel, person: TPerson, bag: IOBag | null): Promise<OutputResult> {
     const inputId = randomUUID();
 
-    logger.debug(`(${inputId}) Input:`, params, { ioChannelId: ioChannel?.id, personId: person.id });
+    logger.debug("Input:", { inputId, params, ioChannelId: ioChannel?.id, personId: person.id });
 
+    // TODO: support multiple params
     if ("text" in params) {
       Interaction.createNew(
         {
@@ -423,7 +425,7 @@ export class IOManager {
       fulfillment = { error: err as IErrorWithData };
     }
 
-    logger.debug(`(${inputId}) Fulfillment: `, fulfillment);
+    logger.debug("Fulfillment: ", { inputId, fulfillment });
 
     const result = await IOManager.getInstance().output(
       fulfillment,
@@ -434,7 +436,10 @@ export class IOManager {
       inputId,
       OutputSource.input,
     );
-    logger.debug(`(${inputId}) Result`, result);
+    logger.debug(`Result`, {
+      inputId,
+      result,
+    });
 
     return result;
   }

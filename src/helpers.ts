@@ -146,6 +146,11 @@ export function throwIfMissingAuthorizations(
   authorizations: Authorization[] = [],
   requiredAuthorizations: Authorization[],
 ): void {
+  // Bypass authorization checks in development
+  if (process.env.NODE_ENV === "development") {
+    return;
+  }
+
   authorizations = authorizations || [];
   requiredAuthorizations = requiredAuthorizations || [];
 

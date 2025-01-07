@@ -57,10 +57,14 @@ export class AIOpenAI {
   }
 
   private cleanName(name: string): string {
-    return name.replace(/[^a-zA-Z0-9_-]/g, "").substring(0, 64);
+    // Avoid Invalid 'messages[1].name': string does not match pattern. Expected a string that matches the pattern '^[a-zA-Z0-9_-]+$'.
+    return name
+      .replace(/\s+/g, "_")
+      .replace(/[^a-zA-Z0-9_-]/g, "")
+      .substring(0, 64);
   }
 
-  private async retrieveRecentInteractionsAsOpenAIMessages(
+  private async retrieveRecentInteractionsAsChatCompletions(
     text: string,
     ioChannel: TIOChannel,
   ): Promise<ChatCompletionMessageParam[]> {
@@ -124,7 +128,7 @@ export class AIOpenAI {
       .filter<ChatCompletionMessageParam>((e): e is ChatCompletionMessageParam => e !== null);
   }
 
-  private async getPersonOrSystemContextAsText(
+  private async getPersonContextAsText(
     ioChannel: TIOChannel,
     person: TPerson,
     role: "user" | "assistant" | "system",
@@ -201,20 +205,6 @@ export class AIOpenAI {
     return `## Memory\n\n` + memoriesUnique.join("\n");
   }
 
-  private interactionsAsString(interactions: TInteraction[]): string {
-    return interactions
-      .map((interaction) => {
-        if (interaction.input && "text" in interaction.input) {
-          return `${interaction.getSourceName()}: ${interaction.input.text}`;
-        }
-        if (interaction.fulfillment?.text) {
-          return `${config().aiName}: ${interaction.fulfillment.text}`;
-        }
-      })
-      .filter((e) => e !== undefined)
-      .join("\n");
-  }
-
   getDefaultContext(): Record<string, string> {
     const current_day = new Date().toLocaleDateString("en-US", {
       month: "long",
@@ -234,7 +224,7 @@ export class AIOpenAI {
   }
 
   async requestToOpenAI(
-    openAIMessages: ChatCompletionMessageParam[],
+    chatCompletionsMessages: ChatCompletionMessageParam[],
     inputParams: InputParams,
     ioChannel: TIOChannel,
     person: TPerson,
@@ -250,10 +240,10 @@ export class AIOpenAI {
 
     const [interactions, headerPromptText, contextText, personOrSystemContextText, memoryContextText] =
       await Promise.all([
-        this.retrieveRecentInteractionsAsOpenAIMessages(text, ioChannel),
+        this.retrieveRecentInteractionsAsChatCompletions(text, ioChannel),
         this.getHeaderPromptAsText(),
         this.getContextAsText(context),
-        this.getPersonOrSystemContextAsText(ioChannel, person, role),
+        this.getPersonContextAsText(ioChannel, person, role),
         this.getMemoryContextAsText(text, ioChannel, person, context),
       ]);
 
@@ -268,7 +258,9 @@ export class AIOpenAI {
     };
 
     // Build messages
-    const messages: ChatCompletionMessageParam[] = [systemMessage, ...interactions, ...openAIMessages].filter(Boolean);
+    const messages: ChatCompletionMessageParam[] = [systemMessage, ...interactions, ...chatCompletionsMessages].filter(
+      Boolean,
+    );
 
     logStacktrace("openai-messages.json", messages);
 
@@ -285,6 +277,7 @@ export class AIOpenAI {
 
     const answer = completion.choices.map((e) => e.message)?.[0];
 
+    // TODO: remove
     if (answer?.function_call) {
       const functionName = answer.function_call.name;
       if (!functionName) {
@@ -298,7 +291,7 @@ export class AIOpenAI {
       if (result.functionResult) {
         return this.requestToOpenAI(
           [
-            ...openAIMessages,
+            ...chatCompletionsMessages,
             {
               role: "function",
               name: functionName,
@@ -349,8 +342,9 @@ export class AIOpenAI {
         return result;
       }
     } catch (error) {
+      logger.error("Failed to get fulfillment for input", error);
       logStacktrace("openai-error.json", error);
-      const errorMessage = error instanceof OpenAI.APIError ? error?.name : String(error);
+      const errorMessage = error instanceof OpenAI.APIError ? `OpenAI: ${error.error.message}` : String(error);
       throw new Error(errorMessage);
     }
 

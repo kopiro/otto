@@ -17,7 +17,7 @@ warmup()
 
     if (!config().centralNode) {
       logger.warn("This script should only be run on the central node");
-      process.exit(1);
+      // process.exit(1);
     }
 
     if (MEMORY_TYPE.includes(MemoryType.declarative)) {

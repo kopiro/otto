@@ -1,5 +1,3 @@
-version: '3.8'
-
 volumes:
   db-data:
   qdrant-data:
@@ -16,7 +14,7 @@ services:
     ports:
       - 9000:9000
     depends_on:
-      - mongodb
+      - mongo
       - qdrant
     entrypoint: ["pnpm", "run", "start:dev"]
     volumes:
@@ -32,7 +30,7 @@ services:
     networks:
       - app-network
 
-  mongodb:
+  mongo:
     image: mongo:latest
     env_file: .env
     ports:
@@ -41,6 +39,10 @@ services:
       - db-data:/data/db
     networks:
       - app-network
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: toor
+      MONGO_INITDB_DATABASE: database
 
   qdrant:
     image: qdrant/qdrant:latest

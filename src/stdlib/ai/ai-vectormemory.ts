@@ -144,6 +144,7 @@ export class AIVectorMemory {
     }
 
     const vectors = await Promise.all(payloads.map(({ text }) => this.createVector(text)));
+    logger.debug(`Reduced payloads into vectors`, payloads);
 
     const operation = await QDrantSDK().upsert(memoryType, {
       wait: true,
@@ -158,7 +159,7 @@ export class AIVectorMemory {
       },
     });
 
-    logger.success(`Saved payloads in collection <${memoryType}>`, operation);
+    logger.success(`Saved vectors in collection <${memoryType}>`, operation);
 
     return operation.status === "completed";
   }
@@ -310,7 +311,7 @@ export class AIVectorMemory {
     await this.deleteCollection(MemoryType.declarative);
     await this.createCollection(MemoryType.declarative);
 
-    logger.pending("Fetching Memory by URL...");
+    logger.pending("Fetching Memory by URL");
 
     const declarativeMemory = await (await fetch(config().openai.declarativeMemoryUrl)).text();
 
