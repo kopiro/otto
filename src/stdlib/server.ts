@@ -40,6 +40,7 @@ routerApi.use(express.json());
 routerApi.use(express.urlencoded({ extended: true }));
 
 routerApi.use(async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  // TODO: Detach personID from Authorization
   const personId = req.query.person || req.body.person;
   if (!personId) throw new Error("Authorization personID is required");
   const person = await Person.findByIdOrThrow(personId);
@@ -106,12 +107,6 @@ routerApi.post("/input", async (req, res) => {
       },
     });
   }
-});
-
-// Inform the Queue to process new elements immediately
-routerApi.post("/signal/queue", async (_, res) => {
-  const item = await IOManager.getInstance().processQueue();
-  res.json({ result: item });
 });
 
 routerApi.post("/database/update", async (req, res) => {
@@ -216,7 +211,7 @@ routerApi.get(`/io_channels/:ioChannelId`, async (req, res) => {
   }
 });
 
-routerApi.post(`/admin/reload_brain`, async (req, res) => {
+routerApi.post(`/admin/brain_reload`, async (req, res) => {
   try {
     const { types } = req.body;
     if (!types) throw new Error("req.body.types is required");
@@ -239,6 +234,12 @@ routerApi.post(`/admin/reload_brain`, async (req, res) => {
       },
     });
   }
+});
+
+// Inform the Queue to process new elements immediately
+routerApi.post("/admin/queue_process", async (_, res) => {
+  const item = await IOManager.getInstance().processQueue();
+  res.json({ result: item });
 });
 
 export function getDomain(): string {
