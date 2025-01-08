@@ -1,5 +1,5 @@
 import { AIManager } from "./ai-manager";
-import { Authorization, Fulfillment, InputParams } from "../../types";
+import { Authorization, Fulfillment, Input } from "../../types";
 import { IOManager, OutputSource } from "../io-manager";
 import { throwIfMissingAuthorizations } from "../../helpers";
 import { IOChannel, TIOChannel } from "../../data/io-channel";
@@ -63,10 +63,11 @@ export class AICommander {
       authorizations: [Authorization.ADMIN],
     },
     {
-      matcher: /^\/memories_get ([^\s]+) (.+)/,
+      matcher: /^\/memories_get ([^\s]+) ([^\s]+) ([^\s]+) (.+)/,
       name: "memories_get",
       executor: this.commandMemoriesGet,
-      description: "/memories_get [memory_type] [text] - Query a vectorial memory with a specific query",
+      description:
+        "/memories_get [memory_type] [limit] [score] [text]  - Query a vectorial memory with a specific query",
       authorizations: [Authorization.COMMAND],
     },
     {
@@ -148,8 +149,13 @@ export class AICommander {
     return { data: JSON.stringify(result, null, 2) };
   }
 
-  private async commandMemoriesGet([, memoryType, text]: RegExpMatchArray): Promise<Fulfillment> {
-    const result = await AIVectorMemory.getInstance().searchByText(text, memoryType as MemoryType, 10);
+  private async commandMemoriesGet([, memoryType, limit, score, text]: RegExpMatchArray): Promise<Fulfillment> {
+    const result = await AIVectorMemory.getInstance().searchByText(
+      text,
+      memoryType as MemoryType,
+      Number(limit),
+      Number(score),
+    );
     return { data: JSON.stringify(result, null, 2) };
   }
 
@@ -219,13 +225,9 @@ export class AICommander {
     return () => this.notFound();
   }
 
-  public async getFulfillmentForInput(
-    params: InputParams,
-    ioChannel: TIOChannel,
-    person: TPerson,
-  ): Promise<Fulfillment> {
-    if ("command" in params) {
-      const executor = this.getCommandExecutor(params.command);
+  public async getFulfillmentForInput(input: Input, ioChannel: TIOChannel, person: TPerson): Promise<Fulfillment> {
+    if ("command" in input) {
+      const executor = this.getCommandExecutor(input.command);
       return executor(ioChannel, person);
     }
     throw new Error("Unable to process request");

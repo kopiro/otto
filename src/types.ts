@@ -24,7 +24,7 @@ export type Fulfillment = {
 };
 
 export type AIRuntimeFunctionArguments<TParams> = {
-  inputParams: InputParams;
+  input: Input;
   ioChannel: TIOChannel;
   parameters: TParams;
 };
@@ -38,11 +38,11 @@ export type IErrorWithData = {
 
 export type InputContext = Record<string, string>;
 
-type InputParamsOption = {
+type InputOptions = {
   role?: "system" | "user" | "assistant";
   context?: InputContext;
   bag?: IOBag;
 };
 
-// text: "Hello" OR command: "Hello" - and then merge with InputParamsOption
-export type InputParams = ({ text: string } & InputParamsOption) | ({ command: string } & InputParamsOption);
+// text: "Hello" OR command: "Hello" - and then merge with Input
+export type Input = ({ text: string } & InputOptions) | ({ command: string } & InputOptions);

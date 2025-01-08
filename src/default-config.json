@@ -54,7 +54,22 @@
     "promptUrl": "",
     "declarativeMemoryUrl": "",
     "conversationModel": "chatgpt-4o-latest",
-    "textReducerModel": "chatgpt-4o-latest"
+    "textReducerModel": "chatgpt-4o-latest",
+    "interactionLimit": 30,
+    "vectorMemory": {
+      "declarative": {
+        "limit": 10,
+        "scoreThreshold": 0.8
+      },
+      "episodic": {
+        "limit": 6,
+        "scoreThreshold": 0.8
+      },
+      "social": {
+        "limit": 2,
+        "scoreThreshold": 0.8
+      }
+    }
   },
   "qdrant": {
     "url": "",

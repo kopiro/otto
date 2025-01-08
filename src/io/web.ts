@@ -1,6 +1,6 @@
 import { EventEmitter } from "events";
 import { IODriverRuntime, IODriverMultiOutput, IODriverEventMap, IODriverId, IOBag } from "../stdlib/io-manager";
-import { Fulfillment, InputParams, Language } from "../types";
+import { Fulfillment, Input, Language } from "../types";
 import { Request, Response } from "express";
 import { routerIO } from "../stdlib/server";
 import bodyParser from "body-parser";
@@ -24,7 +24,7 @@ const REQUEST_TIMEOUT_MS = 10_000;
 type WebConfig = null;
 
 type TRequest = {
-  params: InputParams;
+  params: Input;
   person: string;
   text_to_speech?: boolean | "redirect";
 };
@@ -89,7 +89,7 @@ export class Web implements IODriverRuntime {
         textInput = req.body.params.text;
       }
 
-      const params = { ...req.body.params, text: textInput } as InputParams;
+      const params = { ...req.body.params, text: textInput } as Input;
 
       const timeoutTick = setTimeout(() => {
         if (!res.closed) {

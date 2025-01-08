@@ -1,4 +1,4 @@
-import { Fulfillment, InputParams } from "../types";
+import { Fulfillment, Input } from "../types";
 import {
   DocumentType,
   Ref,
@@ -44,7 +44,7 @@ export class IInteraction {
   public inputId?: string;
 
   @prop({ required: false, type: mongoose.Schema.Types.Mixed })
-  public input?: InputParams;
+  public input?: Input;
 
   @prop({ required: false, type: mongoose.Schema.Types.Mixed })
   public fulfillment?: Fulfillment;
@@ -78,12 +78,17 @@ export class IInteraction {
 
   static async createNew(
     this: ReturnModelType<typeof IInteraction>,
-    data: { input: InputParams } | { fulfillment: Fulfillment },
+    data: { input: Input } | { fulfillment: Fulfillment },
     ioChannel: TIOChannel,
     person: TPerson,
     inputId: string | null,
     source: OutputSource | null,
   ) {
+    if (process.env.NODE_ENV === "development") {
+      logger.warn(`Skipping interaction creation in development mode`);
+      return;
+    }
+
     return Interaction.create({
       ...data,
       managerUid: config().uid,

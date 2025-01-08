@@ -1,5 +1,5 @@
 import config from "../config";
-import { Authorization, Fulfillment, IErrorWithData, InputParams } from "../types";
+import { Authorization, Fulfillment, IErrorWithData, Input } from "../types";
 import { EventEmitter } from "events";
 import { Signale } from "signale";
 import { TIOChannel } from "../data/io-channel";
@@ -39,7 +39,7 @@ export type IODriverSingleOutput = [string, any];
 export type IODriverMultiOutput = IODriverSingleOutput[];
 
 export type IODriverEventMap = {
-  input: (params: InputParams, ioChannel: TIOChannel, person: TPerson, bag: IOBag) => void;
+  input: (input: Input, ioChannel: TIOChannel, person: TPerson, bag: IOBag) => void;
   error: (message: string, ioChannel: TIOChannel, person: TPerson) => void;
   output: (fulfillment: Fulfillment, ioChannel: TIOChannel, person: TPerson, bag: IOBag) => void;
   recognizing: () => void;
@@ -151,7 +151,7 @@ export class IOManager {
   }
 
   async scheduleInQueue(
-    data: { input: InputParams } | { fulfillment: Fulfillment },
+    data: { input: Input } | { fulfillment: Fulfillment },
     ioChannel: TIOChannel,
     person: TPerson,
     bag: IOBag,
@@ -270,7 +270,7 @@ export class IOManager {
   }
 
   private async onDriverInput(
-    params: InputParams,
+    input: Input,
     ioChannel: TIOChannel,
     person: TPerson,
     bag: IOBag,
@@ -286,12 +286,12 @@ export class IOManager {
 
       return Promise.all(
         ioChannel.mirrorInputToFulfillmentTo.map((e) => {
-          return this.output(params as Fulfillment, e, person, bag, null, OutputSource.mirror);
+          return this.output(input as Fulfillment, e, person, bag, null, OutputSource.mirror);
         }),
       );
     }
 
-    return this.input(params, ioChannel, person, bag);
+    return this.input(input, ioChannel, person, bag);
   }
 
   private onDriverError(message: string, ioChannel: TIOChannel, person: TPerson) {
@@ -366,25 +366,20 @@ export class IOManager {
   /**
    * Process a fulfillment to a ioChannel
    */
-  async input(
-    inputParams: InputParams,
-    ioChannel: TIOChannel,
-    person: TPerson,
-    bag: IOBag | null,
-  ): Promise<OutputResult> {
+  async input(input: Input, ioChannel: TIOChannel, person: TPerson, bag: IOBag | null): Promise<OutputResult> {
     if (!this.canHandleIOChannelInThisNode(ioChannel)) {
-      return this.scheduleInQueue({ input: inputParams }, ioChannel, person, bag);
+      return this.scheduleInQueue({ input }, ioChannel, person, bag);
     }
 
     const inputId = randomUUID();
 
-    logger.debug("Input:", { inputId, inputParams, ioChannelId: ioChannel?.id, personId: person.id });
+    logger.debug("Input:", { inputId, input, ioChannelId: ioChannel?.id, personId: person.id });
 
     // TODO: support multiple params
-    if ("text" in inputParams) {
+    if ("text" in input) {
       Interaction.createNew(
         {
-          input: inputParams,
+          input,
         },
         ioChannel,
         person,
@@ -396,14 +391,15 @@ export class IOManager {
     let fulfillment: Fulfillment | null = null;
     try {
       throwIfMissingAuthorizations(person.authorizations, [Authorization.MESSAGE]);
-      fulfillment = await AIManager.getInstance().getFullfilmentForInput(inputParams, ioChannel, person);
+      fulfillment = await AIManager.getInstance().getFullfilmentForInput(input, ioChannel, person);
     } catch (err) {
       if (err instanceof AuthorizationError) {
         report({
           message: `Person <b>${person.name}</b> (<code>${person.id}</code>) on channel <code>${ioChannel.id}</code> is trying to perform an action without the following authorization: <code>${err.requiredAuth}</code>`,
-          data: JSON.stringify({ inputParams }),
+          data: JSON.stringify({ input }),
         });
       }
+      logger.error("Error getting fulfillment", err);
       fulfillment = { error: err as IErrorWithData };
     }
 

@@ -14,9 +14,6 @@ const logger = new Signale({
   scope: TAG,
 });
 
-const PER_IOCHANNEL_REDUCED_MAX_CHARS = 100;
-const PER_DATECHUNK_REDUCED_MAX_CHARS = 300;
-
 export enum MemoryType {
   "episodic" = "episodic",
   "declarative" = "declarative",
@@ -106,20 +103,38 @@ export class AIVectorMemory {
     return data[0].embedding;
   }
 
-  async searchByText(text: string, memoryType: MemoryType, limit: number): Promise<string[]> {
+  async searchByText(text: string, memoryType: MemoryType, limit: number, scoreThreshold: number): Promise<string[]> {
     const vector = await this.createVector(text);
-    return this.searchByVector(vector, memoryType, limit);
+    return this.searchByVector(vector, memoryType, limit, scoreThreshold);
   }
 
-  async searchByVector(vector: number[], memoryType: MemoryType, limit: number): Promise<string[]> {
+  async searchByVector(
+    vector: number[],
+    memoryType: MemoryType,
+    limit: number,
+    scoreThreshold: number,
+  ): Promise<string[]> {
     const data = await QDrantSDK().search(memoryType, {
-      vector: vector,
+      score_threshold: scoreThreshold,
+      vector,
       with_payload: true,
       with_vector: false,
       limit,
     });
 
     return data.map((e) => (e.payload as QdrantPayload).text as string);
+  }
+
+  async searchByVectors(
+    vector: number[][],
+    memoryType: MemoryType,
+    limit: number,
+    scoreThreshold: number,
+  ): Promise<string[]> {
+    const data = await Promise.all(vector.map((v) => this.searchByVector(v, memoryType, limit, scoreThreshold))).then(
+      (results) => results.flat(),
+    );
+    return Array.from(new Set(data));
   }
 
   async listVectors(memoryType: MemoryType) {
@@ -193,6 +208,9 @@ export class AIVectorMemory {
   private async reduceInteractionsForDateChunk(dateChunk: string, gInteractions: MapIOChannelToInteractions) {
     logger.info(`Reducing interactions for date: ${dateChunk}`);
 
+    // Welcome back! If you change  the text, you may want to re-run the memory builder
+    // MEMORY_TYPE=episodic REBUILD_MEMORY=true npm run ai:memory
+
     const reducedInteractionsPerIOChannelText = [];
     const interactionIds = [];
 
@@ -208,7 +226,7 @@ export class AIVectorMemory {
           const time = interaction.createdAt.toLocaleTimeString();
           const sourceName = interaction.getSourceName();
 
-          if (interaction.fulfillment?.text) {
+          if (interaction.fulfillment && "text" in interaction.fulfillment) {
             conversation.push(`- ${sourceName} (${time}): ${interaction.fulfillment.text}`);
           }
           if (interaction.input && "text" in interaction.input) {
@@ -217,12 +235,10 @@ export class AIVectorMemory {
         }
 
         if (conversation.length) {
-          // Welcome back! If you change  the text, you may want to re-run the memory builder
-          // MEMORY_TYPE=episodic REBUILD_MEMORY=true npm run ai:memory
           const reducerPromptForIOChannel =
             `The following is a conversation happened on ${dateChunk} - ${ioChannel.getDriverName()}.\n` +
             `Please reduce them to a single sentence in third person.\n` +
-            `Strictly keep the output short, maximum ${PER_IOCHANNEL_REDUCED_MAX_CHARS} characters.\n` +
+            `Strictly keep the output as short as possible, only keeping relevant informations.\n` +
             `Include the names, the date and the title of the conversation.` +
             `Example: On February 25th, 2019, ${
               config().aiName

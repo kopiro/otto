@@ -1,11 +1,11 @@
-import { Fulfillment, InputContext, InputParams } from "../../types";
+import { Fulfillment, InputContext, Input } from "../../types";
 import config from "../../config";
 import { Signale } from "signale";
 import { logStacktrace, tryJsonParse } from "../../helpers";
 import { OpenAIApiSDK } from "../../lib/openai";
 import { AIVectorMemory, MemoryType } from "./ai-vectormemory";
 import { AIFunction } from "./ai-function";
-import { Interaction, TInteraction } from "../../data/interaction";
+import { Interaction } from "../../data/interaction";
 import { TIOChannel } from "../../data/io-channel";
 import { TPerson } from "../../data/person";
 import { isDocumentArray } from "@typegoose/typegoose";
@@ -18,18 +18,27 @@ type Config = {
   promptUrl: string;
   conversationModel: string;
   textReducerModel: string;
+  interactionLimit: number;
+  vectorMemory: {
+    declarative: {
+      limit: number;
+      scoreThreshold: number;
+    };
+    episodic: {
+      limit: number;
+      scoreThreshold: number;
+    };
+    social: {
+      limit: number;
+      scoreThreshold: number;
+    };
+  };
 };
 
 const TAG = "OpenAI";
 const logger = new Signale({
   scope: TAG,
 });
-
-const INTERACTION_LIMIT = 20;
-
-const DECLARATIVE_MEMORY_LIMIT = 10;
-const EPISODIC_MEMORY_LIMIT = 5;
-const SOCIAL_MEMORY_LIMIT = 2;
 
 export class AIOpenAI {
   private prompt!: string;
@@ -83,7 +92,7 @@ export class AIOpenAI {
           reducedTo: { $exists: false },
         },
         {
-          "input.text": { $ne: null },
+          "fulfillment.text": { $ne: null },
           person: person.id,
           reducedTo: { $exists: false },
         },
@@ -101,7 +110,7 @@ export class AIOpenAI {
           $gt: new Date(Date.now() - 1000 * 60 * 60),
         },
       })
-      .limit(INTERACTION_LIMIT);
+      .limit(this.conf.interactionLimit);
 
     return interactions
       .reverse()
@@ -182,31 +191,36 @@ export class AIOpenAI {
       .map(([key, value]) => `${key}: ${value}`)
       .join("\n");
 
-    const [vectorForText, vectorForConversation, vectorForContext] = await Promise.all([
+    const vectors = await Promise.all([
       AIVectorMemoryInstance.createVector(text),
       AIVectorMemoryInstance.createVector(ioChannel.getDriverName() + " " + convDescription),
       AIVectorMemoryInstance.createVector(contextAsString),
     ]);
 
-    // Move this to batch
     const memories = await Promise.all([
-      AIVectorMemoryInstance.searchByVector(vectorForText, MemoryType.declarative, DECLARATIVE_MEMORY_LIMIT),
-      AIVectorMemoryInstance.searchByVector(vectorForText, MemoryType.episodic, EPISODIC_MEMORY_LIMIT),
-      AIVectorMemoryInstance.searchByVector(vectorForText, MemoryType.social, SOCIAL_MEMORY_LIMIT),
-      AIVectorMemoryInstance.searchByVector(vectorForConversation, MemoryType.declarative, DECLARATIVE_MEMORY_LIMIT),
-      AIVectorMemoryInstance.searchByVector(vectorForConversation, MemoryType.episodic, EPISODIC_MEMORY_LIMIT),
-      AIVectorMemoryInstance.searchByVector(vectorForConversation, MemoryType.social, SOCIAL_MEMORY_LIMIT),
-      AIVectorMemoryInstance.searchByVector(vectorForContext, MemoryType.declarative, DECLARATIVE_MEMORY_LIMIT),
-      AIVectorMemoryInstance.searchByVector(vectorForContext, MemoryType.episodic, EPISODIC_MEMORY_LIMIT),
-      AIVectorMemoryInstance.searchByVector(vectorForContext, MemoryType.social, SOCIAL_MEMORY_LIMIT),
+      AIVectorMemoryInstance.searchByVectors(
+        vectors,
+        MemoryType.declarative,
+        this.conf.vectorMemory.declarative.limit,
+        this.conf.vectorMemory.declarative.scoreThreshold,
+      ),
+      AIVectorMemoryInstance.searchByVectors(
+        vectors,
+        MemoryType.episodic,
+        this.conf.vectorMemory.episodic.limit,
+        this.conf.vectorMemory.episodic.scoreThreshold,
+      ),
+      AIVectorMemoryInstance.searchByVectors(
+        vectors,
+        MemoryType.social,
+        this.conf.vectorMemory.social.limit,
+        this.conf.vectorMemory.social.scoreThreshold,
+      ),
     ]);
-
-    // Remove duplicates
-    const memoriesUnique = [...new Set(memories.flat())];
 
     // logger.debug("Retrieved memories", memoriesUnique);
 
-    return `## Memory\n\n` + memoriesUnique.join("\n");
+    return `## Memory\n\n` + memories.flat().join("\n");
   }
 
   getDefaultContext(): Record<string, string> {
@@ -229,7 +243,7 @@ export class AIOpenAI {
 
   async requestToOpenAI(
     messagesChatCompletions: ChatCompletionMessageParam[],
-    inputParams: InputParams,
+    input: Input,
     ioChannel: TIOChannel,
     person: TPerson,
     text: string,
@@ -239,7 +253,7 @@ export class AIOpenAI {
 
     const context = {
       ...this.getDefaultContext(),
-      ...inputParams.context,
+      ...input.context,
     };
 
     const [
@@ -297,7 +311,7 @@ export class AIOpenAI {
 
       const functionParams = tryJsonParse<any>(answer.function_call.arguments, {});
 
-      const result = await AIFunction.getInstance().call(functionName, functionParams, inputParams, ioChannel, person);
+      const result = await AIFunction.getInstance().call(functionName, functionParams, input, ioChannel, person);
 
       if (result.functionResult) {
         return this.requestToOpenAI(
@@ -309,7 +323,7 @@ export class AIOpenAI {
               content: result.functionResult,
             },
           ],
-          inputParams,
+          input,
           ioChannel,
           person,
           text,
@@ -327,27 +341,27 @@ export class AIOpenAI {
     throw new Error("Invalid response: " + JSON.stringify(answer));
   }
 
-  async getFulfillmentForInput(params: InputParams, ioChannel: TIOChannel, person: TPerson): Promise<Fulfillment> {
+  async getFulfillmentForInput(input: Input, ioChannel: TIOChannel, person: TPerson): Promise<Fulfillment> {
     try {
-      if ("text" in params) {
-        const role = params.role || "user";
+      if ("text" in input) {
+        const role = input.role || "user";
         const result = await this.requestToOpenAI(
           [
             role === "user"
               ? {
-                  content: params.text,
+                  content: input.text,
                   name: this.cleanName(person.name),
                   role: role,
                 }
               : {
-                  content: params.text,
+                  content: input.text,
                   role: role,
                 },
           ],
-          params,
+          input,
           ioChannel,
           person,
-          params.text,
+          input.text,
           role,
         );
         return result;

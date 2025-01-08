@@ -1,4 +1,4 @@
-import { Fulfillment, AIRuntimeFunction, InputParams, Authorization } from "../../types";
+import { Fulfillment, AIRuntimeFunction, Input, Authorization } from "../../types";
 import { functionsDir } from "../../paths";
 import { readFileSync, readdirSync } from "fs";
 import path from "path";
@@ -61,7 +61,7 @@ export class AIFunction {
   async call(
     functionName: string,
     functionParameters: object,
-    inputParams: InputParams,
+    input: Input,
     ioChannel: TIOChannel,
     person: TPerson,
   ): Promise<Fulfillment> {
@@ -79,7 +79,7 @@ export class AIFunction {
     throwIfMissingAuthorizations(person.authorizations, pkgRuntime.authorizations || []);
 
     const result = await pkgRuntime.default({
-      inputParams,
+      input,
       parameters: functionParameters,
       ioChannel,
     });

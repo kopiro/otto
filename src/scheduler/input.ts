@@ -1,7 +1,7 @@
 import { isDocument } from "@typegoose/typegoose";
 import { IOManager } from "../stdlib/io-manager";
 import { SchedulerRuntimeFunction } from "../stdlib/scheduler";
-import { InputParams } from "../types";
+import { Input } from "../types";
 
 export default class InputScheduler extends SchedulerRuntimeFunction {
   async run() {
@@ -14,6 +14,6 @@ export default class InputScheduler extends SchedulerRuntimeFunction {
     }
 
     const { programArgs, ioChannel, person } = this.job;
-    return IOManager.getInstance().input(programArgs as InputParams, ioChannel, person, null);
+    return IOManager.getInstance().input(programArgs as Input, ioChannel, person, null);
   }
 }

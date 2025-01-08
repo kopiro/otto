@@ -409,12 +409,19 @@ export class Telegram implements IODriverRuntime {
     try {
       if (f.error) {
         this.bot.sendChatAction(chatId, "typing");
-        const r = await this.sendMessage(
-          chatId,
-          (f.error.message || "Unknown error") + (f.error.data ? `\n\n<pre>${f.error.data}</pre>` : ""),
-          botOpt,
-        );
-        results.push(["message", r]);
+
+        const includeError = person.authorizations?.includes(Authorization.ADMIN);
+        if (includeError) {
+          const r = await this.sendMessage(
+            chatId,
+            (f.error.message || "Unknown error") + (f.error ? `\n\n<pre>${JSON.stringify(f.error)}</pre>` : ""),
+            botOpt,
+          );
+          results.push(["message", r]);
+        } else {
+          const r = await this.sendMessage(chatId, "Sorry, an error occurred. Please try again later.", botOpt);
+          results.push(["message", r]);
+        }
       }
     } catch (err) {
       logger.error(err);
