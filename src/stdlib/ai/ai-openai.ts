@@ -314,59 +314,68 @@ export class AIOpenAI {
       ...messagesChatCompletions,
     ].filter(Boolean);
 
-    const completion = await OpenAIApiSDK().chat.completions.create({
-      model: this.conf.conversationModel,
-      user: person.id,
-      n: 1,
-      messages,
-      // functions: AIFunction.getInstance().getFunctionDefinitions(),
-      // function_call: "auto",
-    });
+    try {
+      const completion = await OpenAIApiSDK().chat.completions.create({
+        model: this.conf.conversationModel,
+        user: person.id,
+        n: 1,
+        messages,
+        // functions: AIFunction.getInstance().getFunctionDefinitions(),
+        // function_call: "auto",
+      });
 
-    const answer = completion.choices.map((e) => e.message)?.[0];
+      const answer = completion.choices.map((e) => e.message)?.[0];
 
-    logStacktrace(`${fileName}.json`, {
-      messages,
-      answer,
-    });
+      logStacktrace(`${fileName}.json`, {
+        messages,
+        answer,
+      });
 
-    // TODO: remove
-    if (answer?.function_call) {
-      const functionName = answer.function_call.name;
-      if (!functionName) {
-        throw new Error("Invalid function name: " + JSON.stringify(answer));
+      // TODO: remove
+      if (answer?.function_call) {
+        const functionName = answer.function_call.name;
+        if (!functionName) {
+          throw new Error("Invalid function name: " + JSON.stringify(answer));
+        }
+
+        const functionParams = tryJsonParse<any>(answer.function_call.arguments, {});
+
+        const result = await AIFunction.getInstance().call(functionName, functionParams, input, ioChannel, person);
+
+        if (result.functionResult) {
+          return this.completeChat(
+            [
+              ...messagesChatCompletions,
+              {
+                role: "function",
+                name: functionName,
+                content: result.functionResult,
+              },
+            ],
+            input,
+            ioChannel,
+            person,
+            text,
+            role,
+          );
+        }
+
+        return result;
       }
 
-      const functionParams = tryJsonParse<any>(answer.function_call.arguments, {});
-
-      const result = await AIFunction.getInstance().call(functionName, functionParams, input, ioChannel, person);
-
-      if (result.functionResult) {
-        return this.completeChat(
-          [
-            ...messagesChatCompletions,
-            {
-              role: "function",
-              name: functionName,
-              content: result.functionResult,
-            },
-          ],
-          input,
-          ioChannel,
-          person,
-          text,
-          role,
-        );
+      if (answer?.content) {
+        return { text: answer.content };
       }
 
-      return result;
+      throw new Error("Invalid response: " + JSON.stringify(answer));
+    } catch (error) {
+      logger.error("Failed to complete chat", error);
+      logStacktrace(`${fileName}.json`, {
+        messages,
+        error,
+      });
+      throw error;
     }
-
-    if (answer?.content) {
-      return { text: answer.content };
-    }
-
-    throw new Error("Invalid response: " + JSON.stringify(answer));
   }
 
   async getFulfillmentForInput(input: Input, ioChannel: TIOChannel, person: TPerson): Promise<Fulfillment> {
@@ -396,7 +405,6 @@ export class AIOpenAI {
       }
     } catch (error) {
       logger.error("Failed to get fulfillment for input", error);
-      logStacktrace("openai-error.json", error);
       const errorMessage = error instanceof OpenAI.APIError ? `OpenAI: ${error.error.message}` : String(error);
       throw new Error(errorMessage);
     }
