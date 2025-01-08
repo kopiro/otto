@@ -379,9 +379,12 @@ export class AIOpenAI {
   }
 
   async getFulfillmentForInput(input: Input, ioChannel: TIOChannel, person: TPerson): Promise<Fulfillment> {
+    const fileName = `openai_${ioChannel.id}_${new Date().toISOString()}_getfulfillmentforinput`;
+
     try {
       if ("text" in input) {
         const role = input.role || "user";
+
         const result = await this.completeChat(
           [
             role === "user"
@@ -401,14 +404,23 @@ export class AIOpenAI {
           input.text,
           role,
         );
+
+        logStacktrace(`${fileName}.json`, {
+          input,
+          result,
+        });
+
         return result;
       }
+
+      throw new Error("Unable to process request");
     } catch (error) {
       logger.error("Failed to get fulfillment for input", error);
-      const errorMessage = error instanceof OpenAI.APIError ? `OpenAI: ${error.error.message}` : String(error);
-      throw new Error(errorMessage);
+      logStacktrace(`${fileName}.json`, {
+        input,
+        error,
+      });
+      throw error;
     }
-
-    throw new Error("Unable to process request");
   }
 }
