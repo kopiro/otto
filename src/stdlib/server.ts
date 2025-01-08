@@ -13,6 +13,8 @@ import { Translator } from "./translator";
 import { Authorization, Gender, Language } from "../types";
 import { AIVectorMemory, MemoryType } from "./ai/ai-vectormemory";
 import { throwIfMissingAuthorizations } from "../helpers";
+import { Database } from "./database";
+import { AIOpenAI } from "./ai/ai-openai";
 
 const TAG = "Server";
 const logger = new Signale({
@@ -37,17 +39,21 @@ export const routerApi = express.Router();
 routerApi.use(express.json());
 routerApi.use(express.urlencoded({ extended: true }));
 
+routerApi.use(async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  const personId = req.query.person || req.body.person;
+  if (!personId) throw new Error("Authorization personID is required");
+  const person = await Person.findByIdOrThrow(personId);
+  throwIfMissingAuthorizations(person.authorizations, [Authorization.API]);
+  next();
+});
+
 // API to get an audio
 // GET /api/speech?text=Hello
 routerApi.get("/speech", async (req: express.Request, res: express.Response) => {
   try {
-    if (!req.query.text) throw new Error("No text provided");
-
-    if (!req.query.person) throw new Error("PersonID is required");
-    await Person.findByIdOrThrow(req.query.person.toString());
-
-    const text = req.query.text.toString();
-    const audioFileMixed = await getVoiceFileFromText(text);
+    const { text } = req.query;
+    if (!text) throw new Error("req.query.text is required");
+    const audioFileMixed = await getVoiceFileFromText(text.toString());
     res.redirect(audioFileMixed.getServerURL());
   } catch (err) {
     return res.status(400).json({
@@ -60,17 +66,16 @@ routerApi.get("/speech", async (req: express.Request, res: express.Response) => 
 // GET /api/user-speech?text=Hello&gender=female
 routerApi.get("/user-speech", async (req: express.Request, res: express.Response) => {
   try {
-    if (!req.query.text) throw new Error("No text provided");
-    if (!req.query.gender) throw new Error("No gender provided");
+    const { text, gender } = req.query;
+    if (!text) throw new Error("req.query.text is required");
+    if (!gender) throw new Error("req.query.gender is required");
 
-    if (!req.query.person) throw new Error("PersonID is required");
-    await Person.findByIdOrThrow(req.query.person.toString());
-
-    const text = req.query.text.toString();
-    const gender = req.query.gender.toString();
-
-    const language = await Translator.getInstance().detectLanguage(text);
-    const audioFileMixed = await TextToSpeech.getInstance().getAudioFile(text, language as Language, gender as Gender);
+    const language = await Translator.getInstance().detectLanguage(text.toString());
+    const audioFileMixed = await TextToSpeech.getInstance().getAudioFile(
+      text.toString(),
+      language as Language,
+      gender as Gender,
+    );
     res.redirect(audioFileMixed.getServerURL());
   } catch (err) {
     return res.status(400).json({
@@ -83,15 +88,16 @@ routerApi.get("/user-speech", async (req: express.Request, res: express.Response
 // POST /api/input { "io_channel": "ID", "person": "ID", "params": { "text": "Hello" } }
 routerApi.post("/input", async (req, res) => {
   try {
-    if (!req.body.io_channel) throw new Error("req.body.io_channel is required");
-    if (!req.body.params) throw new Error("req.body.params is required");
-    if (!req.body.person) throw new Error("req.body.person is required");
+    const { io_channel: io_channel_id, params, person: person_id } = req.body;
+    if (!io_channel_id) throw new Error("req.body.io_channel is required");
+    if (!params) throw new Error("req.body.params is required");
+    if (!person_id) throw new Error("req.body.person is required");
 
     const ioChannel = await IOChannel.findByIdOrThrow(req.body.io_channel);
     const person = await Person.findByIdOrThrow(req.body.person);
 
     const result = await IOManager.getInstance().input(req.body.params, ioChannel, person, null);
-    return res.json({ result });
+    return res.json(result);
   } catch (err) {
     logger.error("/api/input error", err);
     return res.status(400).json({
@@ -105,19 +111,34 @@ routerApi.post("/input", async (req, res) => {
 // Inform the Queue to process new elements immediately
 routerApi.post("/signal/queue", async (_, res) => {
   const item = await IOManager.getInstance().processQueue();
-  res.json({ item });
+  res.json({ result: item });
 });
 
-// Retrieve the DNS status for a ioChannel
-// GET /api/dnd?io_channel=ID
-routerApi.get("/dnd", async (req, res) => {
-  try {
-    if (!req.query.io_channel) throw new Error("req.body.io_channel is required");
+routerApi.post("/database/update", async (req, res) => {
+  if (!req.body.person) throw new Error("req.body.person is required");
+  const person = await Person.findByIdOrThrow(req.body.person.toString());
+  throwIfMissingAuthorizations(person.authorizations, [Authorization.ADMIN]);
 
-    const ioChannel = await IOChannel.findByIdOrThrow(req.query.io_channel.toString());
-    return res.json({ status: Boolean(ioChannel.doNotDisturb) });
+  const { filter, update, table } = req.body;
+  if (!filter) throw new Error("req.body.filter is required");
+  if (!update) throw new Error("req.body.update is required");
+  if (!table) throw new Error("req.body.table is required");
+
+  const result = await Database.getInstance()
+    .getMongoose()
+    .connection.db.collection(table)
+    .updateMany(filter, { $set: update });
+
+  return res.json({ result });
+});
+
+routerApi.get(`/memories`, async (req, res) => {
+  try {
+    const { type } = req.query;
+    if (!type) throw new Error("req.query.type is required");
+    const vectors = await AIVectorMemory.getInstance().listVectors(type.toString() as MemoryType);
+    res.json({ data: vectors });
   } catch (err) {
-    logger.error("/api/dnd error", err);
     return res.status(400).json({
       error: {
         message: (err as Error)?.message,
@@ -126,39 +147,91 @@ routerApi.get("/dnd", async (req, res) => {
   }
 });
 
-// Set the DNS status for a ioChannel
-// POST /api/dnd { "io_channel": "ID", "status": true }
-routerApi.post("/dnd", async (req, res) => {
+routerApi.get(`/memories/search`, async (req, res) => {
   try {
-    if (!req.body.io_channel) throw new Error("req.body.io_channel is required");
-    if (!("status" in req.body)) throw new Error("req.body.status is required");
+    const { type, limit, score, text } = req.query;
+    if (!type) throw new Error("req.query.type is required");
+    if (!limit) throw new Error("req.query.limit is required");
+    if (!score) throw new Error("req.query.score is required");
+    if (!text) throw new Error("req.query.text is required");
 
-    const ioChannel = await IOChannel.findByIdOrThrow(req.body.io_channel);
-    ioChannel.doNotDisturb = Boolean(req.body.status);
-    await ioChannel.save();
-
-    return res.json({ status: Boolean(ioChannel.doNotDisturb) });
-  } catch (err) {
-    logger.error("/api/dnd error", err);
-    return res.status(400).json({
-      error: {
-        message: (err as Error)?.message,
-      },
-    });
-  }
-});
-
-routerApi.get(`/memory/:memoryType`, async (req, res) => {
-  try {
-    if (!req.query.person) throw new Error("PersonID is required");
-    const person = await Person.findByIdOrThrow(req.query.person.toString());
-
-    throwIfMissingAuthorizations(person.authorizations, [Authorization.ADMIN]);
-
-    const memoryType = req.params.memoryType.toString();
-    const vectors = await AIVectorMemory.getInstance().listVectors(memoryType as MemoryType);
+    const vectors = await AIVectorMemory.getInstance().searchByText(
+      text.toString(),
+      type as MemoryType,
+      Number(limit),
+      Number(score),
+    );
 
     res.json({ data: vectors });
+  } catch (err) {
+    return res.status(400).json({
+      error: {
+        message: (err as Error)?.message,
+      },
+    });
+  }
+});
+
+routerApi.get(`/persons/:personId`, async (req, res) => {
+  try {
+    const { personId } = req.params;
+    const person = await Person.findByIdOrThrow(personId);
+    res.json(person);
+  } catch (err) {
+    return res.status(400).json({
+      error: {
+        message: (err as Error)?.message,
+      },
+    });
+  }
+});
+
+routerApi.post(`/person/:personId/approve`, async (req, res) => {
+  try {
+    const { personId } = req.params;
+    const person = await Person.findByIdOrThrow(personId);
+    person.authorizations!.push(Authorization.MESSAGE);
+    await person.save();
+    res.json(person);
+  } catch (err) {
+    return res.status(400).json({
+      error: {
+        message: (err as Error)?.message,
+      },
+    });
+  }
+});
+
+routerApi.get(`/io_channels/:ioChannelId`, async (req, res) => {
+  try {
+    const { ioChannelId } = req.params;
+    const ioChannel = await IOChannel.findByIdOrThrow(ioChannelId);
+    res.json(ioChannel);
+  } catch (err) {
+    return res.status(400).json({
+      error: {
+        message: (err as Error)?.message,
+      },
+    });
+  }
+});
+
+routerApi.post(`/admin/reload_brain`, async (req, res) => {
+  try {
+    const { types } = req.body;
+    if (!types) throw new Error("req.body.types is required");
+
+    const result: Record<string, any> = {};
+    if (types.includes("prompt")) {
+      result.prompt = Boolean(await AIOpenAI.getInstance().getHeaderPromptAsText(true));
+    }
+    if (types.includes("declarative")) {
+      result.declarative = await AIVectorMemory.getInstance().buildDeclarativeMemory();
+    }
+    if (types.includes("social")) {
+      result.social = await AIVectorMemory.getInstance().buildSocialMemory();
+    }
+    res.json({ result });
   } catch (err) {
     return res.status(400).json({
       error: {

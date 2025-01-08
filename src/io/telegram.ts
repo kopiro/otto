@@ -10,7 +10,6 @@ import bodyParser from "body-parser";
 import { SpeechRecognizer } from "../stdlib/speech-recognizer";
 import { Signale } from "signale";
 import { getAINameRegexp } from "../helpers";
-import { AICommander } from "../stdlib/ai/ai-commander";
 import { IOChannel, TIOChannel } from "../data/io-channel";
 import fetch from "node-fetch";
 import { writeFile } from "fs/promises";
@@ -115,10 +114,6 @@ export class Telegram implements IODriverRuntime {
     return msg.chat.type === "group" || msg.chat.type === "supergroup";
   }
 
-  private getIsCommand(msg: TelegramBot.Message) {
-    return msg.text?.startsWith("/");
-  }
-
   private getIsReply(msg: TelegramBot.Message) {
     return msg.reply_to_message?.from?.id === this.botMe?.id;
   }
@@ -180,21 +175,6 @@ export class Telegram implements IODriverRuntime {
     const isGroup = this.getIsGroup(e);
     const isMention = this.getIsMention(e.text || "");
     const isReply = this.getIsReply(e);
-    const isCommand = this.getIsCommand(e);
-
-    // Process a command
-    if (isCommand && e.text) {
-      this.emitter.emit(
-        "input",
-        {
-          command: e.text,
-        },
-        ioChannel,
-        person,
-        bag,
-      );
-      return true;
-    }
 
     // Process a Text object
     if (e.text) {
@@ -288,13 +268,6 @@ export class Telegram implements IODriverRuntime {
     this.bot.on("webhook_error", (err) => {
       logger.error("Webhook Error", err);
     });
-
-    // Add list of commands
-    this.bot.setMyCommands(
-      AICommander.getInstance()
-        .commandMapping.filter((c) => !c.authorizations.includes(Authorization.ADMIN))
-        .map((c) => ({ command: c.name, description: c.description })),
-    );
 
     // We could attach the webhook to the Router API or via polling
     if (this.conf.options.polling === false) {

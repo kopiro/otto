@@ -9,6 +9,7 @@ export enum Authorization {
   CAMERA = "camera",
   COMMAND = "command",
   MESSAGE = "message",
+  API = "api",
 }
 
 export type Fulfillment = {
@@ -45,4 +46,4 @@ type InputOptions = {
 };
 
 // text: "Hello" OR command: "Hello" - and then merge with Input
-export type Input = ({ text: string } & InputOptions) | ({ command: string } & InputOptions);
+export type Input = { text: string } & InputOptions;
