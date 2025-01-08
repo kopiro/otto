@@ -31,8 +31,8 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json .eslintrc .pr
 RUN pnpm install
 
 # Install cron
-RUN echo "0 3 * * * cd /app && pnpm run ai:social" >> /var/spool/cron/crontabs/root
-RUN echo "5 3 * * * cd /app && pnpm run ai:sleep" >> /var/spool/cron/crontabs/root
+RUN echo "0 3 * * * cd /app && pnpm run ai:social 2>&1 > /app/logs/ai_social_cron.log" >> /var/spool/cron/crontabs/root
+RUN echo "5 3 * * * cd /app && pnpm run ai:sleep 2>&1 > /app/logs/ai_sleep_cron.log" >> /var/spool/cron/crontabs/root
 
 # Copy my code
 COPY ./src ./src

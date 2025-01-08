@@ -54,7 +54,7 @@
     "promptUrl": "",
     "declarativeMemoryUrl": "",
     "conversationModel": "chatgpt-4o-latest",
-    "textReducerModel": "gpt-3.5-turbo"
+    "textReducerModel": "chatgpt-4o-latest"
   },
   "qdrant": {
     "url": "",

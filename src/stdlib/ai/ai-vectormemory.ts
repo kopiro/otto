@@ -245,8 +245,7 @@ export class AIVectorMemory {
     if (reducedInteractionsPerIOChannelText.length) {
       const reducerPromptForDay =
         `Compress the following sentences to a single sentence in third person.\n` +
-        `Strictly keep the output short, maximum ${PER_DATECHUNK_REDUCED_MAX_CHARS} characters.\n\n` +
-        `If the informations don't fit in the limit, discard some informations.\n` +
+        `Strictly keep the output as short as possible, only keeping relevant informations.\n\n` +
         `## Sentences:\n` +
         reducedInteractionsPerIOChannelText.join("\n");
 
