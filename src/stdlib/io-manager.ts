@@ -1,5 +1,5 @@
 import config from "../config";
-import { Authorization, Fulfillment, IErrorWithData, Input } from "../types";
+import { Authorization, Output, IErrorWithData, Input } from "../types";
 import { EventEmitter } from "events";
 import { Signale } from "signale";
 import { TIOChannel } from "../data/io-channel";
@@ -41,7 +41,7 @@ export type IODriverMultiOutput = IODriverSingleOutput[];
 export type IODriverEventMap = {
   input: (input: Input, ioChannel: TIOChannel, person: TPerson, bag: IOBag) => void;
   error: (message: string, ioChannel: TIOChannel, person: TPerson) => void;
-  output: (fulfillment: Fulfillment, ioChannel: TIOChannel, person: TPerson, bag: IOBag) => void;
+  output: (output: Output, ioChannel: TIOChannel, person: TPerson, bag: IOBag) => void;
   recognizing: () => void;
   woken: () => void;
   wake: () => void;
@@ -53,12 +53,7 @@ export interface IODriverRuntime {
   driverId: IODriverId;
   emitter: TypedEmitter<IODriverEventMap>;
   start: () => Promise<void>;
-  output: (
-    fulfillment: Fulfillment,
-    ioChannel: TIOChannel,
-    person: TPerson,
-    bag: IOBag,
-  ) => Promise<IODriverMultiOutput>;
+  output: (output: Output, ioChannel: TIOChannel, person: TPerson, bag: IOBag) => Promise<IODriverMultiOutput>;
 }
 
 export type OutputResult = {
@@ -151,7 +146,7 @@ export class IOManager {
   }
 
   async scheduleInQueue(
-    data: { input: Input } | { fulfillment: Fulfillment },
+    data: { input: Input } | { output: Output },
     ioChannel: TIOChannel,
     person: TPerson,
     bag: IOBag,
@@ -168,31 +163,28 @@ export class IOManager {
     };
   }
 
-  async maybeRedirectFulfillment(
-    fulfillment: Fulfillment,
+  async maybeRedirectOutput(
+    output: Output,
     ioChannel: TIOChannel,
     person: TPerson,
     bag: IOBag | null,
     inputId: string | null,
     source: OutputSource,
   ) {
-    // Redirecting output to another ioChannel, asyncronously
-    await ioChannel.populate("redirectFulfillmentTo");
-
-    if (isDocumentArray(ioChannel.redirectFulfillmentTo) && ioChannel.redirectFulfillmentTo.length > 0) {
+    if (isDocumentArray(ioChannel.redirectOutputToIOChannelIds) && ioChannel.redirectOutputToIOChannelIds.length > 0) {
       logger.info(
-        `The channel ${ioChannel.id} is redirecting the fulfillment to other channels:`,
-        ioChannel.redirectFulfillmentTo.map((s) => s.id),
+        `The channel ${ioChannel.id} is redirecting the output to other channels:`,
+        ioChannel.redirectOutputToIOChannelIds.map((s) => s.id),
       );
 
       await Promise.all(
-        ioChannel.redirectFulfillmentTo.map((e) => {
+        ioChannel.redirectOutputToIOChannelIds.map((e) => {
           if (e.id === ioChannel.id) {
             logger.warn("Redirecting to same ioChannel, skipping", e);
             return;
           }
 
-          return this.output(fulfillment, e, person, bag, inputId, source, true);
+          return this.output(output, e, person, bag, inputId, source, true);
         }),
       );
     }
@@ -202,7 +194,7 @@ export class IOManager {
    * Process an input to a specific IO driver based on the ioChannel
    */
   async output(
-    fulfillment: Fulfillment,
+    output: Output,
     ioChannel: TIOChannel,
     person: TPerson,
     bag: IOBag | null,
@@ -211,14 +203,14 @@ export class IOManager {
     wasRedirectedTo = false,
   ): Promise<OutputResult> {
     if (!this.canHandleIOChannelInThisNode(ioChannel)) {
-      return this.scheduleInQueue({ fulfillment }, ioChannel, person, bag);
+      return this.scheduleInQueue({ output }, ioChannel, person, bag);
     }
 
     // TODO: support multiple params
-    if (fulfillment.text && !wasRedirectedTo) {
+    if (output.text && !wasRedirectedTo) {
       Interaction.createNew(
         {
-          fulfillment,
+          output,
         },
         ioChannel,
         person,
@@ -231,7 +223,7 @@ export class IOManager {
     // Only do this when this output is not coming from the IOQueue, otherwise it will be redirected twice
     if (source !== OutputSource.queue) {
       setImmediate(() => {
-        this.maybeRedirectFulfillment(fulfillment, ioChannel, person, bag, inputId, source);
+        this.maybeRedirectOutput(output, ioChannel, person, bag, inputId, source);
       });
     }
 
@@ -248,8 +240,8 @@ export class IOManager {
 
     try {
       // Actually output to the driver
-      driverRuntime.emitter.emit("output", fulfillment, ioChannel, person, bag);
-      const driverOutput = await driverRuntime.output(fulfillment, ioChannel, person, bag);
+      driverRuntime.emitter.emit("output", output, ioChannel, person, bag);
+      const driverOutput = await driverRuntime.output(output, ioChannel, person, bag);
       return { driverOutput };
     } catch (err) {
       logger.error("Driver Output error:", err);
@@ -275,18 +267,19 @@ export class IOManager {
     person: TPerson,
     bag: IOBag,
   ): Promise<OutputResult | OutputResult[]> {
-    await ioChannel.populate("mirrorInputToFulfillmentTo");
-
     // Check if we have repeatTo - if so, just output to all of them
-    if (isDocumentArray(ioChannel.mirrorInputToFulfillmentTo) && ioChannel.mirrorInputToFulfillmentTo.length > 0) {
+    if (
+      isDocumentArray(ioChannel.mirrorInputToOutputToChannelIds) &&
+      ioChannel.mirrorInputToOutputToChannelIds.length > 0
+    ) {
       logger.info(
-        "Using mirrorInputToFulfillment",
-        ioChannel.mirrorInputToFulfillmentTo.map((e) => e.id),
+        "Reflecting input to direct output to channels",
+        ioChannel.mirrorInputToOutputToChannelIds.map((e) => e.id),
       );
 
       return Promise.all(
-        ioChannel.mirrorInputToFulfillmentTo.map((e) => {
-          return this.output(input as Fulfillment, e, person, bag, null, OutputSource.mirror);
+        ioChannel.mirrorInputToOutputToChannelIds.map((e) => {
+          return this.output(input as Output, e, person, bag, null, OutputSource.mirror);
         }),
       );
     }
@@ -354,17 +347,17 @@ export class IOManager {
 
     if (qitem.input) {
       await this.input(qitem.input, qitem.ioChannel, qitem.person, qitem.bag);
-    } else if (qitem.fulfillment) {
-      await this.output(qitem.fulfillment, qitem.ioChannel, qitem.person, qitem.bag, null, OutputSource.queue);
+    } else if (qitem.output) {
+      await this.output(qitem.output, qitem.ioChannel, qitem.person, qitem.bag, null, OutputSource.queue);
     } else {
-      logger.warn("IOQueue item has no input or fulfillment", qitem);
+      logger.warn("IOQueue item has either no input nor output", qitem);
     }
 
     return qitem;
   }
 
   /**
-   * Process a fulfillment to a ioChannel
+   * Input an item to the IOManager
    */
   async input(input: Input, ioChannel: TIOChannel, person: TPerson, bag: IOBag | null): Promise<OutputResult> {
     if (!this.canHandleIOChannelInThisNode(ioChannel)) {
@@ -388,10 +381,10 @@ export class IOManager {
       );
     }
 
-    let fulfillment: Fulfillment | null = null;
+    let output: Output | null = null;
     try {
       throwIfMissingAuthorizations(person.authorizations, [Authorization.MESSAGE]);
-      fulfillment = await AIManager.getInstance().getFullfilmentForInput(input, ioChannel, person);
+      output = await AIManager.getInstance().getFullfilmentForInput(input, ioChannel, person);
     } catch (err) {
       if (err instanceof AuthorizationError) {
         report({
@@ -399,13 +392,13 @@ export class IOManager {
           data: JSON.stringify({ input }),
         });
       }
-      logger.error("Error getting fulfillment", err);
-      fulfillment = { error: err as IErrorWithData };
+      logger.error("Error getting output", err);
+      output = { error: err as IErrorWithData };
     }
 
-    logger.debug("Fulfillment: ", { inputId, fulfillment });
+    logger.debug("Output: ", { inputId, output });
 
-    const result = await this.output(fulfillment, ioChannel, person, bag, inputId, OutputSource.input);
+    const result = await this.output(output, ioChannel, person, bag, inputId, OutputSource.input);
 
     logger.debug(`Result`, {
       inputId,

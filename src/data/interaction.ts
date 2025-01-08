@@ -1,4 +1,4 @@
-import { Fulfillment, Input } from "../types";
+import { Output, Input } from "../types";
 import {
   DocumentType,
   Ref,
@@ -47,14 +47,14 @@ export class IInteraction {
   public input?: Input;
 
   @prop({ required: false, type: mongoose.Schema.Types.Mixed })
-  public fulfillment?: Fulfillment;
+  public output?: Output;
 
   @prop({ required: false, type: mongoose.Schema.Types.String })
   public source?: OutputSource;
 
   getSourceName(this: TInteraction): string {
     // When the AI spoke
-    if (this.fulfillment) {
+    if (this.output) {
       return config().aiName.toUpperCase();
     }
 
@@ -78,7 +78,7 @@ export class IInteraction {
 
   static async createNew(
     this: ReturnModelType<typeof IInteraction>,
-    data: { input: Input } | { fulfillment: Fulfillment },
+    data: { input: Input } | { output: Output },
     ioChannel: TIOChannel,
     person: TPerson,
     inputId: string | null,

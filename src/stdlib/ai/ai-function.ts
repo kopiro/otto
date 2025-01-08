@@ -1,4 +1,4 @@
-import { Fulfillment, AIRuntimeFunction, Input, Authorization } from "../../types";
+import { Output, AIRuntimeFunction, Input, Authorization } from "../../types";
 import { functionsDir } from "../../paths";
 import { readFileSync, readdirSync } from "fs";
 import path from "path";
@@ -64,7 +64,7 @@ export class AIFunction {
     input: Input,
     ioChannel: TIOChannel,
     person: TPerson,
-  ): Promise<Fulfillment> {
+  ): Promise<Output> {
     logger.info(`Calling AI function <${functionName}> with arguments <${JSON.stringify(functionParameters)}>`);
 
     if (functionName.includes("..") || functionName.includes("..")) {

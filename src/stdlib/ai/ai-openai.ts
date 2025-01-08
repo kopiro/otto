@@ -1,4 +1,4 @@
-import { Fulfillment, InputContext, Input } from "../../types";
+import { Output, InputContext, Input } from "../../types";
 import config from "../../config";
 import { Signale } from "signale";
 import { logStacktrace, tryJsonParse } from "../../helpers";
@@ -77,11 +77,11 @@ export class AIOpenAI {
     ioChannel: TIOChannel,
     person: TPerson,
   ): Promise<ChatCompletionMessageParam[]> {
-    // Get all Interaction where we have a input.text or fulfillment.text in the last 20m
+    // Get all Interaction where we have a input.text or output.text in the last 20m
     const interactions = await Interaction.find({
       $or: [
         {
-          "fulfillment.text": { $ne: null },
+          "output.text": { $ne: null },
           ioChannel: ioChannel.id,
           reducedTo: { $exists: false },
         },
@@ -91,7 +91,7 @@ export class AIOpenAI {
           reducedTo: { $exists: false },
         },
         {
-          "fulfillment.text": { $ne: null },
+          "output.text": { $ne: null },
           person: person.id,
           reducedTo: { $exists: false },
         },
@@ -128,10 +128,10 @@ export class AIOpenAI {
         }
 
         // If the assistant spoke
-        if (interaction.fulfillment && "text" in interaction.fulfillment) {
+        if (interaction.output && "text" in interaction.output) {
           return {
             role: "assistant",
-            content: interaction.fulfillment.text,
+            content: interaction.output.text,
           };
         }
 
@@ -280,7 +280,7 @@ export class AIOpenAI {
     person: TPerson,
     text: string,
     role: "user" | "assistant" | "system",
-  ): Promise<Fulfillment> {
+  ): Promise<Output> {
     const logName = `${ioChannel.id}_completechat`;
 
     const prompt: string[] = [];
@@ -385,8 +385,8 @@ export class AIOpenAI {
     }
   }
 
-  async getFulfillmentForInput(input: Input, ioChannel: TIOChannel, person: TPerson): Promise<Fulfillment> {
-    const logName = `${ioChannel.id}_getfulfillmentforinput`;
+  async getOutputForInput(input: Input, ioChannel: TIOChannel, person: TPerson): Promise<Output> {
+    const logName = `${ioChannel.id}_getoutputforinput`;
 
     try {
       if ("text" in input) {
@@ -422,7 +422,7 @@ export class AIOpenAI {
 
       throw new Error("Unable to process request");
     } catch (error) {
-      logger.error("Failed to get fulfillment for input", error);
+      logger.error("Failed to get output for input", error);
       logStacktrace(TAG, logName, {
         input,
         error,

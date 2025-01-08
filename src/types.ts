@@ -12,7 +12,7 @@ export enum Authorization {
   API = "api",
 }
 
-export type Fulfillment = {
+export type Output = {
   text?: string;
   voice?: string;
   audio?: string;
@@ -30,7 +30,7 @@ export type AIRuntimeFunctionArguments<TParams> = {
   parameters: TParams;
 };
 
-export type AIRuntimeFunction<T> = (args: AIRuntimeFunctionArguments<T>) => Promise<Fulfillment> | Fulfillment;
+export type AIRuntimeFunction<T> = (args: AIRuntimeFunctionArguments<T>) => Promise<Output> | Output;
 
 export type IErrorWithData = {
   message: string;

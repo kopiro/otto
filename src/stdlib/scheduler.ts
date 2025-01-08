@@ -1,5 +1,5 @@
 import config from "../config";
-import { Fulfillment } from "../types";
+import { Output } from "../types";
 import { Moment } from "../lib/moment";
 import { Signale } from "signale";
 import { IScheduler, Scheduler, TScheduler } from "../data/scheduler";
@@ -35,13 +35,13 @@ export class SchedulerManager {
     return date.seconds(0).milliseconds(0);
   }
 
-  async scheduleFulfillment(fulfillment: Fulfillment, ioChannel: TIOChannel, date: Date) {
+  async scheduleOutput(output: Output, ioChannel: TIOChannel, date: Date) {
     return Scheduler.create({
       managerUid: config().uid,
       ioChannel: ioChannel.id,
       onDateISOString: this.flatDate(Moment()(date)).toISOString(),
       programName: "output",
-      programArgs: { date, fulfillment },
+      programArgs: { date, output },
       deleteAfterRun: true,
     });
   }

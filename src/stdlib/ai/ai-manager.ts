@@ -1,4 +1,4 @@
-import { Fulfillment, Input } from "../../types";
+import { Output, Input } from "../../types";
 import Events from "events";
 import { Signale } from "signale";
 import { AIOpenAI } from "./ai-openai";
@@ -21,13 +21,13 @@ export class AIManager {
 
   emitter: Events.EventEmitter = new Events.EventEmitter();
 
-  async getFullfilmentForInput(input: Input, ioChannel: TIOChannel, person: TPerson): Promise<Fulfillment> {
+  async getFullfilmentForInput(input: Input, ioChannel: TIOChannel, person: TPerson): Promise<Output> {
     if (!input) {
       throw new Error("Empty params provided");
     }
 
     if ("text" in input) {
-      return AIOpenAI.getInstance().getFulfillmentForInput(input, ioChannel, person);
+      return AIOpenAI.getInstance().getOutputForInput(input, ioChannel, person);
     } else {
       throw new Error("No valid input provided");
     }

@@ -5,7 +5,7 @@ import * as Server from "../stdlib/server";
 import { IODriverRuntime, IODriverMultiOutput, IODriverEventMap, IODriverId, IOBag } from "../stdlib/io-manager";
 import { getVoiceFileFromText } from "../stdlib/voice-helpers";
 import * as Proc from "../stdlib/proc";
-import { Authorization, Fulfillment, Language } from "../types";
+import { Authorization, Output, Language } from "../types";
 import bodyParser from "body-parser";
 import { SpeechRecognizer } from "../stdlib/speech-recognizer";
 import { Signale } from "signale";
@@ -287,7 +287,7 @@ export class Telegram implements IODriverRuntime {
   /**
    * Output an object to the user
    */
-  async output(f: Fulfillment, ioChannel: TIOChannel, person: TPerson, _bag: IOBag): Promise<IODriverMultiOutput> {
+  async output(f: Output, ioChannel: TIOChannel, person: TPerson, _bag: IOBag): Promise<IODriverMultiOutput> {
     const results: IODriverMultiOutput = [];
 
     const bag = _bag as IOBagTelegram;

@@ -64,8 +64,8 @@ export class IIOChannel {
    * This property is used to redirect the output of this ioChannel to another ioChannel.
    * This is useful for example if you want to also speak when you're replying to a user.
    */
-  @prop({ required: false, ref: () => IIOChannel })
-  public redirectFulfillmentTo?: Ref<IIOChannel>[];
+  @prop({ required: false, autopopulate: { maxDepth: 1 }, ref: () => IIOChannel })
+  public redirectOutputToIOChannelIds?: Ref<IIOChannel>[];
 
   /**
    * Instead of using this ioChannel to kick-in the normal input/output flow,
@@ -73,8 +73,8 @@ export class IIOChannel {
    * This way, you can simply built a bot that repeats the last input of the user.
    * For example, you can input on Telegram to output to Human.
    */
-  @prop({ required: false, ref: () => IIOChannel })
-  public mirrorInputToFulfillmentTo?: Ref<IIOChannel>[];
+  @prop({ required: false, autopopulate: { maxDepth: 1 }, ref: () => IIOChannel })
+  public mirrorInputToOutputToChannelIds?: Ref<IIOChannel>[];
 
   /**
    * If this is true, any input/output operation will be ignored and discarded

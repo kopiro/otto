@@ -8,7 +8,7 @@ import {
   IODriverSingleOutput,
 } from "../stdlib/io-manager";
 import { chunkArray, timeout } from "../helpers";
-import { Fulfillment, Language } from "../types";
+import { Output, Language } from "../types";
 import { etcDir } from "../paths";
 import path from "path";
 import { SpeechRecognizer } from "../stdlib/speech-recognizer";
@@ -58,7 +58,7 @@ export class Voice implements IODriverRuntime {
   ioChannel!: TIOChannel;
   person!: TPerson;
 
-  currentSpokenFulfillment: Fulfillment | undefined;
+  currentSpokenOutput: Output | undefined;
   recognizeStream: Pumpify | null | undefined;
   hotwordSilenceSec = -1;
   recorder: any | undefined;
@@ -250,7 +250,7 @@ export class Voice implements IODriverRuntime {
     }
   }
 
-  async actualOutput(f: Fulfillment, ioChannel: TIOChannel, person: TPerson): Promise<IODriverMultiOutput> {
+  async actualOutput(f: Output, ioChannel: TIOChannel, person: TPerson): Promise<IODriverMultiOutput> {
     const results: IODriverMultiOutput = [];
 
     // Temporary disable timer variables
@@ -283,22 +283,22 @@ export class Voice implements IODriverRuntime {
   /**
    * Process the item in the output queue
    */
-  async output(f: Fulfillment, ioChannel: TIOChannel, person: TPerson): Promise<IODriverMultiOutput> {
+  async output(f: Output, ioChannel: TIOChannel, person: TPerson): Promise<IODriverMultiOutput> {
     let results: IODriverMultiOutput = [];
 
     // If we have a current processed item, let's wait until it's null
-    while (this.currentSpokenFulfillment) {
+    while (this.currentSpokenOutput) {
       logger.debug("Waiting until agent is not speaking...");
       await timeout(TIMEOUT_POLL_AI_STILL_SPEAKING_SEC * 1000);
     }
 
-    this.currentSpokenFulfillment = f;
+    this.currentSpokenOutput = f;
 
     try {
       const result = await this.actualOutput(f, ioChannel, person);
       results = results.concat(result);
     } finally {
-      this.currentSpokenFulfillment = undefined;
+      this.currentSpokenOutput = undefined;
     }
 
     return results;

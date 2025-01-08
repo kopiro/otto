@@ -83,7 +83,7 @@ export class AIVectorMemory {
     // Get all intereactions which "reducedTo" is not set
     const unreducedInteractions = await Interaction.find({
       reducedTo: { $exists: false },
-      $or: [{ "fulfillment.text": { $exists: true } }, { "input.text": { $exists: true } }],
+      $or: [{ "output.text": { $exists: true } }, { "input.text": { $exists: true } }],
     }).sort({ createdAt: +1 });
 
     return unreducedInteractions.reduce<MapDateChunkToMapIOChannelToInteractions>((acc, interaction) => {
@@ -200,8 +200,8 @@ export class AIVectorMemory {
           const time = interaction.createdAt.toLocaleTimeString();
           const sourceName = interaction.getSourceName();
 
-          if (interaction.fulfillment && "text" in interaction.fulfillment) {
-            conversation.push(`- ${sourceName} (${time}): ${interaction.fulfillment.text}`);
+          if (interaction.output && "text" in interaction.output) {
+            conversation.push(`- ${sourceName} (${time}): ${interaction.output.text}`);
           }
           if (interaction.input && "text" in interaction.input) {
             conversation.push(`- ${sourceName} (${time}): ${interaction.input.text}`);

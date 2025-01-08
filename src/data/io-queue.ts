@@ -1,6 +1,6 @@
 import autopopulate from "mongoose-autopopulate";
 import { IOBag, IODriverId } from "../stdlib/io-manager";
-import { Fulfillment, Input } from "../types";
+import { Output, Input } from "../types";
 import { IIOChannel, TIOChannel } from "./io-channel";
 import { DocumentType, Ref, ReturnModelType, getModelForClass, modelOptions, plugin, prop } from "@typegoose/typegoose";
 import config from "../config";
@@ -26,14 +26,14 @@ class IIOQueue {
   public input!: Input;
 
   @prop({ required: false })
-  public fulfillment!: Fulfillment;
+  public output!: Output;
 
   @prop()
   public bag!: IOBag;
 
   static async createNew(
     this: ReturnModelType<typeof IIOQueue>,
-    data: { input: Input } | { fulfillment: Fulfillment },
+    data: { input: Input } | { output: Output },
     ioChannel: TIOChannel,
     person: TPerson,
     bag: IOBag | null,

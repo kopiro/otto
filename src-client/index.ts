@@ -68,14 +68,14 @@ async function sendData(body) {
 
     const json = await response.json();
 
-    const { fulfillment, error, voice } = json;
+    const { output, error, voice } = json;
 
     if (error) {
-      addMessage(error.message, "fulfillment error");
+      addMessage(error.message, "output error");
       return;
     }
 
-    addMessage(fulfillment.text, "fulfillment");
+    addMessage(output.text, "output");
 
     if (voice) {
       aiAudio.src = voice;

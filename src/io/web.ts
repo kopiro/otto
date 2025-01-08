@@ -1,6 +1,6 @@
 import { EventEmitter } from "events";
 import { IODriverRuntime, IODriverMultiOutput, IODriverEventMap, IODriverId, IOBag } from "../stdlib/io-manager";
-import { Fulfillment, Input, Language } from "../types";
+import { Output, Input, Language } from "../types";
 import { Request, Response } from "express";
 import { routerIO } from "../stdlib/server";
 import bodyParser from "body-parser";
@@ -28,7 +28,7 @@ type TRequest = {
   person: string;
   text_to_speech?: boolean | "redirect";
 };
-type TResponse = { fulfillment: Fulfillment; voice?: string } | { error?: { message: string } };
+type TResponse = { output: Output; voice?: string } | { error?: { message: string } };
 
 export type IODataWeb = {
   userAgent: string;
@@ -103,7 +103,7 @@ export class Web implements IODriverRuntime {
     }
   }
 
-  async output(f: Fulfillment, ioChannel: TIOChannel, person: TPerson, _bag: IOBag): Promise<IODriverMultiOutput> {
+  async output(f: Output, ioChannel: TIOChannel, person: TPerson, _bag: IOBag): Promise<IODriverMultiOutput> {
     const bag = _bag as IOBagWeb;
     if (!bag.req || !bag.res) {
       throw new Error("IO.Web requires a bag with {req,res} (you can't output directly from another driver)");
@@ -116,7 +116,7 @@ export class Web implements IODriverRuntime {
     }
 
     try {
-      const response: TResponse = { fulfillment: f };
+      const response: TResponse = { output: f };
 
       if (f.text) {
         const textToSpeechOp = req.body.text_to_speech;
