@@ -105,17 +105,12 @@ export class AIVectorMemory {
     return data[0].embedding;
   }
 
-  async searchByText(text: string, memoryType: MemoryType, limit: number, scoreThreshold: number): Promise<string[]> {
+  async searchByText(text: string, memoryType: MemoryType, limit: number, scoreThreshold: number) {
     const vector = await this.createVector(text);
     return this.searchByVector(vector, memoryType, limit, scoreThreshold);
   }
 
-  async searchByVector(
-    vector: number[],
-    memoryType: MemoryType,
-    limit: number,
-    scoreThreshold: number,
-  ): Promise<string[]> {
+  async searchByVector(vector: number[], memoryType: MemoryType, limit: number, scoreThreshold: number) {
     const data = await QDrantSDK().search(memoryType, {
       score_threshold: scoreThreshold,
       vector,
@@ -124,19 +119,13 @@ export class AIVectorMemory {
       limit,
     });
 
-    return data.map((e) => (e.payload as QdrantPayload).text as string);
+    return data;
   }
 
-  async searchByVectors(
-    vector: number[][],
-    memoryType: MemoryType,
-    limit: number,
-    scoreThreshold: number,
-  ): Promise<string[]> {
-    const data = await Promise.all(vector.map((v) => this.searchByVector(v, memoryType, limit, scoreThreshold))).then(
-      (results) => results.flat(),
+  async searchByVectors(vector: number[][], memoryType: MemoryType, limit: number, scoreThreshold: number) {
+    return Promise.all(vector.map((v) => this.searchByVector(v, memoryType, limit, scoreThreshold))).then((results) =>
+      results.flat(),
     );
-    return Array.from(new Set(data));
   }
 
   async listVectors(memoryType: MemoryType) {

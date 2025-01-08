@@ -178,13 +178,15 @@ export async function report(error: IErrorWithData) {
   await IOManager.getInstance().output({ error }, ioChannel, person, null, null, OutputSource.report);
 }
 
-export async function logStacktrace(fileName: string, response: any) {
-  const dateDir = path.join(logsDir, new Date().toISOString().split("T")[0]);
+export async function logStacktrace(tag: string, fileName: string, response: any) {
+  const finalDir = path.join(logsDir, new Date().toISOString().split("T")[0], tag);
 
   // Create a directory for the current date
-  if (!existsSync(dateDir)) {
-    await mkdir(dateDir, { recursive: true });
+  if (!existsSync(finalDir)) {
+    await mkdir(finalDir, { recursive: true });
   }
 
-  return writeFile(path.join(dateDir, `${fileName}.json`), JSON.stringify(response, null, 2));
+  // Get time in HH_MM_SS format
+  const time = new Date().toLocaleTimeString().replace(/:/g, "_");
+  return writeFile(path.join(finalDir, `${fileName}_${time}.json`), JSON.stringify(response, null, 2));
 }

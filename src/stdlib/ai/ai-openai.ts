@@ -10,7 +10,6 @@ import { TIOChannel } from "../../data/io-channel";
 import { TPerson } from "../../data/person";
 import { isDocumentArray } from "@typegoose/typegoose";
 import { ChatCompletionMessageParam, ChatCompletionSystemMessageParam } from "openai/resources";
-import OpenAI from "openai";
 import fetch from "node-fetch";
 
 type Config = {
@@ -182,6 +181,8 @@ export class AIOpenAI {
     person: TPerson,
     context: InputContext,
   ): Promise<string> {
+    const logName = `${ioChannel.id}_getmemorycontextastext`;
+
     const AIVectorMemoryInstance = AIVectorMemory.getInstance();
 
     const convDescription = isDocumentArray(ioChannel.people)
@@ -197,7 +198,7 @@ export class AIOpenAI {
       AIVectorMemoryInstance.createVector(contextAsString),
     ]);
 
-    const memories = await Promise.all([
+    const allMemories = await Promise.all([
       AIVectorMemoryInstance.searchByVectors(
         vectors,
         MemoryType.declarative,
@@ -218,9 +219,14 @@ export class AIOpenAI {
       ),
     ]);
 
-    // logger.debug("Retrieved memories", memoriesUnique);
+    const memories = allMemories.flat();
 
-    return `## Memory\n\n` + memories.flat().join("\n");
+    logStacktrace(TAG, logName, {
+      text,
+      memories,
+    });
+
+    return `## Memory\n\n` + memories.map((m) => m.payload).join("\n");
   }
 
   getDefaultContext(): Record<string, string> {
@@ -242,7 +248,7 @@ export class AIOpenAI {
   }
 
   public async reduceText(identifier: string, text: string) {
-    const logName = `openai_${identifier}_textreducer`;
+    const logName = `${identifier}_textreducer`;
 
     const response = await OpenAIApiSDK().chat.completions.create({
       model: this.conf.textReducerModel,
@@ -255,7 +261,7 @@ export class AIOpenAI {
     });
     const content = response?.choices?.[0]?.message?.content;
 
-    logStacktrace(logName, {
+    logStacktrace(TAG, logName, {
       text,
       content,
     });
@@ -275,7 +281,7 @@ export class AIOpenAI {
     text: string,
     role: "user" | "assistant" | "system",
   ): Promise<Fulfillment> {
-    const logName = `openai_${ioChannel.id}_completechat`;
+    const logName = `${ioChannel.id}_completechat`;
 
     const prompt: string[] = [];
 
@@ -327,7 +333,7 @@ export class AIOpenAI {
 
       const answer = completion.choices.map((e) => e.message)?.[0];
 
-      logStacktrace(logName, {
+      logStacktrace(TAG, logName, {
         messages,
         answer,
       });
@@ -371,7 +377,7 @@ export class AIOpenAI {
       throw new Error("Invalid response: " + JSON.stringify(answer));
     } catch (error) {
       logger.error("Failed to complete chat", error);
-      logStacktrace(logName, {
+      logStacktrace(TAG, logName, {
         messages,
         error,
       });
@@ -380,13 +386,13 @@ export class AIOpenAI {
   }
 
   async getFulfillmentForInput(input: Input, ioChannel: TIOChannel, person: TPerson): Promise<Fulfillment> {
-    const logName = `openai_${ioChannel.id}_getfulfillmentforinput`;
+    const logName = `${ioChannel.id}_getfulfillmentforinput`;
 
     try {
       if ("text" in input) {
         const role = input.role || "user";
 
-        const result = await this.completeChat(
+        const output = await this.completeChat(
           [
             role === "user"
               ? {
@@ -406,18 +412,18 @@ export class AIOpenAI {
           role,
         );
 
-        logStacktrace(logName, {
+        logStacktrace(TAG, logName, {
           input,
-          result,
+          output,
         });
 
-        return result;
+        return output;
       }
 
       throw new Error("Unable to process request");
     } catch (error) {
       logger.error("Failed to get fulfillment for input", error);
-      logStacktrace(logName, {
+      logStacktrace(TAG, logName, {
         input,
         error,
       });
