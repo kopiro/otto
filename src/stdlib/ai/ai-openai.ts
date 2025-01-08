@@ -242,7 +242,7 @@ export class AIOpenAI {
   }
 
   public async reduceText(identifier: string, text: string) {
-    const fileName = `openai_${identifier}_textreducer`;
+    const logName = `openai_${identifier}_textreducer`;
 
     const response = await OpenAIApiSDK().chat.completions.create({
       model: this.conf.textReducerModel,
@@ -255,7 +255,7 @@ export class AIOpenAI {
     });
     const content = response?.choices?.[0]?.message?.content;
 
-    logStacktrace(`${fileName}.json`, {
+    logStacktrace(logName, {
       text,
       content,
     });
@@ -263,6 +263,7 @@ export class AIOpenAI {
     if (!content) {
       throw new Error("Unable to reduce text");
     }
+
     return content;
   }
 
@@ -274,7 +275,7 @@ export class AIOpenAI {
     text: string,
     role: "user" | "assistant" | "system",
   ): Promise<Fulfillment> {
-    const fileName = `openai_${ioChannel.id}_${new Date().toISOString()}_completechat`;
+    const logName = `openai_${ioChannel.id}_completechat`;
 
     const prompt: string[] = [];
 
@@ -326,7 +327,7 @@ export class AIOpenAI {
 
       const answer = completion.choices.map((e) => e.message)?.[0];
 
-      logStacktrace(`${fileName}.json`, {
+      logStacktrace(logName, {
         messages,
         answer,
       });
@@ -370,7 +371,7 @@ export class AIOpenAI {
       throw new Error("Invalid response: " + JSON.stringify(answer));
     } catch (error) {
       logger.error("Failed to complete chat", error);
-      logStacktrace(`${fileName}.json`, {
+      logStacktrace(logName, {
         messages,
         error,
       });
@@ -379,7 +380,7 @@ export class AIOpenAI {
   }
 
   async getFulfillmentForInput(input: Input, ioChannel: TIOChannel, person: TPerson): Promise<Fulfillment> {
-    const fileName = `openai_${ioChannel.id}_${new Date().toISOString()}_getfulfillmentforinput`;
+    const logName = `openai_${ioChannel.id}_getfulfillmentforinput`;
 
     try {
       if ("text" in input) {
@@ -405,7 +406,7 @@ export class AIOpenAI {
           role,
         );
 
-        logStacktrace(`${fileName}.json`, {
+        logStacktrace(logName, {
           input,
           result,
         });
@@ -416,7 +417,7 @@ export class AIOpenAI {
       throw new Error("Unable to process request");
     } catch (error) {
       logger.error("Failed to get fulfillment for input", error);
-      logStacktrace(`${fileName}.json`, {
+      logStacktrace(logName, {
         input,
         error,
       });

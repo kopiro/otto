@@ -7,7 +7,7 @@ import crypto, { createHash } from "crypto";
 import { File } from "./stdlib/file";
 
 import { Signale } from "signale";
-import { writeFile } from "fs/promises";
+import { mkdir, writeFile } from "fs/promises";
 import fetch from "node-fetch";
 import { AuthorizationError } from "./errors/authorization-error";
 import { IOManager, OutputSource } from "./stdlib/io-manager";
@@ -179,5 +179,12 @@ export async function report(error: IErrorWithData) {
 }
 
 export async function logStacktrace(fileName: string, response: any) {
-  return writeFile(path.join(logsDir, fileName), JSON.stringify(response, null, 2));
+  const dateDir = path.join(logsDir, new Date().toISOString().split("T")[0]);
+
+  // Create a directory for the current date
+  if (!existsSync(dateDir)) {
+    await mkdir(dateDir, { recursive: true });
+  }
+
+  return writeFile(path.join(dateDir, `${fileName}.json`), JSON.stringify(response, null, 2));
 }
