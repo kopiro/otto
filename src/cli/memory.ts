@@ -1,5 +1,6 @@
-import { warmup } from "../boot";
 import config from "../config";
+
+import { warmup } from "../boot";
 import { Interaction } from "../data/interaction";
 
 import { AIVectorMemory, MemoryType } from "../stdlib/ai/ai-vectormemory";
@@ -19,7 +20,7 @@ const logger = new Signale({
 
 warmup()
   .then(async () => {
-    const memory = AIVectorMemory.getInstance();
+    const aiVectorMemory = AIVectorMemory.getInstance();
     const MEMORY_TYPE = (process.env.MEMORY_TYPE ?? "").split(",");
 
     if (!config().centralNode) {
@@ -28,11 +29,11 @@ warmup()
     }
 
     if (MEMORY_TYPE.includes(MemoryType.declarative)) {
-      await memory.buildDeclarativeMemory();
+      await aiVectorMemory.buildDeclarativeMemory();
     }
 
     if (MEMORY_TYPE.includes(MemoryType.social)) {
-      await memory.buildSocialMemory();
+      await aiVectorMemory.buildSocialMemory();
     }
 
     if (MEMORY_TYPE.includes(MemoryType.episodic)) {
@@ -47,11 +48,11 @@ warmup()
           logger.warn("Aborted");
           process.exit(0);
         }
-        await memory.deleteCollection(MemoryType.episodic);
+        await aiVectorMemory.deleteCollection(MemoryType.episodic);
         const op = await Interaction.updateMany({}, { $unset: { reducedTo: true } });
         logger.success(`Erased reducedTo in interactions`, op);
       }
-      await memory.buildEpisodicMemory();
+      await aiVectorMemory.buildEpisodicMemory();
     }
 
     logger.info("Done");

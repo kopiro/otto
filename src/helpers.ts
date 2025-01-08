@@ -179,14 +179,16 @@ export async function report(error: IErrorWithData) {
 }
 
 export async function logStacktrace(tag: string, fileName: string, response: any) {
-  const finalDir = path.join(logsDir, new Date().toISOString().split("T")[0], tag);
+  // Get date as 2012_04_23
+  const dateStr = new Date().toISOString().split("T")[0].replace(/-/g, "_");
+  const finalDir = path.join(logsDir, dateStr, tag);
 
   // Create a directory for the current date
   if (!existsSync(finalDir)) {
     await mkdir(finalDir, { recursive: true });
   }
 
-  // Get time in HH_MM_SS format
-  const time = new Date().toLocaleTimeString().replace(/:/g, "_");
+  // Get ONLY time in HH_MM_SS format
+  const time = new Date().toISOString().split("T")[1].split(".")[0].replace(/:/g, "_");
   return writeFile(path.join(finalDir, `${fileName}_${time}.json`), JSON.stringify(response, null, 2));
 }
