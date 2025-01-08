@@ -241,7 +241,32 @@ export class AIOpenAI {
     };
   }
 
-  async requestToOpenAI(
+  public async reduceText(identifier: string, text: string) {
+    const fileName = `openai_${identifier}_textreducer`;
+
+    const response = await OpenAIApiSDK().chat.completions.create({
+      model: this.conf.textReducerModel,
+      messages: [
+        {
+          role: "system",
+          content: text,
+        },
+      ],
+    });
+    const content = response?.choices?.[0]?.message?.content;
+
+    logStacktrace(`${fileName}.json`, {
+      text,
+      content,
+    });
+
+    if (!content) {
+      throw new Error("Unable to reduce text");
+    }
+    return content;
+  }
+
+  async completeChat(
     messagesChatCompletions: ChatCompletionMessageParam[],
     input: Input,
     ioChannel: TIOChannel,
@@ -249,6 +274,8 @@ export class AIOpenAI {
     text: string,
     role: "user" | "assistant" | "system",
   ): Promise<Fulfillment> {
+    const fileName = `openai_${ioChannel.id}_${new Date().toISOString()}_completechat`;
+
     const prompt: string[] = [];
 
     const context = {
@@ -287,8 +314,6 @@ export class AIOpenAI {
       ...messagesChatCompletions,
     ].filter(Boolean);
 
-    logStacktrace("openai-messages.json", messages);
-
     const completion = await OpenAIApiSDK().chat.completions.create({
       model: this.conf.conversationModel,
       user: person.id,
@@ -298,9 +323,12 @@ export class AIOpenAI {
       // function_call: "auto",
     });
 
-    logStacktrace("openai-completions.json", completion);
-
     const answer = completion.choices.map((e) => e.message)?.[0];
+
+    logStacktrace(`${fileName}.json`, {
+      messages,
+      answer,
+    });
 
     // TODO: remove
     if (answer?.function_call) {
@@ -314,7 +342,7 @@ export class AIOpenAI {
       const result = await AIFunction.getInstance().call(functionName, functionParams, input, ioChannel, person);
 
       if (result.functionResult) {
-        return this.requestToOpenAI(
+        return this.completeChat(
           [
             ...messagesChatCompletions,
             {
@@ -345,7 +373,7 @@ export class AIOpenAI {
     try {
       if ("text" in input) {
         const role = input.role || "user";
-        const result = await this.requestToOpenAI(
+        const result = await this.completeChat(
           [
             role === "user"
               ? {

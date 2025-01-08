@@ -8,6 +8,8 @@ import { DocumentType, isDocument } from "@typegoose/typegoose";
 import { FacebookFeedItem, getFacebookFeed } from "../../lib/facebook";
 import uuidByString from "uuid-by-string";
 import { IIOChannel } from "../../data/io-channel";
+import OpenAI from "openai";
+import { AIOpenAI } from "./ai-openai";
 
 const TAG = "VectorMemory";
 const logger = new Signale({
@@ -188,23 +190,6 @@ export class AIVectorMemory {
     logger.success(`Marked ${interactionsIds.length} interactions as reduced to ${reducedTo}`);
   }
 
-  private async reduceText(text: string) {
-    const response = await OpenAIApiSDK().chat.completions.create({
-      model: this.conf.textReducerModel,
-      messages: [
-        {
-          role: "system",
-          content: text,
-        },
-      ],
-    });
-    const content = response?.choices?.[0]?.message?.content;
-    if (!content) {
-      throw new Error("Unable to reduce text");
-    }
-    return content;
-  }
-
   private async reduceInteractionsForDateChunk(dateChunk: string, gInteractions: MapIOChannelToInteractions) {
     logger.info(`Reducing interactions for date: ${dateChunk}`);
 
@@ -248,7 +233,10 @@ export class AIVectorMemory {
 
           // logger.debug("Reducing conversation: ", reducerPromptForIOChannel);
 
-          const reducedText = await this.reduceText(reducerPromptForIOChannel);
+          const reducedText = await AIOpenAI.getInstance().reduceText(
+            `${ioChannel.id}_${dateChunk}`,
+            reducerPromptForIOChannel,
+          );
           logger.debug("Reduced conversation: ", reducedText);
 
           reducedInteractionsPerIOChannelText.push(`- ${reducedText}`);
@@ -267,7 +255,7 @@ export class AIVectorMemory {
 
       // logger.debug("Reducing sentences: ", reducerPromptForDay);
 
-      const reducedTextForDay = await this.reduceText(reducerPromptForDay);
+      const reducedTextForDay = await AIOpenAI.getInstance().reduceText(dateChunk, reducerPromptForDay);
       logger.info("Reduced sentences: ", reducedTextForDay);
 
       // Delete all text belonging to this dateChunk
