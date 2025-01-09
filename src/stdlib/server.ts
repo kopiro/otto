@@ -40,12 +40,13 @@ routerApi.use(express.json());
 routerApi.use(express.urlencoded({ extended: true }));
 
 routerApi.use(async (req: express.Request, res: express.Response, next: express.NextFunction) => {
-  // TODO: Detach personID from Authorization
-  const personId = req.headers["x-auth-person"] || req.query.person || req.body.person;
-  if (!personId) throw new Error("Authorization personID is required");
-  const person = await Person.findByIdOrThrow(personId);
   try {
+    // TODO: Detach personID from Authorization
+    const personId = req.headers["x-auth-person"] || req.query.person || req.body.person;
+    if (!personId) throw new Error("Authorization personID is required");
+    const person = await Person.findByIdOrThrow(personId);
     throwIfMissingAuthorizations(person.authorizations, [Authorization.API]);
+    next();
   } catch (err) {
     return res.status(401).json({
       error: {
@@ -53,7 +54,6 @@ routerApi.use(async (req: express.Request, res: express.Response, next: express.
       },
     });
   }
-  next();
 });
 
 // API to get an audio
