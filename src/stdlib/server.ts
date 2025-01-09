@@ -193,7 +193,8 @@ routerApi.post(`/person/:personId/approve`, async (req, res) => {
   try {
     const { personId } = req.params;
     const person = await Person.findByIdOrThrow(personId);
-    person.authorizations!.push(Authorization.MESSAGE);
+    person.authorizations = person.authorizations || [];
+    person.authorizations.push(Authorization.MESSAGE);
     await person.save();
     res.json(person);
   } catch (err) {

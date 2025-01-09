@@ -5,7 +5,7 @@ import * as Server from "../stdlib/server";
 import { IODriverRuntime, IODriverMultiOutput, IODriverEventMap, IODriverId, IOBag } from "../stdlib/io-manager";
 import { getVoiceFileFromText } from "../stdlib/voice-helpers";
 import * as Proc from "../stdlib/proc";
-import { Authorization, Output, Language } from "../types";
+import { Authorization, Output, Language, Input } from "../types";
 import bodyParser from "body-parser";
 import { SpeechRecognizer } from "../stdlib/speech-recognizer";
 import { Signale } from "signale";
@@ -73,10 +73,8 @@ export class Telegram implements IODriverRuntime {
     return text;
   }
 
-  private cleanInputText(e: TelegramBot.Message) {
-    let text = e.text || "";
-    text = text.replace(`@${this.botMe!.username}`, "");
-    return text;
+  private cleanText(text: string) {
+    return text.replace(`@${this.botMe!.username}`, "");
   }
 
   private cleanOutputText(text: string) {
@@ -106,16 +104,17 @@ export class Telegram implements IODriverRuntime {
     return this.bot.sendVoice(chatId, voiceFile.getAbsolutePath(), botOpt);
   }
 
-  private getIsMention(text: string) {
+  private isMention(text: string) {
     return this.botMentionRegex?.test(text) || getAINameRegexp().test(text);
   }
 
-  private getIsGroup(msg: TelegramBot.Message) {
+  private isGroup(msg: TelegramBot.Message) {
     return msg.chat.type === "group" || msg.chat.type === "supergroup";
   }
 
-  private getIsReply(msg: TelegramBot.Message) {
-    return msg.reply_to_message?.from?.id === this.botMe?.id;
+  private isReplyToText(msg: TelegramBot.Message) {
+    const isReply = msg.reply_to_message?.from?.id === this.botMe?.id;
+    return isReply ? msg.reply_to_message?.text : false;
   }
 
   private getIOData(msg: TelegramBot.Message): IODataTelegram {
@@ -172,32 +171,27 @@ export class Telegram implements IODriverRuntime {
       replyToMessageId: e.message_id,
     };
 
-    const isGroup = this.getIsGroup(e);
-    const isMention = this.getIsMention(e.text || "");
-    const isReply = this.getIsReply(e);
+    const isGroup = this.isGroup(e);
+    const replyToText = this.isReplyToText(e);
 
     // Process a Text object
     if (e.text) {
+      const text = this.cleanText(e.text || "");
+      const isMention = this.isMention(text);
+
       // If we are in a group, only listen for activators
-      if (isGroup && !(isMention || isReply)) {
-        logger.debug("Received message, but skipping it");
+      if (isGroup && !(isMention || replyToText)) {
+        logger.debug("Received message, but skipping it because no mention of the AI name was found");
         return false;
       }
 
-      // Clean
-      const text = this.cleanInputText(e);
+      const input: Input = { text };
+      if (replyToText) {
+        input.replyToText = replyToText;
+      }
 
       this.bot.sendChatAction(e.chat.id, "typing");
-
-      this.emitter.emit(
-        "input",
-        {
-          text,
-        },
-        ioChannel,
-        person,
-        bag,
-      );
+      this.emitter.emit("input", input, ioChannel, person, bag);
 
       return true;
     }
@@ -205,26 +199,23 @@ export class Telegram implements IODriverRuntime {
     // Process a Voice object
     if (e.voice) {
       const text = await this.handleVoiceInput(e.voice.file_id, person.language);
-      const isMentionInVoice = this.getIsMention(text);
+      const isMention = this.isMention(text);
 
       // If we are in a group, only listen for activators
-      if (isGroup && !(isMentionInVoice || isReply)) {
+      if (isGroup && !(isMention || replyToText)) {
         logger.debug("Received vocal in a group, but skipping it because no mention of the AI name was found");
         return false;
+      }
+
+      const input: Input = { text };
+      if (replyToText) {
+        input.replyToText = replyToText;
       }
 
       this.bot.sendChatAction(e.chat.id, "record_voice");
 
       // User sent a voice note, respond with a voice note :)
-      this.emitter.emit(
-        "input",
-        {
-          text,
-        },
-        ioChannel,
-        person,
-        { ...bag, respondWithAudioNote: true },
-      );
+      this.emitter.emit("input", input, ioChannel, person, { ...bag, respondWithAudioNote: true });
 
       return true;
     }
@@ -234,7 +225,7 @@ export class Telegram implements IODriverRuntime {
       // const image = await this.bot.getFileLink(e.photo[e.photo.length - 1].file_id);
       if (isGroup) return false;
 
-      this.bot.sendChatAction(e.chat.id, "typing");
+      // this.bot.sendChatAction(e.chat.id, "typing");
 
       // TODO: implement Image input
       // this.emitter.emit(

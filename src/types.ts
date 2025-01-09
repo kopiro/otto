@@ -39,11 +39,12 @@ export type IErrorWithData = {
 
 export type InputContext = Record<string, string>;
 
-type InputOptions = {
+// text: "Hello" OR command: "Hello" - and then merge with Input
+export type Input = {
+  text: string;
+} & {
+  replyToText?: string;
   role?: "system" | "user" | "assistant";
   context?: InputContext;
   bag?: IOBag;
 };
-
-// text: "Hello" OR command: "Hello" - and then merge with Input
-export type Input = { text: string } & InputOptions;

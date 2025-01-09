@@ -274,7 +274,7 @@ export class AIOpenAI {
   }
 
   async completeChat(
-    messagesChatCompletions: ChatCompletionMessageParam[],
+    inputMessages: ChatCompletionMessageParam[],
     input: Input,
     ioChannel: TIOChannel,
     person: TPerson,
@@ -318,7 +318,7 @@ export class AIOpenAI {
     const messages: ChatCompletionMessageParam[] = [
       promptChatCompletion,
       ...recentInteractionsChatCompletions,
-      ...messagesChatCompletions,
+      ...inputMessages,
     ].filter(Boolean);
 
     try {
@@ -352,7 +352,7 @@ export class AIOpenAI {
         if (result.functionResult) {
           return this.completeChat(
             [
-              ...messagesChatCompletions,
+              ...inputMessages,
               {
                 role: "function",
                 name: functionName,
@@ -392,25 +392,30 @@ export class AIOpenAI {
       if ("text" in input) {
         const role = input.role || "user";
 
-        const output = await this.completeChat(
-          [
-            role === "user"
-              ? {
-                  content: input.text,
-                  name: this.cleanName(person.name),
-                  role: role,
-                }
-              : {
-                  content: input.text,
-                  role: role,
-                },
-          ],
-          input,
-          ioChannel,
-          person,
-          input.text,
-          role,
-        );
+        const inputMessages: ChatCompletionMessageParam[] = [];
+
+        if (input.replyToText) {
+          // Prepend previous message from AI
+          inputMessages.push({
+            content: input.replyToText,
+            role: "assistant",
+          });
+        }
+
+        if (role === "user") {
+          inputMessages.push({
+            content: input.text,
+            name: this.cleanName(person.name),
+            role: role,
+          });
+        } else {
+          inputMessages.push({
+            content: input.text,
+            role: role,
+          });
+        }
+
+        const output = await this.completeChat(inputMessages, input, ioChannel, person, input.text, role);
 
         logStacktrace(TAG, logName, {
           input,
