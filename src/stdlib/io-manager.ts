@@ -170,6 +170,13 @@ export class IOManager {
     bag: IOBag | null,
     { inputId, source }: { inputId?: string | null; source?: OutputSource | null } = {},
   ) {
+    await ioChannel.populate("redirectOutputToIOChannelIds");
+
+    logger.debug("Maybe redirecting output", {
+      ioChannelId: ioChannel.id,
+      redirectOutputToIOChannelIds: ioChannel.redirectOutputToIOChannelIds?.map((e) => e.id),
+    });
+
     if (isDocumentArray(ioChannel.redirectOutputToIOChannelIds) && ioChannel.redirectOutputToIOChannelIds.length > 0) {
       logger.info(
         `The channel ${ioChannel.id} is redirecting the output to other channels:`,
@@ -177,13 +184,13 @@ export class IOManager {
       );
 
       await Promise.all(
-        ioChannel.redirectOutputToIOChannelIds.map((e) => {
-          if (e.id === ioChannel.id) {
-            logger.warn("Redirecting to same ioChannel, skipping", e);
+        ioChannel.redirectOutputToIOChannelIds.map((ioChannelToRedirectTo) => {
+          if (ioChannelToRedirectTo.id === ioChannel.id) {
+            logger.warn("Redirecting to same ioChannel, skipping", ioChannelToRedirectTo);
             return;
           }
 
-          return this.output(output, e, person, bag, {
+          return this.output(output, ioChannelToRedirectTo, person, bag, {
             inputId,
             source,
             wasRedirectedTo: true,
@@ -207,6 +214,16 @@ export class IOManager {
       wasRedirectedTo,
     }: { inputId?: string | null; source?: OutputSource | null; wasRedirectedTo?: boolean } = {},
   ): Promise<OutputResult> {
+    logger.debug("Output", {
+      ioChannelId: ioChannel.id,
+      personId: person.id,
+      bag,
+      inputId,
+      source,
+      wasRedirectedTo,
+      output,
+    });
+
     if (!this.canHandleIOChannelInThisNode(ioChannel)) {
       return this.scheduleInQueue({ output }, ioChannel, person, bag);
     }
@@ -226,14 +243,10 @@ export class IOManager {
 
     // Redirecting output to another ioChannel, asyncronously
     // Only do this when this output is not coming from the IOQueue, otherwise it will be redirected twice
-    if (source !== OutputSource.queue) {
-      setImmediate(() => {
-        this.maybeRedirectOutput(output, ioChannel, person, bag, {
-          inputId,
-          source,
-        });
-      });
-    }
+    this.maybeRedirectOutput(output, ioChannel, person, bag, {
+      inputId,
+      source,
+    });
 
     if (ioChannel.doNotDisturb === true) {
       logger.info("rejecting because doNotDisturb is ON", ioChannel);
@@ -276,6 +289,8 @@ export class IOManager {
     bag: IOBag,
   ): Promise<OutputResult | OutputResult[]> {
     // Check if we have repeatTo - if so, just output to all of them
+    ioChannel.populate("mirrorInputToOutputToChannelIds");
+
     if (
       isDocumentArray(ioChannel.mirrorInputToOutputToChannelIds) &&
       ioChannel.mirrorInputToOutputToChannelIds.length > 0
@@ -378,7 +393,7 @@ export class IOManager {
 
     const inputId = randomUUID();
 
-    logger.debug("Input:", { inputId, input, ioChannelId: ioChannel?.id, personId: person.id });
+    logger.debug("Input:", { input, ioChannelId: ioChannel.id, personId: person.id, bag: bag, inputId });
 
     // TODO: support multiple params
     if ("text" in input) {
@@ -394,6 +409,7 @@ export class IOManager {
     }
 
     let output: Output | null = null;
+
     try {
       throwIfMissingAuthorizations(person.authorizations, [Authorization.MESSAGE]);
       output = await AIManager.getInstance().getFullfilmentForInput(input, ioChannel, person);
@@ -408,14 +424,12 @@ export class IOManager {
       output = { error: err as IErrorWithData };
     }
 
-    logger.debug("Output: ", { inputId, output });
-
     const result = await this.output(output, ioChannel, person, bag, {
       inputId,
       source: OutputSource.input,
     });
 
-    logger.debug(`Result`, {
+    logger.debug("Result", {
       inputId,
       result,
     });
