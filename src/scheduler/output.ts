@@ -11,6 +11,8 @@ export default class OutputScheduler extends SchedulerRuntimeFunction {
       throw new Error(`Invalid person for job: ${this.job._id}`);
     }
     const { programArgs, ioChannel, person } = this.job;
-    return IOManager.getInstance().output(programArgs?.output, ioChannel, person, null, null, OutputSource.scheduler);
+    return IOManager.getInstance().output(programArgs?.output, ioChannel, person, null, {
+      source: OutputSource.scheduler,
+    });
   }
 }

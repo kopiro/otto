@@ -168,8 +168,7 @@ export class IOManager {
     ioChannel: TIOChannel,
     person: TPerson,
     bag: IOBag | null,
-    inputId: string | null,
-    source: OutputSource,
+    { inputId, source }: { inputId?: string | null; source?: OutputSource | null } = {},
   ) {
     if (isDocumentArray(ioChannel.redirectOutputToIOChannelIds) && ioChannel.redirectOutputToIOChannelIds.length > 0) {
       logger.info(
@@ -184,7 +183,11 @@ export class IOManager {
             return;
           }
 
-          return this.output(output, e, person, bag, inputId, source, true);
+          return this.output(output, e, person, bag, {
+            inputId,
+            source,
+            wasRedirectedTo: true,
+          });
         }),
       );
     }
@@ -198,24 +201,26 @@ export class IOManager {
     ioChannel: TIOChannel,
     person: TPerson,
     bag: IOBag | null,
-    inputId: string | null,
-    source: OutputSource,
-    wasRedirectedTo = false,
+    {
+      inputId,
+      source,
+      wasRedirectedTo,
+    }: { inputId?: string | null; source?: OutputSource | null; wasRedirectedTo?: boolean } = {},
   ): Promise<OutputResult> {
     if (!this.canHandleIOChannelInThisNode(ioChannel)) {
       return this.scheduleInQueue({ output }, ioChannel, person, bag);
     }
 
     // TODO: support multiple params
-    if (output.text && !wasRedirectedTo) {
+    if ("text" in output && !wasRedirectedTo) {
       Interaction.createNew(
         {
           output,
         },
         ioChannel,
         person,
-        inputId,
-        source,
+        inputId ?? null,
+        source ?? null,
       );
     }
 
@@ -223,7 +228,10 @@ export class IOManager {
     // Only do this when this output is not coming from the IOQueue, otherwise it will be redirected twice
     if (source !== OutputSource.queue) {
       setImmediate(() => {
-        this.maybeRedirectOutput(output, ioChannel, person, bag, inputId, source);
+        this.maybeRedirectOutput(output, ioChannel, person, bag, {
+          inputId,
+          source,
+        });
       });
     }
 
@@ -279,7 +287,9 @@ export class IOManager {
 
       return Promise.all(
         ioChannel.mirrorInputToOutputToChannelIds.map((e) => {
-          return this.output(input as Output, e, person, bag, null, OutputSource.mirror);
+          return this.output(input as Output, e, person, bag, {
+            source: OutputSource.mirror,
+          });
         }),
       );
     }
@@ -348,7 +358,9 @@ export class IOManager {
     if (qitem.input) {
       await this.input(qitem.input, qitem.ioChannel, qitem.person, qitem.bag);
     } else if (qitem.output) {
-      await this.output(qitem.output, qitem.ioChannel, qitem.person, qitem.bag, null, OutputSource.queue);
+      await this.output(qitem.output, qitem.ioChannel, qitem.person, qitem.bag, {
+        source: OutputSource.queue,
+      });
     } else {
       logger.warn("IOQueue item has either no input nor output", qitem);
     }
@@ -398,7 +410,10 @@ export class IOManager {
 
     logger.debug("Output: ", { inputId, output });
 
-    const result = await this.output(output, ioChannel, person, bag, inputId, OutputSource.input);
+    const result = await this.output(output, ioChannel, person, bag, {
+      inputId,
+      source: OutputSource.input,
+    });
 
     logger.debug(`Result`, {
       inputId,
