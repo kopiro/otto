@@ -4,7 +4,9 @@ declare let webkitAudioContext: any; // ADDED
 
 const formConversation = document.querySelector("#conversation") as HTMLFormElement;
 const formRepeat = document.querySelector("#repeat") as HTMLFormElement;
+const formAdmin = document.querySelector("#admin") as HTMLFormElement;
 
+const inputAuth = document.querySelector("#auth") as HTMLInputElement;
 const inputPerson = document.querySelector("#person") as HTMLInputElement;
 const inputTextToSpeechOutput = document.querySelector("#text-to-speech") as HTMLInputElement;
 
@@ -62,6 +64,7 @@ async function sendData(body) {
       method: "POST",
       headers: {
         "content-type": "application/json",
+        "x-auth-person": inputAuth.value,
       },
       body: body,
     });
@@ -96,6 +99,25 @@ formRepeat.addEventListener("submit", (e) => {
   aiTextToSpeech(textInputEl.value);
 
   textInputEl.value = "";
+});
+
+document.querySelector("#brain-reload").addEventListener("click", async (e) => {
+  document.querySelector("#brain-reload").setAttribute("disabled", "disabled");
+
+  await fetch("/api/admin/brain_reload", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-auth-person": inputAuth.value,
+    },
+    body: JSON.stringify({
+      types: ["prompt", "declarative", "social"],
+    }),
+  });
+
+  document.querySelector("#brain-reload").removeAttribute("disabled");
+
+  alert("Brain reloaded");
 });
 
 formConversation.addEventListener("submit", (e) => {
@@ -147,6 +169,11 @@ recordStopBtn.addEventListener("click", async () => {
   fd.append("audio", blob);
 
   sendData(fd);
+});
+
+inputAuth.value = localStorage.getItem("auth") || "";
+inputAuth.addEventListener("change", () => {
+  localStorage.setItem("auth", inputAuth.value);
 });
 
 inputPerson.value = localStorage.getItem("person") || "";
