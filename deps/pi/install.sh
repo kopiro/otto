@@ -18,7 +18,6 @@ sudo apt-get -y install \
     sox \
     libsox-fmt-all \
     opus-tools \
-    gpac \
     nodejs
 
 runuser -l otto -c 'cd ~/ai; mkdir -p ~/.config/systemd/user; cp ./deps/pi/otto.service ~/.config/systemd/user/otto.service; systemctl --user daemon-reload'
