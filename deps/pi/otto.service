@@ -6,8 +6,8 @@ StartLimitIntervalSec=500
 StartLimitBurst=5
 
 [Service]
-# User=otto
-# Group=otto
+User=otto
+Group=otto
 Restart=on-failure
 RestartSec=5s
 WorkingDirectory=/home/otto/ai
