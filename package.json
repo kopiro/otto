@@ -40,7 +40,6 @@
     "url": "https://github.com/kopiro/otto/issues"
   },
   "dependencies": {
-    "@google-cloud/dialogflow": "^4.7.0",
     "@google-cloud/speech": "^5.5.0",
     "@google-cloud/storage": "^5.0.0",
     "@google-cloud/text-to-speech": "^4.2.2",

@@ -8,9 +8,6 @@ importers:
 
   .:
     dependencies:
-      '@google-cloud/dialogflow':
-        specifier: ^4.7.0
-        version: 4.7.0
       '@google-cloud/speech':
         specifier: ^5.5.0
         version: 5.6.0
@@ -572,10 +569,6 @@ packages:
     resolution: {integrity: sha512-fUoMo5b8iAKbrYpneIRV3z95AlxVJPrjpevxs4SKoclngWZvTXBSGpNisF5+x5m+oNGve7jfB1e6vNBZBUs7Fw==}
     engines: {node: '>=12.0.0'}
 
-  '@google-cloud/dialogflow@4.7.0':
-    resolution: {integrity: sha512-7ACtmIZQbgv9ZbvO6QCyRDX/1TXUV88IRSO52Fw7cf2GYSL+HzRP3fVGr6EdZAk1KrDwDoDO4KvYfCi5xVf2EA==}
-    engines: {node: '>=10'}
-
   '@google-cloud/paginator@3.0.7':
     resolution: {integrity: sha512-jJNutk0arIQhmpUUQJPJErsojqo834KcyB6X7a1mxuic8i1tKXxde8E69IZxNZawRIlZdIK2QY4WALvlK5MzYQ==}
     engines: {node: '>=10'}
@@ -741,7 +734,6 @@ packages:
   '@picovoice/porcupine-node@2.2.1':
     resolution: {integrity: sha512-+sc3uY2ZdZabUW7kYZ2wDezg2CZYy729Xy387fMuNw8fa2aoHuU9pcpaUR2KfLDRC+s2hbWdAqnxjCuSvt/NYw==}
     engines: {node: '>=12.0.0'}
-    cpu: ['!ia32', '!mips', '!ppc', '!ppc64']
     deprecated: This version is no longer supported. Please use the latest version.
 
   '@picovoice/pvrecorder-node@1.2.4':
@@ -5806,14 +5798,6 @@ snapshots:
       google-auth-library: 8.9.0
       retry-request: 5.0.2
       teeny-request: 8.0.3
-    transitivePeerDependencies:
-      - encoding
-      - supports-color
-
-  '@google-cloud/dialogflow@4.7.0':
-    dependencies:
-      google-gax: 2.30.5
-      protobufjs: 6.11.4
     transitivePeerDependencies:
       - encoding
       - supports-color

@@ -166,18 +166,22 @@ export function throwIfMissingAuthorizations(
 }
 
 export async function report(error: IErrorWithData) {
-  logger.fatal(`Reporting`, error);
+  try {
+    logger.fatal(`Reporting`, error);
 
-  const ioChannel = await IOChannel.findOne({ useForReporting: true });
-  const person = await Person.findOne({ useForReporting: true });
-  if (!person || !ioChannel) {
-    logger.fatal(`Unable to report error, no person or ioChannel found`, { person, ioChannel });
-    return;
+    const ioChannel = await IOChannel.findOne({ useForReporting: true });
+    const person = await Person.findOne({ useForReporting: true });
+    if (!person || !ioChannel) {
+      logger.fatal(`Unable to report error, no person or ioChannel found`, { person, ioChannel });
+      return;
+    }
+
+    await IOManager.getInstance().output({ error }, ioChannel, person, null, {
+      source: OutputSource.report,
+    });
+  } catch (err) {
+    logger.fatal(`Error while reporting`, err);
   }
-
-  await IOManager.getInstance().output({ error }, ioChannel, person, null, {
-    source: OutputSource.report,
-  });
 }
 
 export async function logStacktrace(tag: string, fileName: string, response: any) {

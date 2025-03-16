@@ -44,11 +44,6 @@
     "user": "admin",
     "password": null
   },
-  "dialogflow": {
-    "projectId": "",
-    "environment": "",
-    "language": "it"
-  },
   "openai": {
     "apiKey": "",
     "promptUrl": "",
