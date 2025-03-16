@@ -49,3 +49,5 @@ RUN pnpm recursive run build
 
 EXPOSE 80
 CMD crond -L /app/logs/cron.log && pnpm run start
+
+ENV NODE_ENV=production
