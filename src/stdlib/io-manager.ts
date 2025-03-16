@@ -395,6 +395,8 @@ export class IOManager {
 
     logger.debug("Input:", { input, ioChannelId: ioChannel.id, personId: person.id, bag: bag, inputId });
 
+    console.log("person.authorizations :>> ", person.authorizations);
+
     // TODO: support multiple params
     if ("text" in input) {
       Interaction.createNew(
