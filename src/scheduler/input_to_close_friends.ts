@@ -106,13 +106,13 @@ export default class InputToCloseFriendsScheduler extends SchedulerRuntimeFuncti
   // Based on the ioChanneID, generate a unique hour:sec every day that will be used to schedule the input
   // The input time should change every day and it must be unique per day, so we don't contact the same people at the same time or twice
   // Also, make sure the time is between X and Y
-  generateUniqueHourAndMinute(ioChannelID: string): string {
+  generateUniqueHourAndMinute(identifier: string): string {
     // Get current date as YYYYMMDD
     const date = new Date();
     const dateString = date.toISOString().split("T")[0];
 
     // Create a hash from ioChanneID and date to ensure uniqueness per day
-    const hash = this.hashCode(ioChannelID + dateString);
+    const hash = this.hashCode(identifier + dateString);
 
     // Generate hour and minute within allowed range (09:00 - 22:59)
     const hour = MIN_HOUR + (hash % (MAX_HOUR - MIN_HOUR));
