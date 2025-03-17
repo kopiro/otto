@@ -65,7 +65,9 @@ export class SchedulerManager {
       ...conditions,
     ];
 
-    logger.debug("Get jobs", JSON.stringify(query));
+    if (process.env.DEBUG_SCHEDULER) {
+      logger.debug("Get jobs", JSON.stringify(query));
+    }
 
     const jobs = await Scheduler.find({
       managerUid: config().uid,
@@ -80,18 +82,14 @@ export class SchedulerManager {
         return new (await import("../scheduler/input")).default(job);
       case "output":
         return new (await import("../scheduler/output")).default(job);
+      case "input_to_close_friends":
+        return new (await import("../scheduler/input_to_close_friends")).default(job);
       default:
         throw new Error(`Program <${job.programName}> not found`);
     }
   }
 
   async runJob(job: TScheduler) {
-    logger.debug(Date.now(), "running job", {
-      programName: job.programName,
-      programArgs: job.programArgs,
-      ioChannel: job.ioChannel,
-    });
-
     try {
       const program = await this.getProgram(job);
       if (!program) {
@@ -99,7 +97,12 @@ export class SchedulerManager {
       }
 
       const result = await program.run();
-      logger.debug("processed", result);
+
+      logger.debug(Date.now(), "Ran job", {
+        programName: job.programName,
+        programArgs: job.programArgs,
+        result,
+      });
 
       if (job.deleteAfterRun) {
         await Scheduler.findByIdAndDelete(job.id);
