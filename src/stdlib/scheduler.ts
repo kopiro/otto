@@ -98,11 +98,13 @@ export class SchedulerManager {
 
       const result = await program.run();
 
-      logger.debug(Date.now(), "Ran job", {
-        programName: job.programName,
-        programArgs: job.programArgs,
-        result,
-      });
+      if (result) {
+        logger.debug(Date.now(), "Ran job", {
+          programName: job.programName,
+          programArgs: job.programArgs,
+          result,
+        });
+      }
 
       if (job.deleteAfterRun) {
         await Scheduler.findByIdAndDelete(job.id);
@@ -116,9 +118,6 @@ export class SchedulerManager {
 
   async tick(conditions: Partial<IScheduler>[] = []) {
     const jobs = await this.getJobs(conditions);
-    if (jobs.length > 0) {
-      logger.debug("jobs", jobs);
-    }
     jobs.forEach(this.runJob.bind(this));
   }
 

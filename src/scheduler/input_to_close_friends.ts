@@ -103,7 +103,7 @@ export default class InputToCloseFriendsScheduler extends SchedulerRuntimeFuncti
     return _ioChannelsWithTime;
   }
 
-  // Based on the ioChanneID, generate a unique hour:sec every day that will be used to schedule the input
+  // Based on the ioChannelID, generate a unique hour:sec every day that will be used to schedule the input
   // The input time should change every day and it must be unique per day, so we don't contact the same people at the same time or twice
   // Also, make sure the time is between X and Y
   generateUniqueHourAndMinute(identifier: string): string {
