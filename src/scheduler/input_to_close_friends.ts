@@ -25,13 +25,15 @@ export default class InputToCloseFriendsScheduler extends SchedulerRuntimeFuncti
     person: TPerson;
     time: string;
   }> | null = null;
+  _ioChannelCacheToDay: string | null = null;
 
   constructor(job: TScheduler) {
     super(job);
   }
 
   async getIOChannelsWithTime() {
-    if (this._ioChannelIdsWithTime) {
+    const day = new Date().toISOString().split("T")[0];
+    if (this._ioChannelCacheToDay === day) {
       return this._ioChannelIdsWithTime;
     }
 
@@ -79,9 +81,11 @@ export default class InputToCloseFriendsScheduler extends SchedulerRuntimeFuncti
         }),
       )
     ).filter((item) => item !== null);
+    this._ioChannelCacheToDay = day;
 
     logger.info(
-      "IO Channels with time",
+      "IO Channels with time for today",
+      this._ioChannelCacheToDay,
       this._ioChannelIdsWithTime.map((e) => ({
         ioChannel: e.ioChannel.id,
         ioChannelName: e.ioChannel.getName(),
