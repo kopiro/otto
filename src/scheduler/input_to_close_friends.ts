@@ -7,7 +7,7 @@ import { IOChannel } from "../data/io-channel";
 import { Person } from "../data/person";
 
 const EXTRACT_LAST_DAYS = 7;
-const MAX_INTERACTIONS = 5;
+const MAX_INTERACTIONS = 3;
 
 const MIN_HOUR = 9;
 const MAX_HOUR = 22;
