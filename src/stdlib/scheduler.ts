@@ -64,6 +64,9 @@ export class SchedulerManager {
       { onTick: true },
       ...conditions,
     ];
+
+    logger.debug("Get jobs", query);
+
     const jobs = await Scheduler.find({
       managerUid: config().uid,
       $or: query,
