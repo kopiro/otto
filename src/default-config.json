@@ -48,8 +48,8 @@
     "apiKey": "",
     "promptUrl": "",
     "declarativeMemoryUrl": "",
-    "conversationModel": "chatgpt-4o-latest",
-    "textReducerModel": "chatgpt-4o-latest",
+    "conversationModel": "gpt-4o",
+    "textReducerModel": "gpt-4o",
     "interactionLimit": 30,
     "vectorMemory": {
       "declarative": {
