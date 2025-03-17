@@ -3,16 +3,98 @@ import { IOManager } from "../stdlib/io-manager";
 import { SchedulerRuntimeFunction } from "../stdlib/scheduler";
 import { Input } from "../types";
 import { Interaction } from "../data/interaction";
-import { IOChannel } from "../data/io-channel";
-import { Person } from "../data/person";
+import { IOChannel, TIOChannel } from "../data/io-channel";
+import { Person, TPerson } from "../data/person";
+import { TScheduler } from "../data/scheduler";
+import { Signale } from "signale";
 
 const EXTRACT_LAST_DAYS = 7;
-const MAX_INTERACTIONS = 3;
+const MAX_INTERACTIONS = 5;
 
 const MIN_HOUR = 9;
 const MAX_HOUR = 22;
 
+const TAG = "InputToCloseFriends";
+const logger = new Signale({
+  scope: TAG,
+});
+
 export default class InputToCloseFriendsScheduler extends SchedulerRuntimeFunction {
+  _ioChannelIdsWithTime: Array<{
+    ioChannel: TIOChannel;
+    person: TPerson;
+    time: string;
+  }> | null = null;
+
+  constructor(job: TScheduler) {
+    super(job);
+  }
+
+  async getIOChannelsWithTime() {
+    if (this._ioChannelIdsWithTime) {
+      return this._ioChannelIdsWithTime;
+    }
+
+    // Starting from "Interactions", get the most popular in the last 7 days and extract the ioChannels
+    // of the people who interacted with them
+    const data = await Interaction.aggregate([
+      {
+        $match: {
+          createdAt: {
+            $gte: new Date(Date.now() - EXTRACT_LAST_DAYS * 24 * 60 * 60 * 1000),
+          },
+          input: { $exists: true },
+        },
+      },
+      {
+        $group: {
+          _id: { ioChannelId: "$ioChannel", personId: "$person" },
+          interactionCount: { $sum: 1 },
+        },
+      },
+      {
+        $sort: { interactionCount: -1 },
+      },
+      {
+        $limit: MAX_INTERACTIONS,
+      },
+    ]);
+
+    this._ioChannelIdsWithTime = (
+      await Promise.all(
+        data.map(async (interaction) => {
+          const { ioChannelId, personId } = interaction._id;
+
+          const ioChannel = await IOChannel.findById(ioChannelId);
+          if (!isDocument(ioChannel)) return null;
+
+          const person = await Person.findById(personId);
+          if (!isDocument(person)) return null;
+
+          return {
+            ioChannel,
+            person,
+            time: this.generateUniqueHourAndMinute(`${ioChannelId}-${personId}`),
+          };
+        }),
+      )
+    ).filter((item) => item !== null);
+
+    logger.info(
+      "IO Channels with time",
+      this._ioChannelIdsWithTime.map((e) => ({
+        ioChannel: e.ioChannel.id,
+        ioChannelName: e.ioChannel.getName(),
+        ioChannelIODriver: e.ioChannel.ioDriver,
+        person: e.person.id,
+        personName: e.person.getName(),
+        time: e.time,
+      })),
+    );
+
+    return this._ioChannelIdsWithTime;
+  }
+
   // Based on the ioChanneID, generate a unique hour:sec every day that will be used to schedule the input
   // The input time should change every day and it must be unique per day, so we don't contact the same people at the same time or twice
   // Also, make sure the time is between X and Y
@@ -43,53 +125,18 @@ export default class InputToCloseFriendsScheduler extends SchedulerRuntimeFuncti
   }
 
   async run() {
-    const { programArgs } = this.job;
+    const ioChannelsWithTime = await this.getIOChannelsWithTime();
 
-    // Starting from "Interactions", get the most popular in the last 7 days and extract the ioChannels
-    // of the people who interacted with them
-    const data = await Interaction.aggregate([
-      {
-        $match: {
-          createdAt: {
-            $gte: new Date(Date.now() - EXTRACT_LAST_DAYS * 24 * 60 * 60 * 1000),
-          },
-          input: { $exists: true },
-        },
-      },
-      {
-        $group: {
-          _id: "$ioChannel",
-          interactionCount: { $sum: 1 },
-        },
-      },
-      {
-        $sort: { interactionCount: -1 },
-      },
-      {
-        $limit: MAX_INTERACTIONS,
-      },
-    ]);
+    const { programArgs } = this.job;
 
     const currentHourAndMinute = new Date().getHours() + ":" + new Date().getMinutes();
 
-    for (const interaction of data) {
-      const ioChannelId = interaction._id;
-      const time = this.generateUniqueHourAndMinute(ioChannelId);
-      if (time !== currentHourAndMinute) continue;
+    const ioChannelIdsNow = ioChannelsWithTime.filter((e) => e.time === currentHourAndMinute);
+    if (ioChannelIdsNow.length === 0) return false;
+    if (!ioChannelIdsNow[0]) return false;
 
-      const ioChannel = await IOChannel.findById(ioChannelId);
-      if (!isDocument(ioChannel)) {
-        throw new Error(`Invalid ioChannel: ${ioChannelId}`);
-      }
+    const { ioChannel, person } = ioChannelIdsNow[0];
 
-      const person = await Person.findById(ioChannel.person);
-      if (!isDocument(person)) {
-        throw new Error(`Invalid person for ioChannel: ${ioChannelId}`);
-      }
-
-      return IOManager.getInstance().input(programArgs as Input, ioChannel, person, null);
-    }
-
-    return false;
+    return IOManager.getInstance().input(programArgs as Input, ioChannel, person, null);
   }
 }

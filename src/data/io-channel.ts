@@ -82,6 +82,28 @@ export class IIOChannel {
   @prop({ required: false })
   public doNotDisturb?: boolean;
 
+  getName() {
+    switch (this.ioDriver) {
+      case "telegram": {
+        const ioData = this.ioData as IODataTelegram;
+        switch (ioData?.type) {
+          case "supergroup":
+          case "group":
+          case "channel":
+            return ioData.title;
+          case "private":
+            return [ioData.first_name, ioData.last_name].join(" ");
+          default:
+            return ioData.title;
+        }
+      }
+      case "voice":
+      case "web":
+      default:
+        return "";
+    }
+  }
+
   /**
    * Returns a human representation of this communication channel
    */
@@ -93,11 +115,11 @@ export class IIOChannel {
         switch (ioData?.type) {
           case "supergroup":
           case "group": {
-            chatName = `in the group chat "${ioData.title}"`;
+            chatName = `in the group chat "${this.getName()}"`;
             break;
           }
           case "channel":
-            chatName = `in the channel "${ioData.title}"`;
+            chatName = `in the channel "${this.getName()}"`;
             break;
           case "private":
             chatName = `in a private conversation"`;

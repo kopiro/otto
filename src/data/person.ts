@@ -28,6 +28,10 @@ export class IPerson {
   @prop({ required: false })
   public useForReporting?: boolean;
 
+  getName() {
+    return this.name;
+  }
+
   static async findByIdOrThrow(this: ReturnModelType<typeof IPerson>, id: string): Promise<TPerson> {
     const person = await Person.findById(id);
     if (!person) throw new Error(`Person <${id}> not found`);
