@@ -65,7 +65,7 @@ export class SchedulerManager {
       ...conditions,
     ];
 
-    logger.debug("Get jobs", query);
+    logger.debug("Get jobs", JSON.stringify(query));
 
     const jobs = await Scheduler.find({
       managerUid: config().uid,
