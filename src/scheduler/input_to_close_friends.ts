@@ -19,22 +19,24 @@ const logger = new Signale({
   scope: TAG,
 });
 
+type IOChannelsWithTime = Array<{
+  ioChannel: TIOChannel;
+  person: TPerson;
+  time: string;
+}>;
+
 export default class InputToCloseFriendsScheduler extends SchedulerRuntimeFunction {
-  _ioChannelIdsWithTime: Array<{
-    ioChannel: TIOChannel;
-    person: TPerson;
-    time: string;
-  }> | null = null;
+  _ioChannelsWithTime: IOChannelsWithTime | null = null;
   _ioChannelCacheToDay: string | null = null;
 
   constructor(job: TScheduler) {
     super(job);
   }
 
-  async getIOChannelsWithTime() {
+  async getIOChannelsWithTime(): Promise<IOChannelsWithTime> {
     const day = new Date().toISOString().split("T")[0];
-    if (this._ioChannelCacheToDay === day) {
-      return this._ioChannelIdsWithTime;
+    if (this._ioChannelCacheToDay === day && this._ioChannelsWithTime) {
+      return this._ioChannelsWithTime;
     }
 
     // Starting from "Interactions", get the most popular in the last 7 days and extract the ioChannels
@@ -62,7 +64,7 @@ export default class InputToCloseFriendsScheduler extends SchedulerRuntimeFuncti
       },
     ]);
 
-    this._ioChannelIdsWithTime = (
+    const _ioChannelsWithTime = (
       await Promise.all(
         data.map(async (interaction) => {
           const { ioChannelId, personId } = interaction._id;
@@ -81,12 +83,14 @@ export default class InputToCloseFriendsScheduler extends SchedulerRuntimeFuncti
         }),
       )
     ).filter((item) => item !== null);
+
+    this._ioChannelsWithTime = _ioChannelsWithTime;
     this._ioChannelCacheToDay = day;
 
     logger.info(
       "IO Channels with time for today",
-      this._ioChannelCacheToDay,
-      this._ioChannelIdsWithTime.map((e) => ({
+      day,
+      _ioChannelsWithTime.map((e) => ({
         ioChannel: e.ioChannel.id,
         ioChannelName: e.ioChannel.getName(),
         ioChannelIODriver: e.ioChannel.ioDriver,
@@ -96,7 +100,7 @@ export default class InputToCloseFriendsScheduler extends SchedulerRuntimeFuncti
       })),
     );
 
-    return this._ioChannelIdsWithTime;
+    return _ioChannelsWithTime;
   }
 
   // Based on the ioChanneID, generate a unique hour:sec every day that will be used to schedule the input
