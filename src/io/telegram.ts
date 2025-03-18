@@ -252,7 +252,9 @@ export class Telegram implements IODriverRuntime {
     this.started = true;
 
     this.botMe = await this.bot.getMe();
-    this.botMentionRegex = new RegExp(`@${this.botMe.username}`, "i");
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    this.botMentionRegex = new RegExp(this.botMe.username!);
 
     this.bot.on("message", this.onBotInput.bind(this));
 

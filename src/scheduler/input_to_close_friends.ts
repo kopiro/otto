@@ -25,18 +25,19 @@ type IOChannelsWithTime = Array<{
   time: string;
 }>;
 
-export default class InputToCloseFriendsScheduler extends SchedulerRuntimeFunction {
-  _ioChannelsWithTime: IOChannelsWithTime | null = null;
-  _ioChannelCacheToDay: string | null = null;
+let _ioChannelsWithTime: IOChannelsWithTime | null = null;
+let _ioChannelCacheToDay: string | null = null;
 
+export default class InputToCloseFriendsScheduler extends SchedulerRuntimeFunction {
   constructor(job: TScheduler) {
     super(job);
   }
 
   async getIOChannelsWithTime(): Promise<IOChannelsWithTime> {
     const day = new Date().toISOString().split("T")[0];
-    if (this._ioChannelCacheToDay === day && this._ioChannelsWithTime) {
-      return this._ioChannelsWithTime;
+
+    if (_ioChannelCacheToDay === day && _ioChannelsWithTime !== null) {
+      return _ioChannelsWithTime;
     }
 
     // Starting from "Interactions", get the most popular in the last 7 days and extract the ioChannels
@@ -64,7 +65,7 @@ export default class InputToCloseFriendsScheduler extends SchedulerRuntimeFuncti
       },
     ]);
 
-    const _ioChannelsWithTime = (
+    const ioChannelsWithTime = (
       await Promise.all(
         data.map(async (interaction) => {
           const { ioChannelId, personId } = interaction._id;
@@ -84,13 +85,13 @@ export default class InputToCloseFriendsScheduler extends SchedulerRuntimeFuncti
       )
     ).filter((item) => item !== null);
 
-    this._ioChannelsWithTime = _ioChannelsWithTime;
-    this._ioChannelCacheToDay = day;
+    _ioChannelsWithTime = ioChannelsWithTime;
+    _ioChannelCacheToDay = day;
 
     logger.info(
-      "IO Channels with time for today",
+      "IO Channels with time",
       day,
-      _ioChannelsWithTime.map((e) => ({
+      ioChannelsWithTime.map((e) => ({
         ioChannel: e.ioChannel.id,
         ioChannelName: e.ioChannel.getName(),
         ioChannelIODriver: e.ioChannel.ioDriver,
@@ -136,13 +137,10 @@ export default class InputToCloseFriendsScheduler extends SchedulerRuntimeFuncti
     const ioChannelsWithTime = await this.getIOChannelsWithTime();
 
     const { programArgs } = this.job;
-
     const currentHourAndMinute = new Date().getHours() + ":" + new Date().getMinutes();
 
     const ioChannelIdsNow = ioChannelsWithTime.filter((e) => e.time === currentHourAndMinute);
-    if (ioChannelIdsNow.length === 0) return false;
     if (!ioChannelIdsNow[0]) return false;
-
     const { ioChannel, person } = ioChannelIdsNow[0];
 
     return IOManager.getInstance().input(programArgs as Input, ioChannel, person, null);
