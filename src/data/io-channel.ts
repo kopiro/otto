@@ -132,7 +132,7 @@ export class IIOChannel {
             chatName = `in the channel "${this.getName()}"`;
             break;
           case "private":
-            chatName = `in a private conversation"`;
+            chatName = `in a private conversation`;
             break;
         }
         return `via Telegram (${chatName})`;
