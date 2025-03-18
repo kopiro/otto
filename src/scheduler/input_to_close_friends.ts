@@ -7,6 +7,7 @@ import { IOChannel, TIOChannel } from "../data/io-channel";
 import { Person, TPerson } from "../data/person";
 import { TScheduler } from "../data/scheduler";
 import { Signale } from "signale";
+import config from "../config";
 
 const EXTRACT_LAST_DAYS = 7;
 const MAX_INTERACTIONS = 5;
@@ -49,6 +50,7 @@ export default class InputToCloseFriendsScheduler extends SchedulerRuntimeFuncti
             $gte: new Date(Date.now() - EXTRACT_LAST_DAYS * 24 * 60 * 60 * 1000),
           },
           input: { $exists: true },
+          managerUid: config().uid,
         },
       },
       {

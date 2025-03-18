@@ -318,6 +318,10 @@ audio {
   font-weight: bold;
 }
 
+.message.system {
+  font-family: monospace;
+}
+
 .message.output {
   background-color: #e5e5ea;
   color: black;

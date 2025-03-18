@@ -4,7 +4,6 @@ declare let webkitAudioContext: any; // ADDED
 
 const formConversation = document.querySelector("#conversation") as HTMLFormElement;
 const formRepeat = document.querySelector("#repeat") as HTMLFormElement;
-const formAdmin = document.querySelector("#admin") as HTMLFormElement;
 
 const inputAuth = document.querySelector("#auth") as HTMLInputElement;
 const inputPerson = document.querySelector("#person") as HTMLInputElement;
@@ -104,7 +103,7 @@ formRepeat.addEventListener("submit", (e) => {
 document.querySelector("#brain-reload").addEventListener("click", async (e) => {
   document.querySelector("#brain-reload").setAttribute("disabled", "disabled");
 
-  await fetch("/api/admin/brain_reload", {
+  const resp = await fetch("/api/admin/brain_reload", {
     method: "POST",
     headers: {
       "content-type": "application/json",
@@ -114,10 +113,15 @@ document.querySelector("#brain-reload").addEventListener("click", async (e) => {
       types: ["prompt", "declarative", "social"],
     }),
   });
+  const json = await resp.json();
+
+  if (json.error) {
+    addMessage(json.error.message, "system error");
+  } else {
+    addMessage("Brain reloaded", "system");
+  }
 
   document.querySelector("#brain-reload").removeAttribute("disabled");
-
-  alert("Brain reloaded");
 });
 
 formConversation.addEventListener("submit", (e) => {
