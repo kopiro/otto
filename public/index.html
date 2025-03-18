@@ -4,7 +4,7 @@
     <meta charset="utf8" />
     <title>Otto - Web Client</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="style.css" />
   </head>
 
   <body>
@@ -56,8 +56,26 @@
     <hr />
 
     <div>
-      <label>Admin</label>
-      <button id="brain-reload">Brain reload</button>
+      <h2>Admin</h2>
+      <div>
+        <div class="brain-reload-types">
+          <div>
+            <input name="brain-reload-episodic" type="checkbox" />
+            <label for="brain-reload-episodic">Episodic</label>
+          </div>
+          <div>
+            <input name="brain-reload-declarative" type="checkbox" />
+            <label for="brain-reload-declarative">Episodic</label>
+          </div>
+          <div>
+            <input name="brain-reload-social" type="checkbox" />
+            <label for="brain-reload-social">Social</label>
+          </div>
+        </div>
+        <div>
+          <button id="brain-reload">Brain reload</button>
+        </div>
+      </div>
     </div>
 
     <hr />

@@ -2,22 +2,25 @@ import Recorder from "recorder-js";
 
 declare let webkitAudioContext: any; // ADDED
 
-const formConversation = document.querySelector("#conversation") as HTMLFormElement;
-const formRepeat = document.querySelector("#repeat") as HTMLFormElement;
+const $ = (selector: string) => document.querySelector(selector);
+const $$ = (selector: string) => document.querySelectorAll(selector);
 
-const inputAuth = document.querySelector("#auth") as HTMLInputElement;
-const inputPerson = document.querySelector("#person") as HTMLInputElement;
-const inputTextToSpeechOutput = document.querySelector("#text-to-speech") as HTMLInputElement;
+const formConversation = $("#conversation") as HTMLFormElement;
+const formRepeat = $("#repeat") as HTMLFormElement;
 
-const inputUserTextToSpeech = document.querySelector("#user-text-to-speech") as HTMLInputElement;
-const inputGender = document.querySelector("#user-gender") as HTMLInputElement;
+const inputAuth = $("#auth") as HTMLInputElement;
+const inputPerson = $("#person") as HTMLInputElement;
+const inputTextToSpeechOutput = $("#text-to-speech") as HTMLInputElement;
 
-const aiAudio = document.querySelector("#ai-audio") as HTMLAudioElement;
-const userAudio = document.querySelector("#user-audio") as HTMLAudioElement;
+const inputUserTextToSpeech = $("#user-text-to-speech") as HTMLInputElement;
+const inputGender = $("#user-gender") as HTMLInputElement;
 
-const messages = document.getElementById("messages") as HTMLDivElement;
-const recordStartBtn = document.getElementById("record-start");
-const recordStopBtn = document.getElementById("record-stop");
+const aiAudio = $("#ai-audio") as HTMLAudioElement;
+const userAudio = $("#user-audio") as HTMLAudioElement;
+
+const messages = $("#messages") as HTMLDivElement;
+const recordStartBtn = $("#record-start");
+const recordStopBtn = $("#record-stop");
 
 async function userTextToSpeech(text: string, gender: string) {
   userAudio.src = "";
@@ -100,8 +103,19 @@ formRepeat.addEventListener("submit", (e) => {
   textInputEl.value = "";
 });
 
-document.querySelector("#brain-reload").addEventListener("click", async (e) => {
-  document.querySelector("#brain-reload").setAttribute("disabled", "disabled");
+$("#brain-reload").addEventListener("click", async (e) => {
+  $("#brain-reload").setAttribute("disabled", "disabled");
+
+  const types = [];
+  if (($("#brain-reload-episodic") as HTMLInputElement).checked) {
+    types.push("episodic");
+  }
+  if (($("#brain-reload-social") as HTMLInputElement).checked) {
+    types.push("prompt");
+  }
+  if (($("#brain-reload-declarative") as HTMLInputElement).checked) {
+    types.push("declarative");
+  }
 
   const resp = await fetch("/api/admin/brain_reload", {
     method: "POST",
@@ -110,7 +124,7 @@ document.querySelector("#brain-reload").addEventListener("click", async (e) => {
       "x-auth-person": inputAuth.value,
     },
     body: JSON.stringify({
-      types: ["prompt", "declarative", "social"],
+      types,
     }),
   });
   const json = await resp.json();
@@ -121,7 +135,7 @@ document.querySelector("#brain-reload").addEventListener("click", async (e) => {
     addMessage("Brain reloaded", "system");
   }
 
-  document.querySelector("#brain-reload").removeAttribute("disabled");
+  $("#brain-reload").removeAttribute("disabled");
 });
 
 formConversation.addEventListener("submit", (e) => {
