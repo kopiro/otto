@@ -226,7 +226,13 @@ export class AIOpenAI {
       memories,
     });
 
-    return `## Memory\n\n` + memories.map((m) => m.payload).join("\n");
+    return (
+      `## Memory\n\n` +
+      memories
+        .map((m) => m.payload?.text)
+        .filter(Boolean)
+        .join("\n")
+    );
   }
 
   getDefaultContext(): Record<string, string> {
