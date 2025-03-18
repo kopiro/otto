@@ -172,21 +172,16 @@ export class IOManager {
   ) {
     await ioChannel.populate("redirectOutputToIOChannelIds");
 
-    logger.debug("Maybe redirecting output", {
-      ioChannelId: ioChannel.id,
-      redirectOutputToIOChannelIds: ioChannel.redirectOutputToIOChannelIds?.map((e) => e.id),
-    });
-
     if (isDocumentArray(ioChannel.redirectOutputToIOChannelIds) && ioChannel.redirectOutputToIOChannelIds.length > 0) {
-      logger.info(
-        `The channel ${ioChannel.id} is redirecting the output to other channels:`,
-        ioChannel.redirectOutputToIOChannelIds.map((s) => s.id),
-      );
+      logger.info("The channel is redirecting the output to other channels", {
+        from: ioChannel.toJSONDebug(),
+        to: ioChannel.redirectOutputToIOChannelIds.map((s) => s.id),
+      });
 
       await Promise.all(
         ioChannel.redirectOutputToIOChannelIds.map((ioChannelToRedirectTo) => {
           if (ioChannelToRedirectTo.id === ioChannel.id) {
-            logger.warn("Redirecting to same ioChannel, skipping", ioChannelToRedirectTo);
+            logger.warn("Redirecting to same ioChannel, skipping to avoid recursion", ioChannelToRedirectTo);
             return;
           }
 
@@ -215,13 +210,14 @@ export class IOManager {
     }: { inputId?: string | null; source?: OutputSource | null; wasRedirectedTo?: boolean } = {},
   ): Promise<OutputResult> {
     logger.debug("Output", {
-      ioChannelId: ioChannel.id,
-      personId: person.id,
+      time: new Date(),
+      output,
+      ioChannel: ioChannel.toJSONDebug(),
+      personId: person.toJSONDebug(),
       bag,
-      inputId,
       source,
       wasRedirectedTo,
-      output,
+      inputId,
     });
 
     if (!this.canHandleIOChannelInThisNode(ioChannel)) {
@@ -393,7 +389,14 @@ export class IOManager {
 
     const inputId = randomUUID();
 
-    logger.debug("Input:", { input, ioChannelId: ioChannel.id, personId: person.id, bag: bag, inputId });
+    logger.debug("Input", {
+      time: new Date(),
+      input,
+      ioChannel: ioChannel.toJSONDebug(),
+      personId: person.toJSONDebug(),
+      bag,
+      inputId,
+    });
 
     // TODO: support multiple params
     if ("text" in input) {
@@ -427,11 +430,6 @@ export class IOManager {
     const result = await this.output(output, ioChannel, person, bag, {
       inputId,
       source: OutputSource.input,
-    });
-
-    logger.debug("Result", {
-      inputId,
-      result,
     });
 
     return result;

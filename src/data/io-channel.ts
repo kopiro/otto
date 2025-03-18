@@ -25,6 +25,9 @@ const logger = new Signale({
 @modelOptions({ schemaOptions: { collection: "io_channels" }, options: { allowMixed: 0 } })
 @plugin(autopopulate)
 export class IIOChannel {
+  @prop({ type: mongoose.Schema.Types.UUID })
+  public id!: string;
+
   @prop({ required: true })
   public managerUid!: string;
 
@@ -82,7 +85,16 @@ export class IIOChannel {
   @prop({ required: false })
   public doNotDisturb?: boolean;
 
-  getName() {
+  public toJSONDebug() {
+    return {
+      id: this.id,
+      ioDriver: this.ioDriver,
+      name: this.getName(),
+      driverName: this.getDriverName(),
+    };
+  }
+
+  public getName() {
     switch (this.ioDriver) {
       case "telegram": {
         const ioData = this.ioData as IODataTelegram;
@@ -107,7 +119,7 @@ export class IIOChannel {
   /**
    * Returns a human representation of this communication channel
    */
-  public getDriverName(this: TIOChannel) {
+  public getDriverName() {
     switch (this.ioDriver) {
       case "telegram": {
         const ioData = this.ioData as IODataTelegram;

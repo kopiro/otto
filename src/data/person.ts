@@ -13,6 +13,9 @@ const logger = new Signale({
 
 @modelOptions({ schemaOptions: { collection: "persons" }, options: { allowMixed: 0 } })
 export class IPerson {
+  @prop({ type: mongoose.Schema.Types.UUID })
+  public id!: string;
+
   @prop({ required: true })
   public name!: string;
 
@@ -28,7 +31,14 @@ export class IPerson {
   @prop({ required: false })
   public useForReporting?: boolean;
 
-  getName() {
+  public toJSONDebug() {
+    return {
+      id: this.id,
+      name: this.getName(),
+    };
+  }
+
+  public getName() {
     return this.name;
   }
 
