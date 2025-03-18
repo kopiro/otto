@@ -87,7 +87,6 @@ export class IIOChannel {
   public toJSONDebug() {
     return {
       id: this.id,
-      ioDriver: this.ioDriver,
       name: this.getName(),
       driverName: this.getDriverName(),
     };
