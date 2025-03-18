@@ -13,7 +13,6 @@ const logger = new Signale({
 
 @modelOptions({ schemaOptions: { collection: "persons" }, options: { allowMixed: 0 } })
 export class IPerson {
-  @prop({ type: mongoose.Schema.Types.UUID })
   public id!: string;
 
   @prop({ required: true })

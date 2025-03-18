@@ -25,7 +25,6 @@ const logger = new Signale({
 @modelOptions({ schemaOptions: { collection: "io_channels" }, options: { allowMixed: 0 } })
 @plugin(autopopulate)
 export class IIOChannel {
-  @prop({ type: mongoose.Schema.Types.UUID })
   public id!: string;
 
   @prop({ required: true })

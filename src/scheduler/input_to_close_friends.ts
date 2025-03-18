@@ -92,11 +92,8 @@ export default class InputToCloseFriendsScheduler extends SchedulerRuntimeFuncti
       "IO Channels with time",
       day,
       ioChannelsWithTime.map((e) => ({
-        ioChannel: e.ioChannel.id,
-        ioChannelName: e.ioChannel.getName(),
-        ioChannelIODriver: e.ioChannel.ioDriver,
-        person: e.person.id,
-        personName: e.person.getName(),
+        ioChannel: e.ioChannel.toJSONDebug(),
+        person: e.person.toJSONDebug(),
         time: e.time,
       })),
     );
