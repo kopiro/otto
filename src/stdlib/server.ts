@@ -42,11 +42,12 @@ routerApi.use(express.urlencoded({ extended: true }));
 
 routerApi.use(async (req: express.Request, res: express.Response, next: express.NextFunction) => {
   try {
-    // TODO: Detach personID from Authorization
-    const personId = req.headers["x-auth-person"] || req.query.person || req.body.person;
-    if (!personId) throw new Error("Authorization personID is required");
-    const person = await Person.findByIdOrThrow(personId);
+    const xAuthPerson = String(req.headers["x-auth-person"]);
+    if (!xAuthPerson) throw new Error("Authorization personID is required");
+
+    const person = await Person.findByIdOrThrow(xAuthPerson);
     throwIfMissingAuthorizations(person.authorizations, [Authorization.API]);
+
     next();
   } catch (err) {
     return res.status(401).json({
