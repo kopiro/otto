@@ -111,7 +111,7 @@ function bindEventsSelects() {
       channels.forEach((channel) => {
         const option = document.createElement("option");
         option.value = channel.id;
-        option.textContent = `${channel.name} (${channel.driverName})`;
+        option.textContent = channel.name;
         $ioChannelsSelect.appendChild(option);
       });
     })

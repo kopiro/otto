@@ -153,7 +153,7 @@ export class AIOpenAI {
     const prompt = [];
 
     prompt.push("## Context\n");
-    prompt.push(`You are chatting with ${person.name} - ${ioChannel.getDriverName()}.`);
+    prompt.push(`You are chatting with ${person.name} - ${ioChannel.getName()}.`);
 
     const languageName = new Intl.DisplayNames(["en"], { type: "language" }).of(person.language);
     prompt.push(`You should reply in ${languageName}.`);
@@ -194,7 +194,7 @@ export class AIOpenAI {
 
     const vectors = await Promise.all([
       AIVectorMemoryInstance.createVector(text),
-      AIVectorMemoryInstance.createVector(ioChannel.getDriverName() + " " + convDescription),
+      AIVectorMemoryInstance.createVector(ioChannel.getName() + " " + convDescription),
       AIVectorMemoryInstance.createVector(contextAsString),
     ]);
 

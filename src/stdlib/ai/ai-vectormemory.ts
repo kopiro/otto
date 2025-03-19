@@ -209,7 +209,7 @@ export class AIVectorMemory {
 
         if (conversation.length) {
           const reducerPromptForIOChannel =
-            `The following is a conversation happened on ${dateChunk} - ${ioChannel.getDriverName()}.\n` +
+            `The following is a conversation happened on ${dateChunk} - ${ioChannel.getName()}.\n` +
             `Please reduce them to a single sentence in third person.\n` +
             `Strictly keep the output as short as possible, only keeping relevant informations.\n` +
             `Include the names, the date and the title of the conversation.` +

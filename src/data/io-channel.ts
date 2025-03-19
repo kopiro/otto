@@ -88,7 +88,6 @@ export class IIOChannel {
     return {
       id: this.id,
       name: this.getName(),
-      driverName: this.getDriverName(),
     };
   }
 
@@ -96,14 +95,14 @@ export class IIOChannel {
     return {
       id: this.id,
       name: this.getName(),
-      driverName: this.getDriverName(),
+      ownerName: this.getOwnerName(),
       ioDriver: this.ioDriver,
       ioIdentifier: this.ioIdentifier,
       ioData: this.ioData,
     };
   }
 
-  public getName() {
+  public getOwnerName() {
     switch (this.ioDriver) {
       case "telegram": {
         const ioData = this.ioData as IODataTelegram;
@@ -119,16 +118,18 @@ export class IIOChannel {
         }
       }
       case "voice":
+        return "Not defined";
       case "web":
+        return "Not defined";
       default:
-        return "";
+        return "Unknown";
     }
   }
 
   /**
    * Returns a human representation of this communication channel
    */
-  public getDriverName() {
+  public getName() {
     switch (this.ioDriver) {
       case "telegram": {
         const ioData = this.ioData as IODataTelegram;
@@ -136,22 +137,24 @@ export class IIOChannel {
         switch (ioData?.type) {
           case "supergroup":
           case "group": {
-            chatName = `in the group chat "${this.getName()}"`;
+            chatName = `in the group chat "${this.getOwnerName()}"`;
             break;
           }
           case "channel":
-            chatName = `in the channel "${this.getName()}"`;
+            chatName = `in the channel "${this.getOwnerName()}"`;
             break;
           case "private":
-            chatName = `in a private conversation`;
+            chatName = `in a private chat with "${this.getOwnerName()}"`;
             break;
         }
-        return `via Telegram (${chatName})`;
+        return `On Telegram (${chatName})`;
       }
       case "voice":
+        return "Face to face";
       case "web":
+        return "On the web interface";
       default:
-        return "";
+        return "Unknown";
     }
   }
 
