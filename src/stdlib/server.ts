@@ -239,7 +239,7 @@ routerApi.post(`/person/:personId/approve`, async (req, res) => {
 
 // API that exposes ioChannels
 routerApi.get(`/io_channels`, async (_, res) => {
-  const ioChannels = await IOChannel.find();
+  const ioChannels = await IOChannel.find({ managerUid: config().uid });
   const data = ioChannels.map((ioChannel) => ioChannel.toJSONAPI());
   res.json({ data });
 });
