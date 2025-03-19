@@ -448,6 +448,8 @@ export class IOManager {
       }
       logger.success(`IOQueue processing started (every ${ioQueue.timeout}ms)`);
       setInterval(this.processQueue.bind(this), ioQueue.timeout);
+    } else {
+      logger.warn("IOQueue is disabled");
     }
   }
 }

@@ -42,7 +42,8 @@
     "port": 27017,
     "database": "admin",
     "user": "admin",
-    "password": null
+    "password": null,
+    "enabled": true
   },
   "openai": {
     "apiKey": "",

@@ -335,6 +335,10 @@ export function initializeRoutes(): { app: any; server: http.Server } {
 export function start(): Promise<void> {
   return new Promise<void>((resolve) => {
     const conf = config().server;
+    if (!conf.enabled) {
+      return resolve();
+    }
+
     const { server } = initializeRoutes();
     server.listen(
       {

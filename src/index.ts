@@ -1,17 +1,13 @@
-import config from "./config";
 import { warmup } from "./boot";
 import { start as startServer } from "./stdlib/server";
 import { SchedulerManager } from "./stdlib/scheduler";
 import { IOManager } from "./stdlib/io-manager";
 
-warmup().then(async () => {
-  if (config().server?.enabled) {
-    await startServer();
-  }
+// Do not await here to start faster
 
-  await IOManager.getInstance().start();
-
-  if (config().scheduler?.enabled) {
-    await SchedulerManager.getInstance().start();
-  }
-});
+(async () => {
+  warmup();
+  startServer();
+  IOManager.getInstance().start();
+  SchedulerManager.getInstance().start();
+})();

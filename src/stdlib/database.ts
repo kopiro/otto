@@ -28,15 +28,21 @@ export class Database {
 
   connect(): Promise<void> {
     return new Promise((resolve, reject) => {
-      logger.pending("Connecting to database");
+      const _config = config().mongo;
+      if (!_config.enabled) {
+        logger.warn("Database is disabled");
+        return resolve();
+      }
 
-      mongoose.connect(this.getUrl(), {
-        connectTimeoutMS: 2000,
-      });
+      logger.pending("Connecting to database...");
+
+      mongoose.connect(this.getUrl());
+
       mongoose.connection.on("error", (err) => {
         logger.error("Failed to connect to database", err);
         reject(err);
       });
+
       mongoose.connection.once("open", () => {
         logger.success("Connected to database");
         resolve();

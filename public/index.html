@@ -4,117 +4,170 @@
     <meta charset="utf8" />
     <title>Otto - Control Center</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+      crossorigin="anonymous"
+    />
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+      crossorigin="anonymous"
+    ></script>
     <link rel="stylesheet" href="style.css" />
   </head>
 
-  <body>
-    <img id="logo" src="/image.png" alt="Otto" />
-
-    <div id="messages"></div>
-
-    <form id="conversation">
-      <input name="text" type="text" />
-      <button type="submit">Send</button>
-      <button id="record-start">Record</button>
-      <button id="record-stop" disabled>Stop</button>
-    </form>
-
-    <div class="options">
-      <div class="option">
-        <label for="auth">Auth ID</label>
-        <input type="text" id="auth" />
-      </div>
-      <div class="option">
-        <label for="person">Person ID</label>
-        <input type="text" id="person" />
-      </div>
-      <div class="option">
-        <label for="text-to-speech">AI TTS</label>
-        <input type="checkbox" id="text-to-speech" />
-      </div>
-      <div class="option">
-        <label for="user-text-to-speech">User TTS</label>
-        <input type="checkbox" id="user-text-to-speech" />
-      </div>
-      <div class="option">
-        <label for="user-gender">User Gender</label>
-        <select id="user-gender">
-          <option selected value="male">Male</option>
-          <option value="female">Female</option>
-        </select>
-      </div>
+  <body class="container py-4">
+    <div class="text-center mb-4">
+      <img id="logo" src="/image.png" alt="Otto" class="img-fluid" style="max-width: 200px" />
     </div>
 
-    <hr />
+    <div id="messages" class="border rounded mb-3"></div>
 
-    <form id="repeat">
-      <label>Repeat</label>
-      <input name="text" type="text" />
-      <button type="submit">Send</button>
+    <form id="conversation" class="mb-4">
+      <div class="input-group">
+        <input name="text" type="text" class="form-control" placeholder="Type your message..." />
+        <button type="submit" class="btn btn-primary">Send</button>
+        <button id="record-start" class="btn btn-secondary">Record</button>
+        <button id="record-stop" class="btn btn-danger" disabled>Stop</button>
+      </div>
     </form>
 
-    <hr />
-
-    <div>
-      <h2>Admin</h2>
-      <div id="admin">
-        <div class="admin-section">
-          <div class="brain-reload-types">
-            <div>
-              <input id="brain-reload-declarative" type="checkbox" />
-              <label for="brain-reload-declarative">Declarative</label>
-            </div>
-            <div>
-              <input id="brain-reload-episodic" type="checkbox" />
-              <label for="brain-reload-episodic">Episodic</label>
-            </div>
-            <div>
-              <input id="brain-reload-social" type="checkbox" />
-              <label for="brain-reload-social">Social</label>
-            </div>
-            <button id="brain-reload">Brain reload</button>
+    <div class="row g-3 mb-4">
+      <div class="col-md-3">
+        <div class="card">
+          <div class="card-body">
+            <label for="auth" class="form-label">Auth ID</label>
+            <input type="text" id="auth" class="form-control" />
           </div>
         </div>
-        <div class="admin-section">
-          <div class="select-group">
-            <label for="io-channels">IO Channels</label>
-            <div class="input-group">
-              <select id="io-channels">
-                <option value="">Loading...</option>
-              </select>
-              <button id="io-channel-get-interactions">Get interactions</button>
-            </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card">
+          <div class="card-body">
+            <label for="person" class="form-label">Person ID</label>
+            <input type="text" id="person" class="form-control" />
           </div>
-          <div class="select-group">
-            <label for="people">People</label>
-            <div class="input-group">
-              <select id="people">
-                <option value="">Loading...</option>
-              </select>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card">
+          <div class="card-body">
+            <div class="form-check">
+              <input type="checkbox" id="text-to-speech" class="form-check-input" />
+              <div><label for="text-to-speech" class="form-check-label">AI TTS</label></div>
+              <small>Enabling this will allow the AI to speak the response.</small>
             </div>
           </div>
         </div>
-        <div class="admin-section">
-          <div class="input-group">
-            <label for="admin-input-message">Input API</label>
-            <input type="text" id="admin-input-message" placeholder="Enter message..." style="width: 300px" />
-            <button id="send-input-message">Send</button>
-          </div>
-        </div>
-        <div class="admin-section">
-          <div class="input-group">
-            <label for="admin-output-message">Output API</label>
-            <input type="text" id="admin-output-message" placeholder="Enter message..." style="width: 300px" />
-            <button id="send-output-message">Send</button>
+      </div>
+      <div class="col-md-3">
+        <div class="card">
+          <div class="card-body">
+            <div class="form-check">
+              <input type="checkbox" id="user-text-to-speech" class="form-check-input" />
+              <div><label for="user-text-to-speech" class="form-check-label">User TTS</label></div>
+              <small>Enabling this will allow the user to simulate their voice when they write.</small>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <hr />
+    <hr class="my-4" />
 
-    <audio id="ai-audio" controls></audio>
-    <audio id="user-audio" controls></audio>
+    <form id="repeat" class="mb-4">
+      <div class="input-group">
+        <span class="input-group-text">Repeat</span>
+        <input name="text" type="text" class="form-control" placeholder="Text to repeat..." />
+        <button type="submit" class="btn btn-primary">Send</button>
+      </div>
+    </form>
+
+    <hr class="my-4" />
+
+    <div class="card">
+      <div class="card-header">
+        <h2 class="mb-0">Admin</h2>
+      </div>
+      <div class="card-body" id="admin">
+        <div class="card mb-3">
+          <div class="card-body">
+            <div class="d-flex align-items-center gap-3 mb-3">
+              <div class="form-check">
+                <input id="brain-reload-declarative" type="checkbox" class="form-check-input" />
+                <label for="brain-reload-declarative" class="form-check-label">Declarative</label>
+              </div>
+              <div class="form-check">
+                <input id="brain-reload-episodic" type="checkbox" class="form-check-input" />
+                <label for="brain-reload-episodic" class="form-check-label">Episodic</label>
+              </div>
+              <div class="form-check">
+                <input id="brain-reload-social" type="checkbox" class="form-check-input" />
+                <label for="brain-reload-social" class="form-check-label">Social</label>
+              </div>
+              <button id="brain-reload" class="btn btn-warning">Brain reload</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mb-3">
+          <div class="card-body">
+            <div class="mb-3">
+              <label for="io-channels" class="form-label">IO Channels</label>
+              <div class="input-group">
+                <select id="io-channels" class="form-select">
+                  <option value="">Loading...</option>
+                </select>
+                <button id="io-channel-get-interactions" class="btn btn-secondary">Get interactions</button>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="people" class="form-label">People</label>
+              <select id="people" class="form-select">
+                <option value="">Loading...</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mb-3">
+          <div class="card-body">
+            <div class="mb-3">
+              <label for="admin-input-message" class="form-label">Input API</label>
+              <div class="input-group">
+                <input type="text" id="admin-input-message" class="form-control" placeholder="Enter message..." />
+                <button id="send-input-message" class="btn btn-primary">Send</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-body">
+            <div class="mb-3">
+              <label for="admin-output-message" class="form-label">Output API</label>
+              <div class="input-group">
+                <input type="text" id="admin-output-message" class="form-control" placeholder="Enter message..." />
+                <button id="send-output-message" class="btn btn-primary">Send</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <hr class="my-4" />
+
+    <div class="row g-3">
+      <div class="col-md-6">
+        <audio id="ai-audio" controls class="w-100"></audio>
+      </div>
+      <div class="col-md-6">
+        <audio id="user-audio" controls class="w-100"></audio>
+      </div>
+    </div>
 
     <script async defer src="./build/bundle.js"></script>
   </body>

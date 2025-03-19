@@ -16,10 +16,33 @@ export function addMessage(
   className: string,
   createdAt: string = new Date().toISOString(),
 ) {
-  const div = document.createElement("div");
-  div.className = `message ${className}`;
-  div.textContent = `${author}: ${text}`;
-  $messages.appendChild(div);
+  const messageDiv = document.createElement("div");
+  messageDiv.className = `message ${className}`;
+
+  // Create header with author and date
+  const headerDiv = document.createElement("div");
+  headerDiv.className = "message-header";
+
+  const authorDiv = document.createElement("div");
+  authorDiv.className = "message-author";
+  authorDiv.textContent = author;
+  headerDiv.appendChild(authorDiv);
+
+  const dateDiv = document.createElement("div");
+  dateDiv.className = "message-date";
+  const date = new Date(createdAt);
+  dateDiv.textContent = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  headerDiv.appendChild(dateDiv);
+
+  // Create text content
+  const textDiv = document.createElement("div");
+  textDiv.className = "message-text";
+  textDiv.textContent = text;
+
+  // Assemble message
+  messageDiv.appendChild(headerDiv);
+  messageDiv.appendChild(textDiv);
+  $messages.appendChild(messageDiv);
 
   // Scroll down the chat
   $messages.scrollTop = $messages.scrollHeight;
@@ -39,7 +62,7 @@ export async function apiIOWeb(body: string | FormData) {
     const json = await response.json();
 
     if (json.error) {
-      addMessage("System", json.error.message, "output error");
+      addMessage("CONTROL CENTER", json.error.message, "output error");
       return;
     }
 
@@ -56,13 +79,13 @@ export async function apiIOWeb(body: string | FormData) {
   }
 }
 
-export async function userTextToSpeech(text: string, gender: string) {
+export async function userTextToSpeech(text: string) {
   $userAudio.src = "";
   $userAudio.volume = 0;
   $userAudio.play();
 
   const url = new URL("/api/user-speech", location.href);
-  url.search = new URLSearchParams({ text, gender, person: $inputPerson.value }).toString();
+  url.search = new URLSearchParams({ text, gender: "male", person: $inputPerson.value }).toString();
 
   $userAudio.src = url.toString();
 

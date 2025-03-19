@@ -122,6 +122,11 @@ export class SchedulerManager {
   }
 
   async start() {
+    if (!config().scheduler?.enabled) {
+      logger.warn("Scheduler is disabled");
+      return;
+    }
+
     if (this.started) {
       return;
     }

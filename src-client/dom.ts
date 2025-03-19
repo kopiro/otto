@@ -9,8 +9,6 @@ const $inputPerson = $("#person") as HTMLInputElement;
 const $inputTextToSpeechOutput = $("#text-to-speech") as HTMLInputElement;
 
 const $inputUserTextToSpeech = $("#user-text-to-speech") as HTMLInputElement;
-const $inputGender = $("#user-gender") as HTMLInputElement;
-
 const $aiAudio = $("#ai-audio") as HTMLAudioElement;
 
 const $recordStartBtn = $("#record-start");
@@ -35,24 +33,25 @@ export function bindEvents() {
     $aiAudio.volume = 0;
     $aiAudio.play();
 
-    const textInputEl = $formConversation.querySelector("input[type=text]") as HTMLInputElement;
-    if (!textInputEl.value) return;
+    const $textInputEl = $formConversation.querySelector("input[type=text]") as HTMLInputElement;
+    if (!$textInputEl.value) return;
 
-    addMessage("Human", textInputEl.value, "input");
+    const text = $textInputEl.value;
+    $textInputEl.value = "";
+
+    addMessage("Human", text, "input");
 
     if ($inputUserTextToSpeech.checked) {
-      userTextToSpeech(textInputEl.value, $inputGender.value);
+      userTextToSpeech(text);
     }
 
     apiIOWeb(
       JSON.stringify({
-        params: { text: textInputEl.value },
+        params: { text: text },
         person: $inputPerson.value,
         text_to_speech: $inputTextToSpeechOutput.checked,
       }),
     );
-
-    textInputEl.value = "";
   });
 
   let recorder;
