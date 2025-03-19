@@ -45,12 +45,11 @@ export async function apiGetIOChannels(): Promise<IOChannel[]> {
     },
   });
 
-  if (!response.ok) {
-    return [];
-  }
-
   const json = await response.json();
-  return json.data;
+
+  addMessage("CONTROL CENTER", JSON.stringify(json), `system output ${json.error ? "error" : ""}`);
+
+  return json.data ?? [];
 }
 
 export async function apiGetPeople(): Promise<Person[]> {
@@ -60,12 +59,11 @@ export async function apiGetPeople(): Promise<Person[]> {
     },
   });
 
-  if (!response.ok) {
-    return [];
-  }
-
   const json = await response.json();
-  return json.data;
+
+  addMessage("CONTROL CENTER", JSON.stringify(json), `system output ${json.error ? "error" : ""}`);
+
+  return json.data ?? [];
 }
 
 async function apiGetInteractions(ioChannelId: string): Promise<Interaction[]> {
@@ -76,12 +74,10 @@ async function apiGetInteractions(ioChannelId: string): Promise<Interaction[]> {
   });
 
   const json = await response.json();
-  if (json.error) {
-    addMessage("CONTROL CENTER", json.error.message, "system output error");
-    return [];
-  }
 
-  return json.data;
+  addMessage("CONTROL CENTER", JSON.stringify(json), `system output ${json.error ? "error" : ""}`);
+
+  return json.data ?? [];
 }
 
 function bindEventsIOChannelGetInteractions() {
@@ -114,11 +110,6 @@ function bindEventsIOChannelGetInteractions() {
 
 function bindEventsBrainReload() {
   $brainReload.addEventListener("click", async () => {
-    if (!localStorage.getItem("auth")) {
-      addMessage("CONTROL CENTER", "No auth", "system output error");
-      return;
-    }
-
     $brainReload.setAttribute("disabled", "disabled");
 
     const types = [];
@@ -144,11 +135,7 @@ function bindEventsBrainReload() {
     });
     const json = await resp.json();
 
-    if (json.error) {
-      addMessage("CONTROL CENTER", json.error.message, "system output error");
-    } else {
-      addMessage("CONTROL CENTER", "Brain reloaded", "system output");
-    }
+    addMessage("CONTROL CENTER", JSON.stringify(json), `system output ${json.error ? "error" : ""}`);
 
     $brainReload.removeAttribute("disabled");
   });
@@ -219,11 +206,7 @@ function bindEventsInputMessage() {
 
     const json = await response.json();
 
-    if (json.error) {
-      addMessage("CONTROL CENTER", json.error.message, "system output error");
-    } else {
-      addMessage("CONTROL CENTER", "Input message sent", "system outout");
-    }
+    addMessage("CONTROL CENTER", JSON.stringify(json), `system output ${json.error ? "error" : ""}`);
 
     $inputMessage.value = "";
   });
@@ -251,11 +234,7 @@ function bindEventsOutputMessage() {
 
     const json = await response.json();
 
-    if (json.error) {
-      addMessage("CONTROL CENTER", json.error.message, "system output error");
-    } else {
-      addMessage("CONTROL CENTER", "Output message sent", "system output");
-    }
+    addMessage("CONTROL CENTER", JSON.stringify(json), `system output ${json.error ? "error" : ""}`);
 
     $outputMessage.value = "";
   });
