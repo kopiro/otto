@@ -47,8 +47,6 @@ export async function apiGetIOChannels(): Promise<IOChannel[]> {
 
   const json = await response.json();
 
-  addMessage("CONTROL CENTER", JSON.stringify(json), `system output ${json.error ? "error" : ""}`);
-
   return json.data ?? [];
 }
 
@@ -61,8 +59,6 @@ export async function apiGetPeople(): Promise<Person[]> {
 
   const json = await response.json();
 
-  addMessage("CONTROL CENTER", JSON.stringify(json), `system output ${json.error ? "error" : ""}`);
-
   return json.data ?? [];
 }
 
@@ -74,8 +70,6 @@ async function apiGetInteractions(ioChannelId: string): Promise<Interaction[]> {
   });
 
   const json = await response.json();
-
-  addMessage("CONTROL CENTER", JSON.stringify(json), `system output ${json.error ? "error" : ""}`);
 
   return json.data ?? [];
 }
