@@ -221,7 +221,7 @@ routerApi.get(`/persons/:personId`, async (req, res) => {
   }
 });
 
-routerApi.post(`/person/:personId/approve`, async (req, res) => {
+routerApi.post(`/persons/:personId/approve`, async (req, res) => {
   try {
     const { personId } = req.params;
     const person = await Person.findByIdOrThrow(personId);
