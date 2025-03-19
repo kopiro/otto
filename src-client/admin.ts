@@ -77,7 +77,7 @@ async function apiGetInteractions(ioChannelId: string): Promise<Interaction[]> {
 
   const json = await response.json();
   if (json.error) {
-    addMessage("System", json.error.message, "system output error");
+    addMessage("CONTROL CENTER", json.error.message, "system output error");
     return [];
   }
 
@@ -115,7 +115,7 @@ function bindEventsIOChannelGetInteractions() {
 function bindEventsBrainReload() {
   $brainReload.addEventListener("click", async () => {
     if (!localStorage.getItem("auth")) {
-      addMessage("System", "No auth", "system output error");
+      addMessage("CONTROL CENTER", "No auth", "system output error");
       return;
     }
 
@@ -145,9 +145,9 @@ function bindEventsBrainReload() {
     const json = await resp.json();
 
     if (json.error) {
-      addMessage("System", json.error.message, "system output error");
+      addMessage("CONTROL CENTER", json.error.message, "system output error");
     } else {
-      addMessage("System", "Brain reloaded", "system output");
+      addMessage("CONTROL CENTER", "Brain reloaded", "system output");
     }
 
     $brainReload.removeAttribute("disabled");
@@ -211,7 +211,7 @@ function bindEventsInputMessage() {
         io_channel: ioChannelId,
         person: personId,
         input: {
-          role: "system",
+          role: "CONTROL CENTER",
           text: $inputMessage.value,
         },
       }),
@@ -220,9 +220,9 @@ function bindEventsInputMessage() {
     const json = await response.json();
 
     if (json.error) {
-      addMessage("System", json.error.message, "system output error");
+      addMessage("CONTROL CENTER", json.error.message, "system output error");
     } else {
-      addMessage("System", "Input message sent", "system outout");
+      addMessage("CONTROL CENTER", "Input message sent", "system outout");
     }
 
     $inputMessage.value = "";
@@ -252,9 +252,9 @@ function bindEventsOutputMessage() {
     const json = await response.json();
 
     if (json.error) {
-      addMessage("System", json.error.message, "system output error");
+      addMessage("CONTROL CENTER", json.error.message, "system output error");
     } else {
-      addMessage("System", "Output message sent", "system output");
+      addMessage("CONTROL CENTER", "Output message sent", "system output");
     }
 
     $outputMessage.value = "";
