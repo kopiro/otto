@@ -77,14 +77,22 @@
 }
 
 .message.error {
-  color: #dc3545 !important;
+  background-color: #dc3545 !important;
   font-weight: bold;
+}
+
+.message.error:before {
+  border-left: 20px solid #dc3545 !important;
 }
 
 .message.system {
   background-color: #ffc107 !important;
   font-family: monospace;
   color: #000;
+}
+
+.message.system:before {
+  border-left: 20px solid #ffc107 !important;
 }
 
 .message.output {
