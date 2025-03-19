@@ -26,8 +26,8 @@ export enum OutputSource {
   input = "input",
   report = "report",
   scheduler = "scheduler",
-  command = "command",
   mirror = "mirror",
+  api = "api",
 }
 
 export type IODriverId = "telegram" | "voice" | "web";
@@ -213,7 +213,7 @@ export class IOManager {
       time: new Date(),
       output,
       ioChannel: ioChannel.toJSONDebug(),
-      personId: person.toJSONDebug(),
+      person: person.toJSONDebug(),
       bag,
       source,
       wasRedirectedTo,

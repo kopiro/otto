@@ -42,7 +42,7 @@ export class IInteraction {
   @prop({ required: true })
   public createdAt!: Date;
 
-  @prop({ required: true })
+  @prop({ required: false })
   public inputId?: string;
 
   @prop({ required: false, type: mongoose.Schema.Types.Mixed })

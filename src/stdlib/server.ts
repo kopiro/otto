@@ -4,7 +4,7 @@ import config from "../config";
 import { publicDir, tmpDir } from "../paths";
 import { getVoiceFileFromText } from "./voice-helpers";
 import { TextToSpeech } from "./text-to-speech";
-import { IOManager } from "./io-manager";
+import { IOManager, OutputSource } from "./io-manager";
 import rateLimit from "express-rate-limit";
 import { Signale } from "signale";
 import { IOChannel } from "../data/io-channel";
@@ -131,7 +131,9 @@ routerApi.post("/output", async (req, res) => {
     const ioChannel = await IOChannel.findByIdOrThrow(req.body.io_channel);
     const person = await Person.findByIdOrThrow(req.body.person);
 
-    const result = await IOManager.getInstance().output(output, ioChannel, person, bag);
+    const result = await IOManager.getInstance().output(output, ioChannel, person, bag, {
+      source: OutputSource.api,
+    });
     return res.json(result);
   } catch (err) {
     logger.error("/api/output error", err);
