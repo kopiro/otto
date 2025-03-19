@@ -303,7 +303,7 @@ audio {
 .brain-reload-types {
   display: flex;
   gap: 1em;
-  margin-bottom: 1em;
+  align-items: center;
 }
 
 .message {
@@ -325,6 +325,7 @@ audio {
 }
 
 .message.system {
+  background-color: red;
   font-family: monospace;
 }
 
@@ -437,4 +438,42 @@ table td {
 audio {
   width: 100%;
   height: 30px;
+}
+
+.admin-section {
+  margin-top: 20px;
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.select-group {
+  margin-bottom: 15px;
+}
+
+.select-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+.select-group select {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: white;
+}
+
+.select-group select:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.input-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  vertical-align: middle;
 }

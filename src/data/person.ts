@@ -41,6 +41,16 @@ export class IPerson {
     return this.name;
   }
 
+  public toJSONAPI() {
+    return {
+      id: this.id,
+      name: this.getName(),
+      language: this.language,
+      authorizations: this.authorizations,
+      ioIdentifiers: this.ioIdentifiers,
+    };
+  }
+
   static async findByIdOrThrow(this: ReturnModelType<typeof IPerson>, id: string): Promise<TPerson> {
     const person = await Person.findById(id);
     if (!person) throw new Error(`Person <${id}> not found`);

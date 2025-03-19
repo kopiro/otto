@@ -92,6 +92,17 @@ export class IIOChannel {
     };
   }
 
+  public toJSONAPI() {
+    return {
+      id: this.id,
+      name: this.getName(),
+      driverName: this.getDriverName(),
+      ioDriver: this.ioDriver,
+      ioIdentifier: this.ioIdentifier,
+      ioData: this.ioData,
+    };
+  }
+
   public getName() {
     switch (this.ioDriver) {
       case "telegram": {

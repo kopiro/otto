@@ -57,23 +57,51 @@
 
     <div>
       <h2>Admin</h2>
-      <div>
-        <div class="brain-reload-types">
-          <div>
-            <input name="brain-reload-declarative" type="checkbox" />
-            <label for="brain-reload-declarative">Declarative</label>
-          </div>
-          <div>
-            <input name="brain-reload-episodic" type="checkbox" />
-            <label for="brain-reload-episodic">Episodic</label>
-          </div>
-          <div>
-            <input name="brain-reload-social" type="checkbox" />
-            <label for="brain-reload-social">Social</label>
+      <div id="admin">
+        <div class="admin-section">
+          <div class="brain-reload-types">
+            <div>
+              <input id="brain-reload-declarative" type="checkbox" />
+              <label for="brain-reload-declarative">Declarative</label>
+            </div>
+            <div>
+              <input id="brain-reload-episodic" type="checkbox" />
+              <label for="brain-reload-episodic">Episodic</label>
+            </div>
+            <div>
+              <input id="brain-reload-social" type="checkbox" />
+              <label for="brain-reload-social">Social</label>
+            </div>
+            <button id="brain-reload">Brain reload</button>
           </div>
         </div>
-        <div>
-          <button id="brain-reload">Brain reload</button>
+        <div class="admin-section">
+          <div class="select-group">
+            <label for="io-channels">IO Channels</label>
+            <select id="io-channels">
+              <option value="">Loading...</option>
+            </select>
+          </div>
+          <div class="select-group">
+            <label for="people">People</label>
+            <select id="people">
+              <option value="">Loading...</option>
+            </select>
+          </div>
+        </div>
+        <div class="admin-section">
+          <div class="input-group">
+            <label for="admin-input-message">Input API</label>
+            <input type="text" id="admin-input-message" placeholder="Enter message..." style="width: 300px" />
+            <button id="send-input-message">Send</button>
+          </div>
+        </div>
+        <div class="admin-section">
+          <div class="input-group">
+            <label for="admin-output-message">Output API</label>
+            <input type="text" id="admin-output-message" placeholder="Enter message..." style="width: 300px" />
+            <button id="send-output-message">Send</button>
+          </div>
         </div>
       </div>
     </div>

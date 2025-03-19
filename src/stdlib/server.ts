@@ -97,18 +97,42 @@ routerApi.get("/user-speech", async (req: express.Request, res: express.Response
 // POST /api/input { "io_channel": "ID", "person": "ID", "params": { "text": "Hello" } }
 routerApi.post("/input", async (req, res) => {
   try {
-    const { io_channel: io_channel_id, params, person: person_id } = req.body;
+    const { io_channel: io_channel_id, input, person: person_id, bag } = req.body;
+    if (!input) throw new Error("req.body.params is required");
     if (!io_channel_id) throw new Error("req.body.io_channel is required");
-    if (!params) throw new Error("req.body.params is required");
     if (!person_id) throw new Error("req.body.person is required");
 
     const ioChannel = await IOChannel.findByIdOrThrow(req.body.io_channel);
     const person = await Person.findByIdOrThrow(req.body.person);
 
-    const result = await IOManager.getInstance().input(req.body.params, ioChannel, person, null);
+    const result = await IOManager.getInstance().input(input, ioChannel, person, bag);
     return res.json(result);
   } catch (err) {
     logger.error("/api/input error", err);
+    return res.status(400).json({
+      error: {
+        message: (err as Error)?.message,
+      },
+    });
+  }
+});
+
+// API to kick-in output
+// POST /api/output { "io_channel": "ID", "person": "ID", "params": { "text": "Hello" } }
+routerApi.post("/output", async (req, res) => {
+  try {
+    const { io_channel: io_channel_id, output, person: person_id, bag } = req.body;
+    if (!output) throw new Error("req.body.params is required");
+    if (!io_channel_id) throw new Error("req.body.io_channel is required");
+    if (!person_id) throw new Error("req.body.person is required");
+
+    const ioChannel = await IOChannel.findByIdOrThrow(req.body.io_channel);
+    const person = await Person.findByIdOrThrow(req.body.person);
+
+    const result = await IOManager.getInstance().output(output, ioChannel, person, bag);
+    return res.json(result);
+  } catch (err) {
+    logger.error("/api/output error", err);
     return res.status(400).json({
       error: {
         message: (err as Error)?.message,
@@ -175,6 +199,13 @@ routerApi.get(`/memories/search`, async (req, res) => {
   }
 });
 
+// API that exposes persons
+routerApi.get("/persons", async (_, res) => {
+  const persons = await Person.find();
+  const data = persons.map((person) => person.toJSONAPI());
+  res.json({ data });
+});
+
 routerApi.get(`/persons/:personId`, async (req, res) => {
   try {
     const { personId } = req.params;
@@ -204,6 +235,13 @@ routerApi.post(`/person/:personId/approve`, async (req, res) => {
       },
     });
   }
+});
+
+// API that exposes ioChannels
+routerApi.get(`/io_channels`, async (_, res) => {
+  const ioChannels = await IOChannel.find();
+  const data = ioChannels.map((ioChannel) => ioChannel.toJSONAPI());
+  res.json({ data });
 });
 
 routerApi.get(`/io_channels/:ioChannelId`, async (req, res) => {
