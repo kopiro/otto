@@ -32,6 +32,8 @@ const $ioChannelGetInteractions = $("#io-channel-get-interactions") as HTMLButto
 const $ioChannelsSelect = document.getElementById("io-channels") as HTMLSelectElement;
 const $peopleSelect = document.getElementById("people") as HTMLSelectElement;
 
+const $personApprove = $("#person-approve") as HTMLButtonElement;
+
 const $inputMessage = $("#admin-input-message") as HTMLInputElement;
 const $sendInputMessage = $("#send-input-message") as HTMLButtonElement;
 
@@ -72,6 +74,22 @@ async function apiGetInteractions(ioChannelId: string): Promise<Interaction[]> {
   const json = await response.json();
 
   return json.data ?? [];
+}
+
+function bindEventsPersonApprove() {
+  $personApprove.addEventListener("click", async () => {
+    const personId = $peopleSelect.value;
+    const response = await fetch(`/api/persons/${personId}/approve`, {
+      method: "POST",
+      headers: {
+        "x-auth-person": localStorage.getItem("auth"),
+      },
+    });
+
+    const json = await response.json();
+
+    addMessage("CONTROL CENTER", JSON.stringify(json), `system output ${json.error ? "error" : ""}`);
+  });
 }
 
 function bindEventsIOChannelGetInteractions() {
@@ -240,4 +258,5 @@ export function bindEvents() {
   bindEventsInputMessage();
   bindEventsOutputMessage();
   bindEventsIOChannelGetInteractions();
+  bindEventsPersonApprove();
 }
