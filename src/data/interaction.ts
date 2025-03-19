@@ -25,6 +25,8 @@ const logger = new Signale({
 @modelOptions({ schemaOptions: { collection: "interactions" }, options: { allowMixed: 0 } })
 @plugin(autopopulate)
 export class IInteraction {
+  public id!: string;
+
   @prop({ required: true })
   public managerUid!: string;
 
@@ -52,7 +54,19 @@ export class IInteraction {
   @prop({ required: false, type: mongoose.Schema.Types.String })
   public source?: OutputSource;
 
-  getSourceName(this: TInteraction): string {
+  public toJSONAPI() {
+    return {
+      id: this.id,
+      inputId: this.inputId,
+      input: this.input,
+      output: this.output,
+      source: this.source,
+      sourceName: this.getSourceName(),
+      createdAt: this.createdAt,
+    };
+  }
+
+  public getSourceName(): string {
     // When the AI spoke
     if (this.output) {
       return config().aiName.toUpperCase();
@@ -64,10 +78,10 @@ export class IInteraction {
         return "SYSTEM";
       }
       if (isDocument(this.person)) {
-        return this.person.name;
+        return this.person.getName();
       }
       if (isDocument(this.ioChannel) && isDocument(this.ioChannel.person)) {
-        return this.ioChannel.person.name;
+        return this.ioChannel.person.getName();
       }
     }
 

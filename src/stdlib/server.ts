@@ -15,6 +15,7 @@ import { AIVectorMemory, MemoryType } from "./ai/ai-vectormemory";
 import { throwIfMissingAuthorizations } from "../helpers";
 import { Database } from "./database";
 import { AIOpenAI } from "./ai/ai-openai";
+import { Interaction } from "../data/interaction";
 
 const TAG = "Server";
 const logger = new Signale({
@@ -210,7 +211,7 @@ routerApi.get(`/persons/:personId`, async (req, res) => {
   try {
     const { personId } = req.params;
     const person = await Person.findByIdOrThrow(personId);
-    res.json(person);
+    res.json(person.toJSONAPI());
   } catch (err) {
     return res.status(400).json({
       error: {
@@ -248,7 +249,7 @@ routerApi.get(`/io_channels/:ioChannelId`, async (req, res) => {
   try {
     const { ioChannelId } = req.params;
     const ioChannel = await IOChannel.findByIdOrThrow(ioChannelId);
-    res.json(ioChannel);
+    res.json(ioChannel.toJSONAPI());
   } catch (err) {
     return res.status(400).json({
       error: {
@@ -256,6 +257,15 @@ routerApi.get(`/io_channels/:ioChannelId`, async (req, res) => {
       },
     });
   }
+});
+
+// API that exposes interactions with a specific IOChannel
+routerApi.get(`/io_channels/:ioChannelId/interactions`, async (req, res) => {
+  const { ioChannelId } = req.params;
+  const ioChannel = await IOChannel.findByIdOrThrow(ioChannelId);
+  const interactions = await Interaction.find({ ioChannel: ioChannel.id }).sort({ createdAt: +1 });
+  const data = interactions.map((interaction) => interaction.toJSONAPI());
+  res.json({ data });
 });
 
 routerApi.post(`/admin/brain_reload`, async (req, res) => {

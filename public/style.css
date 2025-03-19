@@ -224,14 +224,10 @@ hr {
   transform: translate(-30px, -2px);
 }
 
-input[type="text"] {
-  height: 2em;
-  padding: 0.2em;
-}
-
+select,
 button {
-  padding: 0.2em;
   height: 2em;
+  padding: 0.2em;
 }
 
 #conversation,
@@ -246,8 +242,6 @@ button {
 #conversation input[type="text"],
 #repeat input[type="text"] {
   flex-grow: 1;
-  font-size: 18px;
-  font-weight: bold;
 }
 
 label {
@@ -423,8 +417,6 @@ button {
 #conversation input[type="text"],
 #repeat input[type="text"] {
   flex-grow: 1;
-  font-size: 18px;
-  font-weight: bold;
 }
 
 label {
@@ -447,33 +439,10 @@ audio {
   border-radius: 4px;
 }
 
-.select-group {
-  margin-bottom: 15px;
-}
-
-.select-group label {
-  display: block;
-  margin-bottom: 5px;
-  font-weight: bold;
-}
-
-.select-group select {
-  width: 100%;
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  background-color: white;
-}
-
-.select-group select:focus {
-  outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
-}
-
 .input-group {
   display: flex;
   align-items: center;
   gap: 0.5em;
   vertical-align: middle;
+  margin-bottom: 1em;
 }

@@ -1,4 +1,4 @@
-import { $, $$, addMessage } from "./utils";
+import { $, $$, addMessage, cleanMessages } from "./utils";
 
 interface IOChannel {
   id: string;
@@ -11,7 +11,23 @@ interface Person {
   name: string;
 }
 
+interface Interaction {
+  id: string;
+  input: {
+    text?: string;
+  };
+  output: {
+    text?: string;
+  };
+  source: "input" | "output";
+  createdAt: string;
+  person: Person;
+  sourceName: string;
+}
+
 const $brainReload = $("#brain-reload") as HTMLButtonElement;
+
+const $ioChannelGetInteractions = $("#io-channel-get-interactions") as HTMLButtonElement;
 
 const $ioChannelsSelect = document.getElementById("io-channels") as HTMLSelectElement;
 const $peopleSelect = document.getElementById("people") as HTMLSelectElement;
@@ -52,10 +68,54 @@ export async function apiGetPeople(): Promise<Person[]> {
   return json.data;
 }
 
+async function apiGetInteractions(ioChannelId: string): Promise<Interaction[]> {
+  const response = await fetch(`/api/io_channels/${ioChannelId}/interactions`, {
+    headers: {
+      "x-auth-person": localStorage.getItem("auth"),
+    },
+  });
+
+  const json = await response.json();
+  if (json.error) {
+    addMessage("System", json.error.message, "system output error");
+    return [];
+  }
+
+  return json.data;
+}
+
+function bindEventsIOChannelGetInteractions() {
+  $ioChannelGetInteractions.addEventListener("click", async () => {
+    cleanMessages();
+
+    const ioChannelId = $ioChannelsSelect.value;
+    const interactions = await apiGetInteractions(ioChannelId);
+
+    interactions.forEach((interaction) => {
+      if (interaction.input) {
+        addMessage(
+          interaction.sourceName,
+          interaction.input.text ? interaction.input.text : JSON.stringify(interaction.input),
+          "input",
+          interaction.createdAt,
+        );
+      }
+      if (interaction.output) {
+        addMessage(
+          interaction.sourceName,
+          interaction.output.text ? interaction.output.text : JSON.stringify(interaction.output),
+          "output",
+          interaction.createdAt,
+        );
+      }
+    });
+  });
+}
+
 function bindEventsBrainReload() {
   $brainReload.addEventListener("click", async () => {
     if (!localStorage.getItem("auth")) {
-      addMessage("No auth", "system error");
+      addMessage("System", "No auth", "system output error");
       return;
     }
 
@@ -85,9 +145,9 @@ function bindEventsBrainReload() {
     const json = await resp.json();
 
     if (json.error) {
-      addMessage(json.error.message, "system error");
+      addMessage("System", json.error.message, "system output error");
     } else {
-      addMessage("Brain reloaded", "system");
+      addMessage("System", "Brain reloaded", "system output");
     }
 
     $brainReload.removeAttribute("disabled");
@@ -160,9 +220,9 @@ function bindEventsInputMessage() {
     const json = await response.json();
 
     if (json.error) {
-      addMessage(json.error.message, "system error");
+      addMessage("System", json.error.message, "system output error");
     } else {
-      addMessage("Input message sent", "system");
+      addMessage("System", "Input message sent", "system outout");
     }
 
     $inputMessage.value = "";
@@ -192,9 +252,9 @@ function bindEventsOutputMessage() {
     const json = await response.json();
 
     if (json.error) {
-      addMessage(json.error.message, "system error");
+      addMessage("System", json.error.message, "system output error");
     } else {
-      addMessage("Output message sent", "system");
+      addMessage("System", "Output message sent", "system output");
     }
 
     $outputMessage.value = "";
@@ -206,4 +266,5 @@ export function bindEvents() {
   bindEventsBrainReload();
   bindEventsInputMessage();
   bindEventsOutputMessage();
+  bindEventsIOChannelGetInteractions();
 }

@@ -6,10 +6,19 @@ const $aiAudio = $("#ai-audio") as HTMLAudioElement;
 const $userAudio = $("#user-audio") as HTMLAudioElement;
 const $inputPerson = $("#person") as HTMLInputElement;
 
-export function addMessage(text: string, className: string) {
+export function cleanMessages() {
+  $messages.innerHTML = "";
+}
+
+export function addMessage(
+  author: string,
+  text: string,
+  className: string,
+  createdAt: string = new Date().toISOString(),
+) {
   const div = document.createElement("div");
   div.className = `message ${className}`;
-  div.textContent = text;
+  div.textContent = `${author}: ${text}`;
   $messages.appendChild(div);
 
   // Scroll down the chat
@@ -29,14 +38,13 @@ export async function apiIOWeb(body: string | FormData) {
 
     const json = await response.json();
 
-    const { output, error, voice } = json;
-
-    if (error) {
-      addMessage(error.message, "output error");
+    if (json.error) {
+      addMessage("System", json.error.message, "output error");
       return;
     }
 
-    addMessage(output.text, "output");
+    const { output, voice } = json;
+    addMessage("AI", output.text, "output");
 
     if (voice) {
       $aiAudio.src = voice;

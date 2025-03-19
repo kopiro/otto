@@ -38,7 +38,7 @@ export function bindEvents() {
     const textInputEl = $formConversation.querySelector("input[type=text]") as HTMLInputElement;
     if (!textInputEl.value) return;
 
-    addMessage(textInputEl.value, "input");
+    addMessage("Human", textInputEl.value, "input");
 
     if ($inputUserTextToSpeech.checked) {
       userTextToSpeech(textInputEl.value, $inputGender.value);
