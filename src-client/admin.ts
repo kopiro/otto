@@ -34,10 +34,10 @@ const $peopleSelect = document.getElementById("people") as HTMLSelectElement;
 
 const $personApprove = $("#person-approve") as HTMLButtonElement;
 
-const $inputMessage = $("#admin-input-message") as HTMLInputElement;
+const $inputMessage = $("#admin-input-message-text") as HTMLInputElement;
 const $formInputMessage = $("#admin-input-message") as HTMLFormElement;
 
-const $outputMessage = $("#admin-output-message") as HTMLInputElement;
+const $outputMessage = $("#admin-output-message-text") as HTMLInputElement;
 const $formOutputMessage = $("#admin-output-message") as HTMLFormElement;
 
 export async function apiGetIOChannels(): Promise<IOChannel[]> {
