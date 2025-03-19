@@ -35,10 +35,10 @@ const $peopleSelect = document.getElementById("people") as HTMLSelectElement;
 const $personApprove = $("#person-approve") as HTMLButtonElement;
 
 const $inputMessage = $("#admin-input-message") as HTMLInputElement;
-const $sendInputMessage = $("#send-input-message") as HTMLButtonElement;
+const $formInputMessage = $("#admin-input-message") as HTMLFormElement;
 
 const $outputMessage = $("#admin-output-message") as HTMLInputElement;
-const $sendOutputMessage = $("#send-output-message") as HTMLButtonElement;
+const $formOutputMessage = $("#admin-output-message") as HTMLFormElement;
 
 export async function apiGetIOChannels(): Promise<IOChannel[]> {
   const response = await fetch(`/api/io_channels`, {
@@ -196,7 +196,9 @@ function bindEventsSelects() {
 }
 
 function bindEventsInputMessage() {
-  $sendInputMessage.addEventListener("click", async () => {
+  $formInputMessage.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
     const ioChannelId = $ioChannelsSelect.value;
     const personId = $peopleSelect.value;
 
@@ -225,7 +227,9 @@ function bindEventsInputMessage() {
 }
 
 function bindEventsOutputMessage() {
-  $sendOutputMessage.addEventListener("click", async () => {
+  $formOutputMessage.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
     const ioChannelId = $ioChannelsSelect.value;
     const personId = $peopleSelect.value;
 
