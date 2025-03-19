@@ -31,7 +31,11 @@ export function addMessage(
   const dateDiv = document.createElement("div");
   dateDiv.className = "message-date";
   const date = new Date(createdAt);
-  dateDiv.textContent = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const today = new Date();
+  const isToday = date.toDateString() === today.toDateString();
+  dateDiv.textContent = isToday
+    ? date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    : date.toLocaleDateString() + " " + date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   headerDiv.appendChild(dateDiv);
 
   // Create text content
