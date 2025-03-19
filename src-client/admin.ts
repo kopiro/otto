@@ -211,7 +211,7 @@ function bindEventsInputMessage() {
         io_channel: ioChannelId,
         person: personId,
         input: {
-          role: "CONTROL CENTER",
+          role: "system",
           text: $inputMessage.value,
         },
       }),
