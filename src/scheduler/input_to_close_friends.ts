@@ -8,6 +8,7 @@ import { Person, TPerson } from "../data/person";
 import { TScheduler } from "../data/scheduler";
 import { Signale } from "signale";
 import config from "../config";
+import mongoose from "mongoose";
 
 const EXTRACT_LAST_DAYS = 7;
 const MAX_INTERACTIONS = 5;
@@ -41,7 +42,9 @@ export default class InputToCloseFriendsScheduler extends SchedulerRuntimeFuncti
       return _ioChannelsWithTime;
     }
 
-    const skipPersonIds = config().scheduler.inputToCloseFriends.skipPersonIds;
+    const skipPersonIds = config().scheduler.inputToCloseFriends.skipPersonIds.map(
+      (id) => new mongoose.Types.ObjectId(id),
+    );
 
     // Starting from "Interactions", get the most popular in the last 7 days and extract the ioChannels
     // of the people who interacted with them
