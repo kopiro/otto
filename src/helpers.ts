@@ -169,8 +169,14 @@ export async function report(error: IErrorWithData) {
   try {
     logger.fatal(`Reporting`, error);
 
-    const ioChannel = await IOChannel.findOne({ useForReporting: true });
-    const person = await Person.findOne({ useForReporting: true });
+    const { ioChannelId, personId } = config().reporting;
+    if (!ioChannelId || !personId) {
+      logger.fatal(`Unable to report error, no ioChannelId or personId found`, { ioChannelId, personId });
+      return;
+    }
+
+    const ioChannel = await IOChannel.findById(ioChannelId);
+    const person = await Person.findById(personId);
     if (!person || !ioChannel) {
       logger.fatal(`Unable to report error, no person or ioChannel found`, { person, ioChannel });
       return;

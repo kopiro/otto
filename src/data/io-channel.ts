@@ -45,9 +45,6 @@ export class IIOChannel {
   @prop({ required: true })
   public createdAt?: Date;
 
-  @prop({ required: false })
-  public useForReporting?: boolean;
-
   /**
    * In case there is a direct correlation between the channel and a person (DM),
    * you can use this field directly to refer to the person,

@@ -12,6 +12,10 @@
   "ioDrivers": [],
   "ioAccessoriesMap": {},
   "voiceSoxArgs": [],
+  "reporting": {
+    "ioChannelId": null,
+    "personId": null
+  },
   "scheduler": {
     "enabled": true,
     "inputToCloseFriends": {

@@ -27,9 +27,6 @@ export class IPerson {
   @prop({ required: true, type: mongoose.Schema.Types.Mixed })
   public ioIdentifiers!: Record<IODriverId, string>;
 
-  @prop({ required: false })
-  public useForReporting?: boolean;
-
   public toJSONDebug() {
     return {
       id: this.id,
