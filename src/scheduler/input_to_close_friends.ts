@@ -41,6 +41,8 @@ export default class InputToCloseFriendsScheduler extends SchedulerRuntimeFuncti
       return _ioChannelsWithTime;
     }
 
+    const skipPersonIds = config().scheduler.inputToCloseFriends.skipPersonIds;
+
     // Starting from "Interactions", get the most popular in the last 7 days and extract the ioChannels
     // of the people who interacted with them
     const data = await Interaction.aggregate([
@@ -51,6 +53,7 @@ export default class InputToCloseFriendsScheduler extends SchedulerRuntimeFuncti
           },
           input: { $exists: true },
           managerUid: config().uid,
+          person: { $nin: skipPersonIds },
         },
       },
       {

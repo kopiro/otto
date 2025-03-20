@@ -276,7 +276,6 @@ export class AIVectorMemory {
 
   /**
    * The episodic memory is created by reducing all the interactions of a day to a single sentence.
-   * This is done by using the GPT-3 chat model to reduce the interactions to a single sentence.
    * The reduced sentence is then saved to Qdrant.
    * The interactions are then marked as reduced.
    */

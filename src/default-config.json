@@ -13,7 +13,10 @@
   "ioAccessoriesMap": {},
   "voiceSoxArgs": [],
   "scheduler": {
-    "enabled": true
+    "enabled": true,
+    "inputToCloseFriends": {
+      "skipPersonIds": []
+    }
   },
   "speechRecognizer": {},
   "httpSpeaker": {
@@ -50,7 +53,7 @@
     "promptUrl": "",
     "declarativeMemoryUrl": "",
     "conversationModel": "gpt-4o",
-    "textReducerModel": "gpt-4o",
+    "textReducerModel": "gpt-3.5-turbo",
     "interactionLimit": 30,
     "vectorMemory": {
       "declarative": {
