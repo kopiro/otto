@@ -258,6 +258,8 @@ export class AIOpenAI {
 
     const response = await OpenAIApiSDK().chat.completions.create({
       model: this.conf.textReducerModel,
+      // Make it predictable
+      temperature: 0,
       messages: [
         {
           role: "system",

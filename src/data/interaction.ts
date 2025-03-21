@@ -69,7 +69,7 @@ export class IInteraction {
   public getSourceName(): string {
     // When the AI spoke
     if (this.output) {
-      return config().aiName.toUpperCase();
+      return config().aiName;
     }
 
     // When the user spoke, or the system

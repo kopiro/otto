@@ -134,14 +134,14 @@ export class IIOChannel {
         switch (ioData?.type) {
           case "supergroup":
           case "group": {
-            chatName = `in the group chat "${this.getOwnerName()}"`;
+            chatName = `Group: "${this.getOwnerName()}"`;
             break;
           }
           case "channel":
-            chatName = `in the channel "${this.getOwnerName()}"`;
+            chatName = `Channel: "${this.getOwnerName()}"`;
             break;
           case "private":
-            chatName = `in a private chat with "${this.getOwnerName()}"`;
+            chatName = `DM: "${this.getOwnerName()}"`;
             break;
         }
         return `On Telegram (${chatName})`;
@@ -149,7 +149,7 @@ export class IIOChannel {
       case "voice":
         return "Face to face";
       case "web":
-        return "On the web interface";
+        return "On the Web interface";
       default:
         return "Unknown";
     }

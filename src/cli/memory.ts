@@ -6,12 +6,10 @@ import { Interaction } from "../data/interaction";
 import { AIVectorMemory, MemoryType } from "../stdlib/ai/ai-vectormemory";
 import { Signale } from "signale";
 
-import { createInterface } from "readline";
+import readline from "node:readline/promises";
+import { stdin, stdout } from "node:process";
 
-const rl = createInterface({
-  input: process.stdin,
-  output: process.stdout,
-});
+const rl = readline.createInterface({ input: stdin, output: stdout });
 
 const TAG = "Memory";
 const logger = new Signale({
@@ -24,8 +22,15 @@ warmup()
     const MEMORY_TYPE = (process.env.MEMORY_TYPE ?? "").split(",");
 
     if (!config().centralNode) {
-      logger.warn("This script should only be run on the central node");
-      // process.exit(1);
+      if (process.env.INTERACTIVE) {
+        if (
+          (await rl.question("This script should only be run on the central node, do you want to continue (y/n)? ")) !==
+          "y"
+        ) {
+          logger.warn("Aborted");
+          process.exit(0);
+        }
+      }
     }
 
     if (MEMORY_TYPE.includes(MemoryType.declarative)) {
@@ -39,18 +44,16 @@ warmup()
     if (MEMORY_TYPE.includes(MemoryType.episodic)) {
       if (process.env.REBUILD_MEMORY) {
         // Ask for confirmation with readline
-        const answer = await new Promise<string>((resolve) => {
-          rl.question("Are you sure you want to erase episodic memory? (yes/no) ", (ans) => {
-            resolve(ans);
-          });
-        });
-        if (answer !== "yes") {
+        if ((await rl.question("Are you sure you want to erase episodic memory (y/n)? ")) !== "y") {
           logger.warn("Aborted");
           process.exit(0);
         }
-        await aiVectorMemory.deleteCollection(MemoryType.episodic);
-        const op = await Interaction.updateMany({}, { $unset: { reducedTo: true } });
-        logger.success(`Erased reducedTo in interactions`, op);
+
+        const op1 = await aiVectorMemory.deleteCollection(MemoryType.episodic);
+        logger.success(`Deleted episodic memory`, op1);
+
+        const op2 = await Interaction.updateMany({}, { $unset: { reducedTo: true } });
+        logger.success(`Erased reducedTo in interactions`, op2);
       }
       await aiVectorMemory.buildEpisodicMemory();
     }
