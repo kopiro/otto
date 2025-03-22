@@ -3,7 +3,7 @@ import config from "../config";
 
 let instance: OpenAI | undefined;
 
-export function OpenAIApiSDK(): OpenAI {
+export function OpenAISDK(): OpenAI {
   if (!instance) {
     const _config = config().openai;
     instance = new OpenAI({ apiKey: _config.apiKey });

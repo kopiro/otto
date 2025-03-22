@@ -54,13 +54,22 @@
   },
   "openai": {
     "apiKey": "",
-    "promptUrl": "",
-    "declarativeMemoryUrl": "",
+    "temperature": 0.7,
     "conversationModel": "chatgpt-4o-latest",
     "textReducerModel": "gpt-3.5-turbo",
-    "fineTuneModel": "gpt-4o-2024-08-06",
+    "fineTuneModel": "gpt-4o-2024-08-06"
+  },
+  "deepseek": {
+    "apiKey": "",
+    "temperature": 0.7,
+    "conversationModel": "deepseek-chat",
+    "textReducerModel": "deepseek-chat"
+  },
+  "memory": {
     "interactionLimit": 30,
-    "memory": {
+    "promptUrl": "",
+    "declarativeMemoryUrl": "",
+    "vectorial": {
       "declarative": {
         "limit": 20,
         "scoreThreshold": 0.6

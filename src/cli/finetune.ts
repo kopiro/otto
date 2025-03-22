@@ -10,7 +10,7 @@ import { createReadStream } from "node:fs";
 
 import readline from "node:readline/promises";
 import { stdin, stdout } from "node:process";
-import { OpenAIApiSDK } from "../lib/openai";
+import { OpenAISDK } from "../lib/openai";
 import { tmpDir } from "../paths";
 import { writeFileSync } from "node:fs";
 import brain from "../../keys/brain.json";
@@ -25,7 +25,7 @@ const logger = new Signale({
 warmup()
   .then(async () => {
     const aiMemory = AIMemory.getInstance();
-    const openai = OpenAIApiSDK();
+    const openai = OpenAISDK();
 
     const promptMemory = await aiMemory.getPromptMemory();
     const declarativeMemory = await aiMemory.getDeclarativeMemory();

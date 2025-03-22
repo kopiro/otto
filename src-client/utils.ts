@@ -103,7 +103,10 @@ export async function aiTextToSpeech(text: string) {
   $aiAudio.play();
 
   const url = new URL("/api/speech", location.href);
-  url.search = new URLSearchParams({ text, person: $inputPerson.value }).toString();
+  url.search = new URLSearchParams({
+    text,
+    "x-auth-person": localStorage.getItem("auth"),
+  }).toString();
 
   $aiAudio.src = url.toString();
 

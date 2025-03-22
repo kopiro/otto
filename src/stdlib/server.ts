@@ -41,7 +41,7 @@ routerApi.use(express.urlencoded({ extended: true }));
 
 routerApi.use(async (req: express.Request, res: express.Response, next: express.NextFunction) => {
   try {
-    const xAuthPerson = String(req.headers["x-auth-person"]);
+    const xAuthPerson = String(req.headers["x-auth-person"]) || String(req.query["x-auth-person"]);
     if (!xAuthPerson) throw new Error("Authorization personID is required");
 
     const person = await Person.findByIdOrThrow(xAuthPerson);
@@ -276,15 +276,18 @@ routerApi.post(`/admin/brain_reload`, async (req, res) => {
     if (!types) throw new Error("req.body.types is required");
 
     const result: Record<string, any> = {};
-    // if (types.includes("prompt")) {
-    //   result.prompt = Boolean(await AIOpenAI.getInstance().getHeaderPromptAsText(true));
-    // }
+    if (types.includes("prompt")) {
+      result.prompt = Boolean(await AIMemory.getInstance().getPrompt(true));
+    }
     if (types.includes("declarative")) {
       result.declarative = await AIMemory.getInstance().buildDeclarativeMemory();
     }
     if (types.includes("social")) {
       result.social = await AIMemory.getInstance().buildSocialMemory();
     }
+    // if (types.includes("episodic")) {
+    //   result.episodic = await AIMemory.getInstance().buildEpisodicMemory();
+    // }
     res.json({ result });
   } catch (err) {
     return res.status(400).json({

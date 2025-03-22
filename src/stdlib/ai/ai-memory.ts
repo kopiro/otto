@@ -1,17 +1,18 @@
 import { Signale } from "signale";
 import config from "../../config";
 import { QDrantSDK } from "../../lib/qdrant";
-import { OpenAIApiSDK } from "../../lib/openai";
+import { OpenAISDK } from "../../lib/openai";
 import fetch from "node-fetch";
 import { Interaction, TInteraction } from "../../data/interaction";
 import { DocumentType, isDocument } from "@typegoose/typegoose";
 import { FacebookFeedItem, getFacebookFeed } from "../../lib/facebook";
-import { IIOChannel } from "../../data/io-channel";
-import { AIOpenAI } from "./ai-openai";
+import { IIOChannel, TIOChannel } from "../../data/io-channel";
+import { AIBrain } from "./ai-brain";
 import getUuidByString from "uuid-by-string";
 
 import readline from "node:readline/promises";
 import { stdin, stdout } from "node:process";
+import { TPerson } from "../../data/person";
 
 const rl = readline.createInterface({ input: stdin, output: stdout });
 
@@ -19,6 +20,8 @@ const TAG = "AIMemory";
 const logger = new Signale({
   scope: TAG,
 });
+
+const EMBEDDING_MODEL = "text-embedding-ada-002";
 
 export enum MemoryType {
   "episodic" = "episodic",
@@ -38,18 +41,69 @@ type QdrantPayload = {
 type Config = {
   promptUrl: string;
   declarativeMemoryUrl: string;
+  interactionLimit: number;
+  vectorial: {
+    declarative: {
+      limit: number;
+      scoreThreshold: number;
+    };
+    episodic: {
+      limit: number;
+      scoreThreshold: number;
+    };
+    social: {
+      limit: number;
+      scoreThreshold: number;
+    };
+  };
 };
 
 export class AIMemory {
   private static instance: AIMemory;
 
-  constructor(private conf: Config) {}
+  constructor(public conf: Config) {}
 
   static getInstance(): AIMemory {
     if (!AIMemory.instance) {
-      AIMemory.instance = new AIMemory(config().openai);
+      AIMemory.instance = new AIMemory(config().memory);
     }
     return AIMemory.instance;
+  }
+
+  async getRecentInteractions(ioChannel: TIOChannel, person: TPerson) {
+    // Get all Interaction where we have a input.text or output.text in the last 20m
+    return await Interaction.find({
+      $or: [
+        {
+          "output.text": { $ne: null },
+          ioChannel: ioChannel.id,
+          reducedTo: { $exists: false },
+        },
+        {
+          "input.text": { $ne: null },
+          ioChannel: ioChannel.id,
+          reducedTo: { $exists: false },
+        },
+        {
+          "output.text": { $ne: null },
+          person: person.id,
+          reducedTo: { $exists: false },
+        },
+        {
+          "input.text": { $ne: null },
+          person: person.id,
+          reducedTo: { $exists: false },
+        },
+      ],
+    })
+      .sort({ createdAt: -1 })
+      // In the last hour
+      .where({
+        createdAt: {
+          $gt: new Date(Date.now() - 1000 * 60 * 60),
+        },
+      })
+      .limit(this.conf.interactionLimit);
   }
 
   async createCollection(collection: MemoryType) {
@@ -103,9 +157,9 @@ export class AIMemory {
   }
 
   async createVector(text: string) {
-    const { data } = await OpenAIApiSDK().embeddings.create({
+    const { data } = await OpenAISDK().embeddings.create({
       input: text,
-      model: "text-embedding-ada-002",
+      model: EMBEDDING_MODEL,
     });
     return data[0].embedding;
   }
@@ -228,7 +282,7 @@ ${conversation.join("\n")}`;
 
         logger.debug("Reducing conversation: ", reducerPrompt);
 
-        const reducedText = await AIOpenAI.getInstance().reduceText(chunkId, reducerPrompt);
+        const reducedText = await AIBrain.getInstance().reduceText(chunkId, reducerPrompt);
         const reducedTextInChunks = this.chunkText(reducedText);
 
         logger.debug("---");
@@ -306,7 +360,7 @@ ${conversation.join("\n")}`;
 
   private prompt!: string;
 
-  public async getHeaderPromptAsText(refresh = false): Promise<string> {
+  public async getPrompt(refresh = false): Promise<string> {
     if (!this.prompt || refresh) {
       const prompt = await (await fetch(this.conf.promptUrl)).text();
       if (prompt) {
@@ -321,7 +375,7 @@ ${conversation.join("\n")}`;
   public async getPromptMemory() {
     logger.pending("Fetching Prompt by URL..");
 
-    const headerPrompt = await this.getHeaderPromptAsText();
+    const headerPrompt = await this.getPrompt();
     const chunks = this.chunkText(headerPrompt);
 
     return chunks.map((text) => ({

@@ -10,7 +10,9 @@
   display: flex;
   flex-direction: column;
   padding: 1em;
-  gap: 1em 0;
+  gap: 0.5em 0;
+  background-color: #1a1a1a;
+  color: #e0e0e0;
 }
 
 #messages::-webkit-scrollbar {
@@ -21,11 +23,11 @@
 }
 
 #messages::-webkit-scrollbar-track {
-  background-color: white;
+  background-color: #1a1a1a;
 }
 
 #messages::-webkit-scrollbar-thumb {
-  background-color: #bec4c8;
+  background-color: #4a4a4a;
   border-radius: 3px;
 }
 
@@ -41,7 +43,7 @@
 }
 
 .message {
-  padding: 10px 15px;
+  padding: 5px 12px;
   border-radius: 10px;
   clear: both;
   max-width: 90%;
@@ -49,6 +51,7 @@
   animation-duration: 0.4s;
   animation-name: slidein;
   position: relative;
+  font-size: 12px;
 }
 
 .message .message-header {
@@ -73,12 +76,13 @@
 
 .message .message-text {
   margin: 0;
-  line-height: 1.4;
+  line-height: 1em;
 }
 
 .message.error {
   background-color: #dc3545 !important;
   font-weight: bold;
+  color: white !important;
 }
 
 .message.error:before {
@@ -88,7 +92,7 @@
 .message.system {
   background-color: #ffc107 !important;
   font-family: monospace;
-  color: #000;
+  color: #000 !important;
 }
 
 .message.system:before {
@@ -96,14 +100,14 @@
 }
 
 .message.output {
-  background-color: #e5e5ea;
-  color: black;
+  background-color: #2d2d2d;
+  color: #e0e0e0;
   align-self: flex-start;
   border-bottom-left-radius: 30px 0px;
 }
 
 .message.output .message-header {
-  color: #666;
+  color: #a0a0a0;
 }
 
 .message.output:before {
@@ -113,7 +117,7 @@
   bottom: -2px;
   left: -7px;
   height: 19px;
-  border-left: 20px solid #e5e5ea;
+  border-left: 20px solid #2d2d2d;
   border-bottom-right-radius: 16px 14px;
   transform: translate(-1px, -2px);
   border-bottom-right-radius: 15px 0px;
@@ -127,7 +131,7 @@
   left: 4px;
   width: 26px;
   height: 20px;
-  background: white;
+  background: #1a1a1a;
   border-bottom-right-radius: 10px;
   transform: translate(-30px, -2px);
 }
@@ -164,16 +168,79 @@
   right: -42px;
   width: 12px;
   height: 20px;
-  background: white;
+  background: #1a1a1a;
   border-bottom-left-radius: 10px;
   transform: translate(-30px, -2px);
 }
 
 label {
   font-weight: bold;
+  color: #e0e0e0;
 }
 
 audio {
   width: 100%;
   height: 30px;
+}
+
+/* Dark mode form controls */
+.form-control:focus,
+.form-select:focus {
+  background-color: #2d2d2d !important;
+  border-color: #4a4a4a !important;
+  color: #e0e0e0 !important;
+  box-shadow: 0 0 0 0.25rem rgba(255, 255, 255, 0.1) !important;
+}
+
+.form-control::placeholder {
+  color: #6c757d !important;
+}
+
+/* Dark mode checkboxes */
+.form-check-input {
+  background-color: #2d2d2d;
+  border-color: #4a4a4a;
+}
+
+.form-check-input:checked {
+  background-color: #0d6efd;
+  border-color: #0d6efd;
+}
+
+/* Dark mode select dropdowns */
+.form-select option {
+  background-color: #2d2d2d;
+  color: #e0e0e0;
+}
+
+/* Dark mode input groups */
+.input-group-text {
+  background-color: #2d2d2d;
+  border-color: #4a4a4a;
+  color: #e0e0e0;
+}
+
+/* Dark mode text colors */
+.text-muted {
+  color: #a0a0a0 !important;
+}
+
+.form-check-label {
+  color: #e0e0e0;
+}
+
+/* Dark mode card headers */
+.card-header {
+  background-color: #2d2d2d;
+  border-bottom-color: #4a4a4a;
+}
+
+/* Dark mode form labels */
+.form-label {
+  color: #e0e0e0;
+}
+
+/* Dark mode small text */
+small {
+  color: #a0a0a0;
 }

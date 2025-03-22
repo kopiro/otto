@@ -1,4 +1,4 @@
-import { $, $$, addMessage, cleanMessages } from "./utils";
+import { $, addMessage, cleanMessages } from "./utils";
 
 interface IOChannel {
   id: string;
@@ -125,8 +125,8 @@ function bindEventsBrainReload() {
     $brainReload.setAttribute("disabled", "disabled");
 
     const types = [];
-    if (($("#brain-reload-episodic") as HTMLInputElement).checked) {
-      types.push("episodic");
+    if (($("#brain-reload-prompt") as HTMLInputElement).checked) {
+      types.push("prompt");
     }
     if (($("#brain-reload-social") as HTMLInputElement).checked) {
       types.push("prompt");

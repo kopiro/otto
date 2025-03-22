@@ -1,7 +1,7 @@
 import { Output, Input } from "../../types";
 import Events from "events";
 import { Signale } from "signale";
-import { AIOpenAI } from "./ai-openai";
+import { AIBrain } from "./ai-brain";
 import { TIOChannel } from "../../data/io-channel";
 import { TPerson } from "../../data/person";
 
@@ -27,7 +27,7 @@ export class AIManager {
     }
 
     if ("text" in input) {
-      return AIOpenAI.getInstance().getOutputForInput(input, ioChannel, person);
+      return AIBrain.getInstance().getOutputForInput(input, ioChannel, person);
     } else {
       throw new Error("No valid input provided");
     }

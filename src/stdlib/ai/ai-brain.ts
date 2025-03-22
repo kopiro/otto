@@ -2,53 +2,36 @@ import { Output, InputContext, Input } from "../../types";
 import config from "../../config";
 import { Signale } from "signale";
 import { logStacktrace, tryJsonParse } from "../../helpers";
-import { OpenAIApiSDK } from "../../lib/openai";
+import { OpenAISDK } from "../../lib/openai";
 import { AIMemory, MemoryType } from "./ai-memory";
 import { AIFunction } from "./ai-function";
-import { Interaction } from "../../data/interaction";
 import { TIOChannel } from "../../data/io-channel";
 import { TPerson } from "../../data/person";
 import { isDocumentArray } from "@typegoose/typegoose";
 import { ChatCompletionMessageParam, ChatCompletionSystemMessageParam } from "openai/resources";
+import OpenAI from "openai";
+import { DeepSeekSDK } from "../../lib/deepseek";
 
-type Config = {
-  apiKey: string;
-  promptUrl: string;
-  conversationModel: string;
-  textReducerModel: string;
-  interactionLimit: number;
-  memory: {
-    declarative: {
-      limit: number;
-      scoreThreshold: number;
-    };
-    episodic: {
-      limit: number;
-      scoreThreshold: number;
-    };
-    social: {
-      limit: number;
-      scoreThreshold: number;
-    };
-  };
-};
-
-const TAG = "OpenAI";
+const TAG = "Brain";
 const logger = new Signale({
   scope: TAG,
 });
 
-export class AIOpenAI {
-  private prompt!: string;
+export class AIBrain {
+  private openAISDK: OpenAI;
+  private deepSeekSDK: OpenAI;
 
-  constructor(private conf: Config) {}
+  constructor() {
+    this.openAISDK = OpenAISDK();
+    this.deepSeekSDK = DeepSeekSDK();
+  }
 
-  private static instance: AIOpenAI;
-  static getInstance(): AIOpenAI {
-    if (!AIOpenAI.instance) {
-      AIOpenAI.instance = new AIOpenAI(config().openai);
+  private static instance: AIBrain;
+  static getInstance(): AIBrain {
+    if (!AIBrain.instance) {
+      AIBrain.instance = new AIBrain();
     }
-    return AIOpenAI.instance;
+    return AIBrain.instance;
   }
 
   private cleanName(name: string): string {
@@ -64,39 +47,7 @@ export class AIOpenAI {
     ioChannel: TIOChannel,
     person: TPerson,
   ): Promise<ChatCompletionMessageParam[]> {
-    // Get all Interaction where we have a input.text or output.text in the last 20m
-    const interactions = await Interaction.find({
-      $or: [
-        {
-          "output.text": { $ne: null },
-          ioChannel: ioChannel.id,
-          reducedTo: { $exists: false },
-        },
-        {
-          "input.text": { $ne: null },
-          ioChannel: ioChannel.id,
-          reducedTo: { $exists: false },
-        },
-        {
-          "output.text": { $ne: null },
-          person: person.id,
-          reducedTo: { $exists: false },
-        },
-        {
-          "input.text": { $ne: null },
-          person: person.id,
-          reducedTo: { $exists: false },
-        },
-      ],
-    })
-      .sort({ createdAt: -1 })
-      // In the last hour
-      .where({
-        createdAt: {
-          $gt: new Date(Date.now() - 1000 * 60 * 60),
-        },
-      })
-      .limit(this.conf.interactionLimit);
+    const interactions = await AIMemory.getInstance().getRecentInteractions(ioChannel, person);
 
     return interactions
       .reverse()
@@ -105,7 +56,6 @@ export class AIOpenAI {
         if (i === interactions.length - 1) {
           if (
             interaction.input &&
-            "text" in interaction.input &&
             text === interaction.input.text &&
             // last minute
             interaction.createdAt > new Date(Date.now() - 1000 * 60)
@@ -115,7 +65,7 @@ export class AIOpenAI {
         }
 
         // If the assistant spoke
-        if (interaction.output && "text" in interaction.output) {
+        if (interaction.output?.text) {
           return {
             role: "assistant",
             content: interaction.output.text,
@@ -123,7 +73,7 @@ export class AIOpenAI {
         }
 
         // If the user spoke
-        if (interaction.input && "text" in interaction.input) {
+        if (interaction.input?.text) {
           return {
             role: interaction.input.role ?? "user",
             name: this.cleanName(interaction.getSourceName()),
@@ -189,20 +139,20 @@ export class AIOpenAI {
       aiMemory.searchByVectors(
         vectors,
         MemoryType.declarative,
-        this.conf.memory.declarative.limit,
-        this.conf.memory.declarative.scoreThreshold,
+        aiMemory.conf.vectorial.declarative.limit,
+        aiMemory.conf.vectorial.declarative.scoreThreshold,
       ),
       aiMemory.searchByVectors(
         vectors,
         MemoryType.episodic,
-        this.conf.memory.episodic.limit,
-        this.conf.memory.episodic.scoreThreshold,
+        aiMemory.conf.vectorial.episodic.limit,
+        aiMemory.conf.vectorial.episodic.scoreThreshold,
       ),
       aiMemory.searchByVectors(
         vectors,
         MemoryType.social,
-        this.conf.memory.social.limit,
-        this.conf.memory.social.scoreThreshold,
+        aiMemory.conf.vectorial.social.limit,
+        aiMemory.conf.vectorial.social.scoreThreshold,
       ),
     ]);
 
@@ -243,10 +193,9 @@ export class AIOpenAI {
   public async reduceText(identifier: string, text: string) {
     const logName = `${identifier}_textreducer`;
 
-    const response = await OpenAIApiSDK().chat.completions.create({
-      model: this.conf.textReducerModel,
-      // Make it predictable
-      temperature: 0,
+    const response = await this.deepSeekSDK.chat.completions.create({
+      model: config().deepseek.textReducerModel,
+      temperature: 0, // Make it predictable
       messages: [
         {
           role: "system",
@@ -269,7 +218,7 @@ export class AIOpenAI {
   }
 
   private async getPromptAsText(): Promise<string> {
-    return "";
+    return await AIMemory.getInstance().getPrompt();
   }
 
   async completeChat(
@@ -301,11 +250,17 @@ export class AIOpenAI {
     prompt.push(promptText);
     prompt.push(contextText);
     prompt.push(personOrSystemContextText);
-    // prompt.push(memoryContextText);
+    prompt.push(memoryContextText);
+
+    const content = prompt.join("\n\n");
+
+    if (process.env.NODE_ENV === "development") {
+      console.log(content);
+    }
 
     const promptChatCompletion: ChatCompletionSystemMessageParam = {
       role: "system",
-      content: prompt.join("\n\n"),
+      content: content,
     };
 
     // Build messages
@@ -316,8 +271,9 @@ export class AIOpenAI {
     ].filter(Boolean);
 
     try {
-      const completion = await OpenAIApiSDK().chat.completions.create({
-        model: this.conf.conversationModel,
+      const completion = await this.deepSeekSDK.chat.completions.create({
+        model: config().deepseek.conversationModel,
+        temperature: config().deepseek.temperature,
         user: person.id,
         n: 1,
         messages,

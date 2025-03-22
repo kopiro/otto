@@ -18,16 +18,21 @@
     <link rel="stylesheet" href="style.css" />
   </head>
 
-  <body class="container py-4">
+  <body class="container py-4 bg-dark text-light">
     <div class="text-center mb-4">
       <img id="logo" src="/image.png" alt="Otto" class="img-fluid" style="max-width: 200px" />
     </div>
 
-    <div id="messages" class="border rounded mb-3"></div>
+    <div id="messages" class="border border-secondary rounded mb-3"></div>
 
     <form id="conversation" class="mb-4">
       <div class="input-group">
-        <input name="text" type="text" class="form-control" placeholder="Type your message..." />
+        <input
+          name="text"
+          type="text"
+          class="form-control bg-dark text-light border-secondary"
+          placeholder="Type your message..."
+        />
         <button type="submit" class="btn btn-primary">Send</button>
         <button id="record-start" class="btn btn-secondary">Record</button>
         <button id="record-stop" class="btn btn-danger" disabled>Stop</button>
@@ -36,88 +41,94 @@
 
     <div class="row g-3 mb-4">
       <div class="col-md-3">
-        <div class="card">
+        <div class="card bg-dark border-secondary">
           <div class="card-body">
             <label for="auth" class="form-label">Auth ID</label>
-            <input type="text" id="auth" class="form-control" />
+            <input type="text" id="auth" class="form-control bg-dark text-light border-secondary" />
           </div>
         </div>
       </div>
       <div class="col-md-3">
-        <div class="card">
+        <div class="card bg-dark border-secondary">
           <div class="card-body">
             <label for="person" class="form-label">Person ID</label>
-            <input type="text" id="person" class="form-control" />
+            <input type="text" id="person" class="form-control bg-dark text-light border-secondary" />
           </div>
         </div>
       </div>
       <div class="col-md-3">
-        <div class="card">
+        <div class="card bg-dark border-secondary">
           <div class="card-body">
             <div class="form-check">
               <input type="checkbox" id="text-to-speech" class="form-check-input" />
               <div><label for="text-to-speech" class="form-check-label">AI TTS</label></div>
-              <small>Enabling this will allow the AI to speak the response.</small>
+              <small class="text-muted">Enabling this will allow the AI to speak the response.</small>
             </div>
           </div>
         </div>
       </div>
       <div class="col-md-3">
-        <div class="card">
+        <div class="card bg-dark border-secondary">
           <div class="card-body">
             <div class="form-check">
               <input type="checkbox" id="user-text-to-speech" class="form-check-input" />
               <div><label for="user-text-to-speech" class="form-check-label">User TTS</label></div>
-              <small>Enabling this will allow the user to simulate their voice when they write.</small>
+              <small class="text-muted"
+                >Enabling this will allow the user to simulate their voice when they write.</small
+              >
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <hr class="my-4" />
+    <hr class="my-4 border-secondary" />
 
     <form id="repeat" class="mb-4">
       <div class="input-group">
-        <span class="input-group-text">Repeat</span>
-        <input name="text" type="text" class="form-control" placeholder="Text to repeat..." />
+        <span class="input-group-text bg-dark text-light border-secondary">Repeat</span>
+        <input
+          name="text"
+          type="text"
+          class="form-control bg-dark text-light border-secondary"
+          placeholder="Text to repeat..."
+        />
         <button type="submit" class="btn btn-primary">Send</button>
       </div>
     </form>
 
-    <hr class="my-4" />
+    <hr class="my-4 border-secondary" />
 
-    <div class="card">
-      <div class="card-header">
-        <h2 class="mb-0">Admin</h2>
-      </div>
+    <div class="card bg-dark border-secondary">
       <div class="card-body" id="admin">
-        <div class="card mb-3">
+        <div class="card mb-3 bg-dark border-secondary">
           <div class="card-body">
             <div class="d-flex align-items-center gap-3 mb-3">
+              <div class="form-check">
+                <input id="brain-reload-prompt" type="checkbox" class="form-check-input" />
+                <label for="brain-reload-prompt" class="form-check-label">Prompt</label>
+              </div>
               <div class="form-check">
                 <input id="brain-reload-declarative" type="checkbox" class="form-check-input" />
                 <label for="brain-reload-declarative" class="form-check-label">Declarative</label>
               </div>
               <div class="form-check">
-                <input id="brain-reload-episodic" type="checkbox" class="form-check-input" />
-                <label for="brain-reload-episodic" class="form-check-label">Episodic</label>
-              </div>
-              <div class="form-check">
                 <input id="brain-reload-social" type="checkbox" class="form-check-input" />
                 <label for="brain-reload-social" class="form-check-label">Social</label>
               </div>
+            </div>
+            <div class="d-flex align-items-center gap-3">
               <button id="brain-reload" class="btn btn-warning">Brain reload</button>
             </div>
           </div>
         </div>
 
-        <div class="card mb-3">
+        <div class="card mb-3 bg-dark border-secondary">
           <div class="card-body">
             <div class="mb-3">
               <label for="io-channels" class="form-label">IO Channels</label>
               <div class="input-group">
-                <select id="io-channels" class="form-select">
+                <select id="io-channels" class="form-select bg-dark text-light border-secondary">
                   <option value="">Loading...</option>
                 </select>
                 <button id="io-channel-get-interactions" class="btn btn-secondary">Get interactions</button>
@@ -126,7 +137,7 @@
             <div class="mb-3">
               <label for="people" class="form-label">People</label>
               <div class="input-group">
-                <select id="people" class="form-select">
+                <select id="people" class="form-select bg-dark text-light border-secondary">
                   <option value="">Loading...</option>
                 </select>
                 <button id="person-approve" class="btn btn-secondary">Approve</button>
@@ -135,24 +146,34 @@
           </div>
         </div>
 
-        <form id="admin-input-message" class="card mb-3">
+        <form id="admin-input-message" class="card mb-3 bg-dark border-secondary">
           <div class="card-body">
             <div class="mb-3">
               <label for="admin-input-message-text" class="form-label">Input API</label>
               <div class="input-group">
-                <input type="text" id="admin-input-message-text" class="form-control" placeholder="Enter message..." />
+                <input
+                  type="text"
+                  id="admin-input-message-text"
+                  class="form-control bg-dark text-light border-secondary"
+                  placeholder="Enter message..."
+                />
                 <button type="submit" id="send-input-message" class="btn btn-primary">Send</button>
               </div>
             </div>
           </div>
         </form>
 
-        <form id="admin-output-message" class="card">
+        <form id="admin-output-message" class="card bg-dark border-secondary">
           <div class="card-body">
             <div class="mb-3">
               <label for="admin-output-message-text" class="form-label">Output API</label>
               <div class="input-group">
-                <input type="text" id="admin-output-message-text" class="form-control" placeholder="Enter message..." />
+                <input
+                  type="text"
+                  id="admin-output-message-text"
+                  class="form-control bg-dark text-light border-secondary"
+                  placeholder="Enter message..."
+                />
                 <button type="submit" id="send-output-message" class="btn btn-primary">Send</button>
               </div>
             </div>
@@ -161,7 +182,7 @@
       </div>
     </div>
 
-    <hr class="my-4" />
+    <hr class="my-4 border-secondary" />
 
     <div class="row g-3">
       <div class="col-md-6">
