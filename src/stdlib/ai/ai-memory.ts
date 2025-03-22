@@ -211,22 +211,28 @@ export class AIMemory {
     const vectors = await Promise.all(payloads.map(({ text }) => this.createVector(text)));
     logger.debug(`Reduced payloads into vectors`, payloads);
 
-    const operation = await QDrantSDK().upsert(memoryType, {
-      wait: true,
-      batch: {
-        ids: payloads.map(({ id }) => id),
-        vectors: vectors,
-        payloads: payloads.map((e) => {
-          // Remove ids
-          const { id, ...payload } = e;
-          return payload;
-        }),
-      },
-    });
+    try {
+      const operation = await QDrantSDK().upsert(memoryType, {
+        wait: true,
+        batch: {
+          // Use uuid-by-string to generate ids that are compatible with the Qdrant API
+          ids: payloads.map(({ id }) => getUuidByString(id)),
+          vectors: vectors,
+          payloads: payloads.map((e) => {
+            // Remove ids
+            const { id, ...payload } = e;
+            return payload;
+          }),
+        },
+      });
 
-    logger.success(`Saved vectors in collection <${memoryType}>`, operation);
+      logger.success(`Saved vectors in collection <${memoryType}>`, operation);
 
-    return operation.status === "completed";
+      return operation.status === "completed";
+    } catch (err) {
+      logger.error(`Error when saving payloads in collection <${memoryType}>`, err);
+      return false;
+    }
   }
 
   private async markInteractionsAsReduced(interactionsIds: string[], reducedTo: string) {
@@ -287,7 +293,7 @@ ${conversation.join("\n")}`;
 
         const payloads = reducedTextInChunks.map<QdrantPayload>((chunkedText) => {
           return {
-            id: getUuidByString(`${chunkId}_${chunkedText}`),
+            id: `${chunkId}_${chunkedText}`,
             chunkId,
             text: chunkedText,
           };
@@ -325,7 +331,7 @@ ${conversation.join("\n")}`;
               },
             });
           } catch (err) {
-            logger.error(`Error when deleting payloads for identifier: ${chunkId}`, err);
+            logger.warn(`Error when deleting payloads for identifier: ${chunkId}`);
           }
         }
 
@@ -381,7 +387,7 @@ ${conversation.join("\n")}`;
     const chunks = this.chunkText(headerPrompt);
 
     return chunks.map((text) => ({
-      id: getUuidByString(`header_${text}`),
+      id: `header_${text}`,
       text,
     }));
   }
@@ -393,7 +399,7 @@ ${conversation.join("\n")}`;
     const chunks = this.chunkText(declarativeMemory);
 
     const payloads = chunks.map((text) => ({
-      id: getUuidByString(`declarative_${text}`),
+      id: `declarative_${text}`,
       text,
     }));
 
@@ -439,28 +445,24 @@ ${conversation.join("\n")}`;
     return items.map((item) => {
       const text = [];
 
-      // Get date as "January 1, 2023"
-      const dateString = new Date(item.created_time).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      });
+      const dateString = item.created_time.split("T")[0];
 
       text.push(`On ${dateString}, ${config().aiName} posted a picture on social media: "${item.message}"`);
       if (item.permalink_url) {
         text.push(`(Link: ${item.permalink_url})`);
       }
       if (item.place) {
-        text.push(`(Location: ${item.place.name} (${item.place.location.city}, ${item.place.location.country})})`);
+        text.push(`(Location: ${item.place.name} (${item.place.location.city}, ${item.place.location.country}))`);
       }
 
       // Remove any hashtags
-      let fText = text.join(" ");
-      fText = fText.replace(/#[a-zA-Z0-9]+/g, ""); // Remove #hashtags
-      fText = fText.replace(/\n/g, "");
+      const fText = text
+        .join(" ")
+        .replace(/#[a-zA-Z0-9]+/g, "")
+        .replace(/\n/g, "");
 
       return {
-        id: item.uuid,
+        id: `facebook_${item.uuid}`,
         text: fText,
       };
     });

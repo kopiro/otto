@@ -25,6 +25,14 @@ interface Interaction {
   sourceName: string;
 }
 
+interface MemoryResult {
+  id: string;
+  score: number;
+  payload: {
+    text: string;
+  };
+}
+
 const $brainReload = $("#brain-reload") as HTMLButtonElement;
 
 const $ioChannelGetInteractions = $("#io-channel-get-interactions") as HTMLButtonElement;
@@ -39,6 +47,15 @@ const $formInputMessage = $("#admin-input-message") as HTMLFormElement;
 
 const $outputMessage = $("#admin-output-message-text") as HTMLInputElement;
 const $formOutputMessage = $("#admin-output-message") as HTMLFormElement;
+
+// Memory search elements
+const $memoryType = $("#memory-type") as HTMLSelectElement;
+const $memorySearch = $("#memory-search") as HTMLInputElement;
+const $memorySearchBtn = $("#memory-search-btn") as HTMLButtonElement;
+const $memorySearchText = $("#memory-search-text") as HTMLSpanElement;
+const $memorySearchSpinner = $("#memory-search-spinner") as HTMLSpanElement;
+const $memoryResults = $("#memory-results") as HTMLDivElement;
+const $memorySearchForm = $("#memory-search-form") as HTMLFormElement;
 
 export async function apiGetIOChannels(): Promise<IOChannel[]> {
   const response = await fetch(`/api/io_channels`, {
@@ -74,6 +91,79 @@ async function apiGetInteractions(ioChannelId: string): Promise<Interaction[]> {
   const json = await response.json();
 
   return json.data ?? [];
+}
+
+async function apiSearchMemories(type: string, text: string): Promise<MemoryResult[]> {
+  const response = await fetch(`/api/memories/search?type=${type}&text=${encodeURIComponent(text)}`, {
+    headers: {
+      "x-auth-person": localStorage.getItem("auth"),
+    },
+  });
+
+  const json = await response.json();
+  return json.data ?? [];
+}
+
+function setLoading(isLoading: boolean) {
+  $memorySearchBtn.disabled = isLoading;
+  $memorySearchText.textContent = isLoading ? "Searching..." : "Search";
+  $memorySearchSpinner.classList.toggle("d-none", !isLoading);
+}
+
+function displayMemoryResults(results: MemoryResult[]) {
+  $memoryResults.innerHTML = "";
+
+  if (results.length === 0) {
+    $memoryResults.innerHTML = '<div class="alert alert-info">No results found</div>';
+    return;
+  }
+
+  const resultsList = document.createElement("div");
+  resultsList.className = "list-group";
+
+  results.forEach((result) => {
+    const item = document.createElement("div");
+    item.className = "list-group-item bg-dark text-light border-secondary";
+
+    const score = document.createElement("small");
+    score.className = "text-muted d-block mb-2";
+    score.textContent = `Score: ${result.score.toFixed(2)}`;
+
+    const text = document.createElement("div");
+    text.className = "text-break";
+    text.textContent = result.payload.text;
+
+    item.appendChild(score);
+    item.appendChild(text);
+    resultsList.appendChild(item);
+  });
+
+  $memoryResults.appendChild(resultsList);
+}
+
+function bindEventsMemorySearch() {
+  $memorySearchForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const type = $memoryType.value;
+    const text = $memorySearch.value.trim();
+
+    if (!text) {
+      addMessage("CONTROL CENTER", "Please enter search text", "system output error");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const results = await apiSearchMemories(type, text);
+      displayMemoryResults(results);
+    } catch (error) {
+      console.error("Error searching memories:", error);
+      addMessage("CONTROL CENTER", "Error searching memories", "system output error");
+    } finally {
+      setLoading(false);
+    }
+  });
 }
 
 function bindEventsPersonApprove() {
@@ -263,4 +353,5 @@ export function bindEvents() {
   bindEventsOutputMessage();
   bindEventsIOChannelGetInteractions();
   bindEventsPersonApprove();
+  bindEventsMemorySearch();
 }

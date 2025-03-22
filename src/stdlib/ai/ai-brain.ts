@@ -93,7 +93,7 @@ export class AIBrain {
     prompt.push(`You are chatting with ${person.name} - ${ioChannel.getName()}.`);
 
     const languageName = new Intl.DisplayNames(["en"], { type: "language" }).of(person.language);
-    prompt.push(`You should reply in ${languageName}.`);
+    prompt.push(`You should speak in ${languageName}.`);
 
     return prompt.join("\n");
   }
@@ -131,6 +131,7 @@ export class AIBrain {
 
     const vectors = await Promise.all([
       aiMemory.createVector(text),
+      aiMemory.createVector(person.getName()),
       aiMemory.createVector(ioChannel.getName() + " " + convDescription),
       aiMemory.createVector(contextAsString),
     ]);

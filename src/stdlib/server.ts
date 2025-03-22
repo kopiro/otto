@@ -166,6 +166,11 @@ routerApi.get(`/memories`, async (req, res) => {
   try {
     const { type } = req.query;
     if (!type) throw new Error("req.query.type is required");
+
+    if (!(String(type) in config().memory.vectorial)) {
+      throw new Error(`Invalid memory type: ${type}`);
+    }
+
     const vectors = await AIMemory.getInstance().listVectors(type.toString() as MemoryType);
     res.json({ data: vectors });
   } catch (err) {
@@ -179,17 +184,19 @@ routerApi.get(`/memories`, async (req, res) => {
 
 routerApi.get(`/memories/search`, async (req, res) => {
   try {
-    const { type, limit, score, text } = req.query;
+    const { type, text } = req.query;
     if (!type) throw new Error("req.query.type is required");
-    if (!limit) throw new Error("req.query.limit is required");
-    if (!score) throw new Error("req.query.score is required");
     if (!text) throw new Error("req.query.text is required");
+
+    if (!(String(type) in config().memory.vectorial)) {
+      throw new Error(`Invalid memory type: ${type}`);
+    }
 
     const vectors = await AIMemory.getInstance().searchByText(
       text.toString(),
       type as MemoryType,
-      Number(limit),
-      Number(score),
+      config().memory.vectorial[type as MemoryType].limit,
+      config().memory.vectorial[type as MemoryType].scoreThreshold,
     );
 
     res.json({ data: vectors });

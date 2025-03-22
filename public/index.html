@@ -179,6 +179,47 @@
             </div>
           </div>
         </form>
+
+        <div class="card bg-dark border-secondary mt-3">
+          <div class="card-header bg-dark border-secondary">
+            <h5 class="card-title mb-0 text-light">Memory</h5>
+          </div>
+          <div class="card-body">
+            <div class="mb-3">
+              <label for="memory-type" class="form-label">Memory Type</label>
+              <select id="memory-type" class="form-select bg-dark text-light border-secondary">
+                <option value="declarative">Declarative</option>
+                <option value="episodic">Episodic</option>
+                <option value="social">Social</option>
+              </select>
+            </div>
+            <form id="memory-search-form">
+              <div class="mb-3">
+                <label for="memory-search" class="form-label">Search Text</label>
+                <div class="input-group">
+                  <input
+                    type="text"
+                    id="memory-search"
+                    class="form-control bg-dark text-light border-secondary"
+                    placeholder="Enter search text..."
+                  />
+                  <button type="submit" id="memory-search-btn" class="btn btn-primary">
+                    <span id="memory-search-text">Search</span>
+                    <span
+                      id="memory-search-spinner"
+                      class="spinner-border spinner-border-sm d-none"
+                      role="status"
+                      aria-hidden="true"
+                    ></span>
+                  </button>
+                </div>
+              </div>
+            </form>
+            <div id="memory-results" class="mt-3">
+              <!-- Results will be displayed here -->
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 

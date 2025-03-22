@@ -71,16 +71,16 @@
     "declarativeMemoryUrl": "",
     "vectorial": {
       "declarative": {
-        "limit": 20,
-        "scoreThreshold": 0.6
+        "limit": 25,
+        "scoreThreshold": 0.7
       },
       "episodic": {
-        "limit": 10,
-        "scoreThreshold": 0.6
+        "limit": 20,
+        "scoreThreshold": 0.75
       },
       "social": {
-        "limit": 4,
-        "scoreThreshold": 0.6
+        "limit": 5,
+        "scoreThreshold": 0.8
       }
     }
   },
