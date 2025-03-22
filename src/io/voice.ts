@@ -86,27 +86,30 @@ export class Voice implements IODriverRuntime {
   private startRecognition() {
     logger.debug("Recognizing microphone stream");
 
-    this.recognizeStream = SpeechRecognizer.getInstance().createRecognizeStream(this.person.language, (err, text) => {
-      // When ended, destroy stream
-      this.destroyRecognizer();
+    this.recognizeStream = SpeechRecognizer.getInstance().createRecognizeStream(
+      this.person.getLanguage(),
+      (err, text) => {
+        // When ended, destroy stream
+        this.destroyRecognizer();
 
-      // If erred, emit an error and exit
-      if (err) {
-        if (err.unrecognized) {
+        // If erred, emit an error and exit
+        if (err) {
+          if (err.unrecognized) {
+            return;
+          }
+
+          this.emitter.emit("error", err.message, this.ioChannel, this.person);
           return;
         }
 
-        this.emitter.emit("error", err.message, this.ioChannel, this.person);
-        return;
-      }
+        if (!text) {
+          return;
+        }
 
-      if (!text) {
-        return;
-      }
-
-      // Otherwise, emit an INPUT message with the recognized text
-      this.emitter.emit("input", { text }, this.ioChannel, this.person, null);
-    });
+        // Otherwise, emit an INPUT message with the recognized text
+        this.emitter.emit("input", { text }, this.ioChannel, this.person, null);
+      },
+    );
 
     // Every time user speaks, reset the HWS timer to the max
     this.recognizeStream.on("data", (data) => {
@@ -229,9 +232,9 @@ export class Voice implements IODriverRuntime {
     });
   }
 
-  private async outputText(text: string, personLanguage: Language | undefined): Promise<IODriverSingleOutput> {
+  private async outputText(text: string, language: Language): Promise<IODriverSingleOutput> {
     try {
-      const file = await getVoiceFileFromText(text, personLanguage);
+      const file = await getVoiceFileFromText(text, language);
       await Speaker.getInstance().play(file);
       return ["file", file.getAbsolutePath()];
     } catch (err) {
@@ -262,7 +265,7 @@ export class Voice implements IODriverRuntime {
 
     // Process a text by converting it to Audio
     if (f.text) {
-      results.push(await this.outputText(f.text, person.language));
+      results.push(await this.outputText(f.text, person.getLanguage()));
     }
 
     if (f.audio) {

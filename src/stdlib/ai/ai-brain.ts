@@ -92,8 +92,10 @@ export class AIBrain {
     prompt.push("## Context\n");
     prompt.push(`You are chatting with ${person.name} - ${ioChannel.getName()}.`);
 
-    const languageName = new Intl.DisplayNames(["en"], { type: "language" }).of(person.language);
-    prompt.push(`You should speak in ${languageName}.`);
+    if (person.language) {
+      const languageName = new Intl.DisplayNames(["en"], { type: "language" }).of(person.getLanguage());
+      prompt.push(`You should speak in ${languageName}.`);
+    }
 
     return prompt.join("\n");
   }

@@ -18,8 +18,8 @@ export class IPerson {
   @prop({ required: true })
   public name!: string;
 
-  @prop({ required: true })
-  public language!: Language;
+  @prop({ required: false })
+  public language?: Language;
 
   @prop({ required: true, type: [String] })
   public authorizations?: Authorization[];
@@ -71,7 +71,7 @@ export class IPerson {
 
     const newPerson = await Person.create({
       name: name,
-      language: language || config().language,
+      language: language,
       ioIdentifiers: {
         [ioDriver]: ioIdentifier,
       },
@@ -80,6 +80,10 @@ export class IPerson {
     logger.info("New Person registered", newPerson);
 
     return newPerson;
+  }
+
+  getLanguage() {
+    return this.language ?? config().language;
   }
 
   static async findByIOIdentifier(

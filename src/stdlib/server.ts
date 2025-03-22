@@ -65,7 +65,7 @@ routerApi.get("/speech", async (req: express.Request, res: express.Response) => 
   try {
     const { text } = req.query;
     if (!text) throw new Error("req.query.text is required");
-    const audioFileMixed = await getVoiceFileFromText(text.toString());
+    const audioFileMixed = await getVoiceFileFromText(text.toString(), config().language);
     res.redirect(audioFileMixed.getServerURL());
   } catch (err) {
     return res.status(400).json({

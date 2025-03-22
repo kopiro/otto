@@ -198,7 +198,7 @@ export class Telegram implements IODriverRuntime {
 
     // Process a Voice object
     if (e.voice) {
-      const text = await this.handleVoiceInput(e.voice.file_id, person.language);
+      const text = await this.handleVoiceInput(e.voice.file_id, person.getLanguage());
       const isMention = this.isMention(text);
 
       // If we are in a group, only listen for activators
@@ -301,7 +301,7 @@ export class Telegram implements IODriverRuntime {
 
         if (bag?.respondWithAudioNote || ioChannel.options?.respondWithAudioNote) {
           this.bot.sendChatAction(chatId, "record_voice");
-          const r = await this.sendAudioNoteFromText(chatId, f.text, person.language, botOpt);
+          const r = await this.sendAudioNoteFromText(chatId, f.text, person.getLanguage(), botOpt);
           results.push(["audionote", r]);
         }
       }

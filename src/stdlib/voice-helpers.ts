@@ -31,14 +31,14 @@ export async function getVoiceFileFromMixedContent(mixedContent: string | File):
   return finalUri;
 }
 
-export async function getVoiceFileFromText(text: string, fallbackLanguage?: Language): Promise<File> {
+export async function getVoiceFileFromText(text: string, fallbackLanguage: Language): Promise<File> {
   // Detect the language in the text
   const textLanguage = await Translator.getInstance().detectLanguage(text);
   logger.debug(`Detected language from text <${text}> is <${textLanguage}>`);
 
   const audioFile = await TextToSpeech.getInstance().getAudioFile(
     text,
-    textLanguage || fallbackLanguage || config().language,
+    textLanguage || fallbackLanguage,
     config().tts.gender as Gender,
   );
 
