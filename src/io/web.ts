@@ -84,7 +84,7 @@ export class Web implements IODriverRuntime {
       // Populate text by voice if necessary
       let textInput = null;
       if (!("text" in req.body.params)) {
-        textInput = await this.maybeHandleVoice(req, person.language);
+        textInput = await this.maybeHandleVoice(req, person.getLanguage());
       } else {
         textInput = req.body.params.text;
       }
@@ -121,7 +121,7 @@ export class Web implements IODriverRuntime {
       if (f.text) {
         const textToSpeechOp = req.body.text_to_speech;
         if (textToSpeechOp) {
-          const voiceFile = await getVoiceFileFromText(f.text, person.language);
+          const voiceFile = await getVoiceFileFromText(f.text, person.getLanguage());
           response.voice = voiceFile.getServerURL();
 
           if (textToSpeechOp === "redirect") {
