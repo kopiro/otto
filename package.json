@@ -20,7 +20,7 @@
     "docker:build": "docker build . -t kopiro/otto",
     "docker:run": "docker run -it kopiro/otto",
     "docker:deploy": "pnpm run build:docker && docker push kopiro/otto",
-    "ai:memory": "ts-node ./src/cli/create-memory.ts",
+    "ai:memory": "ts-node ./src/cli/memory.ts",
     "ai:born": "MEMORY_TYPE=declarative,episodic,social pnpm run ai:memory",
     "ai:sleep": "MEMORY_TYPE=episodic pnpm run ai:memory",
     "ai:social": "MEMORY_TYPE=social pnpm run ai:memory",

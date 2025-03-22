@@ -135,7 +135,7 @@ export class AIMemory {
       date.getFullYear(),
       (1 + date.getMonth()).toString().padStart(2, "0"),
       date.getDate().toString().padStart(2, "0"),
-    ].join("/");
+    ].join("_");
   }
 
   private async getInteractionByDateChunk(): Promise<MapDateChunkToMapIOChannelToInteractions> {
@@ -250,7 +250,7 @@ export class AIMemory {
 
         const ioChannel = interactions[0].ioChannel as DocumentType<IIOChannel>;
         const conversation = [];
-        const chunkId = `IOChannelID: ${ioChannel.id} - ${chunk}`;
+        const chunkId = `iochannel_${ioChannel.id}_${chunk}`;
 
         for (const interaction of interactions) {
           const time = interaction.createdAt.toLocaleTimeString();
@@ -272,11 +272,11 @@ export class AIMemory {
         const reducerPrompt = `
 Compress the provided conversation while preserving its original meaning, but strictly make the output as short as possible and in the third person. For each distinct topic, create a separate sentence that begins with the date and the people involved, separate them by line break, using this format:
 
-On [date], [USER_A], [USER_B] and [USER_C] discussed [topic].
-
-The conversation happened ${ioChannel.getName()} - ${chunk}.
+On [date], [USER_A], [USER_B] and [USER_C] [talked about topic].
 
 ---
+
+The conversation happened ${ioChannel.getName()} - ${chunk}:
 
 ${conversation.join("\n")}`;
 
@@ -285,8 +285,6 @@ ${conversation.join("\n")}`;
         const reducedText = await AIBrain.getInstance().reduceText(chunkId, reducerPrompt);
         const reducedTextInChunks = this.chunkText(reducedText);
 
-        logger.debug("---");
-
         const payloads = reducedTextInChunks.map<QdrantPayload>((chunkedText) => {
           return {
             id: getUuidByString(`${chunkId}_${chunkedText}`),
@@ -294,6 +292,10 @@ ${conversation.join("\n")}`;
             text: chunkedText,
           };
         });
+
+        logger.debug("<--->");
+        logger.info(payloads);
+        logger.debug("<--->");
 
         if (process.env.INTERACTIVE) {
           // Use native node.js way to interact with the user
@@ -354,7 +356,7 @@ ${conversation.join("\n")}`;
     );
 
     for (const [dateChunk, interactions] of Object.entries(unreducedInteractions)) {
-      await this.reduceInteractionsForChunk(`Date: ${dateChunk}`, interactions);
+      await this.reduceInteractionsForChunk(`date_${dateChunk}`, interactions);
     }
   }
 
