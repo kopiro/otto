@@ -311,30 +311,6 @@ ${conversation.join("\n")}`;
           }
         }
 
-        // Delete all text belonging to these identifiers in QDRANT
-        // Do not attempt to delete if REBUILD_MEMORY is true, because the memory was erased completely
-        if (!process.env.REBUILD_MEMORY) {
-          try {
-            await QDrantSDK().delete(MemoryType.episodic, {
-              wait: true,
-              filter: {
-                must: [
-                  {
-                    key: "chunkId" as keyof QdrantPayload,
-                    match: {
-                      text: {
-                        value: chunkId,
-                      },
-                    },
-                  },
-                ],
-              },
-            });
-          } catch (err) {
-            logger.warn(`Error when deleting payloads for identifier: ${chunkId}`);
-          }
-        }
-
         await this.savePayloadInCollection(payloads, MemoryType.episodic);
 
         await this.markInteractionsAsReduced(
