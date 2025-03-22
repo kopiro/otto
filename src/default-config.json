@@ -66,7 +66,8 @@
     "textReducerModel": "deepseek-chat"
   },
   "memory": {
-    "interactionLimit": 50,
+    "interactionLimitCount": 50,
+    "interactionLimitHours": 4,
     "promptUrl": "",
     "declarativeMemoryUrl": "",
     "vectorial": {

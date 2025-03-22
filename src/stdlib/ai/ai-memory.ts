@@ -41,7 +41,8 @@ type QdrantPayload = {
 type Config = {
   promptUrl: string;
   declarativeMemoryUrl: string;
-  interactionLimit: number;
+  interactionLimitHours: number;
+  interactionLimitCount: number;
   vectorial: {
     declarative: {
       limit: number;
@@ -97,13 +98,12 @@ export class AIMemory {
       ],
     })
       .sort({ createdAt: -1 })
-      // In the last hour
       .where({
         createdAt: {
-          $gt: new Date(Date.now() - 1000 * 60 * 60),
+          $gt: new Date(Date.now() - this.conf.interactionLimitHours * 1000 * 60 * 60),
         },
       })
-      .limit(this.conf.interactionLimit);
+      .limit(this.conf.interactionLimitCount);
   }
 
   async createCollection(collection: MemoryType) {
