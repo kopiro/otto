@@ -11,10 +11,9 @@ import { IOChannel } from "../data/io-channel";
 import { Person } from "../data/person";
 import { Translator } from "./translator";
 import { Authorization, Gender, Language } from "../types";
-import { AIVectorMemory, MemoryType } from "./ai/ai-vectormemory";
+import { AIMemory, MemoryType } from "./ai/ai-memory";
 import { throwIfMissingAuthorizations } from "../helpers";
 import { Database } from "./database";
-import { AIOpenAI } from "./ai/ai-openai";
 import { Interaction } from "../data/interaction";
 
 const TAG = "Server";
@@ -167,7 +166,7 @@ routerApi.get(`/memories`, async (req, res) => {
   try {
     const { type } = req.query;
     if (!type) throw new Error("req.query.type is required");
-    const vectors = await AIVectorMemory.getInstance().listVectors(type.toString() as MemoryType);
+    const vectors = await AIMemory.getInstance().listVectors(type.toString() as MemoryType);
     res.json({ data: vectors });
   } catch (err) {
     return res.status(400).json({
@@ -186,7 +185,7 @@ routerApi.get(`/memories/search`, async (req, res) => {
     if (!score) throw new Error("req.query.score is required");
     if (!text) throw new Error("req.query.text is required");
 
-    const vectors = await AIVectorMemory.getInstance().searchByText(
+    const vectors = await AIMemory.getInstance().searchByText(
       text.toString(),
       type as MemoryType,
       Number(limit),
@@ -277,14 +276,14 @@ routerApi.post(`/admin/brain_reload`, async (req, res) => {
     if (!types) throw new Error("req.body.types is required");
 
     const result: Record<string, any> = {};
-    if (types.includes("prompt")) {
-      result.prompt = Boolean(await AIOpenAI.getInstance().getHeaderPromptAsText(true));
-    }
+    // if (types.includes("prompt")) {
+    //   result.prompt = Boolean(await AIOpenAI.getInstance().getHeaderPromptAsText(true));
+    // }
     if (types.includes("declarative")) {
-      result.declarative = await AIVectorMemory.getInstance().buildDeclarativeMemory();
+      result.declarative = await AIMemory.getInstance().buildDeclarativeMemory();
     }
     if (types.includes("social")) {
-      result.social = await AIVectorMemory.getInstance().buildSocialMemory();
+      result.social = await AIMemory.getInstance().buildSocialMemory();
     }
     res.json({ result });
   } catch (err) {

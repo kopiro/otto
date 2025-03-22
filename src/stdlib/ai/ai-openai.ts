@@ -3,14 +3,13 @@ import config from "../../config";
 import { Signale } from "signale";
 import { logStacktrace, tryJsonParse } from "../../helpers";
 import { OpenAIApiSDK } from "../../lib/openai";
-import { AIVectorMemory, MemoryType } from "./ai-vectormemory";
+import { AIMemory, MemoryType } from "./ai-memory";
 import { AIFunction } from "./ai-function";
 import { Interaction } from "../../data/interaction";
 import { TIOChannel } from "../../data/io-channel";
 import { TPerson } from "../../data/person";
 import { isDocumentArray } from "@typegoose/typegoose";
 import { ChatCompletionMessageParam, ChatCompletionSystemMessageParam } from "openai/resources";
-import fetch from "node-fetch";
 
 type Config = {
   apiKey: string;
@@ -18,7 +17,7 @@ type Config = {
   conversationModel: string;
   textReducerModel: string;
   interactionLimit: number;
-  vectorMemory: {
+  memory: {
     declarative: {
       limit: number;
       scoreThreshold: number;
@@ -50,18 +49,6 @@ export class AIOpenAI {
       AIOpenAI.instance = new AIOpenAI(config().openai);
     }
     return AIOpenAI.instance;
-  }
-
-  public async getHeaderPromptAsText(refresh = false): Promise<string> {
-    if (!this.prompt || refresh) {
-      const prompt = await (await fetch(this.conf.promptUrl)).text();
-      if (prompt) {
-        this.prompt = prompt;
-      } else {
-        logger.error("Failed to retrieve prompt");
-      }
-    }
-    return this.prompt;
   }
 
   private cleanName(name: string): string {
@@ -183,7 +170,7 @@ export class AIOpenAI {
   ): Promise<string> {
     const logName = `${ioChannel.id}_getmemorycontextastext`;
 
-    const AIVectorMemoryInstance = AIVectorMemory.getInstance();
+    const aiMemory = AIMemory.getInstance();
 
     const convDescription = isDocumentArray(ioChannel.people)
       ? ioChannel.people.map((p) => p.name).join(", ")
@@ -193,29 +180,29 @@ export class AIOpenAI {
       .join("\n");
 
     const vectors = await Promise.all([
-      AIVectorMemoryInstance.createVector(text),
-      AIVectorMemoryInstance.createVector(ioChannel.getName() + " " + convDescription),
-      AIVectorMemoryInstance.createVector(contextAsString),
+      aiMemory.createVector(text),
+      aiMemory.createVector(ioChannel.getName() + " " + convDescription),
+      aiMemory.createVector(contextAsString),
     ]);
 
     const allMemories = await Promise.all([
-      AIVectorMemoryInstance.searchByVectors(
+      aiMemory.searchByVectors(
         vectors,
         MemoryType.declarative,
-        this.conf.vectorMemory.declarative.limit,
-        this.conf.vectorMemory.declarative.scoreThreshold,
+        this.conf.memory.declarative.limit,
+        this.conf.memory.declarative.scoreThreshold,
       ),
-      AIVectorMemoryInstance.searchByVectors(
+      aiMemory.searchByVectors(
         vectors,
         MemoryType.episodic,
-        this.conf.vectorMemory.episodic.limit,
-        this.conf.vectorMemory.episodic.scoreThreshold,
+        this.conf.memory.episodic.limit,
+        this.conf.memory.episodic.scoreThreshold,
       ),
-      AIVectorMemoryInstance.searchByVectors(
+      aiMemory.searchByVectors(
         vectors,
         MemoryType.social,
-        this.conf.vectorMemory.social.limit,
-        this.conf.vectorMemory.social.scoreThreshold,
+        this.conf.memory.social.limit,
+        this.conf.memory.social.scoreThreshold,
       ),
     ]);
 
@@ -281,6 +268,10 @@ export class AIOpenAI {
     return content;
   }
 
+  private async getPromptAsText(): Promise<string> {
+    return "";
+  }
+
   async completeChat(
     inputMessages: ChatCompletionMessageParam[],
     input: Input,
@@ -298,24 +289,19 @@ export class AIOpenAI {
       ...input.context,
     };
 
-    const [
-      recentInteractionsChatCompletions,
-      headerPromptText,
-      contextText,
-      personOrSystemContextText,
-      memoryContextText,
-    ] = await Promise.all([
-      this.getRecentInteractionsAsChatCompletions(text, ioChannel, person),
-      this.getHeaderPromptAsText(),
-      this.getContextAsText(context),
-      this.getPersonContextAsText(ioChannel, person),
-      this.getMemoryContextAsText(text, ioChannel, person, context),
-    ]);
+    const [recentInteractionsChatCompletions, promptText, contextText, personOrSystemContextText, memoryContextText] =
+      await Promise.all([
+        this.getRecentInteractionsAsChatCompletions(text, ioChannel, person),
+        this.getPromptAsText(),
+        this.getContextAsText(context),
+        this.getPersonContextAsText(ioChannel, person),
+        this.getMemoryContextAsText(text, ioChannel, person, context),
+      ]);
 
-    prompt.push(headerPromptText);
+    prompt.push(promptText);
     prompt.push(contextText);
     prompt.push(personOrSystemContextText);
-    prompt.push(memoryContextText);
+    // prompt.push(memoryContextText);
 
     const promptChatCompletion: ChatCompletionSystemMessageParam = {
       role: "system",

@@ -56,10 +56,11 @@
     "apiKey": "",
     "promptUrl": "",
     "declarativeMemoryUrl": "",
-    "conversationModel": "gpt-4o",
+    "conversationModel": "chatgpt-4o-latest",
     "textReducerModel": "gpt-3.5-turbo",
+    "fineTuneModel": "gpt-4o-2024-08-06",
     "interactionLimit": 30,
-    "vectorMemory": {
+    "memory": {
       "declarative": {
         "limit": 20,
         "scoreThreshold": 0.6

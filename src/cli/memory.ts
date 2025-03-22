@@ -3,7 +3,7 @@ import config from "../config";
 import { warmup } from "../boot";
 import { Interaction } from "../data/interaction";
 
-import { AIVectorMemory, MemoryType } from "../stdlib/ai/ai-vectormemory";
+import { AIMemory, MemoryType } from "../stdlib/ai/ai-memory";
 import { Signale } from "signale";
 
 import readline from "node:readline/promises";
@@ -18,7 +18,7 @@ const logger = new Signale({
 
 warmup()
   .then(async () => {
-    const aiVectorMemory = AIVectorMemory.getInstance();
+    const aiMemory = AIMemory.getInstance();
     const MEMORY_TYPE = (process.env.MEMORY_TYPE ?? "").split(",");
 
     if (!config().centralNode) {
@@ -34,11 +34,11 @@ warmup()
     }
 
     if (MEMORY_TYPE.includes(MemoryType.declarative)) {
-      await aiVectorMemory.buildDeclarativeMemory();
+      await aiMemory.buildDeclarativeMemory();
     }
 
     if (MEMORY_TYPE.includes(MemoryType.social)) {
-      await aiVectorMemory.buildSocialMemory();
+      await aiMemory.buildSocialMemory();
     }
 
     if (MEMORY_TYPE.includes(MemoryType.episodic)) {
@@ -49,13 +49,13 @@ warmup()
           process.exit(0);
         }
 
-        const op1 = await aiVectorMemory.deleteCollection(MemoryType.episodic);
+        const op1 = await aiMemory.deleteCollection(MemoryType.episodic);
         logger.success(`Deleted episodic memory`, op1);
 
         const op2 = await Interaction.updateMany({}, { $unset: { reducedTo: true } });
         logger.success(`Erased reducedTo in interactions`, op2);
       }
-      await aiVectorMemory.buildEpisodicMemory();
+      await aiMemory.buildEpisodicMemory();
     }
 
     logger.info("Done");

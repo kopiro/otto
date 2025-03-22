@@ -15,7 +15,7 @@ import { stdin, stdout } from "node:process";
 
 const rl = readline.createInterface({ input: stdin, output: stdout });
 
-const TAG = "VectorMemory";
+const TAG = "AIMemory";
 const logger = new Signale({
   scope: TAG,
 });
@@ -36,19 +36,20 @@ type QdrantPayload = {
 };
 
 type Config = {
-  textReducerModel: string;
+  promptUrl: string;
+  declarativeMemoryUrl: string;
 };
 
-export class AIVectorMemory {
-  private static instance: AIVectorMemory;
+export class AIMemory {
+  private static instance: AIMemory;
 
   constructor(private conf: Config) {}
 
-  static getInstance(): AIVectorMemory {
-    if (!AIVectorMemory.instance) {
-      AIVectorMemory.instance = new AIVectorMemory(config().openai);
+  static getInstance(): AIMemory {
+    if (!AIMemory.instance) {
+      AIMemory.instance = new AIMemory(config().openai);
     }
-    return AIVectorMemory.instance;
+    return AIMemory.instance;
   }
 
   async createCollection(collection: MemoryType) {
@@ -303,6 +304,46 @@ ${conversation.join("\n")}`;
     }
   }
 
+  private prompt!: string;
+
+  public async getHeaderPromptAsText(refresh = false): Promise<string> {
+    if (!this.prompt || refresh) {
+      const prompt = await (await fetch(this.conf.promptUrl)).text();
+      if (prompt) {
+        this.prompt = prompt;
+      } else {
+        logger.error("Failed to retrieve prompt");
+      }
+    }
+    return this.prompt;
+  }
+
+  public async getPromptMemory() {
+    logger.pending("Fetching Prompt by URL..");
+
+    const headerPrompt = await this.getHeaderPromptAsText();
+    const chunks = this.chunkText(headerPrompt);
+
+    return chunks.map((text) => ({
+      id: getUuidByString(`header_${text}`),
+      text,
+    }));
+  }
+
+  async getDeclarativeMemory() {
+    logger.pending("Fetching Memory by URL...");
+
+    const declarativeMemory = await (await fetch(this.conf.declarativeMemoryUrl)).text();
+    const chunks = this.chunkText(declarativeMemory);
+
+    const payloads = chunks.map((text) => ({
+      id: getUuidByString(`declarative_${text}`),
+      text,
+    }));
+
+    return payloads;
+  }
+
   /**
    * The declarative memory is created by getting all informations (documents) from several links and saving them to Qdrant.
    */
@@ -311,26 +352,14 @@ ${conversation.join("\n")}`;
     await this.deleteCollection(MemoryType.declarative);
     await this.createCollection(MemoryType.declarative);
 
-    logger.pending("Fetching Memory by URL");
-
-    const declarativeMemory = await (await fetch(config().openai.declarativeMemoryUrl)).text();
-
-    const payloads = this.chunkText(declarativeMemory).map<QdrantPayload>((text) => ({
-      id: getUuidByString(`declarative_${text}`),
-      text,
-    }));
+    const payloads = await this.getDeclarativeMemory();
 
     return this.savePayloadInCollection(payloads, MemoryType.declarative);
   }
 
-  /**
-   * The social memory is created by getting all posts from Facebook and Instagram and saving them to Qdrant.
-   */
-  async buildSocialMemory() {
-    await this.deleteCollection(MemoryType.social);
-    await this.createCollection(MemoryType.social);
-
+  async getSocialMemory() {
     logger.pending("Fetching Memory by Facebook Page...");
+
     const facebookFeed = await getFacebookFeed();
 
     const items: (FacebookFeedItem & { uuid: string })[] = [];
@@ -349,10 +378,9 @@ ${conversation.join("\n")}`;
       next = nextFeed.paging?.next;
       logger.pending("Fetching next page of Facebook feed...");
     }
-
     logger.info("Found " + items.length + " Facebook posts");
 
-    const payloads = items.map<QdrantPayload>((item) => {
+    return items.map((item) => {
       const text = [];
 
       // Get date as "January 1, 2023"
@@ -380,6 +408,16 @@ ${conversation.join("\n")}`;
         text: fText,
       };
     });
+  }
+
+  /**
+   * The social memory is created by getting all posts from Facebook and Instagram and saving them to Qdrant.
+   */
+  async buildSocialMemory() {
+    await this.deleteCollection(MemoryType.social);
+    await this.createCollection(MemoryType.social);
+
+    const payloads = await this.getSocialMemory();
 
     return this.savePayloadInCollection(payloads, MemoryType.social);
   }
