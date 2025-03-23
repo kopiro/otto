@@ -254,6 +254,7 @@ routerApi.get(`/persons/:personId`, async (req, res) => {
     });
   }
 });
+
 routerApi.patch(`/persons/:personId`, async (req, res) => {
   try {
     const { personId } = req.params;
@@ -306,6 +307,29 @@ routerApi.get(`/io_channels`, async (_, res) => {
   const ioChannels = await IOChannel.find({ managerUid: config().uid });
   const data = ioChannels.map((ioChannel) => ioChannel.toJSONAPI());
   res.json({ data });
+});
+
+routerApi.patch(`/io_channels/:ioChannelId`, async (req, res) => {
+  try {
+    const { ioChannelId } = req.params;
+    const updates = req.body;
+
+    const ioChannel = await IOChannel.findByIdOrThrow(ioChannelId);
+    for (const [key, value] of Object.entries(updates)) {
+      if (value !== undefined) {
+        // @ts-ignore
+        ioChannel[key] = value;
+      }
+    }
+    await ioChannel.save();
+    res.json(ioChannel.toJSONAPI());
+  } catch (err) {
+    return res.status(400).json({
+      error: {
+        message: (err as Error)?.message,
+      },
+    });
+  }
 });
 
 routerApi.get(`/io_channels/:ioChannelId`, async (req, res) => {

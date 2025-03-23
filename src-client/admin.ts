@@ -1,13 +1,20 @@
 import { $, addMessage } from "./utils";
 
-interface IOChannel {
-  id: string;
-  name: string;
-}
-
 interface Person {
   id: string;
   name: string;
+  language?: string;
+}
+
+interface IOChannel {
+  id: string;
+  name: string;
+  ownerName: string;
+  ioDriver: string;
+  ioIdentifier: string;
+  ioData: string;
+  person: Person;
+  people: Person[];
 }
 
 interface Interaction {
@@ -40,15 +47,6 @@ interface MemoryResult {
   };
 }
 
-interface PersonDetails {
-  id: string;
-  name: string;
-  language?: string;
-  approved?: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
 const $inputAuth = $("#input-auth") as HTMLInputElement;
 
 const $brainReload = $("#brain-reload") as HTMLButtonElement;
@@ -77,8 +75,9 @@ const $interactionsSearchBtn = $("#interactions-search-btn") as HTMLButtonElemen
 const $interactionsSearchText = $("#interactions-search-text") as HTMLSpanElement;
 const $interactionsSearchSpinner = $("#interactions-search-spinner") as HTMLSpanElement;
 
-const $personDetails = $("#person-details") as HTMLButtonElement;
 const $personDetailsContainer = $("#person-details-container") as HTMLDivElement;
+
+const $ioChannelDetailsContainer = $("#io-channel-details-container") as HTMLDivElement;
 
 interface CardOptions {
   title?: string;
@@ -105,6 +104,120 @@ function createCard({ title, content, className = "" }: CardOptions): HTMLDivEle
   $body.appendChild(content);
   $card.appendChild($body);
 
+  return $card;
+}
+
+interface DetailField {
+  label: string;
+  value: string;
+  editable?: boolean;
+  wrapper?: string;
+}
+
+function createDetailList(details: DetailField[]): HTMLElement {
+  const $list = document.createElement("dl");
+  $list.className = "row mb-0";
+
+  details.forEach(({ label, value, editable, wrapper }) => {
+    const $dt = document.createElement("dt");
+    $dt.className = "col-sm-3 text-muted";
+    $dt.textContent = label;
+
+    const $dd = document.createElement("dd");
+    $dd.className = "col-sm-9";
+
+    if (editable) {
+      const $input = document.createElement("input");
+      $input.type = "text";
+      $input.className = "form-control bg-dark text-light border-secondary";
+      $input.value = value;
+      $input.name = label.toLowerCase();
+      $input.setAttribute("required", "");
+      $dd.appendChild($input);
+    } else {
+      $dd.className = "col-sm-9 text-light";
+      if (wrapper === "code") {
+        const $code = document.createElement("code");
+        $code.className = "text-break";
+        $code.textContent = value;
+        $dd.appendChild($code);
+      } else {
+        $dd.textContent = value;
+      }
+    }
+
+    $list.appendChild($dt);
+    $list.appendChild($dd);
+  });
+
+  return $list;
+}
+
+function createEditButton(): HTMLButtonElement {
+  const $buttonContainer = document.createElement("div");
+  $buttonContainer.className = "mt-3 d-flex justify-content-end";
+
+  const $editButton = document.createElement("button");
+  $editButton.type = "submit";
+  $editButton.className = "btn btn-primary";
+  $editButton.innerHTML = `
+    <span class="edit-text">Save edits</span>
+    <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+  `;
+
+  $buttonContainer.appendChild($editButton);
+  return $editButton;
+}
+
+function createDetailsCard(details: DetailField[], onSubmit: (formData: FormData) => Promise<void>): HTMLDivElement {
+  const $card = createCard({
+    content: document.createElement("div"),
+    className: "mt-3",
+  });
+
+  const $body = $card.querySelector(".card-body") as HTMLDivElement;
+
+  // Add API status container
+  const $apiStatus = document.createElement("div");
+  $apiStatus.className = "api-status mb-3";
+  $body.appendChild($apiStatus);
+
+  // Create form
+  const $form = document.createElement("form");
+  $form.className = "needs-validation";
+  $form.setAttribute("novalidate", "");
+
+  // Add details list
+  const $list = createDetailList(details);
+  $form.appendChild($list);
+
+  // Add edit button
+  const $editButton = createEditButton();
+  $form.appendChild($editButton);
+
+  // Add form submit handler
+  $form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const $apiStatusContainer = $card.querySelector(".card-body") as HTMLDivElement;
+
+    try {
+      $editButton.disabled = true;
+      $editButton.querySelector(".edit-text")!.textContent = "Saving...";
+      $editButton.querySelector(".spinner-border")!.classList.remove("d-none");
+      clearApiStatus($apiStatusContainer);
+
+      const formData = new FormData($form);
+      await onSubmit(formData);
+    } catch (error) {
+      addApiStatus($apiStatusContainer, `Error: ${(error as Error).message}`, "error");
+    } finally {
+      $editButton.disabled = false;
+      $editButton.querySelector(".edit-text")!.textContent = "Save edits";
+      $editButton.querySelector(".spinner-border")!.classList.add("d-none");
+    }
+  });
+
+  $body.appendChild($form);
   return $card;
 }
 
@@ -400,9 +513,8 @@ function bindEventsSelects() {
   }
 
   // Empty selects
-  // Empty selects
-  $ioChannelsSelect.innerHTML = "";
-  $peopleSelect.innerHTML = "";
+  $ioChannelsSelect.innerHTML = '<option value="">Select a channel</option>';
+  $peopleSelect.innerHTML = '<option value="">Select a person</option>';
 
   // Fetch and populate IO Channels
   apiGetIOChannels()
@@ -639,7 +751,7 @@ async function bindEventsInteractions() {
   });
 }
 
-async function apiGetPersonDetails(personId: string): Promise<PersonDetails> {
+async function apiGetPersonDetails(personId: string): Promise<Person> {
   const response = await fetch(`/api/persons/${personId}`, {
     headers: {
       "x-auth-person": localStorage.getItem("auth"),
@@ -654,149 +766,135 @@ async function apiGetPersonDetails(personId: string): Promise<PersonDetails> {
   return response.json();
 }
 
-function displayPersonDetails(person: PersonDetails) {
-  const $card = createCard({
-    title: "Person Details",
-    content: document.createElement("div"),
-    className: "mt-3",
-  });
-
-  const $body = $card.querySelector(".card-body") as HTMLDivElement;
-
-  // Create form
-  const $form = document.createElement("form");
-  $form.className = "needs-validation";
-  $form.setAttribute("novalidate", "");
-
-  const details = [
+function displayPersonDetails(person: Person) {
+  const details: DetailField[] = [
     { label: "ID", value: person.id, editable: false },
     { label: "Name", value: person.name, editable: true },
     { label: "Language", value: person.language || "", editable: true },
   ];
 
-  const $list = document.createElement("dl");
-  $list.className = "row mb-0";
+  const onSubmit = async (formData: FormData) => {
+    const updates = {
+      name: formData.get("name"),
+      language: formData.get("language"),
+    };
 
-  details.forEach(({ label, value, editable }) => {
-    const $dt = document.createElement("dt");
-    $dt.className = "col-sm-3 text-muted";
-    $dt.textContent = label;
+    const response = await fetch(`/api/persons/${person.id}`, {
+      method: "PATCH",
+      headers: {
+        "content-type": "application/json",
+        "x-auth-person": localStorage.getItem("auth"),
+      },
+      body: JSON.stringify(updates),
+    });
 
-    const $dd = document.createElement("dd");
-    $dd.className = "col-sm-9";
+    const json = await response.json();
 
-    if (editable) {
-      const $input = document.createElement("input");
-      $input.type = "text";
-      $input.className = "form-control bg-dark text-light border-secondary";
-      $input.value = value;
-      $input.name = label.toLowerCase();
-      $input.setAttribute("required", "");
-      $dd.appendChild($input);
-    } else {
-      $dd.className = "col-sm-9 text-light";
-      $dd.textContent = value;
+    if (json.error) {
+      throw new Error(json.error.message || "Failed to update person");
     }
+    addApiStatus($personDetailsContainer, "Person updated successfully", "success");
+  };
 
-    $list.appendChild($dt);
-    $list.appendChild($dd);
-  });
-
-  $form.appendChild($list);
-
-  // Add edit button
-  const $buttonContainer = document.createElement("div");
-  $buttonContainer.className = "mt-3 d-flex justify-content-end";
-
-  const $editButton = document.createElement("button");
-  $editButton.type = "submit";
-  $editButton.className = "btn btn-primary";
-  $editButton.innerHTML = `
-    <span class="edit-text">Save edits</span>
-    <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-  `;
-
-  $buttonContainer.appendChild($editButton);
-  $form.appendChild($buttonContainer);
-
-  // Add form submit handler
-  $form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const $apiStatusContainer = $card.querySelector(".card-body") as HTMLDivElement;
-
-    try {
-      $editButton.disabled = true;
-      $editButton.querySelector(".edit-text")!.textContent = "Saving...";
-      $editButton.querySelector(".spinner-border")!.classList.remove("d-none");
-      clearApiStatus($apiStatusContainer);
-
-      const formData = new FormData($form);
-      const updates = {
-        name: formData.get("name"),
-        language: formData.get("language"),
-      };
-
-      const response = await fetch(`/api/persons/${person.id}`, {
-        method: "PATCH",
-        headers: {
-          "content-type": "application/json",
-          "x-auth-person": localStorage.getItem("auth"),
-        },
-        body: JSON.stringify(updates),
-      });
-
-      const json = await response.json();
-
-      if (json.error) {
-        addApiStatus($apiStatusContainer, json.error.message || "Failed to update person", "error");
-      } else {
-        addApiStatus($apiStatusContainer, "Person updated successfully", "success");
-      }
-    } catch (error) {
-      addApiStatus($apiStatusContainer, `Error: ${(error as Error).message}`, "error");
-    } finally {
-      $editButton.disabled = false;
-      $editButton.querySelector(".edit-text")!.textContent = "Save edits";
-      $editButton.querySelector(".spinner-border")!.classList.add("d-none");
-    }
-  });
-
-  $body.appendChild($form);
-
-  // Add API status container
-  const $apiStatus = document.createElement("div");
-  $apiStatus.className = "api-status mb-3";
-  $body.appendChild($apiStatus);
-
+  const $card = createDetailsCard(details, onSubmit);
   $personDetailsContainer.innerHTML = "";
   $personDetailsContainer.appendChild($card);
 }
 
 function bindEventsPersonDetails() {
-  $personDetails.addEventListener("click", async () => {
+  $peopleSelect.addEventListener("change", async () => {
     const personId = $peopleSelect.value;
-    const $apiStatusContainer = $personDetails.closest(".card-body") as HTMLDivElement;
+    const $apiStatusContainer = $peopleSelect.closest(".card-body") as HTMLDivElement;
 
     if (!personId) {
-      addApiStatus($apiStatusContainer, "Please select a person to view details", "error");
+      $personDetailsContainer.innerHTML = "";
       return;
     }
 
     try {
-      $personDetails.disabled = true;
-      $personDetails.innerHTML = `
-        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-        Loading...
-      `;
       clearApiStatus($apiStatusContainer);
-
       const person = await apiGetPersonDetails(personId);
       displayPersonDetails(person);
     } catch (error) {
       addApiStatus($apiStatusContainer, `Error: ${(error as Error).message}`, "error");
-    } finally {
-      $personDetails.disabled = false;
-      $personDetails.innerHTML = "Get details";
+    }
+  });
+}
+
+async function apiGetIOChannelDetails(channelId: string): Promise<IOChannel> {
+  const response = await fetch(`/api/io_channels/${channelId}`, {
+    headers: {
+      "x-auth-person": localStorage.getItem("auth"),
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error?.message || "Failed to fetch IO Channel details");
+  }
+
+  return response.json();
+}
+
+function displayIOChannelDetails(channel: IOChannel) {
+  const details: DetailField[] = [
+    { label: "ID", value: channel.id, editable: false },
+    { label: "Name", value: channel.name, editable: false },
+    { label: "Owner Name", value: channel.ownerName, editable: false },
+    { label: "IO Driver", value: channel.ioDriver, editable: false },
+    { label: "IO Identifier", value: channel.ioIdentifier, editable: false },
+    { label: "IO Data", value: JSON.stringify(channel.ioData), wrapper: "code" },
+    { label: "Person", value: channel.person?.name ?? "Not set", editable: false },
+    {
+      label: "People",
+      value: channel.people.length > 0 ? channel.people.map((p) => p.name).join(", ") : "Not set",
+      editable: false,
+    },
+  ];
+
+  const onSubmit = async (formData: FormData) => {
+    const updates = {
+      name: formData.get("name"),
+    };
+
+    const response = await fetch(`/api/io_channels/${channel.id}`, {
+      method: "PATCH",
+      headers: {
+        "content-type": "application/json",
+        "x-auth-person": localStorage.getItem("auth"),
+      },
+      body: JSON.stringify(updates),
+    });
+
+    const json = await response.json();
+
+    if (json.error) {
+      throw new Error(json.error.message || "Failed to update IO Channel");
+    }
+    addApiStatus($ioChannelDetailsContainer, "IO Channel updated successfully", "success");
+  };
+
+  const $card = createDetailsCard(details, onSubmit);
+  $ioChannelDetailsContainer.innerHTML = "";
+  $ioChannelDetailsContainer.appendChild($card);
+}
+
+function bindEventsIOChannelDetails() {
+  $ioChannelsSelect.addEventListener("change", async () => {
+    const channelId = $ioChannelsSelect.value;
+    const $apiStatusContainer = $ioChannelsSelect.closest(".card-body") as HTMLDivElement;
+
+    if (!channelId) {
+      $ioChannelDetailsContainer.innerHTML = "";
+      return;
+    }
+
+    try {
+      clearApiStatus($apiStatusContainer);
+      const channel = await apiGetIOChannelDetails(channelId);
+      displayIOChannelDetails(channel);
+    } catch (error) {
+      addApiStatus($apiStatusContainer, `Error: ${(error as Error).message}`, "error");
     }
   });
 }
@@ -813,6 +911,7 @@ export function bindEvents() {
   bindEventsOutputMessage();
   bindEventsPersonApprove();
   bindEventsPersonDetails();
+  bindEventsIOChannelDetails();
   bindEventsMemorySearch();
   bindEventsInteractions();
 }

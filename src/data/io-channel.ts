@@ -14,7 +14,7 @@ import {
 } from "@typegoose/typegoose";
 import autopopulate from "mongoose-autopopulate";
 import { Signale } from "signale";
-import { IPerson, TPerson } from "./person";
+import { IPerson, Person, TPerson } from "./person";
 import mongoose from "mongoose";
 
 const TAG = "IOChannel";
@@ -96,6 +96,8 @@ export class IIOChannel {
       ioDriver: this.ioDriver,
       ioIdentifier: this.ioIdentifier,
       ioData: this.ioData,
+      person: this.person ? new Person(this.person).toJSONAPI() : null,
+      people: this.people.map((p) => new Person(p).toJSONAPI()),
     };
   }
 
