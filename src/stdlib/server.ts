@@ -211,6 +211,29 @@ routerApi.get(`/memories/search`, async (req, res) => {
   }
 });
 
+routerApi.delete(`/memories/:id`, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { type } = req.query;
+
+    if (!id) throw new Error("req.params.id is required");
+    if (!type) throw new Error("req.query.type is required");
+
+    if (!(String(type) in config().memory.vectorial)) {
+      throw new Error(`Invalid memory type: ${type}`);
+    }
+
+    await AIMemory.getInstance().deleteVector(id, type as MemoryType);
+    res.json({ success: true });
+  } catch (err) {
+    return res.status(400).json({
+      error: {
+        message: (err as Error)?.message,
+      },
+    });
+  }
+});
+
 // API that exposes persons
 routerApi.get("/persons", async (_, res) => {
   const persons = await Person.find();

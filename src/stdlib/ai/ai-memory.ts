@@ -195,6 +195,14 @@ export class AIMemory {
     return data.points.map((e) => ({ id: e.id, ...e.payload }));
   }
 
+  async deleteVector(id: string, memoryType: MemoryType) {
+    const result = await QDrantSDK().delete(memoryType, {
+      points: [id],
+    });
+    logger.success(`Deleted vector ${id} from collection ${memoryType}`, result);
+    return result;
+  }
+
   private chunkText(text: string): string[] {
     return text
       .split("\n")

@@ -33,6 +33,8 @@ interface MemoryResult {
   };
 }
 
+const $inputAuth = $("#input-auth") as HTMLInputElement;
+
 const $brainReload = $("#brain-reload") as HTMLButtonElement;
 
 const $ioChannelGetInteractions = $("#io-channel-get-interactions") as HTMLButtonElement;
@@ -104,6 +106,20 @@ async function apiSearchMemories(type: string, text: string): Promise<MemoryResu
   return json.data ?? [];
 }
 
+async function apiDeleteMemory(id: string, type: string): Promise<void> {
+  const response = await fetch(`/api/memories/${id}?type=${type}`, {
+    method: "DELETE",
+    headers: {
+      "x-auth-person": localStorage.getItem("auth"),
+    },
+  });
+
+  if (!response.ok) {
+    const json = await response.json();
+    throw new Error(json.error?.message || "Failed to delete memory");
+  }
+}
+
 function setLoading(isLoading: boolean) {
   $memorySearchBtn.disabled = isLoading;
   $memorySearchText.textContent = isLoading ? "Searching..." : "Search";
@@ -123,7 +139,11 @@ function displayMemoryResults(results: MemoryResult[]) {
 
   results.forEach((result) => {
     const item = document.createElement("div");
-    item.className = "list-group-item bg-dark text-light border-secondary";
+    item.className =
+      "list-group-item bg-dark text-light border-secondary d-flex justify-content-between align-items-start";
+
+    const content = document.createElement("div");
+    content.className = "flex-grow-1";
 
     const score = document.createElement("small");
     score.className = "text-muted d-block mb-2";
@@ -133,8 +153,48 @@ function displayMemoryResults(results: MemoryResult[]) {
     text.className = "text-break";
     text.textContent = result.payload.text;
 
-    item.appendChild(score);
-    item.appendChild(text);
+    content.appendChild(score);
+    content.appendChild(text);
+    item.appendChild(content);
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.className = "btn btn-danger btn-sm ms-2";
+    deleteBtn.innerHTML = `
+      <span class="delete-text">Delete</span>
+      <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+    `;
+    deleteBtn.onclick = async () => {
+      const deleteText = deleteBtn.querySelector(".delete-text") as HTMLSpanElement;
+      const spinner = deleteBtn.querySelector(".spinner-border") as HTMLSpanElement;
+
+      try {
+        // Set loading state
+        deleteBtn.disabled = true;
+        deleteText.textContent = "Deleting...";
+        spinner.classList.remove("d-none");
+
+        await apiDeleteMemory(result.id, $memoryType.value);
+        // Refresh the search results
+        const text = $memorySearch.value.trim();
+        if (text) {
+          const results = await apiSearchMemories($memoryType.value, text);
+          displayMemoryResults(results);
+        }
+      } catch (error) {
+        console.error("Error deleting memory:", error);
+        const errorDiv = document.createElement("div");
+        errorDiv.className = "alert alert-danger mt-2";
+        errorDiv.textContent = `Error deleting memory: ${(error as Error).message}`;
+        item.appendChild(errorDiv);
+      } finally {
+        // Reset loading state
+        deleteBtn.disabled = false;
+        deleteText.textContent = "Delete";
+        spinner.classList.add("d-none");
+      }
+    };
+
+    item.appendChild(deleteBtn);
     resultsList.appendChild(item);
   });
 
@@ -149,7 +209,7 @@ function bindEventsMemorySearch() {
     const text = $memorySearch.value.trim();
 
     if (!text) {
-      addMessage("CONTROL CENTER", "Please enter search text", "system output error");
+      $memoryResults.innerHTML = '<div class="alert alert-warning">Please enter search text</div>';
       return;
     }
 
@@ -159,7 +219,9 @@ function bindEventsMemorySearch() {
       displayMemoryResults(results);
     } catch (error) {
       console.error("Error searching memories:", error);
-      addMessage("CONTROL CENTER", "Error searching memories", "system output error");
+      $memoryResults.innerHTML = `<div class="alert alert-danger">Error searching memories: ${
+        (error as Error).message
+      }</div>`;
     } finally {
       setLoading(false);
     }
@@ -347,6 +409,11 @@ function bindEventsOutputMessage() {
 }
 
 export function bindEvents() {
+  $inputAuth.value = localStorage.getItem("auth") || "";
+  $inputAuth.addEventListener("change", () => {
+    localStorage.setItem("auth", $inputAuth.value);
+  });
+
   bindEventsSelects();
   bindEventsBrainReload();
   bindEventsInputMessage();
@@ -355,3 +422,5 @@ export function bindEvents() {
   bindEventsPersonApprove();
   bindEventsMemorySearch();
 }
+
+bindEvents();
