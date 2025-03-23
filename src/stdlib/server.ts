@@ -293,13 +293,51 @@ routerApi.get(`/io_channels/:ioChannelId`, async (req, res) => {
   }
 });
 
-// API that exposes interactions with a specific IOChannel
-routerApi.get(`/io_channels/:ioChannelId/interactions`, async (req, res) => {
-  const { ioChannelId } = req.params;
-  const ioChannel = await IOChannel.findByIdOrThrow(ioChannelId);
-  const interactions = await Interaction.find({ ioChannel: ioChannel.id }).sort({ createdAt: +1 });
-  const data = interactions.map((interaction) => interaction.toJSONAPI());
-  res.json({ data });
+routerApi.get(`/interactions`, async (req, res) => {
+  try {
+    const { ioChannel, date } = req.query;
+
+    // Build query conditions
+    const conditions: any = {};
+    if (ioChannel) {
+      conditions.ioChannel = ioChannel;
+    }
+    if (date) {
+      const startDate = new Date(date as string);
+      const endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + 1);
+      conditions.createdAt = {
+        $gte: startDate,
+        $lt: endDate,
+      };
+    }
+
+    // Get interactions matching conditions
+    const interactions = await Interaction.find(conditions).sort({ createdAt: +1 });
+
+    // Group interactions by channel
+    const groupedInteractions = interactions.reduce((acc: Record<string, any>, interaction) => {
+      const channelId = interaction.ioChannel.id;
+
+      if (!acc[channelId]) {
+        acc[channelId] = {
+          channel: new IOChannel(interaction.ioChannel).toJSONAPI(),
+          interactions: [],
+        };
+      }
+
+      acc[channelId].interactions.push(interaction.toJSONAPI());
+      return acc;
+    }, {});
+
+    res.json({ data: groupedInteractions });
+  } catch (err) {
+    return res.status(400).json({
+      error: {
+        message: (err as Error)?.message,
+      },
+    });
+  }
 });
 
 routerApi.post(`/admin/brain_reload`, async (req, res) => {

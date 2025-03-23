@@ -1,9 +1,8 @@
-import { $, addMessage, cleanMessages } from "./utils";
+import { $, addMessage } from "./utils";
 
 interface IOChannel {
   id: string;
   name: string;
-  driverName: string;
 }
 
 interface Person {
@@ -18,11 +17,19 @@ interface Interaction {
   };
   output: {
     text?: string;
+    error?: any;
   };
-  source: "input" | "output";
   createdAt: string;
-  person: Person;
   sourceName: string;
+}
+
+interface GroupedInteractions {
+  channel: IOChannel;
+  interactions: Interaction[];
+}
+
+interface InteractionsResponse {
+  data: Record<string, GroupedInteractions>;
 }
 
 interface MemoryResult {
@@ -37,18 +44,15 @@ const $inputAuth = $("#input-auth") as HTMLInputElement;
 
 const $brainReload = $("#brain-reload") as HTMLButtonElement;
 
-const $ioChannelGetInteractions = $("#io-channel-get-interactions") as HTMLButtonElement;
-
-const $ioChannelsSelect = document.getElementById("io-channels") as HTMLSelectElement;
-const $peopleSelect = document.getElementById("people") as HTMLSelectElement;
+const $ioChannelsSelect = $("#io-channels") as HTMLSelectElement;
+const $peopleSelect = $("#people") as HTMLSelectElement;
 
 const $personApprove = $("#person-approve") as HTMLButtonElement;
 
-const $inputMessage = $("#admin-input-message-text") as HTMLInputElement;
 const $formInputMessage = $("#admin-input-message") as HTMLFormElement;
-
-const $outputMessage = $("#admin-output-message-text") as HTMLInputElement;
 const $formOutputMessage = $("#admin-output-message") as HTMLFormElement;
+
+const $messages = $("#messages") as HTMLDivElement;
 
 // Memory search elements
 const $memoryType = $("#memory-type") as HTMLSelectElement;
@@ -58,6 +62,11 @@ const $memorySearchText = $("#memory-search-text") as HTMLSpanElement;
 const $memorySearchSpinner = $("#memory-search-spinner") as HTMLSpanElement;
 const $memoryResults = $("#memory-results") as HTMLDivElement;
 const $memorySearchForm = $("#memory-search-form") as HTMLFormElement;
+
+// DOM Elements
+const $interactionsSearchBtn = $("#interactions-search-btn") as HTMLButtonElement;
+const $interactionsSearchText = $("#interactions-search-text") as HTMLSpanElement;
+const $interactionsSearchSpinner = $("#interactions-search-spinner") as HTMLSpanElement;
 
 export async function apiGetIOChannels(): Promise<IOChannel[]> {
   const response = await fetch(`/api/io_channels`, {
@@ -83,16 +92,23 @@ export async function apiGetPeople(): Promise<Person[]> {
   return json.data ?? [];
 }
 
-async function apiGetInteractions(ioChannelId: string): Promise<Interaction[]> {
-  const response = await fetch(`/api/io_channels/${ioChannelId}/interactions`, {
+async function apiGetInteractions(ioChannel?: string, date?: string): Promise<InteractionsResponse> {
+  const params = new URLSearchParams();
+  if (ioChannel) params.append("ioChannel", ioChannel);
+  if (date) params.append("date", date);
+
+  const response = await fetch(`/api/interactions?${params.toString()}`, {
     headers: {
       "x-auth-person": localStorage.getItem("auth"),
     },
   });
 
-  const json = await response.json();
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error?.message || "Failed to fetch interactions");
+  }
 
-  return json.data ?? [];
+  return response.json();
 }
 
 async function apiSearchMemories(type: string, text: string): Promise<MemoryResult[]> {
@@ -120,12 +136,6 @@ async function apiDeleteMemory(id: string, type: string): Promise<void> {
   }
 }
 
-function setLoading(isLoading: boolean) {
-  $memorySearchBtn.disabled = isLoading;
-  $memorySearchText.textContent = isLoading ? "Searching..." : "Search";
-  $memorySearchSpinner.classList.toggle("d-none", !isLoading);
-}
-
 function displayMemoryResults(results: MemoryResult[]) {
   $memoryResults.innerHTML = "";
 
@@ -140,7 +150,7 @@ function displayMemoryResults(results: MemoryResult[]) {
   results.forEach((result) => {
     const item = document.createElement("div");
     item.className =
-      "list-group-item bg-dark text-light border-secondary d-flex justify-content-between align-items-start";
+      "list-group-item bg-dark text-light border-secondary d-flex justify-content-between align-items-center";
 
     const content = document.createElement("div");
     content.className = "flex-grow-1";
@@ -201,6 +211,12 @@ function displayMemoryResults(results: MemoryResult[]) {
   $memoryResults.appendChild(resultsList);
 }
 
+function setLoadingMemory(isLoading: boolean) {
+  $memorySearchBtn.disabled = isLoading;
+  $memorySearchText.textContent = isLoading ? "Searching..." : "Search";
+  $memorySearchSpinner.classList.toggle("d-none", !isLoading);
+}
+
 function bindEventsMemorySearch() {
   $memorySearchForm.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -209,99 +225,130 @@ function bindEventsMemorySearch() {
     const text = $memorySearch.value.trim();
 
     if (!text) {
-      $memoryResults.innerHTML = '<div class="alert alert-warning">Please enter search text</div>';
+      addApiStatus($memorySearchForm, "Please enter search text", "error");
       return;
     }
 
     try {
-      setLoading(true);
+      setLoadingMemory(true);
+      clearApiStatus($memorySearchForm);
       const results = await apiSearchMemories(type, text);
       displayMemoryResults(results);
     } catch (error) {
-      console.error("Error searching memories:", error);
-      $memoryResults.innerHTML = `<div class="alert alert-danger">Error searching memories: ${
-        (error as Error).message
-      }</div>`;
+      addApiStatus($memorySearchForm, `Error searching memories: ${(error as Error).message}`, "error");
     } finally {
-      setLoading(false);
+      setLoadingMemory(false);
     }
   });
+}
+
+function addApiStatus(element: HTMLElement, message: string, type: "success" | "error" | "info" = "info") {
+  const statusDiv = element.querySelector(".api-status");
+  if (statusDiv) {
+    statusDiv.innerHTML = `
+      <div class="alert alert-${type === "error" ? "danger" : type} mt-2 mb-0">
+        ${message}
+      </div>
+    `;
+  } else {
+    console.error("No status div found", element);
+  }
+}
+
+function clearApiStatus(element: HTMLElement) {
+  const statusDiv = element.querySelector(".api-status");
+  if (statusDiv) {
+    statusDiv.innerHTML = "";
+  }
 }
 
 function bindEventsPersonApprove() {
   $personApprove.addEventListener("click", async () => {
     const personId = $peopleSelect.value;
-    const response = await fetch(`/api/persons/${personId}/approve`, {
-      method: "POST",
-      headers: {
-        "x-auth-person": localStorage.getItem("auth"),
-      },
-    });
+    const $apiStatusContainer = $personApprove.closest(".card-body") as HTMLDivElement;
 
-    const json = await response.json();
+    if (!personId) {
+      addApiStatus($apiStatusContainer, "Please select a person to approve", "error");
+      return;
+    }
 
-    addMessage("CONTROL CENTER", JSON.stringify(json), `system output ${json.error ? "error" : ""}`);
-  });
-}
+    try {
+      // Set loading state
+      $personApprove.disabled = true;
+      $personApprove.innerHTML = `
+        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        <span>Approving...</span>
+      `;
+      clearApiStatus($apiStatusContainer);
 
-function bindEventsIOChannelGetInteractions() {
-  $ioChannelGetInteractions.addEventListener("click", async () => {
-    cleanMessages();
+      const response = await fetch(`/api/persons/${personId}/approve`, {
+        method: "POST",
+        headers: {
+          "x-auth-person": localStorage.getItem("auth"),
+        },
+      });
 
-    const ioChannelId = $ioChannelsSelect.value;
-    const interactions = await apiGetInteractions(ioChannelId);
+      const json = await response.json();
 
-    interactions.forEach((interaction) => {
-      if (interaction.input) {
-        addMessage(
-          interaction.sourceName,
-          interaction.input.text ? interaction.input.text : JSON.stringify(interaction.input),
-          "input",
-          interaction.createdAt,
-        );
+      if (json.error) {
+        addApiStatus($apiStatusContainer, json.error.message || "Failed to approve person", "error");
+      } else {
+        addApiStatus($apiStatusContainer, `Person ${personId} approved successfully`, "success");
       }
-      if (interaction.output) {
-        addMessage(
-          interaction.sourceName,
-          interaction.output.text ? interaction.output.text : JSON.stringify(interaction.output),
-          "output",
-          interaction.createdAt,
-        );
-      }
-    });
+    } catch (error) {
+      addApiStatus($apiStatusContainer, `Error: ${(error as Error).message}`, "error");
+    } finally {
+      // Reset button state
+      $personApprove.disabled = false;
+      $personApprove.innerHTML = "Approve";
+    }
   });
 }
 
 function bindEventsBrainReload() {
   $brainReload.addEventListener("click", async () => {
-    $brainReload.setAttribute("disabled", "disabled");
+    const $apiStatusContainer = $brainReload.closest(".card-body") as HTMLDivElement;
 
-    const types = [];
-    if (($("#brain-reload-prompt") as HTMLInputElement).checked) {
-      types.push("prompt");
+    try {
+      $brainReload.disabled = true;
+      $brainReload.innerHTML =
+        '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Loading...';
+      clearApiStatus($apiStatusContainer);
+
+      const types = [];
+      if (($("#brain-reload-prompt") as HTMLInputElement).checked) {
+        types.push("prompt");
+      }
+      if (($("#brain-reload-social") as HTMLInputElement).checked) {
+        types.push("prompt");
+      }
+      if (($("#brain-reload-declarative") as HTMLInputElement).checked) {
+        types.push("declarative");
+      }
+
+      const resp = await fetch("/api/admin/brain_reload", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-auth-person": localStorage.getItem("auth"),
+        },
+        body: JSON.stringify({
+          types,
+        }),
+      });
+      const json = await resp.json();
+
+      if (json.error) {
+        addApiStatus($apiStatusContainer, json.error.message || "An error occurred", "error");
+      } else {
+        addApiStatus($apiStatusContainer, "Brain reloaded successfully", "success");
+      }
+    } catch (error) {
+      addApiStatus($apiStatusContainer, (error as Error).message, "error");
+    } finally {
+      $brainReload.disabled = false;
+      $brainReload.innerHTML = "Brain reload";
     }
-    if (($("#brain-reload-social") as HTMLInputElement).checked) {
-      types.push("prompt");
-    }
-    if (($("#brain-reload-declarative") as HTMLInputElement).checked) {
-      types.push("declarative");
-    }
-
-    const resp = await fetch("/api/admin/brain_reload", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-auth-person": localStorage.getItem("auth"),
-      },
-      body: JSON.stringify({
-        types,
-      }),
-    });
-    const json = await resp.json();
-
-    addMessage("CONTROL CENTER", JSON.stringify(json), `system output ${json.error ? "error" : ""}`);
-
-    $brainReload.removeAttribute("disabled");
   });
 }
 
@@ -312,6 +359,7 @@ function bindEventsSelects() {
     return;
   }
 
+  // Empty selects
   // Empty selects
   $ioChannelsSelect.innerHTML = "";
   $peopleSelect.innerHTML = "";
@@ -354,27 +402,48 @@ function bindEventsInputMessage() {
     const ioChannelId = $ioChannelsSelect.value;
     const personId = $peopleSelect.value;
 
-    const response = await fetch("/api/input", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-auth-person": localStorage.getItem("auth"),
-      },
-      body: JSON.stringify({
-        io_channel: ioChannelId,
-        person: personId,
-        input: {
-          role: "system",
-          text: $inputMessage.value,
+    const $inputMessage = $formInputMessage.querySelector('input[type="text"]') as HTMLInputElement;
+    const $submitBtn = $formInputMessage.querySelector('button[type="submit"]') as HTMLButtonElement;
+
+    try {
+      $submitBtn.innerHTML =
+        '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Sending...';
+      $submitBtn.disabled = true;
+      $inputMessage.disabled = true;
+
+      clearApiStatus($formInputMessage);
+
+      const response = await fetch("/api/input", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-auth-person": localStorage.getItem("auth"),
         },
-      }),
-    });
+        body: JSON.stringify({
+          io_channel: ioChannelId,
+          person: personId,
+          input: {
+            role: "system",
+            text: $inputMessage.value,
+          },
+        }),
+      });
 
-    const json = await response.json();
+      const json = await response.json();
 
-    addMessage("CONTROL CENTER", JSON.stringify(json), `system output ${json.error ? "error" : ""}`);
-
-    $inputMessage.value = "";
+      if (json.error) {
+        addApiStatus($formInputMessage, json.error.message, "error");
+      } else {
+        addApiStatus($formInputMessage, JSON.stringify(json, null, 2), "success");
+      }
+    } catch (err) {
+      addApiStatus($formInputMessage, (err as Error).message, "error");
+    } finally {
+      $submitBtn.innerHTML = "Send";
+      $submitBtn.disabled = false;
+      $inputMessage.disabled = false;
+      $inputMessage.value = "";
+    }
   });
 }
 
@@ -385,26 +454,148 @@ function bindEventsOutputMessage() {
     const ioChannelId = $ioChannelsSelect.value;
     const personId = $peopleSelect.value;
 
-    const response = await fetch("/api/output", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-auth-person": localStorage.getItem("auth"),
-      },
-      body: JSON.stringify({
-        io_channel: ioChannelId,
-        person: personId,
-        output: {
-          text: $outputMessage.value,
+    const $outputMessage = $formOutputMessage.querySelector('input[type="text"]') as HTMLInputElement;
+    const $submitBtn = $formOutputMessage.querySelector('button[type="submit"]') as HTMLButtonElement;
+
+    try {
+      $submitBtn.innerHTML =
+        '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Sending...';
+      $submitBtn.disabled = true;
+      $outputMessage.disabled = true;
+
+      const response = await fetch("/api/output", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-auth-person": localStorage.getItem("auth"),
         },
-      }),
+        body: JSON.stringify({
+          io_channel: ioChannelId,
+          person: personId,
+          output: {
+            text: $outputMessage.value,
+          },
+        }),
+      });
+
+      const json = await response.json();
+
+      if (json.error) {
+        addApiStatus($formOutputMessage, json.error.message, "error");
+      } else {
+        addApiStatus($formOutputMessage, JSON.stringify(json, null, 2), "success");
+      }
+    } catch (err) {
+      addApiStatus($formOutputMessage, (err as Error).message, "error");
+    } finally {
+      $submitBtn.innerHTML = "Send";
+      $submitBtn.disabled = false;
+      $outputMessage.value = "";
+      $outputMessage.disabled = false;
+    }
+  });
+}
+
+function displayInteractions(interactions: Record<string, GroupedInteractions>) {
+  // Clear previous messages
+  $messages.innerHTML = "";
+
+  if (Object.keys(interactions).length === 0) {
+    return;
+  }
+
+  Object.entries(interactions).forEach(([channelId, channelData]) => {
+    // Create section for this channel
+    const $sectionIOChannel = document.createElement("div");
+    $sectionIOChannel.className = "messages-section";
+
+    // Add channel header
+    const $header = document.createElement("div");
+    $header.className = "text-light border-bottom pb-2";
+    $header.textContent = channelData.channel.name;
+    $sectionIOChannel.appendChild($header);
+
+    // Add all interactions for this channel
+    channelData.interactions.forEach((interaction) => {
+      if (interaction.input) {
+        addMessage(
+          interaction.sourceName,
+          interaction.input?.text ?? JSON.stringify(interaction.input),
+          `input ${interaction.sourceName.toUpperCase() === "SYSTEM" ? "system" : ""}`,
+          interaction.createdAt,
+          $sectionIOChannel,
+        );
+      }
+      if (interaction.output) {
+        addMessage(
+          interaction.sourceName,
+          interaction.output.text ?? JSON.stringify(interaction.output),
+          "output",
+          interaction.createdAt,
+          $sectionIOChannel,
+        );
+      }
     });
 
-    const json = await response.json();
+    // Add the section to messages
+    $messages.appendChild($sectionIOChannel);
+  });
+}
 
-    addMessage("CONTROL CENTER", JSON.stringify(json), `system output ${json.error ? "error" : ""}`);
+function setInteractionsLoading(isLoading: boolean) {
+  $interactionsSearchBtn.disabled = isLoading;
+  $interactionsSearchText.textContent = isLoading ? "Searching..." : "Search";
+  $interactionsSearchSpinner.classList.toggle("d-none", !isLoading);
+}
 
-    $outputMessage.value = "";
+async function populateIOChannels() {
+  try {
+    const channels = await apiGetIOChannels();
+    const $ioChannelsSelect = $("#interactions-io-channel") as HTMLSelectElement;
+    $ioChannelsSelect.innerHTML = '<option value="">All Channels</option>';
+    channels.forEach((channel) => {
+      const option = document.createElement("option");
+      option.value = channel.id;
+      option.textContent = channel.name;
+      $ioChannelsSelect.appendChild(option);
+    });
+  } catch (error) {
+    console.error("Failed to populate IO channels:", error);
+  }
+}
+
+async function bindEventsInteractions() {
+  const $interactionsForm = $("#interactions-filter-form") as HTMLFormElement;
+  const $interactionsDate = $("#interactions-date") as HTMLInputElement;
+
+  // Set today's date as default
+  const today = new Date().toISOString().split("T")[0];
+  $interactionsDate.value = today;
+
+  // Populate IO channels dropdown
+  await populateIOChannels();
+
+  $interactionsForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    clearApiStatus($interactionsForm);
+
+    const ioChannelId =
+      ($interactionsForm.querySelector("#interactions-io-channel") as HTMLSelectElement).value || undefined;
+    const date = ($interactionsForm.querySelector("#interactions-date") as HTMLInputElement).value || undefined;
+
+    let interactions = {};
+
+    try {
+      setInteractionsLoading(true);
+      const response = await apiGetInteractions(ioChannelId, date);
+      interactions = response.data;
+    } catch (error) {
+      addApiStatus($interactionsForm, error.message, "error");
+    } finally {
+      setInteractionsLoading(false);
+    }
+
+    displayInteractions(interactions);
   });
 }
 
@@ -418,9 +609,9 @@ export function bindEvents() {
   bindEventsBrainReload();
   bindEventsInputMessage();
   bindEventsOutputMessage();
-  bindEventsIOChannelGetInteractions();
   bindEventsPersonApprove();
   bindEventsMemorySearch();
+  bindEventsInteractions();
 }
 
 bindEvents();

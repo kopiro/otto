@@ -15,6 +15,14 @@
   color: #e0e0e0;
 }
 
+.messages-section {
+  display: flex;
+  flex-direction: column;
+  padding: 1em;
+  gap: 0.5em 0;
+  margin-bottom: 1em;
+}
+
 #messages::-webkit-scrollbar {
   width: 3px;
   height: 1px;
@@ -43,7 +51,7 @@
 }
 
 .message {
-  padding: 5px 12px;
+  padding: 8px 15px;
   border-radius: 10px;
   clear: both;
   max-width: 90%;
@@ -51,7 +59,8 @@
   animation-duration: 0.4s;
   animation-name: slidein;
   position: relative;
-  font-size: 12px;
+  font-size: 14px;
+  line-height: 1.1em;
 }
 
 .message .message-header {
@@ -86,17 +95,18 @@
 }
 
 .message.error:before {
+  border-right: 20px solid #dc3545 !important;
   border-left: 20px solid #dc3545 !important;
 }
 
 .message.system {
-  background-color: #ffc107 !important;
-  font-family: monospace;
-  color: #000 !important;
+  background-color: #83167d !important;
+  color: #fff !important;
 }
 
 .message.system:before {
-  border-left: 20px solid #ffc107 !important;
+  border-right: 20px solid #83167d !important;
+  border-left: 20px solid #83167d !important;
 }
 
 .message.output {

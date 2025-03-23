@@ -15,6 +15,7 @@ export function addMessage(
   text: string,
   className: string,
   createdAt: string = new Date().toISOString(),
+  $container = $messages,
 ) {
   const messageDiv = document.createElement("div");
   messageDiv.className = `message ${className}`;
@@ -46,7 +47,8 @@ export function addMessage(
   // Assemble message
   messageDiv.appendChild(headerDiv);
   messageDiv.appendChild(textDiv);
-  $messages.appendChild(messageDiv);
+
+  $container.appendChild(messageDiv);
 
   // Scroll down the chat
   $messages.scrollTop = $messages.scrollHeight;
