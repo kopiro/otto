@@ -247,7 +247,7 @@ export async function apiGetPeople(): Promise<Person[]> {
 
 async function apiGetInteractions(ioChannel?: string, date?: string): Promise<InteractionsResponse> {
   const params = new URLSearchParams();
-  if (ioChannel) params.append("ioChannel", ioChannel);
+  if (ioChannel) params.append("io_channel", ioChannel);
   if (date) params.append("date", date);
 
   const response = await fetch(`/api/interactions?${params.toString()}`, {
@@ -365,9 +365,8 @@ function displayMemoryResults(results: MemoryResult[]) {
 }
 
 function setLoadingMemory(isLoading: boolean) {
-  $memorySearchBtn.disabled = isLoading;
-  $memorySearchText.textContent = isLoading ? "Searching..." : "Search";
-  $memorySearchSpinner.classList.toggle("d-none", !isLoading);
+  const $button = $memorySearchBtn;
+  setButtonLoading($button, isLoading, "Searching...", "Search");
 }
 
 function bindEventsMemorySearch() {
@@ -415,6 +414,15 @@ function clearApiStatus(element: HTMLElement) {
   }
 }
 
+function setButtonLoading($button: HTMLButtonElement, isLoading: boolean, loadingText: string, defaultText: string) {
+  $button.disabled = isLoading;
+  const $text = $button.querySelector(".button-text") as HTMLSpanElement;
+  const $spinner = $button.querySelector(".spinner-border") as HTMLSpanElement;
+
+  $text.textContent = isLoading ? loadingText : defaultText;
+  $spinner.classList.toggle("d-none", !isLoading);
+}
+
 function bindEventsPersonApprove() {
   $personApprove.addEventListener("click", async () => {
     const personId = $peopleSelect.value;
@@ -426,12 +434,7 @@ function bindEventsPersonApprove() {
     }
 
     try {
-      // Set loading state
-      $personApprove.disabled = true;
-      $personApprove.innerHTML = `
-        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-        <span>Approving...</span>
-      `;
+      setButtonLoading($personApprove, true, "Approving...", "Approve");
       clearApiStatus($apiStatusContainer);
 
       const response = await fetch(`/api/persons/${personId}/approve`, {
@@ -451,9 +454,7 @@ function bindEventsPersonApprove() {
     } catch (error) {
       addApiStatus($apiStatusContainer, `Error: ${(error as Error).message}`, "error");
     } finally {
-      // Reset button state
-      $personApprove.disabled = false;
-      $personApprove.innerHTML = "Approve";
+      setButtonLoading($personApprove, false, "Approving...", "Approve");
     }
   });
 }
@@ -463,9 +464,7 @@ function bindEventsBrainReload() {
     const $apiStatusContainer = $brainReload.closest(".card-body") as HTMLDivElement;
 
     try {
-      $brainReload.disabled = true;
-      $brainReload.innerHTML =
-        '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Loading...';
+      setButtonLoading($brainReload, true, "Loading...", "Brain reload");
       clearApiStatus($apiStatusContainer);
 
       const types = [];
@@ -499,8 +498,7 @@ function bindEventsBrainReload() {
     } catch (error) {
       addApiStatus($apiStatusContainer, (error as Error).message, "error");
     } finally {
-      $brainReload.disabled = false;
-      $brainReload.innerHTML = "Brain reload";
+      setButtonLoading($brainReload, false, "Loading...", "Brain reload");
     }
   });
 }
@@ -558,11 +556,8 @@ function bindEventsInputMessage() {
     const $submitBtn = $formInputMessage.querySelector('button[type="submit"]') as HTMLButtonElement;
 
     try {
-      $submitBtn.innerHTML =
-        '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Sending...';
-      $submitBtn.disabled = true;
+      setButtonLoading($submitBtn, true, "Sending...", "Send");
       $inputMessage.disabled = true;
-
       clearApiStatus($formInputMessage);
 
       const response = await fetch("/api/input", {
@@ -591,8 +586,7 @@ function bindEventsInputMessage() {
     } catch (err) {
       addApiStatus($formInputMessage, (err as Error).message, "error");
     } finally {
-      $submitBtn.innerHTML = "Send";
-      $submitBtn.disabled = false;
+      setButtonLoading($submitBtn, false, "Sending...", "Send");
       $inputMessage.disabled = false;
       $inputMessage.value = "";
     }
@@ -610,9 +604,7 @@ function bindEventsOutputMessage() {
     const $submitBtn = $formOutputMessage.querySelector('button[type="submit"]') as HTMLButtonElement;
 
     try {
-      $submitBtn.innerHTML =
-        '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Sending...';
-      $submitBtn.disabled = true;
+      setButtonLoading($submitBtn, true, "Sending...", "Send");
       $outputMessage.disabled = true;
 
       const response = await fetch("/api/output", {
@@ -640,8 +632,7 @@ function bindEventsOutputMessage() {
     } catch (err) {
       addApiStatus($formOutputMessage, (err as Error).message, "error");
     } finally {
-      $submitBtn.innerHTML = "Send";
-      $submitBtn.disabled = false;
+      setButtonLoading($submitBtn, false, "Sending...", "Send");
       $outputMessage.value = "";
       $outputMessage.disabled = false;
     }
@@ -695,9 +686,8 @@ function displayInteractions(interactions: Record<string, GroupedInteractions>) 
 }
 
 function setInteractionsLoading(isLoading: boolean) {
-  $interactionsSearchBtn.disabled = isLoading;
-  $interactionsSearchText.textContent = isLoading ? "Searching..." : "Search";
-  $interactionsSearchSpinner.classList.toggle("d-none", !isLoading);
+  const $button = $interactionsSearchBtn;
+  setButtonLoading($button, isLoading, "Searching...", "Search");
 }
 
 async function populateIOChannels() {

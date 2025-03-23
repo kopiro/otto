@@ -60,7 +60,10 @@
                 </div>
               </div>
               <div class="col-auto ms-auto">
-                <button id="brain-reload" class="btn btn-warning">Brain reload</button>
+                <button id="brain-reload" class="btn btn-warning">
+                  <span class="button-text">Brain reload</span>
+                  <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                </button>
               </div>
             </div>
             <div class="api-status"></div>
@@ -84,7 +87,10 @@
                 <select id="people" class="form-select bg-dark text-light border-secondary">
                   <option value="">Loading...</option>
                 </select>
-                <button id="person-approve" class="btn btn-secondary">Approve</button>
+                <button id="person-approve" class="btn btn-secondary">
+                  <span class="button-text">Approve</span>
+                  <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                </button>
               </div>
               <div id="person-details-container" class="mt-3">
                 <!-- Person details will be displayed here -->
@@ -105,7 +111,10 @@
                   class="form-control bg-dark text-light border-secondary"
                   placeholder="Enter message..."
                 />
-                <button type="submit" id="send-input-message" class="btn btn-primary">Send</button>
+                <button type="submit" id="send-input-message" class="btn btn-primary">
+                  <span class="button-text">Send</span>
+                  <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                </button>
               </div>
               <div class="api-status"></div>
             </div>
@@ -123,7 +132,10 @@
                   class="form-control bg-dark text-light border-secondary"
                   placeholder="Enter message..."
                 />
-                <button type="submit" id="send-output-message" class="btn btn-primary">Send</button>
+                <button type="submit" id="send-output-message" class="btn btn-primary">
+                  <span class="button-text">Send</span>
+                  <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                </button>
               </div>
               <div class="api-status"></div>
             </div>
@@ -150,15 +162,10 @@
                   class="form-control bg-dark text-light border-secondary"
                 />
               </div>
-              <div class="col-2 d-flex align-items-end ">
-                <button id="interactions-search-btn" class="btn btn-primary ms-auto">
-                  <span id="interactions-search-text">Search</span>
-                  <span
-                    id="interactions-search-spinner"
-                    class="spinner-border spinner-border-sm d-none"
-                    role="status"
-                    aria-hidden="true"
-                  ></span>
+              <div class="col-2 d-flex align-items-end">
+                <button id="interactions-search-btn" class="btn btn-primary w-100">
+                  <span class="button-text">Search</span>
+                  <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
                 </button>
               </div>
               <div class="api-status"></div>
@@ -191,13 +198,8 @@
                       placeholder="Enter search text..."
                     />
                     <button type="submit" id="memory-search-btn" class="btn btn-primary">
-                      <span id="memory-search-text">Search</span>
-                      <span
-                        id="memory-search-spinner"
-                        class="spinner-border spinner-border-sm d-none"
-                        role="status"
-                        aria-hidden="true"
-                      ></span>
+                      <span class="button-text">Search</span>
+                      <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
                     </button>
                   </div>
                 </div>

@@ -348,12 +348,12 @@ routerApi.get(`/io_channels/:ioChannelId`, async (req, res) => {
 
 routerApi.get(`/interactions`, async (req, res) => {
   try {
-    const { ioChannel, date } = req.query;
+    const { io_channel, date } = req.query;
 
     // Build query conditions
     const conditions: any = {};
-    if (ioChannel) {
-      conditions.ioChannel = ioChannel;
+    if (io_channel) {
+      conditions.ioChannel = io_channel;
     }
     if (date) {
       const startDate = new Date(date as string);
