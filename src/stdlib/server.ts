@@ -254,13 +254,42 @@ routerApi.get(`/persons/:personId`, async (req, res) => {
     });
   }
 });
+routerApi.patch(`/persons/:personId`, async (req, res) => {
+  try {
+    const { personId } = req.params;
+    const updates = req.body;
+
+    const person = await Person.findByIdOrThrow(personId);
+
+    // Apply all provided updates to the person
+    for (const [key, value] of Object.entries(updates)) {
+      if (value !== undefined) {
+        // @ts-ignore
+        person[key] = value;
+      }
+    }
+
+    await person.save();
+    res.json(person.toJSONAPI());
+  } catch (err) {
+    return res.status(400).json({
+      error: {
+        message: (err as Error)?.message,
+      },
+    });
+  }
+});
 
 routerApi.post(`/persons/:personId/approve`, async (req, res) => {
   try {
     const { personId } = req.params;
     const person = await Person.findByIdOrThrow(personId);
     person.authorizations = person.authorizations || [];
-    person.authorizations.push(Authorization.MESSAGE);
+    if (!person.authorizations.includes(Authorization.MESSAGE)) {
+      person.authorizations.push(Authorization.MESSAGE);
+    }
+    // Make the array unique
+    person.authorizations = [...new Set(person.authorizations)];
     await person.save();
     res.json(person);
   } catch (err) {

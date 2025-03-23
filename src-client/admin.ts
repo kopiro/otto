@@ -40,6 +40,15 @@ interface MemoryResult {
   };
 }
 
+interface PersonDetails {
+  id: string;
+  name: string;
+  language?: string;
+  approved?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 const $inputAuth = $("#input-auth") as HTMLInputElement;
 
 const $brainReload = $("#brain-reload") as HTMLButtonElement;
@@ -67,6 +76,37 @@ const $memorySearchForm = $("#memory-search-form") as HTMLFormElement;
 const $interactionsSearchBtn = $("#interactions-search-btn") as HTMLButtonElement;
 const $interactionsSearchText = $("#interactions-search-text") as HTMLSpanElement;
 const $interactionsSearchSpinner = $("#interactions-search-spinner") as HTMLSpanElement;
+
+const $personDetails = $("#person-details") as HTMLButtonElement;
+const $personDetailsContainer = $("#person-details-container") as HTMLDivElement;
+
+interface CardOptions {
+  title?: string;
+  content: HTMLElement;
+  className?: string;
+}
+
+function createCard({ title, content, className = "" }: CardOptions): HTMLDivElement {
+  const $card = document.createElement("div");
+  $card.className = `card bg-dark border-secondary ${className}`;
+
+  if (title) {
+    const $header = document.createElement("div");
+    $header.className = "card-header bg-dark border-secondary";
+    const $title = document.createElement("h5");
+    $title.className = "card-title mb-0 text-light";
+    $title.textContent = title;
+    $header.appendChild($title);
+    $card.appendChild($header);
+  }
+
+  const $body = document.createElement("div");
+  $body.className = "card-body";
+  $body.appendChild(content);
+  $card.appendChild($body);
+
+  return $card;
+}
 
 export async function apiGetIOChannels(): Promise<IOChannel[]> {
   const response = await fetch(`/api/io_channels`, {
@@ -599,6 +639,168 @@ async function bindEventsInteractions() {
   });
 }
 
+async function apiGetPersonDetails(personId: string): Promise<PersonDetails> {
+  const response = await fetch(`/api/persons/${personId}`, {
+    headers: {
+      "x-auth-person": localStorage.getItem("auth"),
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error?.message || "Failed to fetch person details");
+  }
+
+  return response.json();
+}
+
+function displayPersonDetails(person: PersonDetails) {
+  const $card = createCard({
+    title: "Person Details",
+    content: document.createElement("div"),
+    className: "mt-3",
+  });
+
+  const $body = $card.querySelector(".card-body") as HTMLDivElement;
+
+  // Create form
+  const $form = document.createElement("form");
+  $form.className = "needs-validation";
+  $form.setAttribute("novalidate", "");
+
+  const details = [
+    { label: "ID", value: person.id, editable: false },
+    { label: "Name", value: person.name, editable: true },
+    { label: "Language", value: person.language || "", editable: true },
+  ];
+
+  const $list = document.createElement("dl");
+  $list.className = "row mb-0";
+
+  details.forEach(({ label, value, editable }) => {
+    const $dt = document.createElement("dt");
+    $dt.className = "col-sm-3 text-muted";
+    $dt.textContent = label;
+
+    const $dd = document.createElement("dd");
+    $dd.className = "col-sm-9";
+
+    if (editable) {
+      const $input = document.createElement("input");
+      $input.type = "text";
+      $input.className = "form-control bg-dark text-light border-secondary";
+      $input.value = value;
+      $input.name = label.toLowerCase();
+      $input.setAttribute("required", "");
+      $dd.appendChild($input);
+    } else {
+      $dd.className = "col-sm-9 text-light";
+      $dd.textContent = value;
+    }
+
+    $list.appendChild($dt);
+    $list.appendChild($dd);
+  });
+
+  $form.appendChild($list);
+
+  // Add edit button
+  const $buttonContainer = document.createElement("div");
+  $buttonContainer.className = "mt-3 d-flex justify-content-end";
+
+  const $editButton = document.createElement("button");
+  $editButton.type = "submit";
+  $editButton.className = "btn btn-primary";
+  $editButton.innerHTML = `
+    <span class="edit-text">Save edits</span>
+    <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+  `;
+
+  $buttonContainer.appendChild($editButton);
+  $form.appendChild($buttonContainer);
+
+  // Add form submit handler
+  $form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const $apiStatusContainer = $card.querySelector(".card-body") as HTMLDivElement;
+
+    try {
+      $editButton.disabled = true;
+      $editButton.querySelector(".edit-text")!.textContent = "Saving...";
+      $editButton.querySelector(".spinner-border")!.classList.remove("d-none");
+      clearApiStatus($apiStatusContainer);
+
+      const formData = new FormData($form);
+      const updates = {
+        name: formData.get("name"),
+        language: formData.get("language"),
+      };
+
+      const response = await fetch(`/api/persons/${person.id}`, {
+        method: "PATCH",
+        headers: {
+          "content-type": "application/json",
+          "x-auth-person": localStorage.getItem("auth"),
+        },
+        body: JSON.stringify(updates),
+      });
+
+      const json = await response.json();
+
+      if (json.error) {
+        addApiStatus($apiStatusContainer, json.error.message || "Failed to update person", "error");
+      } else {
+        addApiStatus($apiStatusContainer, "Person updated successfully", "success");
+      }
+    } catch (error) {
+      addApiStatus($apiStatusContainer, `Error: ${(error as Error).message}`, "error");
+    } finally {
+      $editButton.disabled = false;
+      $editButton.querySelector(".edit-text")!.textContent = "Save edits";
+      $editButton.querySelector(".spinner-border")!.classList.add("d-none");
+    }
+  });
+
+  $body.appendChild($form);
+
+  // Add API status container
+  const $apiStatus = document.createElement("div");
+  $apiStatus.className = "api-status mb-3";
+  $body.appendChild($apiStatus);
+
+  $personDetailsContainer.innerHTML = "";
+  $personDetailsContainer.appendChild($card);
+}
+
+function bindEventsPersonDetails() {
+  $personDetails.addEventListener("click", async () => {
+    const personId = $peopleSelect.value;
+    const $apiStatusContainer = $personDetails.closest(".card-body") as HTMLDivElement;
+
+    if (!personId) {
+      addApiStatus($apiStatusContainer, "Please select a person to view details", "error");
+      return;
+    }
+
+    try {
+      $personDetails.disabled = true;
+      $personDetails.innerHTML = `
+        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        Loading...
+      `;
+      clearApiStatus($apiStatusContainer);
+
+      const person = await apiGetPersonDetails(personId);
+      displayPersonDetails(person);
+    } catch (error) {
+      addApiStatus($apiStatusContainer, `Error: ${(error as Error).message}`, "error");
+    } finally {
+      $personDetails.disabled = false;
+      $personDetails.innerHTML = "Get details";
+    }
+  });
+}
+
 export function bindEvents() {
   $inputAuth.value = localStorage.getItem("auth") || "";
   $inputAuth.addEventListener("change", () => {
@@ -610,6 +812,7 @@ export function bindEvents() {
   bindEventsInputMessage();
   bindEventsOutputMessage();
   bindEventsPersonApprove();
+  bindEventsPersonDetails();
   bindEventsMemorySearch();
   bindEventsInteractions();
 }
