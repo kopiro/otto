@@ -29,13 +29,20 @@ export class GoogleTextToSpeech implements ITextToSpeech {
   }
 
   private cleanText(text: string) {
-    // Removi all emojies
-    return text
-      .replace(
-        /([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g,
-        "",
-      )
-      .replace("\n", ".");
+    return (
+      text
+        // Removi all emojies
+        .replace(
+          /([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g,
+          "",
+        )
+        // Remove "*"
+        .replace(/\*/g, "")
+        // Remove _
+        .replace(/_/g, "")
+        // Replace "\n" with "."
+        .replace("\n", ".")
+    );
   }
 
   private async getVoice(language: Language, gender: Gender): Promise<google.cloud.texttospeech.v1beta1.IVoice> {
