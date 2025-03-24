@@ -265,7 +265,8 @@ routerApi.patch(`/persons/:personId`, async (req, res) => {
 
     // Apply all provided updates to the person
     for (const [key, value] of Object.entries(updates)) {
-      if (value !== undefined) {
+      // Only update if key is a valid model property
+      if (value !== undefined && Object.getOwnPropertyDescriptor(person.schema.obj, key)) {
         // @ts-ignore
         person[key] = value;
       }
@@ -317,7 +318,7 @@ routerApi.patch(`/io_channels/:ioChannelId`, async (req, res) => {
 
     const ioChannel = await IOChannel.findByIdOrThrow(ioChannelId);
     for (const [key, value] of Object.entries(updates)) {
-      if (value !== undefined) {
+      if (value !== undefined && Object.getOwnPropertyDescriptor(ioChannel.schema.obj, key)) {
         // @ts-ignore
         ioChannel[key] = value;
       }
