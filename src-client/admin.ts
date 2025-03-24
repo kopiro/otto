@@ -30,6 +30,14 @@ interface Interaction {
   sourceName: string;
 }
 
+type InputToCloseFriendsMap = Array<{
+  uuid: string;
+  ioChannel: IOChannel;
+  person: Person;
+  time: string;
+  score: number;
+}>;
+
 interface GroupedInteractions {
   channel: IOChannel;
   interactions: Interaction[];
@@ -65,19 +73,19 @@ const $messages = $("#messages") as HTMLDivElement;
 const $memoryType = $("#memory-type") as HTMLSelectElement;
 const $memorySearch = $("#memory-search") as HTMLInputElement;
 const $memorySearchBtn = $("#memory-search-btn") as HTMLButtonElement;
-const $memorySearchText = $("#memory-search-text") as HTMLSpanElement;
-const $memorySearchSpinner = $("#memory-search-spinner") as HTMLSpanElement;
+
 const $memoryResults = $("#memory-results") as HTMLDivElement;
 const $memorySearchForm = $("#memory-search-form") as HTMLFormElement;
 
 // DOM Elements
 const $interactionsSearchBtn = $("#interactions-search-btn") as HTMLButtonElement;
-const $interactionsSearchText = $("#interactions-search-text") as HTMLSpanElement;
-const $interactionsSearchSpinner = $("#interactions-search-spinner") as HTMLSpanElement;
 
 const $personDetailsContainer = $("#person-details-container") as HTMLDivElement;
 
 const $ioChannelDetailsContainer = $("#io-channel-details-container") as HTMLDivElement;
+
+// Add these constants at the top with other DOM elements
+const $schedulerMapTable = document.getElementById("scheduler-map-table") as HTMLTableSectionElement;
 
 interface CardOptions {
   title?: string;
@@ -889,6 +897,52 @@ function bindEventsIOChannelDetails() {
   });
 }
 
+// Add this function to fetch and display the scheduler map
+async function fetchAndDisplaySchedulerMap() {
+  try {
+    const response = await fetch("/api/admin/input_to_close_friends_scheduler_map", {
+      headers: {
+        "x-auth-person": localStorage.getItem("auth"),
+      },
+    });
+
+    const json = await response.json();
+
+    if (json.error) {
+      addApiStatus($schedulerMapTable.closest(".card-body") as HTMLDivElement, json.error.message, "error");
+      return;
+    }
+
+    const data = json.data as InputToCloseFriendsMap;
+
+    // Clear existing rows
+    $schedulerMapTable.innerHTML = "";
+
+    // Add new rows
+    data.forEach((item) => {
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${item.ioChannel.name}</td>
+        <td>${item.person.name}</td>
+        <td>${item.time}</td>
+        <td>${item.score}</td>
+      `;
+      $schedulerMapTable.appendChild(row);
+    });
+
+    // If no data, show a message
+    if (data.length === 0) {
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td colspan="3" class="text-center">No scheduled inputs for today</td>
+      `;
+      $schedulerMapTable.appendChild(row);
+    }
+  } catch (err) {
+    addApiStatus($schedulerMapTable.closest(".card-body") as HTMLDivElement, (err as Error).message, "error");
+  }
+}
+
 export function bindEvents() {
   $inputAuth.value = localStorage.getItem("auth") || "";
   $inputAuth.addEventListener("change", () => {
@@ -904,6 +958,8 @@ export function bindEvents() {
   bindEventsIOChannelDetails();
   bindEventsMemorySearch();
   bindEventsInteractions();
+
+  fetchAndDisplaySchedulerMap();
 }
 
 bindEvents();

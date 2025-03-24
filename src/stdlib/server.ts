@@ -15,6 +15,7 @@ import { AIMemory, MemoryType } from "./ai/ai-memory";
 import { throwIfMissingAuthorizations } from "../helpers";
 import { Database } from "./database";
 import { Interaction } from "../data/interaction";
+import InputToCloseFriendsScheduler from "../scheduler/input_to_close_friends";
 
 const TAG = "Server";
 const logger = new Signale({
@@ -425,6 +426,17 @@ routerApi.post(`/admin/brain_reload`, async (req, res) => {
 routerApi.post("/admin/queue_process", async (_, res) => {
   const item = await IOManager.getInstance().processQueue();
   res.json({ result: item });
+});
+
+// API that exposes the IOInputTOCloseFriends map of the day
+routerApi.get(`/admin/input_to_close_friends_scheduler_map`, async (_, res) => {
+  const map = await InputToCloseFriendsScheduler.getIOChannelsWithTime();
+  const json = map.map((e) => ({
+    ...e,
+    ioChannel: e.ioChannel.toJSONAPI(),
+    person: e.person.toJSONAPI(),
+  }));
+  res.json({ data: json });
 });
 
 export function getDomain(): string {

@@ -9,9 +9,11 @@ import { TScheduler } from "../data/scheduler";
 import { Signale } from "signale";
 import config from "../config";
 import mongoose from "mongoose";
+import getUuidByString from "uuid-by-string";
 
-const EXTRACT_LAST_DAYS = 7;
-const MAX_INTERACTIONS = 5;
+const EXTRACT_LAST_DAYS = 14;
+const MAX_INTERACTIONS = 7;
+const INTERACTION_MIN_LIMIT = 5;
 
 const MIN_HOUR = 9;
 const MAX_HOUR = 22;
@@ -21,13 +23,15 @@ const logger = new Signale({
   scope: TAG,
 });
 
-type IOChannelsWithTime = Array<{
+export type InputToCloseFriendsMap = Array<{
+  uuid: string;
   ioChannel: TIOChannel;
   person: TPerson;
   time: string;
+  score: number;
 }>;
 
-let _ioChannelsWithTime: IOChannelsWithTime | null = null;
+let _ioChannelsWithTime: InputToCloseFriendsMap | null = null;
 let _ioChannelCacheToDay: string | null = null;
 
 export default class InputToCloseFriendsScheduler extends SchedulerRuntimeFunction {
@@ -35,7 +39,7 @@ export default class InputToCloseFriendsScheduler extends SchedulerRuntimeFuncti
     super(job);
   }
 
-  async getIOChannelsWithTime(): Promise<IOChannelsWithTime> {
+  static async getIOChannelsWithTime(): Promise<InputToCloseFriendsMap> {
     const day = new Date().toISOString().split("T")[0];
 
     if (_ioChannelCacheToDay === day && _ioChannelsWithTime !== null) {
@@ -62,18 +66,23 @@ export default class InputToCloseFriendsScheduler extends SchedulerRuntimeFuncti
       {
         $group: {
           _id: { ioChannelId: "$ioChannel", personId: "$person" },
-          interactionCount: { $sum: 1 },
+          score: { $sum: 1 },
         },
       },
       {
-        $sort: { interactionCount: -1 },
+        $match: {
+          score: { $gt: INTERACTION_MIN_LIMIT },
+        },
+      },
+      {
+        $sort: { score: -1 },
       },
       {
         $limit: MAX_INTERACTIONS,
       },
     ]);
 
-    const ioChannelsWithTime = (
+    _ioChannelsWithTime = (
       await Promise.all(
         data.map(async (interaction) => {
           const { ioChannelId, personId } = interaction._id;
@@ -84,27 +93,30 @@ export default class InputToCloseFriendsScheduler extends SchedulerRuntimeFuncti
           const person = await Person.findById(personId);
           if (!isDocument(person)) return null;
 
+          const uuid = getUuidByString(`${ioChannelId}-${personId}`);
+
           return {
+            uuid,
             ioChannel,
             person,
-            time: this.generateUniqueHourAndMinute(`${ioChannelId}-${personId}`),
+            score: interaction.score,
+            time: this.generateUniqueHourAndMinute(uuid),
           };
         }),
       )
     ).filter((item) => item !== null);
 
-    _ioChannelsWithTime = ioChannelsWithTime;
     _ioChannelCacheToDay = day;
 
-    logger.info(
-      "IO Channels with time",
-      day,
-      ioChannelsWithTime.map((e) => ({
-        ioChannel: e.ioChannel.toJSONDebug(),
-        person: e.person.toJSONDebug(),
-        time: e.time,
-      })),
-    );
+    // logger.info(
+    //   "IO Channels with time",
+    //   day,
+    //   ioChannelsWithTime.map((e) => ({
+    //     ioChannel: e.ioChannel.toJSONDebug(),
+    //     person: e.person.toJSONDebug(),
+    //     time: e.time,
+    //   })),
+    // );
 
     return _ioChannelsWithTime;
   }
@@ -112,7 +124,7 @@ export default class InputToCloseFriendsScheduler extends SchedulerRuntimeFuncti
   // Based on the ioChannelID, generate a unique hour:sec every day that will be used to schedule the input
   // The input time should change every day and it must be unique per day, so we don't contact the same people at the same time or twice
   // Also, make sure the time is between X and Y
-  generateUniqueHourAndMinute(identifier: string): string {
+  static generateUniqueHourAndMinute(identifier: string): string {
     // Get current date as YYYYMMDD
     const date = new Date();
     const dateString = date.toISOString().split("T")[0];
@@ -129,7 +141,7 @@ export default class InputToCloseFriendsScheduler extends SchedulerRuntimeFuncti
   }
 
   // Simple hash function to get a number from a string
-  hashCode(str: string): number {
+  static hashCode(str: string): number {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
       hash = (hash << 5) - hash + str.charCodeAt(i);
@@ -139,7 +151,7 @@ export default class InputToCloseFriendsScheduler extends SchedulerRuntimeFuncti
   }
 
   async run() {
-    const ioChannelsWithTime = await this.getIOChannelsWithTime();
+    const ioChannelsWithTime = await InputToCloseFriendsScheduler.getIOChannelsWithTime();
 
     const { programArgs } = this.job;
     const currentHourAndMinute = new Date().getHours() + ":" + new Date().getMinutes();
