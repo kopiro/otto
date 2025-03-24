@@ -41,26 +41,26 @@
         <div class="card-body">
           <div class="row align-items-center g-3">
             <div class="col-auto">
-              <div class="form-check">
-                <input id="brain-reload-prompt" type="checkbox" class="form-check-input" />
-                <label for="brain-reload-prompt" class="form-check-label text-light">Prompt</label>
-              </div>
+              <button id="brain-reload-prompt" class="btn btn-warning me-2">
+                <span class="button-text">Reload Prompt</span>
+                <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+              </button>
             </div>
             <div class="col-auto">
-              <div class="form-check">
-                <input id="brain-reload-declarative" type="checkbox" class="form-check-input" />
-                <label for="brain-reload-declarative" class="form-check-label text-light">Declarative</label>
-              </div>
+              <button id="brain-reload-declarative" class="btn btn-warning me-2">
+                <span class="button-text">Reload Declarative</span>
+                <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+              </button>
             </div>
             <div class="col-auto">
-              <div class="form-check">
-                <input id="brain-reload-social" type="checkbox" class="form-check-input" />
-                <label for="brain-reload-social" class="form-check-label text-light">Social</label>
-              </div>
+              <button id="brain-reload-social" class="btn btn-warning me-2">
+                <span class="button-text">Reload Social</span>
+                <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+              </button>
             </div>
-            <div class="col-auto ms-auto">
-              <button id="brain-reload" class="btn btn-warning">
-                <span class="button-text">Brain reload</span>
+            <div class="col-auto">
+              <button id="process-queue" class="btn btn-info">
+                <span class="button-text">Process Queue</span>
                 <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
               </button>
             </div>
@@ -219,8 +219,8 @@
             <table class="table table-dark table-hover">
               <thead>
                 <tr>
-                  <th>IO Channel</th>
                   <th>Person</th>
+                  <th>IO Channel</th>
                   <th>Scheduled Time</th>
                   <th>Score</th>
                 </tr>

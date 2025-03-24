@@ -57,7 +57,10 @@ interface MemoryResult {
 
 const $inputAuth = $("#input-auth") as HTMLInputElement;
 
-const $brainReload = $("#brain-reload") as HTMLButtonElement;
+const $brainReloadPrompt = $("#brain-reload-prompt") as HTMLButtonElement;
+const $brainReloadDeclarative = $("#brain-reload-declarative") as HTMLButtonElement;
+const $brainReloadSocial = $("#brain-reload-social") as HTMLButtonElement;
+const $processQueue = $("#process-queue") as HTMLButtonElement;
 
 const $ioChannelsSelect = $("#io-channels") as HTMLSelectElement;
 const $peopleSelect = $("#people") as HTMLSelectElement;
@@ -468,32 +471,21 @@ function bindEventsPersonApprove() {
 }
 
 function bindEventsBrainReload() {
-  $brainReload.addEventListener("click", async () => {
-    const $apiStatusContainer = $brainReload.closest(".card-body") as HTMLDivElement;
+  const handleBrainReload = async (button: HTMLButtonElement, type: string) => {
+    const $apiStatusContainer = button.closest(".card-body") as HTMLDivElement;
 
     try {
-      setButtonLoading($brainReload, true, "Loading...", "Brain reload");
+      setButtonLoading(button, true, "Loading...", `Reload ${type}`);
       clearApiStatus($apiStatusContainer);
 
-      const types = [];
-      if (($("#brain-reload-prompt") as HTMLInputElement).checked) {
-        types.push("prompt");
-      }
-      if (($("#brain-reload-social") as HTMLInputElement).checked) {
-        types.push("prompt");
-      }
-      if (($("#brain-reload-declarative") as HTMLInputElement).checked) {
-        types.push("declarative");
-      }
-
-      const resp = await fetch("/api/admin/brain_reload", {
+      const resp = await fetch(`/api/admin/memory_reload`, {
         method: "POST",
         headers: {
           "content-type": "application/json",
           "x-auth-person": localStorage.getItem("auth"),
         },
         body: JSON.stringify({
-          types,
+          types: [type],
         }),
       });
       const json = await resp.json();
@@ -501,12 +493,50 @@ function bindEventsBrainReload() {
       if (json.error) {
         addApiStatus($apiStatusContainer, json.error.message || "An error occurred", "error");
       } else {
-        addApiStatus($apiStatusContainer, "Brain reloaded successfully", "success");
+        addApiStatus($apiStatusContainer, `${type} reloaded successfully`, "success");
       }
     } catch (error) {
       addApiStatus($apiStatusContainer, (error as Error).message, "error");
     } finally {
-      setButtonLoading($brainReload, false, "Loading...", "Brain reload");
+      setButtonLoading(button, false, "Loading...", `Reload ${type}`);
+    }
+  };
+
+  $brainReloadPrompt.addEventListener("click", () => handleBrainReload($brainReloadPrompt, "prompt"));
+  $brainReloadDeclarative.addEventListener("click", () => handleBrainReload($brainReloadDeclarative, "declarative"));
+  $brainReloadSocial.addEventListener("click", () => handleBrainReload($brainReloadSocial, "social"));
+}
+
+function bindEventsProcessQueue() {
+  $processQueue.addEventListener("click", async () => {
+    const $apiStatusContainer = $processQueue.closest(".card-body") as HTMLDivElement;
+
+    try {
+      setButtonLoading($processQueue, true, "Processing...", "Process Queue");
+      clearApiStatus($apiStatusContainer);
+
+      const response = await fetch("/api/admin/queue_process", {
+        method: "POST",
+        headers: {
+          "x-auth-person": localStorage.getItem("auth"),
+        },
+      });
+
+      const json = await response.json();
+
+      if (json.error) {
+        addApiStatus($apiStatusContainer, json.error.message || "An error occurred", "error");
+      } else {
+        if (json.result) {
+          addApiStatus($apiStatusContainer, "Queue processed successfully", "success");
+        } else {
+          addApiStatus($apiStatusContainer, "Queue is empty", "info");
+        }
+      }
+    } catch (error) {
+      addApiStatus($apiStatusContainer, (error as Error).message, "error");
+    } finally {
+      setButtonLoading($processQueue, false, "Processing...", "Process Queue");
     }
   });
 }
@@ -922,8 +952,8 @@ async function fetchAndDisplaySchedulerMap() {
     data.forEach((item) => {
       const row = document.createElement("tr");
       row.innerHTML = `
-        <td>${item.ioChannel.name}</td>
         <td>${item.person.name}</td>
+        <td>${item.ioChannel.name}</td>
         <td>${item.time}</td>
         <td>${item.score}</td>
       `;
@@ -951,6 +981,7 @@ export function bindEvents() {
 
   bindEventsSelects();
   bindEventsBrainReload();
+  bindEventsProcessQueue();
   bindEventsInputMessage();
   bindEventsOutputMessage();
   bindEventsPersonApprove();

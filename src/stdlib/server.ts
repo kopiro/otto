@@ -237,7 +237,7 @@ routerApi.delete(`/memories/:id`, async (req, res) => {
 
 // API that exposes persons
 routerApi.get("/persons", async (_, res) => {
-  const persons = await Person.find();
+  const persons = await Person.find().sort({ name: 1 });
   const data = persons.map((person) => person.toJSONAPI());
   res.json({ data });
 });
@@ -305,7 +305,7 @@ routerApi.post(`/persons/:personId/approve`, async (req, res) => {
 
 // API that exposes ioChannels
 routerApi.get(`/io_channels`, async (_, res) => {
-  const ioChannels = await IOChannel.find({ managerUid: config().uid });
+  const ioChannels = await IOChannel.find({ managerUid: config().uid }).sort({ ioDriver: 1, ioIdentifier: 1 });
   const data = ioChannels.map((ioChannel) => ioChannel.toJSONAPI());
   res.json({ data });
 });
@@ -394,7 +394,7 @@ routerApi.get(`/interactions`, async (req, res) => {
   }
 });
 
-routerApi.post(`/admin/brain_reload`, async (req, res) => {
+routerApi.post(`/admin/memory_reload`, async (req, res) => {
   try {
     const { types } = req.body;
     if (!types) throw new Error("req.body.types is required");
