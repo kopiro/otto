@@ -147,24 +147,6 @@ routerApi.post("/output", async (req, res) => {
   }
 });
 
-routerApi.post("/database/update", async (req, res) => {
-  if (!req.body.person) throw new Error("req.body.person is required");
-  const person = await Person.findByIdOrThrow(req.body.person.toString());
-  throwIfMissingAuthorizations(person.authorizations, [Authorization.ADMIN]);
-
-  const { filter, update, table } = req.body;
-  if (!filter) throw new Error("req.body.filter is required");
-  if (!update) throw new Error("req.body.update is required");
-  if (!table) throw new Error("req.body.table is required");
-
-  const result = await Database.getInstance()
-    .getMongoose()
-    .connection.db.collection(table)
-    .updateMany(filter, { $set: update });
-
-  return res.json({ result });
-});
-
 routerApi.get(`/memories`, async (req, res) => {
   try {
     const { type } = req.query;
@@ -421,6 +403,17 @@ routerApi.post(`/admin/memory_reload`, async (req, res) => {
       },
     });
   }
+});
+
+// Return a n example of the reduction it will happen today
+routerApi.get(`/admin/memory_episodic_todo`, async (_, res) => {
+  const data = await AIMemory.getInstance().getReducedInteractionsMemoryPayloadsByChunk();
+  const json = data.map((e) => ({
+    ...e,
+    ioChannel: e.ioChannel.toJSONAPI(),
+    interactions: e.interactions.map((e) => e.toJSONAPI()),
+  }));
+  res.json({ data: json });
 });
 
 // Inform the Queue to process new elements immediately

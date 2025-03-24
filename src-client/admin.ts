@@ -55,6 +55,17 @@ interface MemoryResult {
   };
 }
 
+interface EpisodicMemoryTodo {
+  chunkId: string;
+  dateChunk: string;
+  ioChannel: IOChannel;
+  payloads: Array<{
+    id: string;
+    chunkId?: string;
+    text: string;
+  }>;
+}
+
 const $inputAuth = $("#input-auth") as HTMLInputElement;
 
 const $brainReloadPrompt = $("#brain-reload-prompt") as HTMLButtonElement;
@@ -89,6 +100,8 @@ const $ioChannelDetailsContainer = $("#io-channel-details-container") as HTMLDiv
 
 // Add these constants at the top with other DOM elements
 const $schedulerMapTable = document.getElementById("scheduler-map-table") as HTMLTableSectionElement;
+const $episodicTodoTable = document.getElementById("episodic-todo-table") as HTMLTableSectionElement;
+const $episodicTodoRefresh = $("#episodic-todo-refresh") as HTMLButtonElement;
 
 interface CardOptions {
   title?: string;
@@ -973,6 +986,65 @@ async function fetchAndDisplaySchedulerMap() {
   }
 }
 
+async function fetchAndDisplayEpisodicTodo() {
+  try {
+    const response = await fetch("/api/admin/memory_episodic_todo", {
+      headers: {
+        "x-auth-person": localStorage.getItem("auth"),
+      },
+    });
+
+    const json = await response.json();
+
+    if (json.error) {
+      addApiStatus($episodicTodoTable.closest(".card-body") as HTMLDivElement, json.error.message, "error");
+      return;
+    }
+
+    const data = json.data as EpisodicMemoryTodo[];
+
+    // Clear existing rows
+    $episodicTodoTable.innerHTML = "";
+
+    // Add new rows
+    data.forEach((item) => {
+      item.payloads.forEach((payload) => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+        <td>${item.ioChannel.name}</td>
+        <td>${item.dateChunk}</td>
+        <td>${payload.text}</td>
+      `;
+        $episodicTodoTable.appendChild(row);
+      });
+    });
+
+    // If no data, show a message
+    if (data.length === 0) {
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td colspan="3" class="text-center">No episodic memory todo items</td>
+      `;
+      $episodicTodoTable.appendChild(row);
+    }
+  } catch (err) {
+    addApiStatus($episodicTodoTable.closest(".card-body") as HTMLDivElement, (err as Error).message, "error");
+  }
+}
+
+function bindEventsEpisodicTodo() {
+  $episodicTodoRefresh.addEventListener("click", async () => {
+    try {
+      setButtonLoading($episodicTodoRefresh, true, "Refreshing...", "Refresh");
+      await fetchAndDisplayEpisodicTodo();
+    } catch (error) {
+      addApiStatus($episodicTodoTable.closest(".card-body") as HTMLDivElement, (error as Error).message, "error");
+    } finally {
+      setButtonLoading($episodicTodoRefresh, false, "Refreshing...", "Refresh");
+    }
+  });
+}
+
 export function bindEvents() {
   $inputAuth.value = localStorage.getItem("auth") || "";
   $inputAuth.addEventListener("change", () => {
@@ -989,7 +1061,7 @@ export function bindEvents() {
   bindEventsIOChannelDetails();
   bindEventsMemorySearch();
   bindEventsInteractions();
-
+  bindEventsEpisodicTodo();
   fetchAndDisplaySchedulerMap();
 }
 

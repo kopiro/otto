@@ -92,7 +92,7 @@ export class IIOChannel {
     return {
       id: this.id,
       name: this.getName(),
-      ownerName: this.getOwnerName(),
+      ownerName: this.getIODataName(),
       ioDriver: this.ioDriver,
       ioIdentifier: this.ioIdentifier,
       ioData: this.ioData,
@@ -101,7 +101,7 @@ export class IIOChannel {
     };
   }
 
-  public getOwnerName() {
+  public getIODataName() {
     switch (this.ioDriver) {
       case "telegram": {
         const ioData = this.ioData as IODataTelegram;
@@ -125,6 +125,13 @@ export class IIOChannel {
     }
   }
 
+  getPersonName() {
+    if (this.person) {
+      return new Person(this.person).getName();
+    }
+    return this.getIODataName();
+  }
+
   /**
    * Returns a human representation of this communication channel
    */
@@ -136,14 +143,14 @@ export class IIOChannel {
         switch (ioData?.type) {
           case "supergroup":
           case "group": {
-            chatName = `Group: "${this.getOwnerName()}"`;
+            chatName = `Group: "${this.getIODataName()}"`;
             break;
           }
           case "channel":
-            chatName = `Channel: "${this.getOwnerName()}"`;
+            chatName = `Channel: "${this.getIODataName()}"`;
             break;
           case "private":
-            chatName = `DM: "${this.getOwnerName()}"`;
+            chatName = `DM: "${this.getPersonName()}"`;
             break;
         }
         return `On Telegram (${chatName})`;

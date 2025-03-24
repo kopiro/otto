@@ -29,8 +29,14 @@ export enum MemoryType {
   "social" = "social",
 }
 
-type MapIOChannelToInteractions = Record<string, TInteraction[]>;
-type MapDateChunkToMapIOChannelToInteractions = Record<string, MapIOChannelToInteractions>;
+type InteractionsByIOChannelIDByChunk = Record<string, Record<string, TInteraction[]>>;
+type ReducedInteractionsMemoryPayloadsByChunk = Array<{
+  chunkId: string;
+  dateChunk: string;
+  ioChannel: TIOChannel;
+  interactions: TInteraction[];
+  payloads: QdrantPayload[];
+}>;
 
 type QdrantPayload = {
   id: string;
@@ -131,21 +137,22 @@ export class AIMemory {
   }
 
   private getDateChunk(date: Date): string {
+    // Returns the date in format YYYY/MM/DD
     return [
       date.getFullYear(),
       (1 + date.getMonth()).toString().padStart(2, "0"),
       date.getDate().toString().padStart(2, "0"),
-    ].join("_");
+    ].join("-");
   }
 
-  private async getInteractionByDateChunk(): Promise<MapDateChunkToMapIOChannelToInteractions> {
+  private async getInteractionByIOChannelIDByDateChunk(): Promise<InteractionsByIOChannelIDByChunk> {
     // Get all intereactions which "reducedTo" is not set
     const unreducedInteractions = await Interaction.find({
       reducedTo: { $exists: false },
       managerUid: config().uid,
     }).sort({ createdAt: +1 });
 
-    return unreducedInteractions.reduce<MapDateChunkToMapIOChannelToInteractions>((acc, interaction) => {
+    return unreducedInteractions.reduce<InteractionsByIOChannelIDByChunk>((acc, interaction) => {
       if (isDocument(interaction.ioChannel)) {
         const dateChunk = this.getDateChunk(interaction.createdAt);
         acc[dateChunk] = acc[dateChunk] || {};
@@ -252,82 +259,112 @@ export class AIMemory {
     logger.success(`Marked ${interactionsIds.length} interactions as reduced to ${reducedTo}`);
   }
 
-  private async reduceInteractionsForChunk(chunk: string, gInteractions: MapIOChannelToInteractions) {
+  async getReducedInteractionsMemoryPayloadsByChunk(): Promise<ReducedInteractionsMemoryPayloadsByChunk> {
     // Welcome back! If you change  the text, you may want to re-run the memory builder
     // MEMORY_TYPE=episodic REBUILD_MEMORY=true npm run ai:memory
 
-    for (const interactions of Object.values(gInteractions)) {
-      try {
-        if (!interactions.length) {
-          continue;
-        }
+    const unreducedInteractions = await this.getInteractionByIOChannelIDByDateChunk();
+    logger.info(
+      `Found ${Object.keys(unreducedInteractions).length} total days to reduce: `,
+      Object.keys(unreducedInteractions),
+    );
 
-        const ioChannel = interactions[0].ioChannel as DocumentType<IIOChannel>;
-        const conversation = [];
-        const chunkId = `iochannel_${ioChannel.id}_${chunk}`;
+    const reducedInteractionsByChunk: ReducedInteractionsMemoryPayloadsByChunk = [];
 
-        for (const interaction of interactions) {
-          const time = interaction.createdAt.toLocaleTimeString();
-          const sourceName = interaction.getSourceName();
+    // Process all date chunks in parallel
+    const dateChunkPromises = Object.entries(unreducedInteractions).map(
+      async ([dateChunk, interactionsByChannelId]) => {
+        // Process all channels for this date in parallel
+        const channelPromises = Object.entries(interactionsByChannelId).map(async ([ioChannelId, interactions]) => {
+          try {
+            const chunkId = `iochannel_${ioChannelId}_date_${dateChunk}`;
+            const ioChannel = new Interaction(interactions[0]).ioChannel as DocumentType<IIOChannel>;
 
-          if (interaction.output && "text" in interaction.output) {
-            conversation.push(`- ${sourceName} (${time}): ${interaction.output.text}`);
-          }
-          if (interaction.input && "text" in interaction.input && interaction.input.role !== "system") {
-            conversation.push(`- ${sourceName} (${time}): ${interaction.input.text}`);
-          }
-        }
+            // Process all interactions in parallel to build the conversation
+            const conversationPromises = interactions.map(async (interaction) => {
+              const time = interaction.createdAt.toLocaleTimeString();
+              const sourceName = interaction.getSourceName();
+              const messages = [];
 
-        if (!conversation.length) {
-          logger.debug("No conversation to reduce, skipping");
-          continue;
-        }
+              if (interaction.output && "text" in interaction.output) {
+                messages.push(`- ${sourceName} (${time}): ${interaction.output.text}`);
+              }
+              if (interaction.input && "text" in interaction.input && interaction.input.role !== "system") {
+                messages.push(`- ${sourceName} (${time}): ${interaction.input.text}`);
+              }
 
-        const reducerPrompt = `
-Compress the provided conversation while preserving its original meaning, but strictly make the output as short as possible and in the third person. For each distinct topic, create a separate sentence that begins with the date and the people involved, separate them by line break, using this format:
+              return messages;
+            });
 
-On [date], [USER_A], [USER_B] and [USER_C] [talked about topic].
+            const conversationArrays = await Promise.all(conversationPromises);
+            const conversation = conversationArrays.flat();
+
+            if (!conversation.length) {
+              logger.debug("No conversation to reduce, skipping");
+              return null;
+            }
+
+            const reducerPrompt = `
+Compress the provided conversation while preserving its original meaning. 
+
+Only if strictly necessary, separate different topics with a line break.
+If the topics lose their meaning isolated, do not separate them.
+
+STRICTLY, for each line/topic, use this format: 
+On YYYY-MM-DD, [USER_A], [USER_B] and [USER_C] [talked about topic].
 
 ---
 
-The conversation happened ${ioChannel.getName()} - ${chunk}:
+The conversation happened ${ioChannel.getName()} - Date: ${dateChunk}:
 
 ${conversation.join("\n")}`;
 
-        logger.debug("Reducing conversation: ", reducerPrompt);
+            logger.debug("Reducing conversation: ", reducerPrompt);
 
-        const reducedText = await AIBrain.getInstance().reduceText(chunkId, reducerPrompt);
-        const reducedTextInChunks = this.chunkText(reducedText);
+            const reducedText = await AIBrain.getInstance().reduceText(dateChunk, reducerPrompt);
+            const reducedTextInChunks = this.chunkText(reducedText);
 
-        const payloads = reducedTextInChunks.map<QdrantPayload>((chunkedText) => {
-          return {
-            id: `${chunkId}_${chunkedText}`,
-            chunkId,
-            text: chunkedText,
-          };
+            const payloads = reducedTextInChunks.map<QdrantPayload>((chunkedText) => {
+              return {
+                id: getUuidByString(`${dateChunk}_${chunkedText}`),
+                chunkId,
+                dateChunk,
+                text: chunkedText,
+              };
+            });
+
+            return {
+              chunkId,
+              dateChunk,
+              interactions,
+              ioChannel,
+              payloads,
+            };
+          } catch (err) {
+            logger.error(`Error when reducing conversation`, err);
+            return null;
+          }
         });
 
-        logger.debug("<--->");
-        logger.info(payloads);
-        logger.debug("<--->");
+        const results = await Promise.all(channelPromises);
+        return results.filter((result): result is NonNullable<typeof result> => result !== null);
+      },
+    );
 
-        if (process.env.INTERACTIVE) {
-          // Use native node.js way to interact with the user
-          if ((await rl.question("\nAre the reduced chunks ok (y/n)? ")) !== "y") {
-            logger.error("User rejected, skipping");
-            continue;
-          }
-        }
+    const allResults = await Promise.all(dateChunkPromises);
+    reducedInteractionsByChunk.push(...allResults.flat());
 
-        await this.savePayloadInCollection(payloads, MemoryType.episodic);
+    return reducedInteractionsByChunk;
+  }
 
-        await this.markInteractionsAsReduced(
-          interactions.map((e) => e.id),
-          chunkId,
-        );
-      } catch (err) {
-        logger.error(`Error when reducing conversation`, err);
-      }
+  async reduceInteractionsForChunk(reducedInteractionsForChunk: ReducedInteractionsMemoryPayloadsByChunk) {
+    for (const { interactions, payloads, chunkId } of Object.values(reducedInteractionsForChunk)) {
+      await this.savePayloadInCollection(payloads, MemoryType.episodic);
+
+      await this.markInteractionsAsReduced(
+        interactions.map((e) => e.id),
+        chunkId,
+      );
     }
   }
 
@@ -339,15 +376,8 @@ ${conversation.join("\n")}`;
   async buildEpisodicMemory() {
     await this.createCollection(MemoryType.episodic);
 
-    const unreducedInteractions = await this.getInteractionByDateChunk();
-    logger.info(
-      `Found ${Object.keys(unreducedInteractions).length} total days to reduce: `,
-      Object.keys(unreducedInteractions),
-    );
-
-    for (const [dateChunk, interactions] of Object.entries(unreducedInteractions)) {
-      await this.reduceInteractionsForChunk(`date_${dateChunk}`, interactions);
-    }
+    const reducedInteractionsByChunk = await this.getReducedInteractionsMemoryPayloadsByChunk();
+    await this.reduceInteractionsForChunk(reducedInteractionsByChunk);
   }
 
   private prompt!: string;

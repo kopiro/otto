@@ -233,6 +233,33 @@
           <div class="api-status"></div>
         </div>
       </div>
+
+      <div class="card bg-dark border-secondary mt-3">
+        <div class="card-header bg-dark border-secondary d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0 text-light">Episodic Memory Todo</h5>
+          <button id="episodic-todo-refresh" class="btn btn-info btn-sm">
+            <span class="button-text">Refresh</span>
+            <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+          </button>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-dark table-hover">
+              <thead>
+                <tr>
+                  <th>IO Channel</th>
+                  <th>Date Chunk</th>
+                  <th>Reduced Text</th>
+                </tr>
+              </thead>
+              <tbody id="episodic-todo-table">
+                <!-- Episodic memory todo items will be displayed here -->
+              </tbody>
+            </table>
+          </div>
+          <div class="api-status"></div>
+        </div>
+      </div>
     </div>
 
     <script async defer src="./build/admin.js"></script>
