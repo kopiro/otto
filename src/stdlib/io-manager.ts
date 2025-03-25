@@ -419,7 +419,13 @@ export class IOManager {
     } catch (err) {
       if (err instanceof AuthorizationError) {
         report({
-          message: `Person <b>${person.name}</b> (<code>${person.id}</code>) on channel <code>${ioChannel.id}</code> is trying to perform an action without the following authorization: <code>${err.requiredAuth}</code>`,
+          message: `Person <b>${person.getName()}</b> (<code>${
+            person.id
+          }</code>) on channel <b>${ioChannel.getName()}</b> (<code>${
+            ioChannel.id
+          }</code> is trying to perform an action without the following authorization: <code>${
+            err.requiredAuth
+          }</code>`,
           data: JSON.stringify({ input }),
         });
       }

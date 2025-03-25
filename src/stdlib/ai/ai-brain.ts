@@ -86,15 +86,13 @@ export class AIBrain {
       .filter<ChatCompletionMessageParam>((e): e is ChatCompletionMessageParam => e !== null);
   }
 
-  private async getPersonContextAsText(ioChannel: TIOChannel, person: TPerson): Promise<string> {
+  private async getConversationInputAsText(ioChannel: TIOChannel, person: TPerson): Promise<string> {
     const prompt = [];
-
-    prompt.push("## Context\n");
-    prompt.push(`You are chatting with ${person.name} - ${ioChannel.getName()}.`);
+    prompt.push(`${config().aiName} is chatting with ${person.getName()} - ${ioChannel.getName()}.`);
 
     if (person.language) {
       const languageName = new Intl.DisplayNames(["en"], { type: "language" }).of(person.getLanguage());
-      prompt.push(`You should speak in ${languageName}.`);
+      prompt.push(`${config().aiName} should speak in ${languageName}, unless otherwise specified.`);
     }
 
     return prompt.join("\n");
@@ -102,8 +100,6 @@ export class AIBrain {
 
   private async getContextAsText(context: InputContext = {}): Promise<string> {
     const prompt = [];
-
-    prompt.push(`## Input Context\n`);
 
     // Append context
     for (const [key, value] of Object.entries(context)) {
@@ -125,8 +121,8 @@ export class AIBrain {
     const aiMemory = AIMemory.getInstance();
 
     const convDescription = isDocumentArray(ioChannel.people)
-      ? ioChannel.people.map((p) => p.name).join(", ")
-      : person.name;
+      ? ioChannel.people.map((p) => p.getName()).join(", ")
+      : person.getName();
     const contextAsString = Object.entries(context)
       .map(([key, value]) => `${key}: ${value}`)
       .join("\n");
@@ -166,13 +162,10 @@ export class AIBrain {
       memories,
     });
 
-    return (
-      `## Memory\n\n` +
-      memories
-        .map((m) => m.payload?.text)
-        .filter(Boolean)
-        .join("\n")
-    );
+    return memories
+      .map((m) => m.payload?.text)
+      .filter(Boolean)
+      .join("\n");
   }
 
   getDefaultContext(): Record<string, string> {
@@ -234,28 +227,31 @@ export class AIBrain {
   ): Promise<Output> {
     const logName = `${ioChannel.id}_completechat`;
 
-    const prompt: string[] = [];
-
     const context = {
       ...this.getDefaultContext(),
       ...input.context,
     };
 
-    const [recentInteractionsChatCompletions, promptText, contextText, personOrSystemContextText, memoryContextText] =
+    const [promptText, contextText, conversationInputText, memoryContextText, recentInteractionsChatCompletions] =
       await Promise.all([
-        this.getRecentInteractionsAsChatCompletions(text, ioChannel, person),
         this.getPromptAsText(),
         this.getContextAsText(context),
-        this.getPersonContextAsText(ioChannel, person),
+        this.getConversationInputAsText(ioChannel, person),
         this.getMemoryContextAsText(text, ioChannel, person, context),
+        this.getRecentInteractionsAsChatCompletions(text, ioChannel, person),
       ]);
 
-    prompt.push(promptText);
-    prompt.push(contextText);
-    prompt.push(personOrSystemContextText);
-    prompt.push(memoryContextText);
+    const content = `${promptText}
 
-    const content = prompt.join("\n\n");
+## Context
+${contextText}
+
+## Memories
+${memoryContextText}
+
+## Conversation
+${conversationInputText}
+    `;
 
     if (process.env.NODE_ENV === "development") {
       console.log(content);
@@ -358,7 +354,7 @@ export class AIBrain {
         if (role === "user") {
           inputMessages.push({
             content: input.text,
-            name: this.cleanName(person.name),
+            name: this.cleanName(person.getName()),
             role: role,
           });
         } else {
