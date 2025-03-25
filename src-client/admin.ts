@@ -715,7 +715,7 @@ function displayInteractions(interactions: Record<string, GroupedInteractions>) 
         addMessage(
           interaction.sourceName,
           interaction.input?.text ?? JSON.stringify(interaction.input),
-          `input ${interaction.sourceName.toUpperCase() === "SYSTEM" ? "system" : ""}`,
+          `input ${interaction.sourceName.toLowerCase() === "system" ? "system" : ""}`,
           interaction.createdAt,
           $sectionIOChannel,
         );

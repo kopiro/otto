@@ -75,7 +75,7 @@ export class IInteraction {
     // When the user spoke, or the system
     if (this.input) {
       if (this.input?.role === "system") {
-        return "SYSTEM";
+        return "DEVELOPER";
       }
       if (isDocument(this.person)) {
         return this.person.getName();

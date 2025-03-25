@@ -386,7 +386,7 @@ ${conversation.join("\n")}`;
     if (!this.prompt || refresh) {
       const prompt = await (await fetch(this.conf.promptUrl)).text();
       if (prompt) {
-        this.prompt = prompt;
+        this.prompt = prompt.replace(/\r\n/g, "\n").trim();
       } else {
         logger.error("Failed to retrieve prompt");
       }

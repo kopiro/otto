@@ -8,7 +8,13 @@ import { AIFunction } from "./ai-function";
 import { TIOChannel } from "../../data/io-channel";
 import { TPerson } from "../../data/person";
 import { isDocumentArray } from "@typegoose/typegoose";
-import { ChatCompletionMessageParam, ChatCompletionSystemMessageParam } from "openai/resources";
+import {
+  ChatCompletionAssistantMessageParam,
+  ChatCompletionDeveloperMessageParam,
+  ChatCompletionMessageParam,
+  ChatCompletionSystemMessageParam,
+  ChatCompletionUserMessageParam,
+} from "openai/resources";
 import OpenAI from "openai";
 import { DeepSeekSDK } from "../../lib/deepseek";
 
@@ -42,16 +48,12 @@ export class AIBrain {
       .substring(0, 64);
   }
 
-  private async getRecentInteractionsAsChatCompletions(
-    text: string,
-    ioChannel: TIOChannel,
-    person: TPerson,
-  ): Promise<ChatCompletionMessageParam[]> {
+  private async getRecentInteractionsAsChatCompletions(text: string, ioChannel: TIOChannel, person: TPerson) {
     const interactions = await AIMemory.getInstance().getRecentInteractions(ioChannel, person);
 
     return interactions
       .reverse()
-      .map<ChatCompletionMessageParam | null>((interaction, i) => {
+      .map((interaction, i) => {
         // Remove last interaction because it's exactly like the input (text)
         if (i === interactions.length - 1) {
           if (
@@ -83,19 +85,20 @@ export class AIBrain {
 
         return null;
       })
-      .filter<ChatCompletionMessageParam>((e): e is ChatCompletionMessageParam => e !== null);
+      .filter((e) => e !== null);
   }
 
   private async getConversationInputAsText(ioChannel: TIOChannel, person: TPerson): Promise<string> {
-    const prompt = [];
-    prompt.push(`You are chatting with ${person.getName()} - ${ioChannel.getName()}.`);
+    const prompts: string[] = [];
+
+    prompts.push(`You are chatting with ${person.getName()} - ${ioChannel.getName()}.`);
 
     if (person.language) {
       const languageName = new Intl.DisplayNames(["en"], { type: "language" }).of(person.getLanguage());
-      prompt.push(`You should speak in ${languageName}, unless otherwise specified.`);
+      prompts.push(`You should speak in ${languageName}, unless otherwise specified.`);
     }
 
-    return prompt.join("\n");
+    return prompts.join("\n");
   }
 
   private async getContextAsText(context: InputContext = {}): Promise<string> {
@@ -116,7 +119,7 @@ export class AIBrain {
     person: TPerson,
     context: InputContext,
   ): Promise<string> {
-    const logName = `${ioChannel.id}_getmemorycontextastext`;
+    const logName = `getMemoryContextAsText/${ioChannel.id}`;
 
     const aiMemory = AIMemory.getInstance();
 
@@ -187,7 +190,7 @@ export class AIBrain {
   }
 
   public async reduceText(identifier: string, text: string) {
-    const logName = `${identifier}_textreducer`;
+    const logName = `reduceText/${identifier}`;
 
     const response = await this.deepSeekSDK.chat.completions.create({
       model: config().deepseek.textReducerModel,
@@ -225,46 +228,40 @@ export class AIBrain {
     text: string,
     role: "user" | "assistant" | "system",
   ): Promise<Output> {
-    const logName = `${ioChannel.id}_completechat`;
+    const logName = `completeChat/${ioChannel.id}`;
 
     const context = {
       ...this.getDefaultContext(),
       ...input.context,
     };
 
-    const [promptText, contextText, conversationInputText, memoryContextText, recentInteractionsChatCompletions] =
+    const [promptText, contextText, memoryContextText, conversationsInputText, recentInteractionsChatCompletions] =
       await Promise.all([
         this.getPromptAsText(),
         this.getContextAsText(context),
-        this.getConversationInputAsText(ioChannel, person),
         this.getMemoryContextAsText(text, ioChannel, person, context),
+        this.getConversationInputAsText(ioChannel, person),
         this.getRecentInteractionsAsChatCompletions(text, ioChannel, person),
       ]);
 
-    const content = `${promptText}
-
-## Context
-${contextText}
-
-## Memories
-${memoryContextText}
-
-## Conversation
-${conversationInputText}
-    `;
-
-    if (process.env.NODE_ENV === "development") {
-      console.log(content);
-    }
-
-    const promptChatCompletion: ChatCompletionSystemMessageParam = {
-      role: "system",
-      content: content,
-    };
-
     // Build messages
-    const messages: ChatCompletionMessageParam[] = [
-      promptChatCompletion,
+    const messages = [
+      {
+        role: "system",
+        content: promptText,
+      },
+      {
+        role: "system",
+        content: `CONTEXT:\n${contextText}`,
+      },
+      {
+        role: "system",
+        content: `MEMORIES:\n${memoryContextText}`,
+      },
+      {
+        role: "system",
+        content: conversationsInputText,
+      },
       ...recentInteractionsChatCompletions,
       ...inputMessages,
     ].filter(Boolean);
@@ -275,7 +272,7 @@ ${conversationInputText}
         temperature: config().deepseek.temperature,
         user: person.id,
         n: 1,
-        messages,
+        messages: messages as ChatCompletionMessageParam[],
         // functions: AIFunction.getInstance().getFunctionDefinitions(),
         // function_call: "auto",
       });
@@ -335,8 +332,6 @@ ${conversationInputText}
   }
 
   async getOutputForInput(input: Input, ioChannel: TIOChannel, person: TPerson): Promise<Output> {
-    const logName = `${ioChannel.id}_getoutputforinput`;
-
     try {
       if ("text" in input) {
         const role = input.role || "user";
@@ -365,22 +360,12 @@ ${conversationInputText}
         }
 
         const output = await this.completeChat(inputMessages, input, ioChannel, person, input.text, role);
-
-        logStacktrace(TAG, logName, {
-          input,
-          output,
-        });
-
         return output;
       }
 
       throw new Error("Unable to process request");
     } catch (error) {
       logger.error("Failed to get output for input", error);
-      logStacktrace(TAG, logName, {
-        input,
-        error,
-      });
       throw error;
     }
   }

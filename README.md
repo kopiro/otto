@@ -101,7 +101,7 @@ Parameters:
 - `person`: Person ID
 - `params`:
   - `text|command`: Input text or command
-  - `role?`: "system", "user" or "assistant"
+  - `role?`: "developer", "user" or "assistant"
   - `context?`: object with context
   - `bag?`: metadata
 

@@ -193,17 +193,21 @@ export async function report(error: IErrorWithData) {
 export async function logStacktrace(tag: string, fileName: string, response: any) {
   try {
     // Get date as 2012_04_23
-    const dateStr = new Date().toISOString().split("T")[0].replace(/-/g, "_");
+    const dateStr = new Date().toISOString().split("T")[0].replace(/-/g, "-");
     const finalDir = path.join(logsDir, dateStr, tag);
-
-    // Create a directory for the current date
-    if (!existsSync(finalDir)) {
-      await mkdir(finalDir, { recursive: true });
-    }
 
     // Get ONLY time in HH_MM_SS format
     const time = new Date().toISOString().split("T")[1].split(".")[0].replace(/:/g, "_");
-    return writeFile(path.join(finalDir, `${fileName}_${time}.json`), JSON.stringify(response, null, 2));
+    const finalFile = path.join(finalDir, `${fileName}_${time}.json`);
+
+    const baseDir = path.dirname(finalFile);
+
+    // Create a directory for the current date
+    if (!existsSync(baseDir)) {
+      await mkdir(baseDir, { recursive: true });
+    }
+
+    return writeFile(finalFile, JSON.stringify(response, null, 2));
   } catch (err) {
     logger.error(`Error while logging stacktrace`, err);
   }
