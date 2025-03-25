@@ -16,6 +16,7 @@ import { throwIfMissingAuthorizations } from "../helpers";
 import { Interaction } from "../data/interaction";
 import InputToCloseFriendsScheduler from "../scheduler/input_to_close_friends";
 import expressBasicAuth from "express-basic-auth";
+import serveIndex from "serve-index";
 
 const TAG = "Server";
 const logger = new Signale({
@@ -460,9 +461,7 @@ export function initializeRoutes(): { app: any; server: http.Server } {
       users: { admin: config().server.basicAuthPassword },
       challenge: true,
     }),
-    express.static(logsDir, {
-      index: true,
-    }),
+    serveIndex(logsDir),
   );
 
   // Handle all routers
