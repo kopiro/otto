@@ -42,7 +42,8 @@
     "enabled": false,
     "protocol": "http",
     "domain": "",
-    "port": 9000
+    "port": 9000,
+    "basicAuthPassword": ""
   },
   "mongo": {
     "host": "db",

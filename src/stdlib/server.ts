@@ -1,7 +1,7 @@
 import http from "http";
 import express from "express";
 import config from "../config";
-import { publicDir, tmpDir } from "../paths";
+import { logsDir, publicDir, tmpDir } from "../paths";
 import { getVoiceFileFromText } from "./voice-helpers";
 import { TextToSpeech } from "./text-to-speech";
 import { IOManager, OutputSource } from "./io-manager";
@@ -13,9 +13,9 @@ import { Translator } from "./translator";
 import { Authorization, Gender, Language } from "../types";
 import { AIMemory, MemoryType } from "./ai/ai-memory";
 import { throwIfMissingAuthorizations } from "../helpers";
-import { Database } from "./database";
 import { Interaction } from "../data/interaction";
 import InputToCloseFriendsScheduler from "../scheduler/input_to_close_friends";
+import expressBasicAuth from "express-basic-auth";
 
 const TAG = "Server";
 const logger = new Signale({
@@ -450,7 +450,20 @@ export function initializeRoutes(): { app: any; server: http.Server } {
   });
 
   app.use(express.static(publicDir));
+
   app.use("/tmp", express.static(tmpDir));
+
+  // Enable express.static for /logs but protect it with basic auth
+  app.use(
+    "/logs",
+    expressBasicAuth({
+      users: { admin: config().server.basicAuthPassword },
+      challenge: true,
+    }),
+    express.static(logsDir, {
+      index: true,
+    }),
+  );
 
   // Handle all routers
   app.use("/io", routerIO);
