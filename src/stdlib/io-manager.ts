@@ -21,6 +21,8 @@ const logger = new Signale({
   scope: TAG,
 });
 
+const THINKING_INTERVAL = 4000;
+
 export enum OutputSource {
   queue = "queue",
   input = "input",
@@ -40,8 +42,9 @@ export type IODriverMultiOutput = IODriverSingleOutput[];
 
 export type IODriverEventMap = {
   input: (input: Input, ioChannel: TIOChannel, person: TPerson, bag: IOBag) => void;
-  error: (message: string, ioChannel: TIOChannel, person: TPerson) => void;
   output: (output: Output, ioChannel: TIOChannel, person: TPerson, bag: IOBag) => void;
+  error: (errorMessage: string, ioChannel: TIOChannel, person: TPerson) => void;
+  thinking: (ioChannel: TIOChannel, person: TPerson, bag: IOBag) => void;
   recognizing: () => void;
   woken: () => void;
   wake: () => void;
@@ -389,6 +392,12 @@ export class IOManager {
 
     const inputId = randomUUID();
 
+    const driverRuntime = this.loadedDrivers[ioChannel.ioDriver];
+    if (!driverRuntime) {
+      logger.warn("Driver not enabled", ioChannel);
+      return { rejectReason: { message: "DRIVER_NOT_ENABLED" } };
+    }
+
     logger.debug("Input", {
       time: new Date(),
       input,
@@ -411,6 +420,14 @@ export class IOManager {
       );
     }
 
+    const thinkCallback = () => {
+      driverRuntime.emitter.emit("thinking", ioChannel, person, bag);
+    };
+
+    // Emit the thinking event to show progress
+    thinkCallback();
+    const intervalId = setInterval(thinkCallback, THINKING_INTERVAL);
+
     let output: Output | null = null;
 
     try {
@@ -431,6 +448,11 @@ export class IOManager {
       }
       logger.error("Error getting output", err);
       output = { error: err as IErrorWithData };
+    }
+
+    // Stop the thinking interval
+    if (intervalId) {
+      clearInterval(intervalId);
     }
 
     const result = await this.output(output, ioChannel, person, bag, {

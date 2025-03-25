@@ -47,6 +47,7 @@ export class Telegram implements IODriverRuntime {
 
   constructor(private conf: TelegramConfig) {
     this.bot = new TelegramBot(this.conf.token, this.conf.options);
+    this.emitter.on("thinking", this.thinking.bind(this));
   }
 
   /**
@@ -143,6 +144,17 @@ export class Telegram implements IODriverRuntime {
     return String(id);
   }
 
+  private emitInput(e: TelegramBot.Message, input: Input, ioChannel: TIOChannel, person: TPerson, bag: IOBag) {
+    // React to the message by adding an emoji to it
+    const reaction = [{ type: "emoji", emoji: "👀️" }];
+
+    // TODO: when types are updates we'll remove the ignore
+    // @ts-ignore
+    this.bot.setMessageReaction(e.chat.id, e.message_id, { reaction: JSON.stringify(reaction) });
+
+    this.emitter.emit("input", input, ioChannel, person, bag);
+  }
+
   async onBotInput(e: TelegramBot.Message) {
     if (!e.from) {
       logger.error("Invalid {from}", e);
@@ -190,8 +202,7 @@ export class Telegram implements IODriverRuntime {
         input.replyToText = replyToText;
       }
 
-      this.bot.sendChatAction(e.chat.id, "typing");
-      this.emitter.emit("input", input, ioChannel, person, bag);
+      this.emitInput(e, input, ioChannel, person, bag);
 
       return true;
     }
@@ -212,10 +223,8 @@ export class Telegram implements IODriverRuntime {
         input.replyToText = replyToText;
       }
 
-      this.bot.sendChatAction(e.chat.id, "record_voice");
-
       // User sent a voice note, respond with a voice note :)
-      this.emitter.emit("input", input, ioChannel, person, { ...bag, respondWithAudioNote: true });
+      this.emitInput(e, input, ioChannel, person, { ...bag, respondWithAudioNote: true });
 
       return true;
     }
@@ -224,21 +233,7 @@ export class Telegram implements IODriverRuntime {
     if (e.photo) {
       // const image = await this.bot.getFileLink(e.photo[e.photo.length - 1].file_id);
       if (isGroup) return false;
-
-      // this.bot.sendChatAction(e.chat.id, "typing");
-
-      // TODO: implement Image input
-      // this.emitter.emit(
-      //   "input",
-      //   {
-      //     image,
-      //   },
-      //   ioChannel,
-      //   person,
-      //   bag,
-      // );
-
-      return true;
+      return false;
     }
 
     return false;
@@ -277,10 +272,17 @@ export class Telegram implements IODriverRuntime {
     );
   }
 
+  async thinking(ioChannel: TIOChannel) {
+    const ioData = ioChannel.ioData as IODataTelegram;
+    const chatId = ioData.id;
+
+    this.bot.sendChatAction(chatId, "typing");
+  }
+
   /**
    * Output an object to the user
    */
-  async output(f: Output, ioChannel: TIOChannel, person: TPerson, _bag: IOBag): Promise<IODriverMultiOutput> {
+  async output(output: Output, ioChannel: TIOChannel, person: TPerson, _bag: IOBag): Promise<IODriverMultiOutput> {
     const results: IODriverMultiOutput = [];
 
     const bag = _bag as IOBagTelegram;
@@ -294,14 +296,13 @@ export class Telegram implements IODriverRuntime {
 
     // Process a Text Object
     try {
-      if (f.text) {
-        this.bot.sendChatAction(chatId, "typing");
-        const r = await this.sendMessage(chatId, f.text, botOpt);
+      if (output.text) {
+        const r = await this.sendMessage(chatId, output.text, botOpt);
         results.push(["message", r]);
 
         if (bag?.respondWithAudioNote || ioChannel.options?.respondWithAudioNote) {
           this.bot.sendChatAction(chatId, "record_voice");
-          const r = await this.sendAudioNoteFromText(chatId, f.text, person.getLanguage(), botOpt);
+          const r = await this.sendAudioNoteFromText(chatId, output.text, person.getLanguage(), botOpt);
           results.push(["audionote", r]);
         }
       }
@@ -312,9 +313,9 @@ export class Telegram implements IODriverRuntime {
 
     // Process a Video object
     try {
-      if (f.video) {
+      if (output.video) {
         this.bot.sendChatAction(chatId, "upload_video");
-        const r = await this.bot.sendVideo(chatId, f.video, botOpt);
+        const r = await this.bot.sendVideo(chatId, output.video, botOpt);
         results.push(["video", r]);
       }
     } catch (err) {
@@ -324,9 +325,9 @@ export class Telegram implements IODriverRuntime {
 
     // Process an Image Object
     try {
-      if (f.image) {
+      if (output.image) {
         this.bot.sendChatAction(chatId, "upload_photo");
-        const r = await this.bot.sendPhoto(chatId, f.image, {
+        const r = await this.bot.sendPhoto(chatId, output.image, {
           ...botOpt,
         });
         results.push(["photo", r]);
@@ -338,9 +339,9 @@ export class Telegram implements IODriverRuntime {
 
     // Process a Voice Object
     try {
-      if (f.voice) {
+      if (output.voice) {
         this.bot.sendChatAction(chatId, "record_voice");
-        const r = await this.bot.sendVoice(chatId, f.voice, botOpt);
+        const r = await this.bot.sendVoice(chatId, output.voice, botOpt);
         results.push(["voice", r]);
       }
     } catch (err) {
@@ -350,9 +351,9 @@ export class Telegram implements IODriverRuntime {
 
     // Process an Audio Object
     try {
-      if (f.audio) {
+      if (output.audio) {
         this.bot.sendChatAction(chatId, "upload_voice");
-        const r = await this.bot.sendAudio(chatId, f.audio, botOpt);
+        const r = await this.bot.sendAudio(chatId, output.audio, botOpt);
         results.push(["audio", r]);
       }
     } catch (err) {
@@ -362,9 +363,9 @@ export class Telegram implements IODriverRuntime {
 
     // Process a Document Object
     try {
-      if (f.document) {
+      if (output.document) {
         this.bot.sendChatAction(chatId, "upload_document");
-        const r = await this.bot.sendDocument(chatId, f.document, botOpt);
+        const r = await this.bot.sendDocument(chatId, output.document, botOpt);
         results.push(["document", r]);
       }
     } catch (err) {
@@ -373,14 +374,12 @@ export class Telegram implements IODriverRuntime {
     }
 
     try {
-      if (f.error) {
-        this.bot.sendChatAction(chatId, "typing");
-
-        const errorMessage = f.error?.message || "Sorry, an error occurred; please try again later.";
+      if (output.error) {
+        const errorMessage = output.error?.message || "Sorry, an error occurred; please try again later.";
         const r = await this.sendMessage(chatId, errorMessage, botOpt);
 
         if (person.authorizations?.includes(Authorization.ADMIN)) {
-          this.sendMessage(chatId, `<pre>${JSON.stringify(f.error)}</pre>`, botOpt);
+          this.sendMessage(chatId, `<pre>${JSON.stringify(output.error)}</pre>`, botOpt);
         }
 
         results.push(["message", r]);
@@ -391,9 +390,8 @@ export class Telegram implements IODriverRuntime {
     }
 
     try {
-      if (f.data) {
-        this.bot.sendChatAction(chatId, "typing");
-        const r = await this.sendMessage(chatId, `<pre>${f.data}</pre>`, botOpt);
+      if (output.data) {
+        const r = await this.sendMessage(chatId, `<pre>${output.data}</pre>`, botOpt);
         results.push(["data", r]);
       }
     } catch (err) {
