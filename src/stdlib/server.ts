@@ -461,7 +461,10 @@ export function initializeRoutes(): { app: any; server: http.Server } {
       users: { admin: config().server.basicAuthPassword },
       challenge: true,
     }),
-    serveIndex(logsDir),
+    serveIndex(logsDir, {
+      icons: true,
+    }),
+    express.static(logsDir),
   );
 
   // Handle all routers
