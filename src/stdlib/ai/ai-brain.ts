@@ -88,11 +88,11 @@ export class AIBrain {
 
   private async getConversationInputAsText(ioChannel: TIOChannel, person: TPerson): Promise<string> {
     const prompt = [];
-    prompt.push(`${config().aiName} is chatting with ${person.getName()} - ${ioChannel.getName()}.`);
+    prompt.push(`You are chatting with ${person.getName()} - ${ioChannel.getName()}.`);
 
     if (person.language) {
       const languageName = new Intl.DisplayNames(["en"], { type: "language" }).of(person.getLanguage());
-      prompt.push(`${config().aiName} should speak in ${languageName}, unless otherwise specified.`);
+      prompt.push(`You should speak in ${languageName}, unless otherwise specified.`);
     }
 
     return prompt.join("\n");
