@@ -203,9 +203,14 @@ export class IOManager {
     if (emotions) {
       const currentEmotions = person.getEmotions();
       // Get the keys that differed and by how much
-      const diff = Object.fromEntries(
-        Object.entries(emotions).filter(([key, value]) => value - currentEmotions[key as keyof EmotionContext]),
-      );
+      const diff: Record<string, number> = {};
+      for (const key in emotions) {
+        const oldValue = currentEmotions[key as keyof EmotionContext];
+        const newValue = emotions[key as keyof EmotionContext];
+        if (oldValue !== newValue) {
+          diff[key] = newValue - oldValue;
+        }
+      }
       logger.info(`Updating emotions for ${person.getName()}`, diff);
 
       person.emotions = {
@@ -425,7 +430,7 @@ export class IOManager {
       time: new Date(),
       input,
       ioChannel: ioChannel.toJSONDebug(),
-      personId: person.toJSONDebug(),
+      person: person.toJSONDebug(),
       bag,
       inputId,
     });
