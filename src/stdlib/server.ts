@@ -17,7 +17,7 @@ import { Interaction } from "../data/interaction";
 import InputToCloseFriendsScheduler from "../scheduler/input_to_close_friends";
 import expressBasicAuth from "express-basic-auth";
 import serveIndex from "serve-index";
-import { DocumentType } from "@typegoose/typegoose";
+import { DocumentType, isDocument } from "@typegoose/typegoose";
 
 const TAG = "Server";
 const logger = new Signale({
@@ -360,7 +360,7 @@ routerApi.get(`/interactions`, async (req, res) => {
 
       if (!acc[channelId]) {
         acc[channelId] = {
-          channel: (interaction.ioChannel as DocumentType<IIOChannel>).toJSONAPI(),
+          channel: isDocument(interaction.ioChannel) ? interaction.ioChannel.toJSONAPI() : null,
           interactions: [],
         };
       }

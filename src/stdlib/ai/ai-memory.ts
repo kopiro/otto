@@ -283,14 +283,14 @@ export class AIMemory {
             // Process all interactions in parallel to build the conversation
             const conversationPromises = interactions.map(async (interaction) => {
               const time = interaction.createdAt.toLocaleTimeString();
-              const sourceName = interaction.getPersonName();
+              const personName = interaction.getPersonName();
               const messages = [];
 
               if (interaction.output && "text" in interaction.output) {
-                messages.push(`- ${sourceName} (${time}): ${interaction.output.text}`);
+                messages.push(`- ${personName} (${time}): ${interaction.output.text}`);
               }
               if (interaction.input && "text" in interaction.input && interaction.input.role !== "system") {
-                messages.push(`- ${sourceName} (${time}): ${interaction.input.text}`);
+                messages.push(`- ${personName} (${time}): ${interaction.input.text}`);
               }
 
               return messages;

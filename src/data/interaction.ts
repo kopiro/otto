@@ -61,14 +61,18 @@ export class IInteraction {
       input: this.input,
       output: this.output,
       source: this.source,
-      sourceName: this.getPersonName(),
+      channelName: this.getChannelName(),
+      personName: this.getPersonName(),
       createdAt: this.createdAt,
     };
   }
 
   public getChannelName(): string {
-    const ioChannel = this.ioChannel as DocumentType<IIOChannel>;
-    return ioChannel.getName();
+    if (isDocument(this.ioChannel)) {
+      return this.ioChannel.getName();
+    }
+
+    return "-";
   }
 
   public getPersonName(): string {

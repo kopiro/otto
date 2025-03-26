@@ -27,7 +27,7 @@ interface Interaction {
     error?: any;
   };
   createdAt: string;
-  sourceName: string;
+  personName: string;
 }
 
 type InputToCloseFriendsMap = Array<{
@@ -713,16 +713,16 @@ function displayInteractions(interactions: Record<string, GroupedInteractions>) 
     channelData.interactions.forEach((interaction) => {
       if (interaction.input) {
         addMessage(
-          interaction.sourceName,
+          interaction.personName,
           interaction.input?.text ?? JSON.stringify(interaction.input),
-          `input ${interaction.sourceName.toLowerCase() === "system" ? "system" : ""}`,
+          `input ${interaction.personName.toLowerCase() === "system" ? "system" : ""}`,
           interaction.createdAt,
           $sectionIOChannel,
         );
       }
       if (interaction.output) {
         addMessage(
-          interaction.sourceName,
+          interaction.personName,
           interaction.output.text ?? JSON.stringify(interaction.output),
           "output",
           interaction.createdAt,

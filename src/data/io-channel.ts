@@ -96,8 +96,8 @@ export class IIOChannel {
       ioDriver: this.ioDriver,
       ioIdentifier: this.ioIdentifier,
       ioData: this.ioData,
-      person: this.person ? (this.person as DocumentType<IPerson>).toJSONAPI() : null,
-      people: this.people.map((p) => (p as DocumentType<IPerson>).toJSONAPI()),
+      person: isDocument(this.person) ? this.person.toJSONAPI() : null,
+      people: isDocumentArray(this.people) ? this.people.map((p) => p.toJSONAPI()) : [],
     };
   }
 
@@ -126,8 +126,8 @@ export class IIOChannel {
   }
 
   getPersonName() {
-    if (this.person) {
-      return (this.person as DocumentType<IPerson>).getName();
+    if (isDocument(this.person)) {
+      return this.person.getName();
     }
     return this.getIODataName();
   }
