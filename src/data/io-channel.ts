@@ -51,20 +51,20 @@ export class IIOChannel {
    * you can use this field directly to refer to the person,
    * but this is not garantueed (example, group chats)
    */
-  @prop({ required: false, autopopulate: { maxDepth: 1 }, ref: () => IPerson })
+  @prop({ required: false, autopopulate: true, ref: () => IPerson })
   public person?: Ref<IPerson>;
 
   /**
    * In case of group chats, this field will be populated with the people in the group chat
    */
-  @prop({ required: false, autopopulate: { maxDepth: 1 }, ref: () => IPerson })
+  @prop({ required: false, autopopulate: true, ref: () => IPerson })
   public people!: Ref<IPerson>[];
 
   /**
    * This property is used to redirect the output of this ioChannel to another ioChannel.
    * This is useful for example if you want to also speak when you're replying to a user.
    */
-  @prop({ required: false, autopopulate: { maxDepth: 1 }, ref: () => IIOChannel })
+  @prop({ required: false, autopopulate: true, ref: () => IIOChannel })
   public redirectOutputToIOChannelIds?: Ref<IIOChannel>[];
 
   /**
@@ -73,7 +73,7 @@ export class IIOChannel {
    * This way, you can simply built a bot that repeats the last input of the user.
    * For example, you can input on Telegram to output to Human.
    */
-  @prop({ required: false, autopopulate: { maxDepth: 1 }, ref: () => IIOChannel })
+  @prop({ required: false, autopopulate: true, ref: () => IIOChannel })
   public mirrorInputToOutputToChannelIds?: Ref<IIOChannel>[];
 
   /**

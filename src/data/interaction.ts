@@ -30,10 +30,10 @@ export class IInteraction {
   @prop({ required: true })
   public managerUid!: string;
 
-  @prop({ autopopulate: { maxDepth: 1 }, ref: () => IIOChannel })
+  @prop({ autopopulate: true, ref: () => IIOChannel })
   public ioChannel!: Ref<IIOChannel>;
 
-  @prop({ autopopulate: { maxDepth: 1 }, ref: () => IPerson })
+  @prop({ autopopulate: true, ref: () => IPerson })
   public person!: Ref<IPerson>;
 
   @prop({ required: false })
