@@ -39,7 +39,7 @@
     "encoding": "MP3"
   },
   "brain": {
-    "emotionMaxIncrement": 1,
+    "emotionMaxIncrement": 3,
     "startEmotions": {
       "love": 20,
       "trust": 10,
