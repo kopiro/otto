@@ -1,86 +1,20 @@
 import { $, addMessage } from "./utils";
 import * as d3 from "d3";
-
-interface Person {
-  id: string;
-  name: string;
-  language?: string;
-  emotions: EmotionContext;
-}
-
-interface IOChannel {
-  id: string;
-  name: string;
-  ownerName: string;
-  ioDriver: string;
-  ioIdentifier: string;
-  ioData: string;
-  person: Person;
-  people: Person[];
-}
-
-interface Interaction {
-  id: string;
-  input: {
-    text?: string;
-  };
-  output: {
-    text?: string;
-    error?: any;
-  };
-  createdAt: string;
-  personName: string;
-}
-
-type InputToCloseFriendsMap = Array<{
-  uuid: string;
-  ioChannel: IOChannel;
-  person: Person;
-  time: string;
-  score: number;
-}>;
-
-interface GroupedInteractions {
-  channel: IOChannel;
-  interactions: Interaction[];
-}
-
-interface InteractionsResponse {
-  data: Record<string, GroupedInteractions>;
-}
-
-interface MemoryResult {
-  id: string;
-  score: number;
-  payload: {
-    text: string;
-  };
-}
-
-interface EpisodicMemoryTodo {
-  chunkId: string;
-  dateChunk: string;
-  ioChannel: IOChannel;
-  payloads: Array<{
-    id: string;
-    chunkId?: string;
-    text: string;
-  }>;
-}
+import type {
+  EmotionContext,
+  API_IOChannel,
+  API_Person,
+  API_Memory,
+  API_EpisodicMemoryTodo,
+  API_GroupedInteractionsByChannelID,
+  API_InputToCloseFriend,
+} from "../src/types";
 
 interface DetailField {
   label: string;
   value: string | number | boolean | object;
   editable?: boolean;
   wrapper?: string;
-}
-
-interface EmotionContext {
-  love: number;
-  trust: number;
-  respect: number;
-  anger: number;
-  jealousy: number;
 }
 
 const $inputAuth = $("#input-auth") as HTMLInputElement;
@@ -257,7 +191,7 @@ function createDetailsCard(details: DetailField[], onSubmit: (formData: FormData
   return $card;
 }
 
-export async function apiGetIOChannels(): Promise<IOChannel[]> {
+export async function apiGetIOChannels(): Promise<API_IOChannel[]> {
   const response = await fetch(`/api/io_channels`, {
     headers: {
       "x-auth-person": localStorage.getItem("auth"),
@@ -269,7 +203,7 @@ export async function apiGetIOChannels(): Promise<IOChannel[]> {
   return json.data ?? [];
 }
 
-export async function apiGetPeople(): Promise<Person[]> {
+export async function apiGetPeople(): Promise<API_Person[]> {
   const response = await fetch(`/api/persons`, {
     headers: {
       "x-auth-person": localStorage.getItem("auth"),
@@ -281,7 +215,7 @@ export async function apiGetPeople(): Promise<Person[]> {
   return json.data ?? [];
 }
 
-async function apiGetInteractions(ioChannel?: string, date?: string): Promise<InteractionsResponse> {
+async function apiGetInteractions(ioChannel?: string, date?: string): Promise<API_GroupedInteractionsByChannelID> {
   const params = new URLSearchParams();
   if (ioChannel) params.append("io_channel", ioChannel);
   if (date) params.append("date", date);
@@ -300,7 +234,7 @@ async function apiGetInteractions(ioChannel?: string, date?: string): Promise<In
   return response.json();
 }
 
-async function apiSearchMemories(type: string, text: string): Promise<MemoryResult[]> {
+async function apiSearchMemories(type: string, text: string): Promise<API_Memory[]> {
   const response = await fetch(`/api/memories/search?type=${type}&text=${encodeURIComponent(text)}`, {
     headers: {
       "x-auth-person": localStorage.getItem("auth"),
@@ -311,7 +245,7 @@ async function apiSearchMemories(type: string, text: string): Promise<MemoryResu
   return json.data ?? [];
 }
 
-async function apiDeleteMemory(id: string, type: string): Promise<void> {
+async function apiDeleteMemory(id: string | number, type: string): Promise<void> {
   const response = await fetch(`/api/memories/${id}?type=${type}`, {
     method: "DELETE",
     headers: {
@@ -325,7 +259,7 @@ async function apiDeleteMemory(id: string, type: string): Promise<void> {
   }
 }
 
-function displayMemoryResults(results: MemoryResult[]) {
+function displayMemoryResults(results: API_Memory[]) {
   $memoryResults.innerHTML = "";
 
   if (results.length === 0) {
@@ -702,7 +636,7 @@ function bindEventsOutputMessage() {
   });
 }
 
-function displayInteractions(interactions: Record<string, GroupedInteractions>) {
+function displayInteractions(interactions: API_GroupedInteractionsByChannelID) {
   // Clear previous messages
   $messages.innerHTML = "";
 
@@ -804,7 +738,7 @@ async function bindEventsInteractions() {
   });
 }
 
-async function apiGetPersonDetails(personId: string): Promise<Person> {
+async function apiGetPersonDetails(personId: string): Promise<API_Person> {
   const response = await fetch(`/api/persons/${personId}`, {
     headers: {
       "x-auth-person": localStorage.getItem("auth"),
@@ -982,7 +916,7 @@ function updateRadarChart(
     .attr("cy", (d, i) => rScale(d.value) * Math.sin(angleSlice * i - Math.PI / 2));
 }
 
-function displayPersonDetails(person: Person) {
+function displayPersonDetails(person: API_Person) {
   const details: DetailField[] = [
     { label: "ID", value: person.id, editable: false },
     { label: "Name", value: person.name, editable: true },
@@ -1058,7 +992,7 @@ function bindEventsPersonDetails() {
   });
 }
 
-async function apiGetIOChannelDetails(channelId: string): Promise<IOChannel> {
+async function apiGetIOChannelDetails(channelId: string): Promise<API_IOChannel> {
   const response = await fetch(`/api/io_channels/${channelId}`, {
     headers: {
       "x-auth-person": localStorage.getItem("auth"),
@@ -1073,7 +1007,7 @@ async function apiGetIOChannelDetails(channelId: string): Promise<IOChannel> {
   return response.json();
 }
 
-function displayIOChannelDetails(channel: IOChannel) {
+function displayIOChannelDetails(channel: API_IOChannel) {
   const details: DetailField[] = [
     { label: "ID", value: channel.id, editable: false },
     { label: "Name", value: channel.name, editable: false },
@@ -1152,7 +1086,7 @@ async function fetchAndDisplaySchedulerMap() {
       return;
     }
 
-    const data = json.data as InputToCloseFriendsMap;
+    const data = json.data as API_InputToCloseFriend[];
 
     // Clear existing rows
     $schedulerMapTable.innerHTML = "";
@@ -1197,7 +1131,7 @@ async function fetchAndDisplayEpisodicTodo() {
       return;
     }
 
-    const data = json.data as EpisodicMemoryTodo[];
+    const data = json.data as API_EpisodicMemoryTodo[];
 
     // Clear existing rows
     $episodicTodoTable.innerHTML = "";

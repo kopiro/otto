@@ -16,6 +16,7 @@ import autopopulate from "mongoose-autopopulate";
 import { Signale } from "signale";
 import { IPerson, Person, TPerson } from "./person";
 import mongoose from "mongoose";
+import { API_IOChannel } from "../types";
 
 const TAG = "IOChannel";
 const logger = new Signale({
@@ -88,7 +89,7 @@ export class IIOChannel {
     };
   }
 
-  public toJSONAPI() {
+  public toJSONAPI(): API_IOChannel {
     return {
       id: this.id,
       name: this.getName(),
@@ -109,11 +110,11 @@ export class IIOChannel {
           case "supergroup":
           case "group":
           case "channel":
-            return ioData.title;
+            return ioData.title ?? "Unknown Channel";
           case "private":
-            return [ioData.first_name, ioData.last_name].join(" ");
+            return [ioData.first_name, ioData.last_name].filter(Boolean).join(" ") ?? "Unknown Person";
           default:
-            return ioData.title;
+            return ioData.title ?? "Unknown";
         }
       }
       case "voice":

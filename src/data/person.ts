@@ -1,4 +1,4 @@
-import { Authorization, EmotionContext, Language } from "../types";
+import { API_Person, Authorization, EmotionContext, Language } from "../types";
 import { getModelForClass, Ref, ReturnModelType, DocumentType, prop, modelOptions } from "@typegoose/typegoose";
 
 import { Signale } from "signale";
@@ -61,13 +61,11 @@ export class IPerson {
     };
   }
 
-  public toJSONAPI() {
+  public toJSONAPI(): API_Person {
     return {
       id: this.id,
       name: this.getName(),
       language: this.language,
-      authorizations: this.authorizations,
-      ioIdentifiers: this.ioIdentifiers,
       emotions: this.getEmotions(),
     };
   }

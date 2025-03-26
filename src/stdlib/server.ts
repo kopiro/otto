@@ -7,17 +7,25 @@ import { TextToSpeech } from "./text-to-speech";
 import { IOManager, OutputSource } from "./io-manager";
 import rateLimit from "express-rate-limit";
 import { Signale } from "signale";
-import { IIOChannel, IOChannel } from "../data/io-channel";
+import { IOChannel } from "../data/io-channel";
 import { Person } from "../data/person";
 import { Translator } from "./translator";
-import { Authorization, Gender, Language } from "../types";
+import {
+  API_EpisodicMemoryTodo,
+  API_GroupedInteractionsByChannelID,
+  API_InputToCloseFriend,
+  API_Memory,
+  Authorization,
+  Gender,
+  Language,
+} from "../types";
 import { AIMemory, MemoryType } from "./ai/ai-memory";
 import { throwIfMissingAuthorizations } from "../helpers";
 import { Interaction } from "../data/interaction";
 import InputToCloseFriendsScheduler from "../scheduler/input_to_close_friends";
 import expressBasicAuth from "express-basic-auth";
 import serveIndex from "serve-index";
-import { DocumentType, isDocument } from "@typegoose/typegoose";
+import { isDocument } from "@typegoose/typegoose";
 
 const TAG = "Server";
 const logger = new Signale({
@@ -186,7 +194,8 @@ routerApi.get(`/memories/search`, async (req, res) => {
       config().memory.vectorial[type as MemoryType].scoreThreshold,
     );
 
-    res.json({ data: vectors });
+    const json: API_Memory[] = vectors;
+    res.json({ data: json });
   } catch (err) {
     return res.status(400).json({
       error: {
@@ -355,21 +364,29 @@ routerApi.get(`/interactions`, async (req, res) => {
     const interactions = await Interaction.find(conditions).sort({ createdAt: +1 });
 
     // Group interactions by channel
-    const groupedInteractions = interactions.reduce((acc: Record<string, any>, interaction) => {
-      const channelId = interaction.ioChannel.id;
+    const groupedInteractions = interactions.reduce<API_GroupedInteractionsByChannelID>(
+      (acc: API_GroupedInteractionsByChannelID, interaction) => {
+        const channelId = interaction.ioChannel.id;
 
-      if (!acc[channelId]) {
-        acc[channelId] = {
-          channel: isDocument(interaction.ioChannel) ? interaction.ioChannel.toJSONAPI() : null,
-          interactions: [],
-        };
-      }
+        if (!acc[channelId]) {
+          if (!isDocument(interaction.ioChannel)) {
+            return acc;
+          }
+          acc[channelId] = {
+            channel: interaction.ioChannel.toJSONAPI(),
+            interactions: [],
+          };
+        }
 
-      acc[channelId].interactions.push(interaction.toJSONAPI());
-      return acc;
-    }, {});
+        acc[channelId].interactions.push(interaction.toJSONAPI());
+        return acc;
+      },
+      {},
+    );
 
-    res.json({ data: groupedInteractions });
+    const json: API_GroupedInteractionsByChannelID = groupedInteractions;
+
+    res.json({ data: json });
   } catch (err) {
     return res.status(400).json({
       error: {
@@ -410,7 +427,7 @@ routerApi.post(`/admin/memory_reload`, async (req, res) => {
 // Return a n example of the reduction it will happen today
 routerApi.get(`/admin/memory_episodic_todo`, async (_, res) => {
   const data = await AIMemory.getInstance().getReducedInteractionsMemoryPayloadsByChunk();
-  const json = data.map((e) => ({
+  const json: API_EpisodicMemoryTodo[] = data.map((e) => ({
     ...e,
     ioChannel: e.ioChannel.toJSONAPI(),
     interactions: e.interactions.map((e) => e.toJSONAPI()),
@@ -427,7 +444,7 @@ routerApi.post("/admin/queue_process", async (_, res) => {
 // API that exposes the IOInputTOCloseFriends map of the day
 routerApi.get(`/admin/input_to_close_friends_scheduler_map`, async (_, res) => {
   const map = await InputToCloseFriendsScheduler.getIOChannelsWithTime();
-  const json = map.map((e) => ({
+  const json: API_InputToCloseFriend[] = map.map((e) => ({
     ...e,
     ioChannel: e.ioChannel.toJSONAPI(),
     person: e.person.toJSONAPI(),

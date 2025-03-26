@@ -1,4 +1,4 @@
-import { AIRuntimeFunction } from "../../types";
+import { AIRuntimeFunction } from "../../dtypes";
 import { Camera } from "../../stdlib/camera";
 
 export const authorizations = ["camera"];

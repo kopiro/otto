@@ -186,7 +186,7 @@ export class Telegram implements IODriverRuntime {
     // Process a Text object
     if (e.text) {
       const text = this.cleanText(e.text || "");
-      const isMention = this.isMention(text);
+      const isMention = this.isMention(e.text);
 
       // If we are in a group, only listen for activators
       if (isGroup && !(isMention || replyToText)) {
@@ -206,8 +206,8 @@ export class Telegram implements IODriverRuntime {
 
     // Process a Voice object
     if (e.voice) {
-      const text = await this.handleVoiceInput(e.voice.file_id, person.getLanguage());
-      const isMention = this.isMention(text);
+      const textFromVoice = await this.handleVoiceInput(e.voice.file_id, person.getLanguage());
+      const isMention = this.isMention(textFromVoice);
 
       // If we are in a group, only listen for activators
       if (isGroup && !(isMention || replyToText)) {
@@ -215,7 +215,7 @@ export class Telegram implements IODriverRuntime {
         return false;
       }
 
-      const input: Input = { text };
+      const input: Input = { text: textFromVoice };
       if (replyToText) {
         input.replyToText = replyToText;
       }

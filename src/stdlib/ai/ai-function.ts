@@ -1,4 +1,5 @@
-import { Output, AIRuntimeFunction, Input, Authorization } from "../../types";
+import { Output, Input, Authorization } from "../../types";
+import { AIRuntimeFunction } from "../../dtypes";
 import { functionsDir } from "../../paths";
 import { readFileSync, readdirSync } from "fs";
 import path from "path";

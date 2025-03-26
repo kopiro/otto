@@ -1,4 +1,4 @@
-import { Output, Input } from "../types";
+import { Output, Input, API_Interaction } from "../types";
 import {
   DocumentType,
   Ref,
@@ -54,16 +54,15 @@ export class IInteraction {
   @prop({ required: false, type: mongoose.Schema.Types.String })
   public source?: OutputSource;
 
-  public toJSONAPI() {
+  public toJSONAPI(): API_Interaction {
     return {
       id: this.id,
-      inputId: this.inputId,
       input: this.input,
       output: this.output,
       source: this.source,
       channelName: this.getChannelName(),
       personName: this.getPersonName(),
-      createdAt: this.createdAt,
+      createdAt: this.createdAt.toISOString(),
     };
   }
 

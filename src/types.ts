@@ -1,8 +1,68 @@
-import { TIOChannel } from "./data/io-channel";
-import type { IOBag } from "./stdlib/io-manager";
-
 export type Language = string;
 export type Gender = "male" | "female";
+
+export type API_Person = {
+  id: string;
+  name: string;
+  language?: string;
+  emotions: EmotionContext;
+};
+
+export type API_IOChannel = {
+  id: string;
+  name: string;
+  ownerName: string;
+  ioDriver: string;
+  ioIdentifier: string;
+  ioData: any;
+  person: API_Person | null;
+  people: API_Person[];
+};
+
+export type API_Interaction = {
+  id: string;
+  source: string | undefined;
+  channelName: string;
+  input?: Input;
+  output?: Output;
+  createdAt: string;
+  personName: string;
+};
+
+export type API_InputToCloseFriend = {
+  uuid: string;
+  ioChannel: API_IOChannel;
+  person: API_Person;
+  time: string;
+  score: number;
+};
+
+export type API_GroupedInteractionsByChannelID = Record<
+  string,
+  {
+    channel: API_IOChannel;
+    interactions: API_Interaction[];
+  }
+>;
+
+export type API_Memory = {
+  id: string | number;
+  score: number;
+  payload?: {
+    text?: string;
+  } | null;
+};
+
+export type API_EpisodicMemoryTodo = {
+  chunkId: string;
+  dateChunk: string;
+  ioChannel: API_IOChannel;
+  payloads: Array<{
+    id: string;
+    chunkId?: string;
+    text: string;
+  }>;
+};
 
 export enum Authorization {
   ADMIN = "admin",
@@ -41,14 +101,6 @@ export type Output = Omit<AIOutput, "channelName"> & {
   data?: string;
 };
 
-export type AIRuntimeFunctionArguments<TParams> = {
-  input: Input;
-  ioChannel: TIOChannel;
-  parameters: TParams;
-};
-
-export type AIRuntimeFunction<T> = (args: AIRuntimeFunctionArguments<T>) => Promise<Output> | Output;
-
 export type IErrorWithData = {
   message: string;
   data?: string;
@@ -63,5 +115,6 @@ export type Input = {
   replyToText?: string;
   role?: "system" | "user" | "assistant";
   context?: InputContext;
-  bag?: IOBag;
+  // We may want to add type here
+  bag?: any;
 };
