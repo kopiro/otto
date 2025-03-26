@@ -61,7 +61,7 @@ export class IInteraction {
       output: this.output,
       sourceName: this.getSourceName(),
       channelName: this.getChannelName(),
-      createdAt: this.createdAt.toISOString(),
+      createdAt: this.createdAt.toLocaleString("en-GB"),
       person: isDocument(this.person) ? this.person.toJSONAPI() : null,
     };
   }
@@ -118,8 +118,8 @@ export class IInteraction {
     source: OutputSource | null,
   ) {
     if (process.env.NODE_ENV === "development") {
-      logger.warn(`Skipping interaction creation in development mode`);
-      return;
+      //logger.warn(`Skipping interaction creation in development mode`);
+      //return;
     }
 
     return Interaction.create({

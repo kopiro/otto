@@ -95,7 +95,7 @@ export class AIBrain {
       sentiment: "A number between 0 and 1, indicating how much the assistant is happy with the message",
       reaction: "An optional emoji reaction to the message. Use the subset available on Telegram.",
       channelName: "The name of the channel",
-      emotions: `An optional object representing the NEW emotion map you're feeling towards the person (min: 0, max: 100). If unchanged, don't include it. Maximum increment/decrement per emotion is ${this.config.emotionMaxIncrement}.`,
+      emotionsUpdates: `An object representing the increment/decrement in emotion map you're feeling towards this person. Maximum increment/decrement per emotion is ${this.config.emotionMaxIncrement}. Example: {"love": +2, "trust": -3}`,
     };
   }
 

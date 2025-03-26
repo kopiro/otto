@@ -84,10 +84,8 @@ export type AIOutput = {
   text?: string;
   reaction?: string;
   sentiment?: number;
-  emotions?: EmotionContext;
-
-  // This field it's there force the AI to extract the channel name from the text
-  channelName?: string;
+  emotionsUpdates?: EmotionContext;
+  channelName?: string; // This field it's there force the AI to extract the channel name from the text
 };
 
 export type Output = Omit<AIOutput, "channelName"> & {

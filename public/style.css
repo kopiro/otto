@@ -61,7 +61,6 @@
   position: relative;
   font-size: 14px;
   line-height: 1.1em;
-  padding-bottom: 0;
 }
 
 .message .message-header {
@@ -317,7 +316,6 @@ small {
 }
 
 .message-toggle {
-  /* display: block; */
   width: 100%;
   text-align: center;
   color: #fff;
@@ -326,6 +324,7 @@ small {
   background: transparent;
   border: none;
   cursor: pointer;
+  height: 18px;
 }
 
 .message-toggle:hover {
@@ -350,4 +349,28 @@ small {
 /* Add a subtle border to separate the toggle from content */
 .message-content {
   padding-bottom: 0.5rem;
+}
+
+.emotion-changes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.emotion-change {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  font-size: 0.875rem;
+  color: #e0e0e0;
+}
+
+.emotion-change:hover {
+  background-color: rgba(255, 255, 255, 0.2);
 }

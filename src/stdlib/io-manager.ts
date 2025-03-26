@@ -198,25 +198,20 @@ export class IOManager {
     }
   }
 
-  async updateEmotions(newEmotions: EmotionContext, person: TPerson) {
+  async updateEmotions(emotionsUpdates: EmotionContext, person: TPerson) {
     // Update emotions
-    if (newEmotions) {
+    if (emotionsUpdates) {
       const currentEmotions = person.getEmotions();
-      // Get the keys that differed and by how much
-      const diff: Record<string, number> = {};
-      for (const key in newEmotions) {
-        const oldValue = currentEmotions[key as keyof EmotionContext];
-        const newValue = newEmotions[key as keyof EmotionContext];
-        if (oldValue !== newValue) {
-          diff[key] = newValue - oldValue;
-        }
-      }
-      logger.info(`Updating emotions for ${person.getName()}`, diff);
+      logger.info(`Updating emotions for ${person.getName()}`, emotionsUpdates);
 
-      person.emotions = {
-        ...person.emotions,
-        ...newEmotions,
-      };
+      for (const key in emotionsUpdates) {
+        const increment = emotionsUpdates[key as keyof EmotionContext];
+        const currentValue = currentEmotions[key as keyof EmotionContext];
+        const newValue = currentValue + increment;
+        currentEmotions[key as keyof EmotionContext] = newValue;
+      }
+
+      person.emotions = currentEmotions;
       return person.save();
     }
   }
@@ -264,8 +259,8 @@ export class IOManager {
     }
 
     // Update emotions
-    if (output.emotions) {
-      this.updateEmotions(output.emotions, person);
+    if (output.emotionsUpdates) {
+      this.updateEmotions(output.emotionsUpdates, person);
     }
 
     // Redirecting output to another ioChannel, asyncronously

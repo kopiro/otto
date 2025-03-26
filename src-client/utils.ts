@@ -1,3 +1,5 @@
+import { API_Interaction, API_Person, EmotionContext } from "../src/types";
+
 export const $ = (selector: string) => document.querySelector(selector);
 export const $$ = (selector: string) => document.querySelectorAll(selector);
 
@@ -5,6 +7,15 @@ const $messages = $("#messages") as HTMLDivElement;
 const $aiAudio = $("#ai-audio") as HTMLAudioElement;
 const $userAudio = $("#user-audio") as HTMLAudioElement;
 const $inputPerson = $("#person") as HTMLInputElement;
+
+// Add emotion emojis mapping
+const EMOTION_EMOJIS: Record<keyof EmotionContext, string> = {
+  love: "❤️",
+  trust: "🤝",
+  respect: "🙏",
+  anger: "😠",
+  jealousy: "😒",
+};
 
 export function cleanMessages() {
   $messages.innerHTML = "";
@@ -15,7 +26,7 @@ export function addMessage(
   text: string,
   className: string,
   createdAt: string = new Date().toISOString(),
-  rawJSON: object = null,
+  interaction: API_Interaction = null,
   $container = $messages,
 ) {
   const $message = document.createElement("div");
@@ -25,7 +36,7 @@ export function addMessage(
   $header.className = "message-header";
   $header.innerHTML = `
     <span class="message-name">${author}</span>
-    <span class="message-time">${new Date(createdAt).toLocaleString()}</span>
+    <span class="message-time">${new Date(createdAt).toLocaleString("en-GB")}</span>
   `;
   $message.appendChild($header);
 
@@ -35,26 +46,48 @@ export function addMessage(
   $message.appendChild($content);
 
   // Add collapsible JSON view
-  if (rawJSON) {
-    const $jsonContainer = document.createElement("div");
+  let $jsonContainer: HTMLDivElement | null = null;
+  if (interaction) {
+    $jsonContainer = document.createElement("div");
     $jsonContainer.className = "message-json d-none";
     const $jsonCode = document.createElement("code");
     $jsonCode.className = "text-break";
-    $jsonCode.textContent = JSON.stringify(rawJSON, null, 2);
+    $jsonCode.textContent = JSON.stringify(interaction, null, 2);
     $jsonContainer.appendChild($jsonCode);
     $message.appendChild($jsonContainer);
+  }
 
-    // Add toggle button
-    const $toggleBtn = document.createElement("button");
-    $toggleBtn.className = "btn btn-link btn-sm p-0 message-toggle";
-    $toggleBtn.innerHTML = '<i class="bi bi-chevron-down"></i>';
-    $toggleBtn.onclick = () => {
+  // Add toggle button
+  const $toggleBtn = document.createElement("button");
+  $toggleBtn.className = "btn btn-link btn-sm p-0 message-toggle";
+  $toggleBtn.innerHTML = '<i class="bi bi-chevron-down"></i>';
+  $toggleBtn.onclick = () => {
+    if ($jsonContainer) {
       $jsonContainer.classList.toggle("d-none");
       $toggleBtn.innerHTML = $jsonContainer.classList.contains("d-none")
         ? '<i class="bi bi-chevron-down"></i>'
         : '<i class="bi bi-chevron-up"></i>';
-    };
-    $message.appendChild($toggleBtn);
+    }
+  };
+  $message.appendChild($toggleBtn);
+
+  // Add emotion changes if it's an output message
+  if (interaction?.output?.emotionsUpdates) {
+    const $emotionChanges = document.createElement("div");
+    $emotionChanges.className = "emotion-changes";
+
+    // Calculate and display changes
+    Object.entries(interaction.output.emotionsUpdates).forEach(([emotion, value]) => {
+      const emoji = EMOTION_EMOJIS[emotion as keyof EmotionContext];
+      const $change = document.createElement("span");
+      $change.className = "emotion-change";
+      $change.innerHTML = `${emoji} ${value > 0 ? "+" : ""}${value}`;
+      $emotionChanges.appendChild($change);
+    });
+
+    if ($emotionChanges.children.length > 0) {
+      $message.appendChild($emotionChanges);
+    }
   }
 
   $container.appendChild($message);
