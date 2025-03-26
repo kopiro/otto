@@ -201,9 +201,10 @@ export class IOManager {
   async updateEmotions(emotions: EmotionContext, person: TPerson) {
     // Update emotions
     if (emotions) {
-      // Get diff
+      const currentEmotions = person.getEmotions();
+      // Get the keys that differed and by how much
       const diff = Object.fromEntries(
-        Object.entries(emotions).filter(([key, value]) => value !== person.emotions?.[key as keyof EmotionContext]),
+        Object.entries(emotions).filter(([key, value]) => value - currentEmotions[key as keyof EmotionContext]),
       );
       logger.info(`Updating emotions for ${person.getName()}`, diff);
 
