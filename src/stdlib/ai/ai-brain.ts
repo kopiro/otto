@@ -91,7 +91,7 @@ export class AIBrain {
   private async getConversationInputAsText(ioChannel: TIOChannel, person: TPerson): Promise<string> {
     const prompts: string[] = [];
 
-    prompts.push(`You are chatting with ${person.getName()} - ${ioChannel.getName()}.`);
+    prompts.push(`You are now chatting with "${person.getName()}" - "${ioChannel.getName()}".`);
 
     if (person.language) {
       const languageName = new Intl.DisplayNames(["en"], { type: "language" }).of(person.getLanguage());
@@ -258,11 +258,11 @@ export class AIBrain {
         role: "system",
         content: `MEMORIES:\n${memoryContextText}`,
       },
+      ...recentInteractionsChatCompletions,
       {
         role: "system",
         content: conversationsInputText,
       },
-      ...recentInteractionsChatCompletions,
       ...inputMessages,
     ].filter(Boolean);
 
