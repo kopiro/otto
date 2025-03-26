@@ -671,7 +671,7 @@ function displayInteractions(interactions: API_GroupedInteractionsByChannelID) {
           addMessage(
             interaction.sourceName,
             `Unrenderable input: ${JSON.stringify(interaction.input)}`,
-            `input ${interaction.sourceName.toLowerCase() === "developer" ? "system" : ""}`,
+            `input ${interaction.sourceName.toLowerCase() === "developer" ? "system" : ""} unknown`,
             interaction.createdAt,
             interaction,
             $sectionIOChannel,
@@ -701,7 +701,7 @@ function displayInteractions(interactions: API_GroupedInteractionsByChannelID) {
           addMessage(
             interaction.sourceName,
             `Unrenderable output: ${JSON.stringify(interaction.output)}`,
-            "output error",
+            "output unknown",
             interaction.createdAt,
             interaction,
             $sectionIOChannel,

@@ -99,6 +99,17 @@
   border-left: 20px solid #dc3545 !important;
 }
 
+.message.unknown {
+  background-color: #cacaca !important;
+  font-weight: bold;
+  color: black !important;
+}
+
+.message.unknown:before {
+  border-right: 20px solid #cacaca !important;
+  border-left: 20px solid #cacaca !important;
+}
+
 .message.system {
   background-color: #83167d !important;
   color: #fff !important;
