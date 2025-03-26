@@ -2,6 +2,7 @@ import { config as dotEnvConfig } from "dotenv";
 import config from "./config";
 import * as Sentry from "@sentry/node";
 import { Database } from "./stdlib/database";
+import { AIMemory } from "./stdlib/ai/ai-memory";
 
 export async function warmup() {
   try {
@@ -15,7 +16,7 @@ export async function warmup() {
       Sentry.init(config().sentry);
     }
 
-    await Database.getInstance().connect();
+    await Promise.all([Database.getInstance().connect(), AIMemory.getInstance().connect()]);
   } catch (err) {
     console.error(err);
     process.exit(1);

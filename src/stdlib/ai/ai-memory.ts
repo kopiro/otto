@@ -189,6 +189,13 @@ export class AIMemory {
     );
   }
 
+  async connect() {
+    logger.pending("Connecting to Qdrant...");
+    const data = await QDrantSDK().getCollections();
+    logger.success(`Connected, collections count: ${data.collections.length}`);
+    return data;
+  }
+
   async listVectors(memoryType: MemoryType) {
     const data = await QDrantSDK().scroll(memoryType, {
       with_payload: true,
