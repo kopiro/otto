@@ -198,15 +198,15 @@ export class IOManager {
     }
   }
 
-  async updateEmotions(emotions: EmotionContext, person: TPerson) {
+  async updateEmotions(newEmotions: EmotionContext, person: TPerson) {
     // Update emotions
-    if (emotions) {
+    if (newEmotions) {
       const currentEmotions = person.getEmotions();
       // Get the keys that differed and by how much
       const diff: Record<string, number> = {};
-      for (const key in emotions) {
+      for (const key in newEmotions) {
         const oldValue = currentEmotions[key as keyof EmotionContext];
-        const newValue = emotions[key as keyof EmotionContext];
+        const newValue = newEmotions[key as keyof EmotionContext];
         if (oldValue !== newValue) {
           diff[key] = newValue - oldValue;
         }
@@ -215,7 +215,7 @@ export class IOManager {
 
       person.emotions = {
         ...person.emotions,
-        ...emotions,
+        ...newEmotions,
       };
       return person.save();
     }
