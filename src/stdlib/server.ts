@@ -7,7 +7,7 @@ import { TextToSpeech } from "./text-to-speech";
 import { IOManager, OutputSource } from "./io-manager";
 import rateLimit from "express-rate-limit";
 import { Signale } from "signale";
-import { IOChannel } from "../data/io-channel";
+import { IIOChannel, IOChannel } from "../data/io-channel";
 import { Person } from "../data/person";
 import { Translator } from "./translator";
 import { Authorization, Gender, Language } from "../types";
@@ -359,7 +359,7 @@ routerApi.get(`/interactions`, async (req, res) => {
 
       if (!acc[channelId]) {
         acc[channelId] = {
-          channel: new IOChannel(interaction.ioChannel).toJSONAPI(),
+          channel: (interaction.ioChannel as DocumentType<IIOChannel>).toJSONAPI(),
           interactions: [],
         };
       }

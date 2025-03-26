@@ -278,7 +278,7 @@ export class AIMemory {
         const channelPromises = Object.entries(interactionsByChannelId).map(async ([ioChannelId, interactions]) => {
           try {
             const chunkId = `iochannel_${ioChannelId}_date_${dateChunk}`;
-            const ioChannel = new Interaction(interactions[0]).ioChannel as DocumentType<IIOChannel>;
+            const ioChannel = interactions[0].ioChannel as DocumentType<IIOChannel>;
 
             // Process all interactions in parallel to build the conversation
             const conversationPromises = interactions.map(async (interaction) => {
