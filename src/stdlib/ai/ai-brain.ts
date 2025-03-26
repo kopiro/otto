@@ -40,7 +40,7 @@ export class AIBrain {
     return AIBrain.instance;
   }
 
-  private cleanName(name: string): string {
+  private cleanNameForOpenAI(name: string): string {
     // Avoid Invalid 'messages[1].name': string does not match pattern. Expected a string that matches the pattern '^[a-zA-Z0-9_-]+$'.
     return name
       .replace(/\s+/g, "_")
@@ -48,12 +48,12 @@ export class AIBrain {
       .substring(0, 64);
   }
 
-  private async getRecentInteractionsAsChatCompletions(text: string, ioChannel: TIOChannel, person: TPerson) {
+  private async getRecentInteractionsWithIOChannelOrPerson(text: string, ioChannel: TIOChannel, person: TPerson) {
     const interactions = await AIMemory.getInstance().getRecentInteractions(ioChannel, person);
 
     return interactions
       .reverse()
-      .map((interaction, i) => {
+      .map<ChatCompletionMessageParam | null>((interaction, i) => {
         // Remove last interaction because it's exactly like the input (text)
         if (i === interactions.length - 1) {
           if (
@@ -70,7 +70,7 @@ export class AIBrain {
         if (interaction.output?.text) {
           return {
             role: "assistant",
-            content: interaction.output.text,
+            content: `${interaction.getChannelName()}: ${interaction.output.text}`,
           };
         }
 
@@ -78,8 +78,8 @@ export class AIBrain {
         if (interaction.input?.text) {
           return {
             role: interaction.input.role ?? "user",
-            name: this.cleanName(interaction.getSourceName()),
-            content: interaction.input.text,
+            name: this.cleanNameForOpenAI(interaction.getPersonName()),
+            content: `${interaction.getChannelName()}: ${interaction.input.text}`,
           };
         }
 
@@ -241,7 +241,7 @@ export class AIBrain {
         this.getContextAsText(context),
         this.getMemoryContextAsText(text, ioChannel, person, context),
         this.getConversationInputAsText(ioChannel, person),
-        this.getRecentInteractionsAsChatCompletions(text, ioChannel, person),
+        this.getRecentInteractionsWithIOChannelOrPerson(text, ioChannel, person),
       ]);
 
     // Build messages
@@ -349,7 +349,7 @@ export class AIBrain {
         if (role === "user") {
           inputMessages.push({
             content: input.text,
-            name: this.cleanName(person.getName()),
+            name: this.cleanNameForOpenAI(person.getName()),
             role: role,
           });
         } else {

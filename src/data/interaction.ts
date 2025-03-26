@@ -61,12 +61,17 @@ export class IInteraction {
       input: this.input,
       output: this.output,
       source: this.source,
-      sourceName: this.getSourceName(),
+      sourceName: this.getPersonName(),
       createdAt: this.createdAt,
     };
   }
 
-  public getSourceName(): string {
+  public getChannelName(): string {
+    const ioChannel = this.ioChannel as DocumentType<IIOChannel>;
+    return ioChannel.getName();
+  }
+
+  public getPersonName(): string {
     // When the AI spoke
     if (this.output) {
       return config().aiName;
