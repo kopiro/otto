@@ -312,6 +312,8 @@ Compress the provided conversation while preserving its original meaning.
 Only if strictly necessary, separate different topics with a line break.
 If the topics lose their meaning isolated, do not separate them.
 
+Important informations that must be remembered later must be kept as they are.
+
 STRICTLY, for each line/topic, use this format: 
 On YYYY-MM-DD, [USER_A], [USER_B] and [USER_C] [talked about topic].
 
