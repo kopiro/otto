@@ -119,7 +119,7 @@ export class AIBrain {
     person: TPerson,
     context: InputContext,
   ): Promise<string> {
-    const logName = `getMemoryContextAsText/${ioChannel.id}`;
+    const logName = `getMemoryContextAsText/${ioChannel.getName()}`;
 
     const aiMemory = AIMemory.getInstance();
 
@@ -189,8 +189,8 @@ export class AIBrain {
     };
   }
 
-  public async reduceText(identifier: string, text: string) {
-    const logName = `reduceText/${identifier}`;
+  public async reduceText(debugIdentifier: string, text: string) {
+    const logName = `reduceText/${debugIdentifier}`;
 
     const response = await this.deepSeekSDK.chat.completions.create({
       model: config().deepseek.textReducerModel,
@@ -228,7 +228,7 @@ export class AIBrain {
     text: string,
     role: "user" | "assistant" | "system",
   ): Promise<Output> {
-    const logName = `completeChat/${ioChannel.id}`;
+    const logName = `completeChat/${ioChannel.getName()}`;
 
     const context = {
       ...this.getDefaultContext(),

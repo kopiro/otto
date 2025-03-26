@@ -321,7 +321,10 @@ ${conversation.join("\n")}`;
 
             logger.debug("Reducing conversation: ", reducerPrompt);
 
-            const reducedText = await AIBrain.getInstance().reduceText(dateChunk, reducerPrompt);
+            const reducedText = await AIBrain.getInstance().reduceText(
+              `${ioChannel.getName()}_${dateChunk}`,
+              reducerPrompt,
+            );
             const reducedTextInChunks = this.chunkText(reducedText);
 
             const payloads = reducedTextInChunks.map<QdrantPayload>((chunkedText) => {

@@ -193,18 +193,16 @@ export async function report(error: IErrorWithData) {
 export async function logStacktrace(tag: string, fileName: string, response: any) {
   try {
     // Get date as 2012_04_23
-    const dateStr = new Date().toISOString().split("T")[0].replace(/-/g, "-");
+    const dateStr = new Date().toISOString().split("T")[0];
     const finalDir = path.join(logsDir, dateStr, tag);
 
     // Get ONLY time in HH_MM_SS format
-    const time = new Date().toISOString().split("T")[1].split(".")[0].replace(/:/g, "_");
-    const finalFile = path.join(finalDir, `${fileName}_${time}.json`);
+    const time = new Date().toISOString().split("T")[1].split(".")[0];
+    const finalFile = path.join(finalDir, fileName, `${time}.json`);
 
-    const baseDir = path.dirname(finalFile);
-
-    // Create a directory for the current date
-    if (!existsSync(baseDir)) {
-      await mkdir(baseDir, { recursive: true });
+    const finalFileDir = path.dirname(finalFile);
+    if (!existsSync(finalFileDir)) {
+      await mkdir(finalFileDir, { recursive: true });
     }
 
     return writeFile(finalFile, JSON.stringify(response, null, 2));
