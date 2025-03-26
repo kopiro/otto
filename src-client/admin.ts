@@ -658,24 +658,55 @@ function displayInteractions(interactions: API_GroupedInteractionsByChannelID) {
     // Add all interactions for this channel
     channelData.interactions.forEach((interaction) => {
       if (interaction.input) {
-        addMessage(
-          interaction.sourceName,
-          interaction.input.text ?? JSON.stringify(interaction.input),
-          `input ${interaction.sourceName.toLowerCase() === "developer" ? "system" : ""}`,
-          interaction.createdAt,
-          interaction,
-          $sectionIOChannel,
-        );
+        if (interaction.input?.text) {
+          addMessage(
+            interaction.sourceName,
+            interaction.input.text ?? JSON.stringify(interaction.input),
+            `input ${interaction.sourceName.toLowerCase() === "developer" ? "system" : ""}`,
+            interaction.createdAt,
+            interaction,
+            $sectionIOChannel,
+          );
+        } else {
+          addMessage(
+            interaction.sourceName,
+            `Unrenderable input: ${JSON.stringify(interaction.input)}`,
+            `input ${interaction.sourceName.toLowerCase() === "developer" ? "system" : ""}`,
+            interaction.createdAt,
+            interaction,
+            $sectionIOChannel,
+          );
+        }
       }
       if (interaction.output) {
-        addMessage(
-          interaction.sourceName,
-          interaction.output.text ?? JSON.stringify(interaction.output),
-          "output",
-          interaction.createdAt,
-          interaction,
-          $sectionIOChannel,
-        );
+        if (interaction.output?.text) {
+          addMessage(
+            interaction.sourceName,
+            interaction.output.text ?? JSON.stringify(interaction.output),
+            "output",
+            interaction.createdAt,
+            interaction,
+            $sectionIOChannel,
+          );
+        } else if (interaction.output?.error) {
+          addMessage(
+            interaction.sourceName,
+            interaction.output.error?.message ?? JSON.stringify(interaction.output.error),
+            "output error",
+            interaction.createdAt,
+            interaction,
+            $sectionIOChannel,
+          );
+        } else {
+          addMessage(
+            interaction.sourceName,
+            `Unrenderable output: ${JSON.stringify(interaction.output)}`,
+            "output error",
+            interaction.createdAt,
+            interaction,
+            $sectionIOChannel,
+          );
+        }
       }
     });
 

@@ -245,8 +245,7 @@ export class IOManager {
       return this.scheduleInQueue({ output }, ioChannel, person, bag);
     }
 
-    // TODO: support multiple params
-    if ("text" in output && !wasRedirectedTo) {
+    if (!wasRedirectedTo) {
       Interaction.createNew(
         {
           output,
