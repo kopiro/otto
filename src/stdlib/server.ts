@@ -17,6 +17,7 @@ import { Interaction } from "../data/interaction";
 import InputToCloseFriendsScheduler from "../scheduler/input_to_close_friends";
 import expressBasicAuth from "express-basic-auth";
 import serveIndex from "serve-index";
+import { DocumentType } from "@typegoose/typegoose";
 
 const TAG = "Server";
 const logger = new Signale({
