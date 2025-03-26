@@ -47,11 +47,10 @@ export class IPerson {
   }
 
   public getEmotions() {
-    if (!this.emotions || typeof this.emotions !== "object") {
-      // Return a balanced emotions map
-      return config().brain.startEmotions;
-    }
-    return this.emotions;
+    return {
+      ...config().brain.startEmotions,
+      ...this.emotions,
+    };
   }
 
   public toJSONDebug() {
