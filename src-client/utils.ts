@@ -25,7 +25,7 @@ export function addMessage(
   author: string,
   text: string,
   className: string,
-  createdAt: string = new Date().toISOString(),
+  createdAt: string = new Date().toLocaleString("en-GB"),
   interaction: API_Interaction = null,
   $container = $messages,
 ) {
@@ -36,7 +36,7 @@ export function addMessage(
   $header.className = "message-header";
   $header.innerHTML = `
     <span class="message-name">${author}</span>
-    <span class="message-time">${new Date(createdAt).toLocaleString("en-GB")}</span>
+    <span class="message-time">${createdAt}</span>
   `;
   $message.appendChild($header);
 

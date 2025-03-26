@@ -346,9 +346,18 @@ routerApi.get(`/interactions`, async (req, res) => {
     const { io_channel, date } = req.query;
 
     // Build query conditions
-    const conditions: any = {};
+    const conditions: {
+      managerUid: string;
+      ioChannel?: string;
+      createdAt?: {
+        $gte: Date;
+        $lt: Date;
+      };
+    } = {
+      managerUid: config().uid,
+    };
     if (io_channel) {
-      conditions.ioChannel = io_channel;
+      conditions.ioChannel = String(io_channel);
     }
     if (date) {
       const startDate = new Date(date as string);
