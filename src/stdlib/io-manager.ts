@@ -429,18 +429,15 @@ export class IOManager {
       inputId,
     });
 
-    // TODO: support multiple params
-    if ("text" in input) {
-      Interaction.createNew(
-        {
-          input,
-        },
-        ioChannel,
-        person,
-        inputId,
-        null,
-      );
-    }
+    Interaction.createNew(
+      {
+        input,
+      },
+      ioChannel,
+      person,
+      inputId,
+      null,
+    );
 
     const thinkCallback = () => {
       driverRuntime.emitter.emit("thinking", ioChannel, person, bag);
