@@ -58,6 +58,7 @@ export class IPerson {
     return {
       id: this.id,
       name: this.getName(),
+      emotions: this.getEmotions(),
     };
   }
 
