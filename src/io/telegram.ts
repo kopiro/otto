@@ -146,9 +146,9 @@ export class Telegram implements IODriverRuntime {
 
   private emitInput(e: TelegramBot.Message, input: Input, ioChannel: TIOChannel, person: TPerson, bag: IOBag) {
     // @ts-ignore
-    this.bot.setMessageReaction(e.chat.id, e.message_id, {
-      reaction: JSON.stringify([{ type: "emoji", emoji: "👀️" }]),
-    });
+    // this.bot.setMessageReaction(e.chat.id, e.message_id, {
+    //   reaction: JSON.stringify([{ type: "emoji", emoji: "👀️" }]),
+    // });
     this.emitter.emit("input", input, ioChannel, person, bag);
   }
 
