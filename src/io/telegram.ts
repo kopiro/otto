@@ -28,7 +28,7 @@ export type TelegramConfig = {
 };
 
 export type IOBagTelegram = {
-  replyToMessageId?: number;
+  messageId?: number;
   respondWithAudioNote?: boolean;
 };
 
@@ -145,13 +145,10 @@ export class Telegram implements IODriverRuntime {
   }
 
   private emitInput(e: TelegramBot.Message, input: Input, ioChannel: TIOChannel, person: TPerson, bag: IOBag) {
-    // React to the message by adding an emoji to it
-    const reaction = [{ type: "emoji", emoji: "👀️" }];
-
-    // TODO: when types are updates we'll remove the ignore
     // @ts-ignore
-    this.bot.setMessageReaction(e.chat.id, e.message_id, { reaction: JSON.stringify(reaction) });
-
+    this.bot.setMessageReaction(e.chat.id, e.message_id, {
+      reaction: JSON.stringify([{ type: "emoji", emoji: "👀️" }]),
+    });
     this.emitter.emit("input", input, ioChannel, person, bag);
   }
 
@@ -180,7 +177,7 @@ export class Telegram implements IODriverRuntime {
     );
 
     const bag: IOBagTelegram = {
-      replyToMessageId: e.message_id,
+      messageId: e.message_id,
     };
 
     const isGroup = this.isGroup(e);
@@ -287,11 +284,28 @@ export class Telegram implements IODriverRuntime {
 
     const bag = _bag as IOBagTelegram;
     const ioData = ioChannel.ioData as IODataTelegram;
+
     const chatId = ioData.id;
+    const { messageId } = bag || {};
+
     const botOpt: TelegramBot.SendMessageOptions = {};
 
-    if (bag?.replyToMessageId) {
-      botOpt.reply_to_message_id = bag.replyToMessageId;
+    if (messageId) {
+      botOpt.reply_to_message_id = messageId;
+    }
+
+    if (output.reaction) {
+      try {
+        if (messageId) {
+          // @ts-ignore
+          this.bot.setMessageReaction(chatId, messageId, {
+            reaction: JSON.stringify([{ type: "emoji", emoji: output.reaction.trim() }]),
+          });
+        }
+      } catch (err) {
+        logger.error(err);
+        results.push(["error", err]);
+      }
     }
 
     // Process a Text Object

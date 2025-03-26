@@ -67,6 +67,17 @@ export class IInteraction {
     };
   }
 
+  public getDescription(): string | null {
+    const text = this.input?.text ?? this.output?.text ?? "";
+    if (!text) return null;
+
+    return `[${this.getChannelName()}] [${this.getCreatedAtTime()}]: ${text}`;
+  }
+
+  public getCreatedAtTime(): string {
+    return this.createdAt.toLocaleTimeString();
+  }
+
   public getChannelName(): string {
     if (isDocument(this.ioChannel)) {
       return this.ioChannel.getName();

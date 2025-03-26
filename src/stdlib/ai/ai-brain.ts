@@ -1,20 +1,13 @@
-import { Output, InputContext, Input } from "../../types";
+import { Output, InputContext, Input, AIOutput } from "../../types";
 import config from "../../config";
 import { Signale } from "signale";
 import { logStacktrace, tryJsonParse } from "../../helpers";
 import { OpenAISDK } from "../../lib/openai";
 import { AIMemory, MemoryType } from "./ai-memory";
-import { AIFunction } from "./ai-function";
 import { TIOChannel } from "../../data/io-channel";
 import { TPerson } from "../../data/person";
 import { isDocumentArray } from "@typegoose/typegoose";
-import {
-  ChatCompletionAssistantMessageParam,
-  ChatCompletionDeveloperMessageParam,
-  ChatCompletionMessageParam,
-  ChatCompletionSystemMessageParam,
-  ChatCompletionUserMessageParam,
-} from "openai/resources";
+import { ChatCompletionMessageParam } from "openai/resources";
 import OpenAI from "openai";
 import { DeepSeekSDK } from "../../lib/deepseek";
 
@@ -66,11 +59,14 @@ export class AIBrain {
           }
         }
 
+        const description = interaction.getDescription();
+        if (!description) return null;
+
         // If the assistant spoke
         if (interaction.output?.text) {
           return {
             role: "assistant",
-            content: `${interaction.getChannelName()}: ${interaction.output.text}`,
+            content: description,
           };
         }
 
@@ -79,13 +75,31 @@ export class AIBrain {
           return {
             role: interaction.input.role ?? "user",
             name: this.cleanNameForOpenAI(interaction.getPersonName()),
-            content: `${interaction.getChannelName()}: ${interaction.input.text}`,
+            content: description,
           };
         }
 
         return null;
       })
       .filter((e) => e !== null);
+  }
+
+  private getExampleJSONAIOutput(): AIOutput {
+    return {
+      text: "Hello!",
+      sentiment: 0.5,
+      reaction: "👋",
+      channelName: "On Telegram",
+    };
+  }
+
+  private getDocumentationJSONAIOutput(): Record<keyof AIOutput, string> {
+    return {
+      text: "The text you want to send",
+      sentiment: "A number between 0 and 1, indicating how much the assistant is happy with the message",
+      reaction: "An optional emoji reaction to the message",
+      channelName: "The name of the channel",
+    };
   }
 
   private async getConversationInputAsText(ioChannel: TIOChannel, person: TPerson): Promise<string> {
@@ -97,6 +111,9 @@ export class AIBrain {
       const languageName = new Intl.DisplayNames(["en"], { type: "language" }).of(person.getLanguage());
       prompts.push(`You should speak in ${languageName}, unless otherwise specified.`);
     }
+
+    prompts.push(`Reply in JSON using the following example:`);
+    prompts.push(JSON.stringify(this.getDocumentationJSONAIOutput()));
 
     return prompts.join("\n");
   }
@@ -225,8 +242,7 @@ export class AIBrain {
     input: Input,
     ioChannel: TIOChannel,
     person: TPerson,
-    text: string,
-    role: "user" | "assistant" | "system",
+    inputText: string,
   ): Promise<Output> {
     const logName = `completeChat/${ioChannel.getName()}`;
 
@@ -239,9 +255,9 @@ export class AIBrain {
       await Promise.all([
         this.getPromptAsText(),
         this.getContextAsText(context),
-        this.getMemoryContextAsText(text, ioChannel, person, context),
+        this.getMemoryContextAsText(inputText, ioChannel, person, context),
         this.getConversationInputAsText(ioChannel, person),
-        this.getRecentInteractionsWithIOChannelOrPerson(text, ioChannel, person),
+        this.getRecentInteractionsWithIOChannelOrPerson(inputText, ioChannel, person),
       ]);
 
     // Build messages
@@ -273,54 +289,28 @@ export class AIBrain {
         user: person.id,
         n: 1,
         messages: messages as ChatCompletionMessageParam[],
+        response_format: { type: "json_object" },
         // functions: AIFunction.getInstance().getFunctionDefinitions(),
         // function_call: "auto",
       });
 
-      const answer = completion.choices.map((e) => e.message)?.[0];
+      const answerText = completion.choices.map((e) => e.message)?.[0];
+      const answer = tryJsonParse<AIOutput | null>(answerText?.content ?? "", null);
 
       logStacktrace(TAG, logName, {
         messages,
         answer,
       });
 
-      // TODO: remove
-      if (answer?.function_call) {
-        const functionName = answer.function_call.name;
-        if (!functionName) {
-          throw new Error("Invalid function name: " + JSON.stringify(answer));
-        }
+      if (answer) {
+        // Parse the answer
+        delete answer.channelName;
+        answer.sentiment = Number(answer.sentiment);
 
-        const functionParams = tryJsonParse<any>(answer.function_call.arguments, {});
-
-        const result = await AIFunction.getInstance().call(functionName, functionParams, input, ioChannel, person);
-
-        if (result.functionResult) {
-          return this.completeChat(
-            [
-              ...inputMessages,
-              {
-                role: "function",
-                name: functionName,
-                content: result.functionResult,
-              },
-            ],
-            input,
-            ioChannel,
-            person,
-            text,
-            role,
-          );
-        }
-
-        return result;
+        return answer;
       }
 
-      if (answer?.content) {
-        return { text: answer.content };
-      }
-
-      throw new Error("Invalid response: " + JSON.stringify(answer));
+      throw new Error("Invalid response: " + JSON.stringify(answerText));
     } catch (error) {
       logger.error("Failed to complete chat", error);
       logStacktrace(TAG, logName, {
@@ -359,7 +349,7 @@ export class AIBrain {
           });
         }
 
-        const output = await this.completeChat(inputMessages, input, ioChannel, person, input.text, role);
+        const output = await this.completeChat(inputMessages, input, ioChannel, person, input.text);
         return output;
       }
 

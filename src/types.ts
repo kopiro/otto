@@ -12,7 +12,16 @@ export enum Authorization {
   API = "api",
 }
 
-export type Output = {
+export type AIOutput = {
+  text?: string;
+  reaction?: string;
+  sentiment?: number;
+
+  // This field it's there force the AI to extract the channel name from the text
+  channelName?: string;
+};
+
+export type Output = Omit<AIOutput, "channelName"> & {
   text?: string;
   voice?: string;
   audio?: string;
@@ -21,7 +30,6 @@ export type Output = {
   document?: string;
   error?: IErrorWithData;
   data?: string;
-  functionResult?: string;
 };
 
 export type AIRuntimeFunctionArguments<TParams> = {

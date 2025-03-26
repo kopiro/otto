@@ -9,12 +9,7 @@ import { FacebookFeedItem, getFacebookFeed } from "../../lib/facebook";
 import { IIOChannel, TIOChannel } from "../../data/io-channel";
 import { AIBrain } from "./ai-brain";
 import getUuidByString from "uuid-by-string";
-
-import readline from "node:readline/promises";
-import { stdin, stdout } from "node:process";
 import { TPerson } from "../../data/person";
-
-const rl = readline.createInterface({ input: stdin, output: stdout });
 
 const TAG = "AIMemory";
 const logger = new Signale({
