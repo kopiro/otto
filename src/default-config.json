@@ -38,6 +38,17 @@
     "gender": "male",
     "encoding": "MP3"
   },
+  "brain": {
+    "emotionMaxIncrement": 1,
+    "startEmotions": {
+      "love": 20,
+      "trust": 10,
+      "respect": 10,
+      "anger": 0,
+      "jealousy": 5
+    }
+  },
+
   "server": {
     "enabled": false,
     "protocol": "http",

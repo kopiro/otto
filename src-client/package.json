@@ -9,10 +9,14 @@
   },
   "dependencies": {
     "audio-recorder-polyfill": "^0.3.6",
+    "d3": "^7.9.0",
     "recorder-js": "^1.0.7",
     "ts-loader": "^9.4.2",
     "typescript": "^5.0.4",
     "webpack": "^5.82.1",
     "webpack-cli": "^5.1.1"
+  },
+  "devDependencies": {
+    "@types/d3": "^7.4.3"
   }
 }

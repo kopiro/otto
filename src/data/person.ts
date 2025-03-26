@@ -1,4 +1,4 @@
-import { Authorization, Language } from "../types";
+import { Authorization, EmotionContext, Language } from "../types";
 import { getModelForClass, Ref, ReturnModelType, DocumentType, prop, modelOptions } from "@typegoose/typegoose";
 
 import { Signale } from "signale";
@@ -27,15 +27,38 @@ export class IPerson {
   @prop({ required: true, type: mongoose.Schema.Types.Mixed })
   public ioIdentifiers!: Record<IODriverId, string>;
 
+  @prop({
+    required: false,
+    type: mongoose.Schema.Types.Mixed,
+    set: (newEmotions: EmotionContext) => {
+      if (!newEmotions) return newEmotions;
+      const validEmotions = Object.keys(config().brain.startEmotions);
+      return Object.fromEntries(
+        Object.entries(newEmotions)
+          .filter(([key]) => validEmotions.includes(key))
+          .map(([key, value]) => [key, Math.max(0, Math.min(100, Math.round(value)))]),
+      );
+    },
+  })
+  public emotions?: EmotionContext;
+
+  public getName() {
+    return this.name;
+  }
+
+  public getEmotions() {
+    if (!this.emotions || typeof this.emotions !== "object") {
+      // Return a balanced emotions map
+      return config().brain.startEmotions;
+    }
+    return this.emotions;
+  }
+
   public toJSONDebug() {
     return {
       id: this.id,
       name: this.getName(),
     };
-  }
-
-  public getName() {
-    return this.name;
   }
 
   public toJSONAPI() {
@@ -45,6 +68,7 @@ export class IPerson {
       language: this.language,
       authorizations: this.authorizations,
       ioIdentifiers: this.ioIdentifiers,
+      emotions: this.getEmotions(),
     };
   }
 

@@ -1,5 +1,5 @@
 import config from "../config";
-import { Authorization, Output, IErrorWithData, Input } from "../types";
+import { Authorization, Output, IErrorWithData, Input, EmotionContext } from "../types";
 import { EventEmitter } from "events";
 import { Signale } from "signale";
 import { TIOChannel } from "../data/io-channel";
@@ -198,6 +198,23 @@ export class IOManager {
     }
   }
 
+  async updateEmotions(emotions: EmotionContext, person: TPerson) {
+    // Update emotions
+    if (emotions) {
+      // Get diff
+      const diff = Object.fromEntries(
+        Object.entries(emotions).filter(([key, value]) => value !== person.emotions?.[key as keyof EmotionContext]),
+      );
+      logger.info(`Updating emotions for ${person.getName()}`, diff);
+
+      person.emotions = {
+        ...person.emotions,
+        ...emotions,
+      };
+      return person.save();
+    }
+  }
+
   /**
    * Process an input to a specific IO driver based on the ioChannel
    */
@@ -238,6 +255,11 @@ export class IOManager {
         inputId ?? null,
         source ?? null,
       );
+    }
+
+    // Update emotions
+    if (output.emotions) {
+      this.updateEmotions(output.emotions, person);
     }
 
     // Redirecting output to another ioChannel, asyncronously

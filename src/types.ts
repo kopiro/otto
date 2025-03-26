@@ -12,10 +12,19 @@ export enum Authorization {
   API = "api",
 }
 
+export type EmotionContext = {
+  love: number;
+  trust: number;
+  respect: number;
+  anger: number;
+  jealousy: number;
+};
+
 export type AIOutput = {
   text?: string;
   reaction?: string;
   sentiment?: number;
+  emotions?: EmotionContext;
 
   // This field it's there force the AI to extract the channel name from the text
   channelName?: string;

@@ -1,4 +1,4 @@
-import { Output, InputContext, Input, AIOutput } from "../../types";
+import { Output, InputContext, Input, AIOutput, EmotionContext } from "../../types";
 import config from "../../config";
 import { Signale } from "signale";
 import { logStacktrace, tryJsonParse } from "../../helpers";
@@ -16,11 +16,16 @@ const logger = new Signale({
   scope: TAG,
 });
 
+type Config = {
+  emotionMaxIncrement: number;
+  startEmotions: EmotionContext;
+};
+
 export class AIBrain {
   private openAISDK: OpenAI;
   private deepSeekSDK: OpenAI;
 
-  constructor() {
+  constructor(private readonly config: Config) {
     this.openAISDK = OpenAISDK();
     this.deepSeekSDK = DeepSeekSDK();
   }
@@ -28,7 +33,7 @@ export class AIBrain {
   private static instance: AIBrain;
   static getInstance(): AIBrain {
     if (!AIBrain.instance) {
-      AIBrain.instance = new AIBrain();
+      AIBrain.instance = new AIBrain(config().brain);
     }
     return AIBrain.instance;
   }
@@ -84,21 +89,13 @@ export class AIBrain {
       .filter((e) => e !== null);
   }
 
-  private getExampleJSONAIOutput(): AIOutput {
-    return {
-      text: "Hello!",
-      sentiment: 0.5,
-      reaction: "👋",
-      channelName: "On Telegram",
-    };
-  }
-
   private getDocumentationJSONAIOutput(): Record<keyof AIOutput, string> {
     return {
       text: "The text you want to send",
       sentiment: "A number between 0 and 1, indicating how much the assistant is happy with the message",
-      reaction: "An optional emoji reaction to the message",
+      reaction: "An optional emoji reaction to the message. Use the subset available on Telegram.",
       channelName: "The name of the channel",
+      emotions: `An optional object representing the NEW emotion map you're feeling towards the person (min: 0, max: 100). If unchanged, don't include it. Maximum increment/decrement per emotion is ${this.config.emotionMaxIncrement}.`,
     };
   }
 
@@ -112,8 +109,15 @@ export class AIBrain {
       prompts.push(`You should speak in ${languageName}, unless otherwise specified.`);
     }
 
-    prompts.push(`Reply in JSON using the following example:`);
-    prompts.push(JSON.stringify(this.getDocumentationJSONAIOutput()));
+    prompts.push(
+      `Towards ${person.getName()}, you are feeling this emotion map (modify your tone of voice accordingly): ${JSON.stringify(
+        person.getEmotions(),
+      )}`,
+    );
+
+    prompts.push(
+      `STRICTLY reply in JSON using the following example: ${JSON.stringify(this.getDocumentationJSONAIOutput())}`,
+    );
 
     return prompts.join("\n");
   }
@@ -123,7 +127,7 @@ export class AIBrain {
 
     // Append context
     for (const [key, value] of Object.entries(context)) {
-      const humanKey = key.replace(/_/g, " ");
+      const humanKey = key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
       prompt.push(`${humanKey}: ${value}`);
     }
 
@@ -290,8 +294,6 @@ export class AIBrain {
         n: 1,
         messages: messages as ChatCompletionMessageParam[],
         response_format: { type: "json_object" },
-        // functions: AIFunction.getInstance().getFunctionDefinitions(),
-        // function_call: "auto",
       });
 
       const answerText = completion.choices.map((e) => e.message)?.[0];

@@ -1,9 +1,11 @@
 import { $, addMessage } from "./utils";
+import * as d3 from "d3";
 
 interface Person {
   id: string;
   name: string;
   language?: string;
+  emotions: EmotionContext;
 }
 
 interface IOChannel {
@@ -64,6 +66,21 @@ interface EpisodicMemoryTodo {
     chunkId?: string;
     text: string;
   }>;
+}
+
+interface DetailField {
+  label: string;
+  value: string | number | boolean | object;
+  editable?: boolean;
+  wrapper?: string;
+}
+
+interface EmotionContext {
+  love: number;
+  trust: number;
+  respect: number;
+  anger: number;
+  jealousy: number;
 }
 
 const $inputAuth = $("#input-auth") as HTMLInputElement;
@@ -131,13 +148,6 @@ function createCard({ title, content, className = "" }: CardOptions): HTMLDivEle
   return $card;
 }
 
-interface DetailField {
-  label: string;
-  value: string;
-  editable?: boolean;
-  wrapper?: string;
-}
-
 function createDetailList(details: DetailField[]): HTMLElement {
   const $list = document.createElement("dl");
   $list.className = "row mb-0";
@@ -154,7 +164,7 @@ function createDetailList(details: DetailField[]): HTMLElement {
       const $input = document.createElement("input");
       $input.type = "text";
       $input.className = "form-control bg-dark text-light border-secondary";
-      $input.value = value;
+      $input.value = value.toString();
       $input.name = label.toLowerCase();
       $input.setAttribute("required", "");
       $dd.appendChild($input);
@@ -163,10 +173,10 @@ function createDetailList(details: DetailField[]): HTMLElement {
       if (wrapper === "code") {
         const $code = document.createElement("code");
         $code.className = "text-break";
-        $code.textContent = value;
+        $code.textContent = value.toString();
         $dd.appendChild($code);
       } else {
-        $dd.textContent = value;
+        $dd.textContent = value.toString();
       }
     }
 
@@ -214,6 +224,8 @@ function createDetailsCard(details: DetailField[], onSubmit: (formData: FormData
   // Add details list
   const $list = createDetailList(details);
   $form.appendChild($list);
+
+  // Create and display the radar chart
 
   // Add edit button
   const $editButton = createEditButton();
@@ -807,6 +819,169 @@ async function apiGetPersonDetails(personId: string): Promise<Person> {
   return response.json();
 }
 
+function createRadarChart(
+  emotions: EmotionContext,
+  container: HTMLElement,
+  onEmotionUpdate?: (emotions: EmotionContext) => void,
+) {
+  // Set container dimensions
+  const width = 400;
+  const height = 400;
+  const margin = { top: 50, right: 50, bottom: 50, left: 50 };
+  const innerWidth = width - margin.left - margin.right;
+  const innerHeight = height - margin.top - margin.bottom;
+
+  // Clear previous content
+  container.innerHTML = "";
+
+  // Create SVG with proper dimensions
+  const svg = d3
+    .select(container)
+    .append("svg")
+    .attr("width", width)
+    .attr("height", height)
+    .append("g")
+    .attr("transform", `translate(${margin.left + innerWidth / 2},${margin.top + innerHeight / 2})`);
+
+  // Data preparation
+  const data = Object.entries(emotions).map(([key, value]) => ({
+    axis: key,
+    value: value,
+  }));
+
+  // Scales
+  const angleSlice = (Math.PI * 2) / data.length;
+  const rScale = d3
+    .scaleLinear()
+    .range([0, Math.min(innerWidth, innerHeight) / 2])
+    .domain([0, 100]);
+
+  // Draw the axes
+  const axes = svg.selectAll(".axis").data(data).enter().append("g").attr("class", "axis");
+
+  // Append the lines
+  axes
+    .append("line")
+    .attr("x1", 0)
+    .attr("y1", 0)
+    .attr("x2", (d, i) => rScale(100) * Math.cos(angleSlice * i - Math.PI / 2))
+    .attr("y2", (d, i) => rScale(100) * Math.sin(angleSlice * i - Math.PI / 2))
+    .attr("class", "line")
+    .style("stroke", "#4a4a4a")
+    .style("stroke-width", "2px");
+
+  // Append the labels
+  axes
+    .append("text")
+    .attr("class", "legend")
+    .style("font-size", "12px")
+    .attr("text-anchor", "middle")
+    .attr("dy", "0.35em")
+    .attr("x", (d, i) => rScale(110) * Math.cos(angleSlice * i - Math.PI / 2))
+    .attr("y", (d, i) => rScale(110) * Math.sin(angleSlice * i - Math.PI / 2))
+    .text((d) => d.axis)
+    .style("fill", "#e0e0e0");
+
+  // Draw the path
+  const radarLine = d3
+    .lineRadial<{ value: number }>()
+    .radius((d) => rScale(d.value))
+    .angle((d, i) => i * angleSlice);
+
+  // Create the path
+  svg
+    .append("path")
+    .datum(data)
+    .attr("class", "radarArea")
+    .attr("d", radarLine)
+    .style("fill", "#ff0000")
+    .style("fill-opacity", 0.5)
+    .style("stroke", "#4a4a4a")
+    .style("stroke-width", "1px");
+
+  // Add interactive dots
+  const dots = svg
+    .selectAll(".radar-dot")
+    .data(data)
+    .enter()
+    .append("circle")
+    .attr("class", "radar-dot")
+    .attr("r", 8)
+    .attr("cx", (d, i) => rScale(d.value) * Math.cos(angleSlice * i - Math.PI / 2))
+    .attr("cy", (d, i) => rScale(d.value) * Math.sin(angleSlice * i - Math.PI / 2))
+    .style("fill", "#fff")
+    .style("stroke", "#4a4a4a")
+    .style("stroke-width", "1px")
+    .style("cursor", "pointer");
+
+  // Add drag behavior
+  const drag = d3
+    .drag<SVGCircleElement, { value: number; axis: string }>()
+    .on("start", function () {
+      d3.select(this).classed("dragging", true);
+    })
+    .on("drag", function (event, d) {
+      const [x, y] = d3.pointer(event, svg.node());
+      const distance = Math.sqrt(x * x + y * y);
+      const maxDistance = rScale(100);
+
+      // Find the index of the dragged dot in the data array
+      const index = data.findIndex((item) => item.axis === d.axis);
+
+      if (index !== -1) {
+        // Calculate new value based on distance from center
+        const newValue = Math.min(100, Math.max(0, (distance / maxDistance) * 100));
+
+        // Update the data array
+        data[index].value = newValue;
+
+        // Update the visualization
+        updateRadarChart(data, svg, rScale, angleSlice);
+
+        // Update the emotions object and trigger callback
+        if (onEmotionUpdate) {
+          const updatedEmotions = data.reduce((acc, { axis, value }) => {
+            acc[axis as keyof EmotionContext] = value;
+            return acc;
+          }, {} as EmotionContext);
+          onEmotionUpdate(updatedEmotions);
+        }
+      }
+    })
+    .on("end", function () {
+      d3.select(this).classed("dragging", false);
+    });
+
+  // Apply drag behavior to dots
+  dots.call(drag);
+
+  // Store the scales and angle slice for updates
+  (dots as any).rScale = rScale;
+  (dots as any).angleSlice = angleSlice;
+}
+
+function updateRadarChart(
+  data: { value: number; axis: string }[],
+  svg: d3.Selection<SVGGElement, unknown, null, undefined>,
+  rScale: d3.ScaleLinear<number, number>,
+  angleSlice: number,
+) {
+  // Update the path
+  const radarLine = d3
+    .lineRadial<{ value: number }>()
+    .radius((d) => rScale(d.value))
+    .angle((d, i) => i * angleSlice);
+
+  svg.select(".radarArea").datum(data).attr("d", radarLine);
+
+  // Update the dots
+  svg
+    .selectAll(".radar-dot")
+    .data(data)
+    .attr("cx", (d, i) => rScale(d.value) * Math.cos(angleSlice * i - Math.PI / 2))
+    .attr("cy", (d, i) => rScale(d.value) * Math.sin(angleSlice * i - Math.PI / 2));
+}
+
 function displayPersonDetails(person: Person) {
   const details: DetailField[] = [
     { label: "ID", value: person.id, editable: false },
@@ -818,6 +993,7 @@ function displayPersonDetails(person: Person) {
     const updates = {
       name: formData.get("name"),
       language: formData.get("language"),
+      emotions: person.emotions, // Include the current emotions in the update
     };
 
     const response = await fetch(`/api/persons/${person.id}`, {
@@ -838,6 +1014,26 @@ function displayPersonDetails(person: Person) {
   };
 
   const $card = createDetailsCard(details, onSubmit);
+  const $form = $card.querySelector("form") as HTMLFormElement;
+
+  // Create radar chart container with proper styling
+  const $radarChartContainer = document.createElement("div");
+  $radarChartContainer.className = "radar-chart-container mb-3";
+  $radarChartContainer.style.width = "100%";
+  $radarChartContainer.style.height = "400px";
+  $radarChartContainer.style.display = "flex";
+  $radarChartContainer.style.justifyContent = "center";
+  $radarChartContainer.style.alignItems = "center";
+
+  // Create and append the radar chart with emotion update callback
+  createRadarChart(person.emotions, $radarChartContainer, (updatedEmotions) => {
+    person.emotions = updatedEmotions;
+  });
+
+  // Insert the radar chart before the edit button
+  const $editButton = $form.querySelector("button[type='submit']");
+  $form.insertBefore($radarChartContainer, $editButton);
+
   $personDetailsContainer.innerHTML = "";
   $personDetailsContainer.appendChild($card);
 }
