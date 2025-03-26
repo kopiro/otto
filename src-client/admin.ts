@@ -659,19 +659,21 @@ function displayInteractions(interactions: API_GroupedInteractionsByChannelID) {
     channelData.interactions.forEach((interaction) => {
       if (interaction.input) {
         addMessage(
-          interaction.personName,
-          interaction.input?.text ?? JSON.stringify(interaction.input),
-          `input ${interaction.personName.toLowerCase() === "system" ? "system" : ""}`,
+          interaction.sourceName,
+          interaction.input.text ?? JSON.stringify(interaction.input),
+          `input ${interaction.sourceName.toLowerCase() === "developer" ? "system" : ""}`,
           interaction.createdAt,
+          interaction,
           $sectionIOChannel,
         );
       }
       if (interaction.output) {
         addMessage(
-          interaction.personName,
+          interaction.sourceName,
           interaction.output.text ?? JSON.stringify(interaction.output),
           "output",
           interaction.createdAt,
+          interaction,
           $sectionIOChannel,
         );
       }

@@ -61,6 +61,7 @@
   position: relative;
   font-size: 14px;
   line-height: 1.1em;
+  padding-bottom: 0;
 }
 
 .message .message-header {
@@ -299,4 +300,54 @@ small {
   stroke: #0056b3;
   cursor: grabbing;
   filter: drop-shadow(0 0 2px rgba(0, 123, 255, 0.5));
+}
+
+.message-json {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background-color: #1a1a1a;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.message-json code {
+  color: #e0e0e0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.message-toggle {
+  /* display: block; */
+  width: 100%;
+  text-align: center;
+  color: #fff;
+  opacity: 0.7;
+  text-decoration: none;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.message-toggle:hover {
+  opacity: 1;
+  color: #fff;
+}
+
+.message-toggle i {
+  font-size: 1rem;
+  transition: transform 0.2s ease;
+}
+
+.message-toggle .bi-chevron-up {
+  transform: rotate(180deg);
+}
+
+/* Remove the old rotation styles */
+.message-toggle .bi-chevron-down {
+  transform: none;
+}
+
+/* Add a subtle border to separate the toggle from content */
+.message-content {
+  padding-bottom: 0.5rem;
 }

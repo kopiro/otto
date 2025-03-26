@@ -59,10 +59,10 @@ export class IInteraction {
       id: this.id,
       input: this.input,
       output: this.output,
-      source: this.source,
+      sourceName: this.getSourceName(),
       channelName: this.getChannelName(),
-      personName: this.getPersonName(),
       createdAt: this.createdAt.toISOString(),
+      person: isDocument(this.person) ? this.person.toJSONAPI() : null,
     };
   }
 
@@ -85,7 +85,7 @@ export class IInteraction {
     return "-";
   }
 
-  public getPersonName(): string {
+  public getSourceName(): string {
     // When the AI spoke
     if (this.output) {
       return config().aiName;

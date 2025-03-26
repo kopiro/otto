@@ -15,40 +15,49 @@ export function addMessage(
   text: string,
   className: string,
   createdAt: string = new Date().toISOString(),
+  rawJSON: object = null,
   $container = $messages,
 ) {
-  const messageDiv = document.createElement("div");
-  messageDiv.className = `message ${className}`;
+  const $message = document.createElement("div");
+  $message.className = `message ${className}`;
 
-  // Create header with author and date
-  const headerDiv = document.createElement("div");
-  headerDiv.className = "message-header";
+  const $header = document.createElement("div");
+  $header.className = "message-header";
+  $header.innerHTML = `
+    <span class="message-name">${author}</span>
+    <span class="message-time">${new Date(createdAt).toLocaleString()}</span>
+  `;
+  $message.appendChild($header);
 
-  const authorDiv = document.createElement("div");
-  authorDiv.className = "message-author";
-  authorDiv.textContent = author;
-  headerDiv.appendChild(authorDiv);
+  const $content = document.createElement("div");
+  $content.className = "message-content";
+  $content.textContent = text;
+  $message.appendChild($content);
 
-  const dateDiv = document.createElement("div");
-  dateDiv.className = "message-date";
-  const date = new Date(createdAt);
-  const today = new Date();
-  const isToday = date.toDateString() === today.toDateString();
-  dateDiv.textContent = isToday
-    ? date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-    : date.toLocaleDateString() + " " + date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  headerDiv.appendChild(dateDiv);
+  // Add collapsible JSON view
+  if (rawJSON) {
+    const $jsonContainer = document.createElement("div");
+    $jsonContainer.className = "message-json d-none";
+    const $jsonCode = document.createElement("code");
+    $jsonCode.className = "text-break";
+    $jsonCode.textContent = JSON.stringify(rawJSON, null, 2);
+    $jsonContainer.appendChild($jsonCode);
+    $message.appendChild($jsonContainer);
 
-  // Create text content
-  const textDiv = document.createElement("div");
-  textDiv.className = "message-text";
-  textDiv.textContent = text;
+    // Add toggle button
+    const $toggleBtn = document.createElement("button");
+    $toggleBtn.className = "btn btn-link btn-sm p-0 message-toggle";
+    $toggleBtn.innerHTML = '<i class="bi bi-chevron-down"></i>';
+    $toggleBtn.onclick = () => {
+      $jsonContainer.classList.toggle("d-none");
+      $toggleBtn.innerHTML = $jsonContainer.classList.contains("d-none")
+        ? '<i class="bi bi-chevron-down"></i>'
+        : '<i class="bi bi-chevron-up"></i>';
+    };
+    $message.appendChild($toggleBtn);
+  }
 
-  // Assemble message
-  messageDiv.appendChild(headerDiv);
-  messageDiv.appendChild(textDiv);
-
-  $container.appendChild(messageDiv);
+  $container.appendChild($message);
 
   // Scroll down the chat
   $messages.scrollTop = $messages.scrollHeight;

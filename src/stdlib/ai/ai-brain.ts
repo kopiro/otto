@@ -79,7 +79,7 @@ export class AIBrain {
         if (interaction.input?.text) {
           return {
             role: interaction.input.role ?? "user",
-            name: this.cleanNameForOpenAI(interaction.getPersonName()),
+            name: this.cleanNameForOpenAI(interaction.getSourceName()),
             content: description,
           };
         }

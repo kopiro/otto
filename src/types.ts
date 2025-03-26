@@ -21,12 +21,12 @@ export type API_IOChannel = {
 
 export type API_Interaction = {
   id: string;
-  source: string | undefined;
   channelName: string;
+  sourceName: string;
   input?: Input;
   output?: Output;
   createdAt: string;
-  personName: string;
+  person: API_Person | null;
 };
 
 export type API_InputToCloseFriend = {

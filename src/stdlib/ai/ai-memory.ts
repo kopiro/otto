@@ -285,7 +285,7 @@ export class AIMemory {
             // Process all interactions in parallel to build the conversation
             const conversationPromises = interactions.map(async (interaction) => {
               const time = interaction.createdAt.toLocaleTimeString();
-              const personName = interaction.getPersonName();
+              const personName = interaction.getSourceName();
               const messages = [];
 
               if (interaction.output && "text" in interaction.output) {
