@@ -1,5 +1,13 @@
 import { API_Person, Authorization, EmotionContext, Language } from "../types";
-import { getModelForClass, Ref, ReturnModelType, DocumentType, prop, modelOptions } from "@typegoose/typegoose";
+import {
+  getModelForClass,
+  Ref,
+  ReturnModelType,
+  DocumentType,
+  prop,
+  modelOptions,
+  getName,
+} from "@typegoose/typegoose";
 
 import { Signale } from "signale";
 import { IODriverId } from "../stdlib/io-manager";
@@ -10,6 +18,21 @@ const TAG = "Person";
 const logger = new Signale({
   scope: TAG,
 });
+
+function processEmotions(emotions: any) {
+  const initialEmotions = { ...config().brain.startEmotions };
+  if (typeof emotions === "object") {
+    for (const key in emotions) {
+      if (key in initialEmotions) {
+        initialEmotions[key as keyof EmotionContext] = Math.max(
+          0,
+          Math.min(100, Math.round(emotions[key as keyof EmotionContext])),
+        );
+      }
+    }
+  }
+  return initialEmotions;
+}
 
 @modelOptions({ schemaOptions: { collection: "persons" }, options: { allowMixed: 0 } })
 export class IPerson {
@@ -30,15 +53,7 @@ export class IPerson {
   @prop({
     required: false,
     type: mongoose.Schema.Types.Mixed,
-    set: (newEmotions: EmotionContext) => {
-      if (!newEmotions) return newEmotions;
-      const validEmotions = Object.keys(config().brain.startEmotions);
-      return Object.fromEntries(
-        Object.entries(newEmotions)
-          .filter(([key]) => validEmotions.includes(key))
-          .map(([key, value]) => [key, Math.max(0, Math.min(100, Math.round(value)))]),
-      );
-    },
+    set: (newEmotions: any) => processEmotions(newEmotions),
   })
   public emotions?: EmotionContext;
 
@@ -47,10 +62,7 @@ export class IPerson {
   }
 
   public getEmotions() {
-    return {
-      ...config().brain.startEmotions,
-      ...this.emotions,
-    };
+    return processEmotions(this.emotions);
   }
 
   public toJSONDebug() {
